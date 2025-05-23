@@ -1,0 +1,119 @@
+.buttonPosition {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    margin-top: 10%;
+    margin-right: 5%;
+}
+
+.buttonPosition button {
+    margin-bottom: 16px;
+    width: 100%;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    /* Centers the button content */
+}
+
+.buttonPosition button:last-child {
+    margin-bottom: 0;
+}
+
+.buttonPosition button img {
+    margin-right: 8px;
+    width: 24px;
+    height: 24px;
+}
+
+.container {
+    display: flex;
+    grid-template-rows: 1;
+    grid-template-columns: 1;
+    justify-content: center;
+    margin-bottom: 10px;
+}
+
+.containerButtons {
+    display: grid;
+    justify-content: right;
+    margin-bottom: 10px;
+    margin-left: 10px;
+}
+
+.inputFuck {
+    display: flex;
+    justify-content: center;
+}
+
+.sizeOfInputs {
+    width: 25px;
+    height: 20px;
+}
+
+.sizeOfInputs2 {
+    width: 119px;
+    height: 20px;
+}
+
+.positionCenter {
+    display: flex;
+    justify-content: center;
+}
+
+.centerElements {
+    display: flex;
+    justify-content: center;
+}
+
+.positionIcons {
+    display: flex;
+    justify-content: right;
+    margin-right: 15%;
+    margin-top: 10%;
+}
+
+body {
+    background-color: black;
+}
+
+.putElementsUnder {
+    display: flex;
+    margin-bottom: auto;
+    justify-content: center;
+}
+
+.inputUpgrades {}
+
+
+.bankPosition {
+    display: none;
+    justify-content: left;
+    margin-bottom: 10px;
+    margin-left: 10px;
+}
+
+.theBankKeeperInputs {}
+
+
+h1 {
+    font-size: 20px;
+}
+
+.bankButtonPosition {
+    display: grid;
+    justify-content: left;
+    margin-bottom: 10px;
+    margin-left: 10px;
+}
+
+.prestigeSystem {
+    display: none;
+    margin-bottom: auto;
+    justify-content: right;
+}
+
+.prestigeButton {
+    display: none;
+    margin-bottom: auto;
+    justify-content: right;
+}

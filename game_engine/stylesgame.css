@@ -1,0 +1,157 @@
+body {
+    background-color: black;
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.ui-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.gameMenu {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+}
+
+.playerButtons {
+    display: flex;
+    justify-content: left;
+    margin-top: 20px;
+}
+
+.gameButtons {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+.game-container {
+    position: relative;
+    /* Anchor for UI canvases */
+    display: inline-block;
+    /* Fit to canvas size */
+}
+
+canvas#mainGameRender {
+    border: 1px solid black;
+    display: block;
+    /* Prevent flex issues */
+}
+
+canvas#staminaBar,
+canvas.minimapCanvas {
+    position: absolute;
+    z-index: 1000;
+    /* Stay on top */
+}
+
+input,
+button {
+    background-color: black;
+    color: white;
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid white;
+    cursor: pointer;
+    font-family: Arial, sans-serif;
+}
+
+.noiseSeed {
+    display: flex;
+    align-items: center;
+}
+
+.lopsidedBnuuy {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+body {
+    background-color: black;
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.ui-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.gameMenu {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+}
+
+.playerButtons {
+    display: flex;
+    justify-content: left;
+    margin-top: 20px;
+}
+
+.gameButtons {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+.game-container {
+    position: relative;
+    /* Anchor for UI canvases */
+    display: inline-block;
+    /* Fit to canvas size */
+}
+
+canvas#mainGameRender {
+    border: 1px solid black;
+    display: block;
+    /* Prevent flex issues */
+}
+
+canvas#staminaBar,
+canvas.minimapCanvas {
+    position: absolute;
+    z-index: 1000;
+    /* Stay on top */
+}
+
+input,
+button {
+    background-color: black;
+    color: white;
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid white;
+    cursor: pointer;
+    font-family: Arial, sans-serif;
+}
+
+.noiseSeed {
+    display: flex;
+    align-items: center;
+}
+
+.lopsidedBnuuy {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
