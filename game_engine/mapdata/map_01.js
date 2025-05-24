@@ -28,6 +28,8 @@ const map_01_sector2 = [
     [emptyTile, emptyTile, emptyTile, emptyTile],
     [emptyTile, emptyTile, emptyTile, emptyTile],
     [emptyTile, emptyTile, emptyTile, emptyTile],
+    [emptyTile, emptyTile, emptyTile, emptyTile],
+    [emptyTile, emptyTile, emptyTile, emptyTile],
     [fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick],
 ];
 
@@ -45,8 +47,8 @@ const map_01_sector3 = [
 // Combine sectors into a flat 2D map_01
 const sectorPositions = [
     { sector: map_01_sector1, startY: 0, startX: 0 },
-    { sector: map_01_sector2, startY: 1, startX: 8 },
-    { sector: map_01_sector3, startY: 2, startX: 12 },
+    { sector: map_01_sector2, startY: 0, startX: 8 },
+    { sector: map_01_sector3, startY: 0, startX: 12 },
 ];
 
 // Calculate map size dynamically

@@ -8,6 +8,7 @@ import { drawSprites } from "./rendersprites.js";
 import { mainGameMenu } from "./menu.js";
 import { texturesLoaded, tileTexturesMap, getDemonLaughingCurrentFrame } from "./mapdata/maptextures.js";
 import { playerUI } from "./playerdata/playerui.js";
+import { collissionGodFunction } from "./colissiondetection/collissionlogic.js";
 
 const domElements = {
     mainGameRender: document.getElementById("mainGameRender"),
@@ -61,7 +62,7 @@ function gameRenderEngine() {
     playerLogic();
     playerInventory();
     playerUI();
-    console.log(mapTable);
+    collissionGodFunction();
 }
 
 function drawBackground() {
