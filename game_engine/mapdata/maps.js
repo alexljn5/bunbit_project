@@ -1,5 +1,5 @@
-import { map_01 } from "./mapdata/map_01.js";
-import { map_02 } from "./mapdata/map_02.js";
+import { map_01 } from "./map_01.js";
+import { map_02 } from "./map_02.js";
 
 export const tileSectors = 50;
 

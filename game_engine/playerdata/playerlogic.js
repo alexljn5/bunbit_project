@@ -1,3 +1,5 @@
+import { renderEngine, CANVAS_WIDTH, CANVAS_HEIGHT } from "../renderengine.js";
+
 export let playerVantagePointX = {
     playerVantagePointX: 0 // No offset at start
 };
@@ -15,60 +17,66 @@ export const keys = {
     e: false,
     [" "]: false,
     shift: false,
-    control: false
+    alt: false
 };
 
 let playerMovementSpeed = 100; // Speed in pixels per second
 let playerRotationSpeed = Math.PI / 3; // Rotation speed in radians per second (90°/s)
 let lastTime = performance.now();
 export let playerStaminaBar = 100;
-const maxStamina = 100;
-const drainRate = 50; // Stamina per second when sprinting
-const regenRate = 20; // Stamina per second when not sprinting
-
-// Stamina bar canvas setup
-const staminaCanvas = document.createElement("canvas");
-staminaCanvas.id = 'staminaBar';
-staminaCanvas.width = 200;
-staminaCanvas.height = 30;
-staminaCanvas.style.position = "absolute";
-staminaCanvas.style.top = "400px"; // Random value, adjust later
-staminaCanvas.style.left = "850px"; // Random value, adjust later
-document.body.appendChild(staminaCanvas);
-const staminaContext = staminaCanvas.getContext("2d");
-
+let maxStamina = 100;
+let drainRate = 50; // Stamina per second when sprinting
+let regenRate = 20; // Stamina per second when not sprinting
 const canvas = document.getElementById('mainGameRender');
 canvas.requestPointerLock = canvas.requestPointerLock || canvas.mozRequestPointerLock;
 
-// Capture Ctrl+W early
-window.addEventListener('keydown', (event) => {
-    if (event.ctrlKey && event.key.toLowerCase() === 'w') {
-        event.preventDefault();
-        event.stopPropagation();
-        keys.w = true;
-        keys.control = true;
-    }
-}, true);
-
-addEventListener("keydown", (event) => {
-    const key = event.key.toLowerCase();
-    if (key in keys) {
-        keys[key] = true;
-        if (event.ctrlKey || (event.shiftKey && (key === "w" || key === "s" || key === "q" || key === "e"))) {
+// Dedicated listener for Ctrl+W and Ctrl+Shift+W
+window.addEventListener(
+    "keydown",
+    (event) => {
+        const key = event.key.toLowerCase();
+        if (event.ctrlKey && (key === "w" || key === "W")) {
+            console.log("Ctrl+W intercepted!"); // Debug log
             event.preventDefault();
             event.stopPropagation();
+            event.stopImmediatePropagation(); // Extra measure to stop all handlers
+            keys.w = true;
+            keys.alt = true;
+            return false; // Attempt to block browser default
         }
+    },
+    true // Capture phase
+);
+
+// General keydown listener for other keys
+window.addEventListener(
+    "keydown",
+    (event) => {
+        const key = event.key.toLowerCase();
+        if (key in keys) {
+            event.preventDefault();
+            event.stopPropagation();
+            keys[key] = true;
+        }
+    },
+    true // Capture phase
+);
+
+// Keyup listener
+window.addEventListener("keyup", (event) => {
+    const key = event.key.toLowerCase();
+    if (key in keys) {
+        event.preventDefault();
+        event.stopPropagation();
+        keys[key] = false;
     }
 });
 
-addEventListener("keyup", (event) => {
-    const key = event.key.toLowerCase();
-    if (key in keys) {
+// Reset keys on window blur or focus loss
+window.addEventListener("blur", () => {
+    console.log("Window blurred, resetting keys"); // Debug log
+    for (let key in keys) {
         keys[key] = false;
-        if (event.ctrlKey || event.shiftKey) {
-            event.preventDefault();
-            event.stopPropagation();
-        }
     }
 });
 
@@ -80,7 +88,9 @@ canvas.addEventListener('click', () => {
 
 document.addEventListener('pointerlockchange', () => {
     if (document.pointerLockElement === canvas || document.mozPointerLockElement === canvas) {
+        console.log("Pointer lock acquired"); // Debug log
     } else {
+        console.log("Pointer lock lost, resetting keys"); // Debug log
         for (let key in keys) {
             keys[key] = false;
         }
@@ -104,8 +114,9 @@ export function playerLogic() {
     lastTime = now;
 
     // Stamina management
-    const isSprinting = keys.control && (keys.w || keys.s || keys.q || keys.e) && playerStaminaBar > 0;
-    if (isSprinting) {
+    let isSprinting = false;
+    if (keys.alt && (keys.w || keys.s || keys.q || keys.e) && playerStaminaBar > 0) {
+        isSprinting = true;
         playerStaminaBar = Math.max(0, playerStaminaBar - drainRate * deltaTime);
     } else if (playerStaminaBar < maxStamina) {
         playerStaminaBar = Math.min(maxStamina, playerStaminaBar + regenRate * deltaTime);
@@ -122,7 +133,8 @@ export function playerLogic() {
 
     const cosAngle = Math.cos(playerPosition.angle);
     const sinAngle = Math.sin(playerPosition.angle);
-    const sprintMultiplier = isSprinting ? 2 : 1;
+    // Only apply sprint multiplier if stamina is above 0
+    const sprintMultiplier = isSprinting && playerStaminaBar > 0 ? 2 : 1;
     const slowMultiplier = keys.shift ? 0.5 : 1;
 
     if (keys.w) {
@@ -140,12 +152,10 @@ export function playerLogic() {
         playerPosition.z -= Math.cos(playerPosition.angle) * playerMovementSpeed * sprintMultiplier * slowMultiplier * deltaTime;
     }
 
-    // Strafing logic (Q = left, E = right)
     if (keys.e) {
         playerPosition.x -= Math.sin(playerPosition.angle) * playerMovementSpeed * sprintMultiplier * slowMultiplier * deltaTime;
         playerPosition.z += Math.cos(playerPosition.angle) * playerMovementSpeed * sprintMultiplier * slowMultiplier * deltaTime;
     }
-
 
     if (keys[" "]) {
         console.log("shart");
@@ -160,24 +170,21 @@ export function playerLogic() {
 }
 
 function staminaBarMeterOnCanvas() {
-    const barWidth = 180; // Slightly smaller than canvas for border
-    const barHeight = 200;
-    const x = (staminaCanvas.width - barWidth) / 2;
-    const y = (staminaCanvas.height - barHeight) / 2;
-
-    // Clear the canvas
-    staminaContext.clearRect(0, 0, staminaCanvas.width, staminaCanvas.height);
+    const barWidth = 180; // Slightly smaller than before for aesthetics
+    const barHeight = 20;
+    const x = (CANVAS_WIDTH - barWidth) / 100; // Center horizontally on 800px canvas
+    const y = CANVAS_HEIGHT - barHeight - 740; // Near bottom, 20px from edge
 
     // Draw background
-    staminaContext.fillStyle = 'rgba(255, 255, 255, 0.5)';
-    staminaContext.fillRect(x, y, barWidth, barHeight);
+    renderEngine.fillStyle = 'rgba(255, 255, 255, 0.5)';
+    renderEngine.fillRect(x, y, barWidth, barHeight);
 
     // Draw stamina bar
-    staminaContext.fillStyle = playerStaminaBar <= 20 ? 'rgba(255, 0, 0, 0.8)' : 'rgba(0, 255, 0, 0.8)'; // Red when low
-    staminaContext.fillRect(x, y, (barWidth * playerStaminaBar) / maxStamina, barHeight);
+    renderEngine.fillStyle = playerStaminaBar <= 20 ? 'rgba(255, 0, 0, 0.8)' : 'rgba(255, 0, 0, 0.8)'; // Red when low
+    renderEngine.fillRect(x, y, (barWidth * playerStaminaBar) / maxStamina, barHeight);
 
-    // Draw border (like minimap)
-    staminaContext.strokeStyle = "white";
-    staminaContext.lineWidth = 2;
-    staminaContext.strokeRect(x, y, barWidth, barHeight);
+    // Draw border
+    renderEngine.strokeStyle = "white";
+    renderEngine.lineWidth = 2;
+    renderEngine.strokeRect(x, y, barWidth, barHeight);
 }

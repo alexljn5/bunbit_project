@@ -1,7 +1,7 @@
-import { playerMovement, playerPosition } from "./playerlogic.js";
-import { renderEngine } from "./renderengine.js";
+import { playerMovement, playerPosition } from "./playerdata/playerlogic.js";
+import { renderEngine, CANVAS_WIDTH, CANVAS_HEIGHT } from "./renderengine.js";
 import { map_01, mapWidth, mapHeight } from "./mapdata/map_01.js";
-import { tileSectors } from "./maps.js";
+import { tileSectors } from "./mapdata/maps.js";
 import { tileTexturesMap } from "./mapdata/maptextures.js";
 import { creamTestSprite, creamTestLoaded, creamTestWorldPos, creamSpinLoaded, creamSpinWorldPos, getCreamSpinCurrentFrame } from "./rendersprites.js";
 
@@ -20,7 +20,7 @@ export function compiledTextStyle() {
 
 function versionTextDisplay() {
     compiledTextStyle();
-    renderEngine.fillText("IDLE 2.5D TEST: Alpha 0.0.2", 0, 30);
+    renderEngine.fillText("IDLE 2.5D TEST: Alpha 0.0.3", 0, 30);
 }
 
 function fpsMeter() {
@@ -43,25 +43,26 @@ function playerCoordinates() {
     renderEngine.fillText(`X: ${playerXCoords}, Z: ${playerZCoords}`, 0, 90);
 }
 
-const minimapCanvas = document.createElement("canvas");
-minimapCanvas.width = 200;
-minimapCanvas.height = 200;
-minimapCanvas.style.position = "absolute";
-minimapCanvas.style.top = "300px";
-minimapCanvas.style.right = "350px";
-document.body.appendChild(minimapCanvas);
-const minimapContext = minimapCanvas.getContext("2d");
-
+const minimapWidth = 200; // Fixed size for minimap
+const minimapHeight = 200;
 const minimapScale = Math.min(
-    minimapCanvas.width / (mapWidth * tileSectors),
-    minimapCanvas.height / (mapHeight * tileSectors)
+    minimapWidth / (mapWidth * tileSectors),
+    minimapHeight / (mapHeight * tileSectors)
 );
 const minimapTileSize = tileSectors * minimapScale;
 
 export function drawMinimap() {
-    // Clear the minimap
-    minimapContext.clearRect(0, 0, minimapCanvas.width, minimapCanvas.height);
-    minimapContext.setTransform(1, 0, 0, 1, 0, 0);
+    const minimapX = CANVAS_WIDTH - minimapWidth - 20; // Top-right, 20px from edge
+    const minimapY = 20; // 20px from top
+
+    // Save the current canvas state
+    renderEngine.save();
+    // Translate to minimap position
+    renderEngine.translate(minimapX, minimapY);
+
+    // Clear the minimap area (optional, since drawBackground clears the canvas)
+    renderEngine.fillStyle = "black";
+    renderEngine.fillRect(0, 0, minimapWidth, minimapHeight);
 
     // Draw map tiles
     for (let y = 0; y < mapHeight; y++) {
@@ -72,14 +73,14 @@ export function drawMinimap() {
 
             if (tile.type === "wall" && tileTexturesMap.has(tile.textureId)) {
                 const texture = tileTexturesMap.get(tile.textureId);
-                minimapContext.drawImage(
+                renderEngine.drawImage(
                     texture,
                     0, 0, texture.width, texture.height,
                     pixelX, pixelY, minimapTileSize, minimapTileSize
                 );
             } else {
-                minimapContext.fillStyle = tile.type === "wall" ? "#777777" : "black";
-                minimapContext.fillRect(pixelX, pixelY, minimapTileSize, minimapTileSize);
+                renderEngine.fillStyle = tile.type === "wall" ? "#777777" : "black";
+                renderEngine.fillRect(pixelX, pixelY, minimapTileSize, minimapTileSize);
             }
         }
     }
@@ -100,9 +101,9 @@ export function drawMinimap() {
             if (hasWallNeighbor) {
                 const pixelX = x * minimapTileSize;
                 const pixelY = y * minimapTileSize;
-                minimapContext.strokeStyle = "white";
-                minimapContext.lineWidth = 1;
-                minimapContext.strokeRect(pixelX, pixelY, minimapTileSize, minimapTileSize);
+                renderEngine.strokeStyle = "white";
+                renderEngine.lineWidth = 1;
+                renderEngine.strokeRect(pixelX, pixelY, minimapTileSize, minimapTileSize);
             }
         }
     }
@@ -112,8 +113,8 @@ export function drawMinimap() {
     const playerPixelY = playerPosition.z * minimapScale;
     const playerSize = 5;
 
-    minimapContext.fillStyle = "red";
-    minimapContext.fillRect(
+    renderEngine.fillStyle = "red";
+    renderEngine.fillRect(
         playerPixelX - playerSize / 2,
         playerPixelY - playerSize / 2,
         playerSize,
@@ -126,7 +127,7 @@ export function drawMinimap() {
         const spritePixelY = creamTestWorldPos.z * minimapScale;
         const spriteSize = minimapTileSize * 0.5;
 
-        minimapContext.drawImage(
+        renderEngine.drawImage(
             creamTestSprite,
             0, 0, creamTestSprite.width, creamTestSprite.height,
             spritePixelX - spriteSize / 2,
@@ -137,8 +138,6 @@ export function drawMinimap() {
     }
 
     // Draw creamSpinFrames
-
-    // This code was given by AI, I have no idea why it actually projected the damn sprite, but holy fuck it did and it works and it is amazing. Do not ever fuck with this.
     if (creamSpinLoaded) {
         const currentFrame = getCreamSpinCurrentFrame();
         if (currentFrame) {
@@ -146,7 +145,7 @@ export function drawMinimap() {
             const spritePixelY = creamSpinWorldPos.z * minimapScale;
             const spriteSize = minimapTileSize * 0.5;
 
-            minimapContext.drawImage(
+            renderEngine.drawImage(
                 currentFrame,
                 0, 0, currentFrame.width, currentFrame.height,
                 spritePixelX - spriteSize / 2,
@@ -156,9 +155,12 @@ export function drawMinimap() {
             );
         }
     }
+
     // Draw minimap border
-    minimapContext.strokeStyle = "white";
-    minimapContext.lineWidth = 2;
-    minimapContext.strokeRect(0, 0, minimapCanvas.width, minimapCanvas.height);
-    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    renderEngine.strokeStyle = "white";
+    renderEngine.lineWidth = 2;
+    renderEngine.strokeRect(0, 0, minimapWidth, minimapHeight);
+
+    // Restore the canvas state
+    renderEngine.restore();
 }

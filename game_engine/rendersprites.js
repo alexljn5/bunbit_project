@@ -1,32 +1,42 @@
-import { keys, playerMovement, playerPosition, playerVantagePointX, playerVantagePointY } from "./playerlogic.js";
+// rendersprites.js
+import { keys, playerMovement, playerPosition, playerVantagePointX, playerVantagePointY } from "./playerdata/playerlogic.js";
 import { renderEngine } from "./renderengine.js";
-import { tileSectors } from "./maps.js";
+import { tileSectors } from "./mapdata/maps.js";
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from "./renderengine.js";
-import { castRays, numCastRays, playerFOV } from "./raycasting.js"; // Ensure imports
+import { castRays, numCastRays, playerFOV } from "./raycasting.js";
 
 // Preload Sprites
 export const playerHandSprite = new Image(100, 100);
-playerHandSprite.src = "img/sprites/playerhand/playerhand_default.png";
+playerHandSprite.src = "./img/sprites/playerhand/playerhand_default.png";
 export let handLoaded = false;
 playerHandSprite.onload = () => {
     handLoaded = true;
     console.log("Player hand sprite loaded");
 };
+playerHandSprite.onerror = () => {
+    console.error("Failed to load playerhand_default.png at ./img/sprites/playerhand/playerhand_default.png");
+};
 
 export const creamTestSprite = new Image(200, 50);
-creamTestSprite.src = "img/sprites/creamtest.png";
+creamTestSprite.src = "./img/sprites/creamtest.png";
 export let creamTestLoaded = false;
 creamTestSprite.onload = () => {
     creamTestLoaded = true;
     console.log("Cream test sprite loaded");
 };
+creamTestSprite.onerror = () => {
+    console.error("Failed to load creamtest.png at ./img/sprites/creamtest.png");
+};
 
 export const firingSprite = new Image(32, 32);
-firingSprite.src = "img/sprites/placeholder.png";
+firingSprite.src = "./img/sprites/placeholder.png";
 export let firingLoaded = false;
 firingSprite.onload = () => {
     firingLoaded = true;
     console.log("Firing sprite loaded");
+};
+firingSprite.onerror = () => {
+    console.error("Failed to load placeholder.png at ./img/sprites/placeholder.png");
 };
 
 export const creamSpinFrames = [];
@@ -34,7 +44,7 @@ export const creamSpinFrameCount = 7;
 export let creamSpinLoaded = false;
 for (let i = 0; i < creamSpinFrameCount; i++) {
     const img = new Image(150, 250);
-    img.src = `img/sprites/creamspin/creamspin${i}.png`;
+    img.src = `./img/sprites/creamspin/creamspin${i}.png`;
     img.onload = () => {
         creamSpinFrames[i] = img;
         if (creamSpinFrames.filter(f => f).length === creamSpinFrameCount) {
@@ -42,19 +52,97 @@ for (let i = 0; i < creamSpinFrameCount; i++) {
             console.log("All cream spin frames loaded");
         }
     };
+    img.onerror = () => {
+        console.error(`Failed to load creamspin${i}.png at ./img/sprites/creamspin/creamspin${i}.png`);
+    };
 }
 
+export const corpse1Sprite = new Image();
+corpse1Sprite.src = "./img/sprites/decoration/corpse_1.png";
+export let corpse1Loaded = false;
+corpse1Sprite.onload = () => {
+    corpse1Loaded = true;
+    console.log("Corpse 1 sprite loaded");
+};
+corpse1Sprite.onerror = () => {
+    console.error("Failed to load corpse_1.png at ./img/sprites/decoration/corpse_1.png");
+};
+
+export const corpse1WorldPos = { x: 6 * tileSectors, z: 1.3 * tileSectors }; // (150, 150)
+
 export function drawSprites(rayData) {
-    drawStaticSprites();
+    if (!rayData) {
+        console.warn("rayData is undefined, skipping sprite rendering");
+        return;
+    }
+    drawStaticSprites(rayData);
     animatedSpriteRenderer(rayData);
 }
 
-function drawStaticSprites() {
+function drawStaticSprites(rayData) {
     playerHandSpriteFunction();
+    corpse1SpriteFunction(rayData);
 }
 
 function animatedSpriteRenderer(rayData) {
     creamSpinTestSprite(rayData);
+}
+
+function corpse1SpriteFunction(rayData) {
+    if (!corpse1Loaded) {
+        console.warn("corpse1Sprite not loaded");
+        return;
+    }
+
+    // Calculate distance from player to sprite
+    const dx = corpse1WorldPos.x - playerPosition.x; // Fixed: Use corpse1WorldPos
+    const dz = corpse1WorldPos.z - playerPosition.z;
+    const distance = Math.sqrt(dx * dx + dz * dz);
+
+    // Apply perspective correction (same as walls)
+    const relativeAngle = Math.atan2(dz, dx) - playerPosition.angle;
+    const correctedDistance = distance * Math.cos(relativeAngle);
+    if (correctedDistance < 1) {
+        console.log("Corpse too close, skipping");
+        return;
+    }
+
+    // Calculate sprite size based on distance, matching wall scaling
+    const spriteHeight = (CANVAS_HEIGHT / correctedDistance) * tileSectors / 2;
+    const spriteWidth = spriteHeight * (128 / 64); // Fixed: Use 128x64 aspect ratio
+    const spriteY = (CANVAS_HEIGHT - spriteHeight) / 2; // Center vertically
+
+    // Calculate screen X position
+    const screenX = (CANVAS_WIDTH / 2) + (CANVAS_WIDTH / 2) * (relativeAngle / (playerFOV / 2));
+
+    // Apply vantage point offset
+    const adjustedScreenX = screenX - playerVantagePointX.playerVantagePointX;
+
+    // Determine the screen columns the sprite spans
+    const startColumn = Math.max(0, Math.floor((adjustedScreenX - spriteWidth / 2) / (CANVAS_WIDTH / numCastRays)));
+    const endColumn = Math.min(numCastRays - 1, Math.ceil((adjustedScreenX + spriteWidth / 2) / (CANVAS_WIDTH / numCastRays)));
+
+    // Check if sprite is visible (not occluded by walls)
+    let isVisible = false;
+    for (let col = startColumn; col <= endColumn; col++) {
+        const ray = rayData[col];
+        if (!ray || correctedDistance < ray.distance) {
+            isVisible = true;
+            break;
+        }
+    }
+    // Only draw if sprite is on screen and not occluded
+    if (isVisible && adjustedScreenX + spriteWidth / 2 >= 0 && adjustedScreenX - spriteWidth / 2 <= CANVAS_WIDTH) {
+        renderEngine.drawImage(
+            corpse1Sprite,
+            adjustedScreenX - spriteWidth / 2,
+            spriteY - playerVantagePointY.playerVantagePointY,
+            spriteWidth,
+            spriteHeight
+        );
+    } else {
+        //console.log("Corpse1 not drawn: off-screen or occluded");
+    }
 }
 
 function playerHandSpriteFunction() {
@@ -65,6 +153,8 @@ function playerHandSpriteFunction() {
 
     if (handLoaded) {
         renderEngine.drawImage(playerHandSprite, handX, handY, handWidth, handHeight);
+    } else {
+        console.warn("playerHandSprite not loaded");
     }
 }
 
@@ -90,7 +180,10 @@ export function getCreamSpinCurrentFrame() {
 }
 
 function creamSpinTestSprite(rayData) {
-    if (!creamSpinLoaded) return;
+    if (!creamSpinLoaded) {
+        console.warn("creamSpinFrames not loaded");
+        return;
+    }
 
     // Calculate distance from player to sprite
     const dx = creamSpinWorldPos.x - playerPosition.x;
@@ -100,17 +193,20 @@ function creamSpinTestSprite(rayData) {
     // Apply perspective correction (same as walls)
     const relativeAngle = Math.atan2(dz, dx) - playerPosition.angle;
     const correctedDistance = distance * Math.cos(relativeAngle);
-    if (correctedDistance < 1) return; // Skip if too close
+    if (correctedDistance < 1) {
+        console.log("CreamSpin too close, skipping");
+        return;
+    }
 
     // Calculate sprite size based on distance, matching wall scaling
     const spriteHeight = (CANVAS_HEIGHT / correctedDistance) * tileSectors;
-    const spriteWidth = spriteHeight * (150 / 250); // Maintain aspect ratio (150x250 sprite)
-    const spriteY = (CANVAS_HEIGHT - spriteHeight) / 2; // Center vertically, like walls
+    const spriteWidth = spriteHeight * (150 / 250); // 150x250 for creamSpin
+    const spriteY = (CANVAS_HEIGHT - spriteHeight) / 2; // Center vertically
 
     // Calculate screen X position
     const screenX = (CANVAS_WIDTH / 2) + (CANVAS_WIDTH / 2) * (relativeAngle / (playerFOV / 2));
 
-    // Apply vantage point offset (same as walls)
+    // Apply vantage point offset
     const adjustedScreenX = screenX - playerVantagePointX.playerVantagePointX;
 
     // Determine the screen columns the sprite spans
@@ -126,7 +222,6 @@ function creamSpinTestSprite(rayData) {
             break;
         }
     }
-
     // Only draw if sprite is on screen and not occluded
     if (isVisible && adjustedScreenX + spriteWidth / 2 >= 0 && adjustedScreenX - spriteWidth / 2 <= CANVAS_WIDTH) {
         const currentFrame = getCreamSpinCurrentFrame();
@@ -139,5 +234,6 @@ function creamSpinTestSprite(rayData) {
                 spriteHeight
             );
         }
+    } else {
     }
 }

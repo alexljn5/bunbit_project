@@ -1,11 +1,11 @@
-import { playerPosition } from "./playerlogic.js";
-import { tileSectors, mapTable } from "./maps.js";
+import { playerPosition } from "./playerdata/playerlogic.js";
+import { tileSectors, mapTable } from "./mapdata/maps.js";
 import { textureIdMap } from "./mapdata/maptextures.js";
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from "./renderengine.js";
 
 export const playerFOV = Math.PI / 6;
 export const numCastRays = 500;
-export const maxRayDepth = 40;
+export const maxRayDepth = 5;
 
 let map_01 = mapTable.get("map_01");
 

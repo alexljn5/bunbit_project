@@ -3,10 +3,10 @@ import { fullTile, emptyTile, fullTileAldi, fullTileBrick, fullTileSatanic, full
 
 // Starting room (10x8)
 const map_01_sector1 = [
-    [fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick],
-    [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick, emptyTile, emptyTile, fullTileBrick],
+    [fullTileBrick, fullTileBrick, fullTileBrickGraffiti01, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick],
     [fullTileBrick, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick],
-    [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick, emptyTile, emptyTile, fullTileBrick],
+    [fullTileBrick, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [fullTileBrick, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick],
     [fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, emptyTile, emptyTile, fullTileBrick],
     [fullTileBrick, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile],
     [fullTileBrick, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick],
@@ -18,22 +18,22 @@ const map_01_sector1 = [
     [fullTileBrick, emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick, emptyTile, fullTileBrick],
     [fullTileBrick, emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick, emptyTile, fullTileBrick],
     [fullTileBrick, emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick, emptyTile, fullTileBrick],
-    [fullTileBrick, fullTileBrick, fullTileSchizoEye, fullTileSchizoEye, fullTileSchizoEye, fullTileBrick, fullTileLaughingDemon, fullTileBrick],
+    [fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileLaughingDemon, fullTileBrick],
 ];
 
 // Hallway (8x4)
 const map_01_sector2 = [
+    [fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick],
     [emptyTile, emptyTile, emptyTile, emptyTile],
     [emptyTile, emptyTile, emptyTile, emptyTile],
     [emptyTile, emptyTile, emptyTile, emptyTile],
-    [fullTileBrick, fullTileSchizoEye, fullTileBrick, fullTileBrick],
     [emptyTile, emptyTile, emptyTile, emptyTile],
-    [fullTileBrick, fullTileBrick, fullTileSchizoEye, fullTileBrick],
+    [fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick],
 ];
 
 // Test sector (7x4)
 const map_01_sector3 = [
-    [fullTileBrick, fullTileAldi, fullTileAldi, fullTileBrick],
+    [fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick],
     [fullTileBrick, emptyTile, emptyTile, fullTileBrick],
     [emptyTile, emptyTile, emptyTile, fullTileBrick],
     [emptyTile, emptyTile, emptyTile, fullTile],

@@ -1,12 +1,13 @@
 import { gameLoop } from "./main_game.js";
-import { playerVantagePointX, playerVantagePointY, playerLogic } from "./playerlogic.js";
-import { playerInventory } from "./playerinventory.js";
+import { playerVantagePointX, playerVantagePointY, playerLogic } from "./playerdata/playerlogic.js";
+import { playerInventory } from "./playerdata/playerinventory.js";
 import { compiledDevTools, compiledTextStyle } from "./debugtools.js";
-import { mapTable, tileSectors } from "./maps.js";
+import { mapTable, tileSectors } from "./mapdata/maps.js";
 import { castRays } from "./raycasting.js";
 import { drawSprites } from "./rendersprites.js";
 import { mainGameMenu } from "./menu.js";
 import { texturesLoaded, tileTexturesMap, getDemonLaughingCurrentFrame } from "./mapdata/maptextures.js";
+import { playerUI } from "./playerdata/playerui.js";
 
 const domElements = {
     mainGameRender: document.getElementById("mainGameRender"),
@@ -59,6 +60,7 @@ function gameRenderEngine() {
     }
     playerLogic();
     playerInventory();
+    playerUI();
     console.log(mapTable);
 }
 
