@@ -1,22 +1,21 @@
+import { renderEngine } from "../renderengine.js";
+import { metalPipeSprite } from "../rendersprites.js";
+
 const domElements = {
-    playerInventoryButton: document.getElementById("playerInventory"),
-    testButton: document.getElementById("testButton")
+    playerInventoryButton: document.getElementById("playerInventory")
 };
 
 domElements.playerInventoryButton.addEventListener("click", playerInventoryButton);
 
-let storedItems = [];
+export let playerInventory = [];
+export let showInventorySprite = false; // New flag to control sprite drawing
 
-//works
 const justForTesting = "fartshittyaids";
 
+export function playerInventoryGodFunction() {
+    console.log(playerInventory);
+}
+
 function playerInventoryButton() {
-    storedItems.push(justForTesting);
-    console.log(storedItems);
+
 }
-
-export function playerInventory() {
-    console.log(storedItems);
-}
-
-

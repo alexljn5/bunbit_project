@@ -1,9 +1,9 @@
-// rendersprites.js
 import { keys, playerMovement, playerPosition, playerVantagePointX, playerVantagePointY } from "./playerdata/playerlogic.js";
 import { renderEngine } from "./renderengine.js";
 import { tileSectors } from "./mapdata/maps.js";
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from "./renderengine.js";
 import { castRays, numCastRays, playerFOV } from "./raycasting.js";
+import { playerInventory } from "./playerdata/playerinventory.js"; // Add this import
 
 // Preload Sprites
 export const playerHandSprite = new Image(100, 100);
@@ -57,7 +57,7 @@ for (let i = 0; i < creamSpinFrameCount; i++) {
     };
 }
 
-export const corpse1Sprite = new Image();
+export const corpse1Sprite = new Image(128, 128);
 corpse1Sprite.src = "./img/sprites/decoration/corpse_1.png";
 export let corpse1Loaded = false;
 corpse1Sprite.onload = () => {
@@ -67,8 +67,27 @@ corpse1Sprite.onload = () => {
 corpse1Sprite.onerror = () => {
     console.error("Failed to load corpse_1.png at ./img/sprites/decoration/corpse_1.png");
 };
-
 export const corpse1WorldPos = { x: 6 * tileSectors, z: 1.3 * tileSectors }; // (150, 150)
+
+export const metalPipeSprite = new Image(128, 128);
+metalPipeSprite.src = "./img/sprites/items/metal_pipe.png";
+export let metalPipeLoaded = false;
+metalPipeSprite.onload = () => {
+    metalPipeLoaded = true;
+    console.log("Metal pipe sprite loaded");
+};
+export const metalPipeWorldPos = { x: 7 * tileSectors, z: 5 * tileSectors };
+export const spriteState = {
+    isMetalPipeCollected: false
+};
+
+export const metalPipePlayerHandSprite = new Image(128, 128);
+metalPipePlayerHandSprite.src = "./img/sprites/playerhand/playerhand_metal_pipe.png";
+export let metalPipePlayerHandLoaded = false;
+metalPipePlayerHandSprite.onload = () => {
+    metalPipePlayerHandLoaded = true;
+    console.log("Metal pipe player hand sprite loaded");
+};
 
 export function drawSprites(rayData) {
     if (!rayData) {
@@ -82,6 +101,7 @@ export function drawSprites(rayData) {
 function drawStaticSprites(rayData) {
     playerHandSpriteFunction();
     corpse1SpriteFunction(rayData);
+    metalPipeSpriteFunction(rayData);
 }
 
 function animatedSpriteRenderer(rayData) {
@@ -109,8 +129,10 @@ function corpse1SpriteFunction(rayData) {
 
     // Calculate sprite size based on distance, matching wall scaling
     const spriteHeight = (CANVAS_HEIGHT / correctedDistance) * tileSectors / 2;
-    const spriteWidth = spriteHeight * (128 / 64); // Fixed: Use 128x64 aspect ratio
-    const spriteY = (CANVAS_HEIGHT - spriteHeight) / 2; // Center vertically
+    const spriteWidth = spriteHeight * (128 / 80); // Fixed: Use 128x64 aspect ratio
+
+    //const spriteY = (CANVAS_HEIGHT - spriteHeight) / 2; // Center vertically
+    const spriteY = 400; // Center vertically
 
     // Calculate screen X position
     const screenX = (CANVAS_WIDTH / 2) + (CANVAS_WIDTH / 2) * (relativeAngle / (playerFOV / 2));
@@ -145,16 +167,78 @@ function corpse1SpriteFunction(rayData) {
     }
 }
 
-function playerHandSpriteFunction() {
-    const handX = 450;
-    const handY = 400;
-    const handWidth = 100;
-    const handHeight = 100;
+function metalPipeSpriteFunction(rayData) {
+    if (!metalPipeSprite) {
+        console.warn("corpse1Sprite not loaded");
+        return;
+    }
 
-    if (handLoaded) {
-        renderEngine.drawImage(playerHandSprite, handX, handY, handWidth, handHeight);
+    if (!metalPipeLoaded || spriteState.isMetalPipeCollected) {
+        return;
+    }
+
+    // Calculate distance from player to sprite
+    const dx = metalPipeWorldPos.x - playerPosition.x;
+    const dz = metalPipeWorldPos.z - playerPosition.z;
+    const distance = Math.sqrt(dx * dx + dz * dz);
+
+    // Apply perspective correction (same as walls)
+    const relativeAngle = Math.atan2(dz, dx) - playerPosition.angle;
+    const correctedDistance = distance * Math.cos(relativeAngle);
+    if (correctedDistance < 1) {
+        console.log("Metal Pipe too close, skipping");
+        return;
+    }
+
+    const spriteHeight = (CANVAS_HEIGHT / correctedDistance) * tileSectors / 2;
+    const spriteWidth = spriteHeight * (128 / 80);
+    const spriteY = 500;
+    const screenX = (CANVAS_WIDTH / 2) + (CANVAS_WIDTH / 2) * (relativeAngle / (playerFOV / 2));
+    // Apply vantage point offset
+    const adjustedScreenX = screenX - playerVantagePointX.playerVantagePointX;
+    // Determine the screen columns the sprite spans
+    const startColumn = Math.max(0, Math.floor((adjustedScreenX - spriteWidth / 2) / (CANVAS_WIDTH / numCastRays)));
+    const endColumn = Math.min(numCastRays - 1, Math.ceil((adjustedScreenX + spriteWidth / 2) / (CANVAS_WIDTH / numCastRays)));
+    // Check if sprite is visible (not occluded by walls)
+    let isVisible = false;
+    for (let col = startColumn; col <= endColumn; col++) {
+        const ray = rayData[col];
+        if (!ray || correctedDistance < ray.distance) {
+            isVisible = true;
+            break;
+        }
+    }
+    // Only draw if sprite is on screen and not occluded
+    if (isVisible && adjustedScreenX + spriteWidth / 2 >= 0 && adjustedScreenX - spriteWidth / 2 <= CANVAS_WIDTH) {
+        renderEngine.drawImage(
+            metalPipeSprite,
+            adjustedScreenX - spriteWidth / 2,
+            spriteY - playerVantagePointY.playerVantagePointY,
+            spriteWidth,
+            spriteHeight
+        );
     } else {
-        console.warn("playerHandSprite not loaded");
+        //console.log("Corpse1 not drawn: off-screen or occluded");
+    }
+}
+
+function playerHandSpriteFunction() {
+    const defaultPlayerHandX = 0;
+    const defaultPlayerHandY = 0;
+    const defaultPlayerHandWidth = 100;
+    const defaultPlayerHandHeight = 100;
+
+    const playerHandMetalPipeX = 450;
+    const playerHandMetalPipeY = 400;
+    const playerHandMetalPipeWidth = 256;
+    const playerHandMetalPipeHeight = 512;
+
+    if (playerInventory.includes("metal_pipe") && metalPipePlayerHandLoaded) {
+        renderEngine.drawImage(metalPipePlayerHandSprite, playerHandMetalPipeX, playerHandMetalPipeY, playerHandMetalPipeWidth, playerHandMetalPipeHeight);
+    } else if (handLoaded) {
+        renderEngine.drawImage(playerHandSprite, defaultPlayerHandX, defaultPlayerHandY, defaultPlayerHandWidth, defaultPlayerHandHeight);
+    } else {
+        console.warn("No player hand sprite loaded");
     }
 }
 

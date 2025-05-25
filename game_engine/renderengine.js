@@ -1,6 +1,6 @@
 import { gameLoop } from "./main_game.js";
 import { playerVantagePointX, playerVantagePointY, playerLogic } from "./playerdata/playerlogic.js";
-import { playerInventory } from "./playerdata/playerinventory.js";
+import { playerInventoryGodFunction } from "./playerdata/playerinventory.js";
 import { compiledDevTools, compiledTextStyle } from "./debugtools.js";
 import { mapTable, tileSectors } from "./mapdata/maps.js";
 import { castRays } from "./raycasting.js";
@@ -60,7 +60,7 @@ function gameRenderEngine() {
         compiledDevTools();
     }
     playerLogic();
-    playerInventory();
+    playerInventoryGodFunction();
     playerUI();
     collissionGodFunction();
 }

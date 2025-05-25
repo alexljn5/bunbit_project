@@ -1,11 +1,11 @@
 import { renderEngine, CANVAS_WIDTH, CANVAS_HEIGHT } from "../renderengine.js";
 
 export let playerVantagePointX = {
-    playerVantagePointX: 0 // No offset at start
+    playerVantagePointX: 0
 };
 
 export let playerVantagePointY = {
-    playerVantagePointY: 0 // No offset at start
+    playerVantagePointY: 0
 };
 
 export const keys = {
@@ -21,7 +21,7 @@ export const keys = {
 };
 
 let playerMovementSpeed = 100; // Speed in pixels per second
-let playerRotationSpeed = Math.PI / 3; // Rotation speed in radians per second (90°/s)
+let playerRotationSpeed = Math.PI / 3; // 90°/s
 let lastTime = performance.now();
 export let playerStaminaBar = 100;
 let maxStamina = 100;
@@ -30,22 +30,38 @@ let regenRate = 20; // Stamina per second when not sprinting
 const canvas = document.getElementById('mainGameRender');
 canvas.requestPointerLock = canvas.requestPointerLock || canvas.mozRequestPointerLock;
 
+export let playerPosition = {
+    x: 2.5 * 50 / 2, // 62.5
+    z: 2.5 * 50 / 2, // 62.5
+    angle: 0
+};
+
+export let previousPosition = {
+    x: playerPosition.x,
+    z: playerPosition.z
+}; // Add previousPosition
+
+export let playerMovement = {
+    x: 0,
+    z: 0
+};
+
 // Dedicated listener for Ctrl+W and Ctrl+Shift+W
 window.addEventListener(
     "keydown",
     (event) => {
         const key = event.key.toLowerCase();
         if (event.ctrlKey && (key === "w" || key === "W")) {
-            console.log("Ctrl+W intercepted!"); // Debug log
+            console.log("Ctrl+W intercepted!");
             event.preventDefault();
             event.stopPropagation();
-            event.stopImmediatePropagation(); // Extra measure to stop all handlers
+            event.stopImmediatePropagation();
             keys.w = true;
             keys.alt = true;
-            return false; // Attempt to block browser default
+            return false;
         }
     },
-    true // Capture phase
+    true
 );
 
 // General keydown listener for other keys
@@ -59,7 +75,7 @@ window.addEventListener(
             keys[key] = true;
         }
     },
-    true // Capture phase
+    true
 );
 
 // Keyup listener
@@ -74,7 +90,7 @@ window.addEventListener("keyup", (event) => {
 
 // Reset keys on window blur or focus loss
 window.addEventListener("blur", () => {
-    console.log("Window blurred, resetting keys"); // Debug log
+    console.log("Window blurred, resetting keys");
     for (let key in keys) {
         keys[key] = false;
     }
@@ -88,30 +104,23 @@ canvas.addEventListener('click', () => {
 
 document.addEventListener('pointerlockchange', () => {
     if (document.pointerLockElement === canvas || document.mozPointerLockElement === canvas) {
-        console.log("Pointer lock acquired"); // Debug log
+        console.log("Pointer lock acquired");
     } else {
-        console.log("Pointer lock lost, resetting keys"); // Debug log
+        console.log("Pointer lock lost, resetting keys");
         for (let key in keys) {
             keys[key] = false;
         }
     }
 });
 
-export let playerPosition = {
-    x: 2.5 * 50 / 2,
-    z: 2.5 * 50 / 2,
-    angle: 0
-};
-
-export let playerMovement = {
-    x: 0,
-    z: 0
-};
-
 export function playerLogic() {
     const now = performance.now();
     const deltaTime = (now - lastTime) / 1000;
     lastTime = now;
+
+    // Save current position before movement
+    previousPosition.x = playerPosition.x;
+    previousPosition.z = playerPosition.z;
 
     // Stamina management
     let isSprinting = false;
@@ -133,7 +142,6 @@ export function playerLogic() {
 
     const cosAngle = Math.cos(playerPosition.angle);
     const sinAngle = Math.sin(playerPosition.angle);
-    // Only apply sprint multiplier if stamina is above 0
     const sprintMultiplier = isSprinting && playerStaminaBar > 0 ? 2 : 1;
     const slowMultiplier = keys.shift ? 0.5 : 1;
 
@@ -170,20 +178,17 @@ export function playerLogic() {
 }
 
 function staminaBarMeterOnCanvas() {
-    const barWidth = 180; // Slightly smaller than before for aesthetics
+    const barWidth = 180;
     const barHeight = 20;
-    const x = (CANVAS_WIDTH - barWidth) / 100; // Center horizontally on 800px canvas
-    const y = CANVAS_HEIGHT - barHeight - 740; // Near bottom, 20px from edge
+    const x = (CANVAS_WIDTH - barWidth) / 100; // Center horizontally
+    const y = CANVAS_HEIGHT - barHeight - 740; // Near bottom
 
-    // Draw background
     renderEngine.fillStyle = 'rgba(255, 255, 255, 0.5)';
     renderEngine.fillRect(x, y, barWidth, barHeight);
 
-    // Draw stamina bar
-    renderEngine.fillStyle = playerStaminaBar <= 20 ? 'rgba(255, 0, 0, 0.8)' : 'rgba(255, 0, 0, 0.8)'; // Red when low
+    renderEngine.fillStyle = playerStaminaBar <= 20 ? 'rgba(255, 0, 0, 0.8)' : 'rgba(255, 0, 0, 0.8)';
     renderEngine.fillRect(x, y, (barWidth * playerStaminaBar) / maxStamina, barHeight);
 
-    // Draw border
     renderEngine.strokeStyle = "white";
     renderEngine.lineWidth = 2;
     renderEngine.strokeRect(x, y, barWidth, barHeight);

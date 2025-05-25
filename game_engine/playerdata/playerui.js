@@ -27,7 +27,7 @@ export function playerUI() {
 
     // Draw semi-transparent background
     renderEngine.fillStyle = "rgba(26, 24, 24, 0.5)";
-    renderEngine.fillRect(200, 688, 400, 100);
+    renderEngine.fillRect(0, 700, 800, 100);
 
     // Draw current face if loaded
     const currentFace = faces[currentFaceIndex];
