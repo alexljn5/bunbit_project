@@ -6,7 +6,7 @@ import { map_01 } from "../mapdata/map_01.js";
 
 export function collissionGodFunction() {
     simpleCollissionTest();
-    wallCollisionTest();
+    wallCollision();
 }
 
 function simpleCollissionTest() {
@@ -25,7 +25,7 @@ function simpleCollissionTest() {
     }
 }
 
-function wallCollisionTest() {
+function wallCollision() {
     const mapWidth = map_01[0].length;
     const mapHeight = map_01.length;
     const playerRadius = 10;
