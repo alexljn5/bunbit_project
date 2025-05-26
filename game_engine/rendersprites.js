@@ -89,6 +89,17 @@ metalPipePlayerHandSprite.onload = () => {
     console.log("Metal pipe player hand sprite loaded");
 };
 
+export const boyKisserEnemySprite = new Image(128, 128);
+//boyKisserEnemySprite.src = "./img/sprites/enemy/boykisser.png";
+boyKisserEnemySprite.src = "./img/sprites/enemy/carenemytest.png";
+export let boyKisserEnemySpriteLoaded = false;
+boyKisserEnemySprite.onload = () => {
+    boyKisserEnemySpriteLoaded = true;
+    console.log("Boy kisser loaded!");
+}
+export const boyKisserEnemySpriteWorldPos = { x: 6 * tileSectors, z: 8.3 * tileSectors };
+
+
 export function drawSprites(rayData) {
     if (!rayData) {
         console.warn("rayData is undefined, skipping sprite rendering");
@@ -102,10 +113,70 @@ function drawStaticSprites(rayData) {
     playerHandSpriteFunction();
     corpse1SpriteFunction(rayData);
     metalPipeSpriteFunction(rayData);
+    boyKisserEnemySpriteFunction(rayData);
 }
 
 function animatedSpriteRenderer(rayData) {
     creamSpinTestSprite(rayData);
+}
+
+function boyKisserEnemySpriteFunction(rayData) {
+    if (!boyKisserEnemySpriteLoaded) {
+        console.warn("corpse1Sprite not loaded");
+        return;
+    }
+
+    // Calculate distance from player to sprite
+    const dx = boyKisserEnemySpriteWorldPos.x - playerPosition.x; // Fixed: Use corpse1WorldPos
+    const dz = boyKisserEnemySpriteWorldPos.z - playerPosition.z;
+    const distance = Math.sqrt(dx * dx + dz * dz);
+
+    // Apply perspective correction (same as walls)
+    const relativeAngle = Math.atan2(dz, dx) - playerPosition.angle;
+    const correctedDistance = distance * Math.cos(relativeAngle);
+    if (correctedDistance < 1) {
+        //console.log("Corpse too close, skipping");
+        return;
+    }
+
+    // Calculate sprite size based on distance, matching wall scaling
+    const spriteHeight = (CANVAS_HEIGHT / correctedDistance) * tileSectors / 2;
+    const spriteWidth = spriteHeight * (128 / 80); // Fixed: Use 128x64 aspect ratio
+
+    //const spriteY = (CANVAS_HEIGHT - spriteHeight) / 2; // Center vertically
+    const spriteY = 400; // Center vertically
+
+    // Calculate screen X position
+    const screenX = (CANVAS_WIDTH / 2) + (CANVAS_WIDTH / 2) * (relativeAngle / (playerFOV / 2));
+
+    // Apply vantage point offset
+    const adjustedScreenX = screenX - playerVantagePointX.playerVantagePointX;
+
+    // Determine the screen columns the sprite spans
+    const startColumn = Math.max(0, Math.floor((adjustedScreenX - spriteWidth / 2) / (CANVAS_WIDTH / numCastRays)));
+    const endColumn = Math.min(numCastRays - 1, Math.ceil((adjustedScreenX + spriteWidth / 2) / (CANVAS_WIDTH / numCastRays)));
+
+    // Check if sprite is visible (not occluded by walls)
+    let isVisible = false;
+    for (let col = startColumn; col <= endColumn; col++) {
+        const ray = rayData[col];
+        if (!ray || correctedDistance < ray.distance) {
+            isVisible = true;
+            break;
+        }
+    }
+    // Only draw if sprite is on screen and not occluded
+    if (isVisible && adjustedScreenX + spriteWidth / 2 >= 0 && adjustedScreenX - spriteWidth / 2 <= CANVAS_WIDTH) {
+        renderEngine.drawImage(
+            boyKisserEnemySprite,
+            adjustedScreenX - spriteWidth / 2,
+            spriteY - playerVantagePointY.playerVantagePointY,
+            spriteWidth,
+            spriteHeight
+        );
+    } else {
+        //console.log("Corpse1 not drawn: off-screen or occluded");
+    }
 }
 
 function corpse1SpriteFunction(rayData) {

@@ -27,6 +27,9 @@ export let playerStaminaBar = 100;
 let maxStamina = 100;
 let drainRate = 50; // Stamina per second when sprinting
 let regenRate = 20; // Stamina per second when not sprinting
+let maxHealth = 100;
+export let playerHealthBar = 100;
+
 const canvas = document.getElementById('mainGameRender');
 canvas.requestPointerLock = canvas.requestPointerLock || canvas.mozRequestPointerLock;
 
@@ -175,6 +178,7 @@ export function playerLogic() {
     playerVantagePointY.playerVantagePointY = playerMovement.z * 0.02;
 
     staminaBarMeterOnCanvas();
+    healthMeterOnCanvas();
 }
 
 function staminaBarMeterOnCanvas() {
@@ -186,8 +190,25 @@ function staminaBarMeterOnCanvas() {
     renderEngine.fillStyle = 'rgba(255, 255, 255, 0.5)';
     renderEngine.fillRect(x, y, barWidth, barHeight);
 
-    renderEngine.fillStyle = playerStaminaBar <= 20 ? 'rgba(255, 0, 0, 0.8)' : 'rgba(255, 0, 0, 0.8)';
+    renderEngine.fillStyle = playerStaminaBar <= 20 ? 'rgba(255, 0, 0, 0.8)' : 'rgba(0, 0, 255, 0.8)';
     renderEngine.fillRect(x, y, (barWidth * playerStaminaBar) / maxStamina, barHeight);
+
+    renderEngine.strokeStyle = "white";
+    renderEngine.lineWidth = 2;
+    renderEngine.strokeRect(x, y, barWidth, barHeight);
+}
+
+function healthMeterOnCanvas() {
+    const barWidth = 180;
+    const barHeight = 20;
+    const x = (CANVAS_WIDTH - barWidth) / 100; // Center horizontally
+    const y = CANVAS_HEIGHT - barHeight - 640; // Near bottom
+
+    renderEngine.fillStyle = 'rgba(255, 255, 255, 0.5)';
+    renderEngine.fillRect(x, y, barWidth, barHeight);
+
+    renderEngine.fillStyle = playerHealthBar <= 20 ? 'rgba(255, 0, 0, 0.8)' : 'rgba(255, 0, 0, 0.8)';
+    renderEngine.fillRect(x, y, (barWidth * playerHealthBar) / maxHealth, barHeight);
 
     renderEngine.strokeStyle = "white";
     renderEngine.lineWidth = 2;

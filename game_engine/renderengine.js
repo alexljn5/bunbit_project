@@ -9,6 +9,7 @@ import { mainGameMenu } from "./menu.js";
 import { texturesLoaded, tileTexturesMap, getDemonLaughingCurrentFrame } from "./mapdata/maptextures.js";
 import { playerUI } from "./playerdata/playerui.js";
 import { collissionGodFunction } from "./colissiondetection/collissionlogic.js";
+import { enemyAiGodFunction } from "./ai/testenemyai.js";
 
 const domElements = {
     mainGameRender: document.getElementById("mainGameRender"),
@@ -63,6 +64,7 @@ function gameRenderEngine() {
     playerInventoryGodFunction();
     playerUI();
     collissionGodFunction();
+    enemyAiGodFunction();
 }
 
 function drawBackground() {
