@@ -1,4 +1,5 @@
 import { renderEngine, CANVAS_WIDTH, CANVAS_HEIGHT } from "../renderengine.js";
+import { compiledTextStyle } from "../debugtools.js";
 
 export let playerVantagePointX = {
     playerVantagePointX: 0
@@ -28,7 +29,11 @@ let maxStamina = 100;
 let drainRate = 50; // Stamina per second when sprinting
 let regenRate = 20; // Stamina per second when not sprinting
 let maxHealth = 100;
-export let playerHealthBar = 100;
+export let playerHealthBar = 100; // This will now follow playerHealth.playerHealth
+export const playerHealth = {
+    playerHealth: 100,
+};
+
 
 const canvas = document.getElementById('mainGameRender');
 canvas.requestPointerLock = canvas.requestPointerLock || canvas.mozRequestPointerLock;
@@ -125,6 +130,9 @@ export function playerLogic() {
     previousPosition.x = playerPosition.x;
     previousPosition.z = playerPosition.z;
 
+    //Health management
+    playerHealthBar = playerHealth.playerHealth;
+
     // Stamina management
     let isSprinting = false;
     if (keys.alt && (keys.w || keys.s || keys.q || keys.e) && playerStaminaBar > 0) {
@@ -176,6 +184,11 @@ export function playerLogic() {
     playerMovement.z = playerPosition.z - 2.5 * 50 / 2;
     playerVantagePointX.playerVantagePointX = playerMovement.x * 0.02;
     playerVantagePointY.playerVantagePointY = playerMovement.z * 0.02;
+
+    if (playerHealth.playerHealth <= 0) {
+        compiledTextStyle();
+        renderEngine.fillText("DEAD", 100, 100);
+    }
 
     staminaBarMeterOnCanvas();
     healthMeterOnCanvas();

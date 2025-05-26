@@ -1,5 +1,5 @@
 // In enemyai.js
-import { playerPosition, playerHealthBar } from "../playerdata/playerlogic.js";
+import { playerPosition, playerHealth } from "../playerdata/playerlogic.js";
 import { boyKisserEnemySpriteWorldPos } from "../rendersprites.js";
 import { map_01 } from "../mapdata/map_01.js";
 import { tileSectors } from "../mapdata/maps.js";
@@ -7,7 +7,7 @@ import { tileSectors } from "../mapdata/maps.js";
 let boyKisserPreviousPos = { x: boyKisserEnemySpriteWorldPos.x, z: boyKisserEnemySpriteWorldPos.z };
 let lastKnownPlayerPos = null;
 let canSeePlayer = true;
-const damagePerSecond = 10; // Health lost per second
+const damagePerSecond = 100; // Health lost per second
 let lastHitTime = 0;
 const hitCooldown = 1000; // 1 second between hits
 const hitRadius = 20; // Distance for a "hit"
@@ -34,9 +34,9 @@ function testEnemyAi() {
     // Check for collision and apply damage
     const now = performance.now();
     if (distance < hitRadius && now - lastHitTime > hitCooldown) {
-        playerHealth = Math.max(0, playerHealth - damagePerSecond);
+        playerHealth.playerHealth = Math.max(0, playerHealth.playerHealth - damagePerSecond);
         lastHitTime = now;
-        console.log(`BoyKisser hit player! Health: ${playerHealth}`);
+        console.log(`BoyKisser hit player! Health: ${playerHealth.playerHealth}`);
     }
 
     const steps = Math.ceil(distance / tileSectors);
