@@ -14,8 +14,8 @@ const hitCooldown = 1000; // 1 second between hits
 const hitRadius = 20; // Distance for a "hit"
 
 export function enemyAiGodFunction() {
-    //testEnemyAi();
-    //casperLesserDemon();
+    testEnemyAi();
+    casperLesserDemon();
 }
 
 //Follows you Demon

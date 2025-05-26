@@ -208,7 +208,7 @@ function staminaBarMeterOnCanvas() {
     renderEngine.fillStyle = 'rgba(255, 255, 255, 0.5)';
     renderEngine.fillRect(x, y, barWidth, barHeight);
 
-    renderEngine.fillStyle = playerStaminaBar <= 20 ? 'rgba(255, 0, 0, 0.8)' : 'rgba(0, 255, 0, 0.8)';
+    renderEngine.fillStyle = playerStaminaBar <= 20 ? 'rgba(0, 255, 0, 0.8)' : 'rgba(0, 255, 0, 0.8)';
     renderEngine.fillRect(x, y, (barWidth * playerStaminaBar) / maxStamina, barHeight);
 
     renderEngine.strokeStyle = "white";
