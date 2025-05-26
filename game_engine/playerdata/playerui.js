@@ -2,6 +2,8 @@
 import { compiledTextStyle } from "../debugtools.js";
 import { CANVAS_HEIGHT, CANVAS_WIDTH, renderEngine } from "../renderengine.js";
 import { casperFace1, casperFace2, casperFace3, casperFace4, casperFace5, casperFace1Loaded, casperFace2Loaded, casperFace3Loaded, casperFace4Loaded, casperFace5Loaded } from "./playertextures.js";
+import { playerInventory } from "./playerinventory.js";
+import { metalPipeSprite } from "../rendersprites.js";
 
 // Animation state
 let currentFaceIndex = 0;
@@ -38,5 +40,9 @@ export function playerUI() {
         compiledTextStyle();
         renderEngine.fillRect(368, 710, 72, 72);
         renderEngine.fillText("Loading...", 373, 742);
+    }
+
+    if (playerInventory.includes("metal_pipe")) {
+        renderEngine.drawImage(metalPipeSprite, 692, 672)
     }
 }

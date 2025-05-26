@@ -1,26 +1,21 @@
 export function gameLoop(renderCallback) {
     let isRunning = false;
-    let lastTime = null;
     let rafId = null;
 
-    function tick() {
+    function tick(time) {
         if (!isRunning) return;
-
-        const currentTime = performance.now();
-        const deltaTime = (currentTime - (lastTime || currentTime)) / 1000;
-        lastTime = currentTime;
-        //console.log(deltaTime);
-        window.deltaTime = deltaTime
+        const deltaTime = rafId ? (time - rafId) / 1000 : 0;
+        rafId = time;
+        window.deltaTime = deltaTime; // Expose for debugging
         renderCallback(deltaTime);
-        rafId = requestAnimationFrame(tick);
+        requestAnimationFrame(tick);
     }
 
     return {
         start: () => {
             if (!isRunning) {
                 isRunning = true;
-                lastTime = null;
-                rafId = requestAnimationFrame(tick);
+                requestAnimationFrame(tick);
             }
         },
         stop: () => {

@@ -34,6 +34,8 @@ export const playerHealth = {
     playerHealth: 100,
 };
 
+let gameOver = false;
+
 
 const canvas = document.getElementById('mainGameRender');
 canvas.requestPointerLock = canvas.requestPointerLock || canvas.mozRequestPointerLock;
@@ -122,6 +124,9 @@ document.addEventListener('pointerlockchange', () => {
 });
 
 export function playerLogic() {
+    if (gameOver) {
+        return;
+    }
     const now = performance.now();
     const deltaTime = (now - lastTime) / 1000;
     lastTime = now;
@@ -198,7 +203,7 @@ function staminaBarMeterOnCanvas() {
     const barWidth = 180;
     const barHeight = 20;
     const x = (CANVAS_WIDTH - barWidth) / 100; // Center horizontally
-    const y = CANVAS_HEIGHT - barHeight - 740; // Near bottom
+    const y = CANVAS_HEIGHT - barHeight - 55; // Near bottom
 
     renderEngine.fillStyle = 'rgba(255, 255, 255, 0.5)';
     renderEngine.fillRect(x, y, barWidth, barHeight);
@@ -215,7 +220,7 @@ function healthMeterOnCanvas() {
     const barWidth = 180;
     const barHeight = 20;
     const x = (CANVAS_WIDTH - barWidth) / 100; // Center horizontally
-    const y = CANVAS_HEIGHT - barHeight - 640; // Near bottom
+    const y = CANVAS_HEIGHT - barHeight - 75; // Near bottom
 
     renderEngine.fillStyle = 'rgba(255, 255, 255, 0.5)';
     renderEngine.fillRect(x, y, barWidth, barHeight);
