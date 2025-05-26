@@ -30,6 +30,10 @@ const map_01_sector2 = [
     [emptyTile, emptyTile, emptyTile, emptyTile],
     [emptyTile, emptyTile, emptyTile, emptyTile],
     [emptyTile, emptyTile, emptyTile, emptyTile],
+    [emptyTile, emptyTile, emptyTile, emptyTile],
+    [emptyTile, emptyTile, emptyTile, emptyTile],
+    [emptyTile, emptyTile, emptyTile, emptyTile],
+    [emptyTile, emptyTile, emptyTile, emptyTile],
     [fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick],
 ];
 
@@ -41,7 +45,11 @@ const map_01_sector3 = [
     [emptyTile, emptyTile, emptyTile, fullTile],
     [emptyTile, emptyTile, emptyTile, fullTileBrick],
     [fullTileBrick, emptyTile, emptyTile, fullTileBrick],
-    [fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick],
+    [fullTileBrick, emptyTile, emptyTile, fullTileBrick],
+    [fullTileBrick, emptyTile, emptyTile, fullTileBrick],
+    [fullTileBrick, emptyTile, emptyTile, fullTileBrick],
+    [fullTileBrick, emptyTile, emptyTile, fullTileBrick],
+    [fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick,],
 ];
 
 // Combine sectors into a flat 2D map_01

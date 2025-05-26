@@ -21,7 +21,7 @@ function testEnemyAi() {
         lastKnownPlayerPos = { x: playerPosition.x, z: playerPosition.z };
     }
 
-    const enemySpeed = 0.5;
+    const enemySpeed = 1;
     const randomFactor = 0.2;
     const enemyRadius = 10;
     const buffer = 0.3;
