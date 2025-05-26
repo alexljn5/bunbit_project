@@ -3,7 +3,12 @@ import { renderEngine, CANVAS_WIDTH, CANVAS_HEIGHT } from "./renderengine.js";
 import { map_01, mapWidth, mapHeight } from "./mapdata/map_01.js";
 import { tileSectors } from "./mapdata/maps.js";
 import { tileTexturesMap } from "./mapdata/maptextures.js";
-import { creamTestSprite, creamTestLoaded, creamTestWorldPos, creamSpinLoaded, creamSpinWorldPos, getCreamSpinCurrentFrame } from "./rendersprites.js";
+import {
+    creamTestSprite, creamTestLoaded, creamTestWorldPos,
+    creamSpinLoaded, creamSpinWorldPos, getCreamSpinCurrentFrame,
+    boyKisserEnemySprite, boyKisserEnemySpriteLoaded, boyKisserEnemySpriteWorldPos,
+    casperLesserDemonSprite, casperLesserDemonSpriteLoaded, casperLesserDemonSpriteWorldPos
+} from "./rendersprites.js";
 
 export function compiledDevTools() {
     fpsMeter();
@@ -154,6 +159,38 @@ export function drawMinimap() {
                 spriteSize
             );
         }
+    }
+
+    // Draw BoyKisser enemy
+    if (boyKisserEnemySpriteLoaded) {
+        const spritePixelX = boyKisserEnemySpriteWorldPos.x * minimapScale;
+        const spritePixelY = boyKisserEnemySpriteWorldPos.z * minimapScale;
+        const spriteSize = minimapTileSize * 0.5;
+
+        renderEngine.drawImage(
+            boyKisserEnemySprite,
+            0, 0, boyKisserEnemySprite.width, boyKisserEnemySprite.height,
+            spritePixelX - spriteSize / 2,
+            spritePixelY - spriteSize / 2,
+            spriteSize,
+            spriteSize
+        );
+    }
+
+    // Draw Casper Lesser Demon enemy
+    if (casperLesserDemonSpriteLoaded) {
+        const spritePixelX = casperLesserDemonSpriteWorldPos.x * minimapScale;
+        const spritePixelY = casperLesserDemonSpriteWorldPos.z * minimapScale;
+        const spriteSize = minimapTileSize * 0.5;
+
+        renderEngine.drawImage(
+            casperLesserDemonSprite,
+            0, 0, casperLesserDemonSprite.width, casperLesserDemonSprite.height,
+            spritePixelX - spriteSize / 2,
+            spritePixelY - spriteSize / 2,
+            spriteSize,
+            spriteSize
+        );
     }
 
     // Draw minimap border

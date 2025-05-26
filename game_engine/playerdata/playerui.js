@@ -43,6 +43,6 @@ export function playerUI() {
     }
 
     if (playerInventory.includes("metal_pipe")) {
-        renderEngine.drawImage(metalPipeSprite, 692, 672)
+        renderEngine.drawImage(metalPipeSprite, 492, 672)
     }
 }

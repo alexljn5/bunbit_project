@@ -202,25 +202,27 @@ export function playerLogic() {
 function staminaBarMeterOnCanvas() {
     const barWidth = 180;
     const barHeight = 20;
-    const x = (CANVAS_WIDTH - barWidth) / 100; // Center horizontally
-    const y = CANVAS_HEIGHT - barHeight - 55; // Near bottom
+    const x = (CANVAS_WIDTH - barWidth); // Center horizontally
+    const y = CANVAS_HEIGHT - barHeight - 40; // Near bottom
 
     renderEngine.fillStyle = 'rgba(255, 255, 255, 0.5)';
     renderEngine.fillRect(x, y, barWidth, barHeight);
 
-    renderEngine.fillStyle = playerStaminaBar <= 20 ? 'rgba(255, 0, 0, 0.8)' : 'rgba(0, 0, 255, 0.8)';
+    renderEngine.fillStyle = playerStaminaBar <= 20 ? 'rgba(255, 0, 0, 0.8)' : 'rgba(0, 255, 0, 0.8)';
     renderEngine.fillRect(x, y, (barWidth * playerStaminaBar) / maxStamina, barHeight);
 
     renderEngine.strokeStyle = "white";
     renderEngine.lineWidth = 2;
     renderEngine.strokeRect(x, y, barWidth, barHeight);
+    compiledTextStyle();
+    renderEngine.fillText("Stamina", 680, 732)
 }
 
 function healthMeterOnCanvas() {
     const barWidth = 180;
     const barHeight = 20;
     const x = (CANVAS_WIDTH - barWidth) / 100; // Center horizontally
-    const y = CANVAS_HEIGHT - barHeight - 75; // Near bottom
+    const y = CANVAS_HEIGHT - barHeight - 40; // Near bottom
 
     renderEngine.fillStyle = 'rgba(255, 255, 255, 0.5)';
     renderEngine.fillRect(x, y, barWidth, barHeight);
@@ -231,4 +233,6 @@ function healthMeterOnCanvas() {
     renderEngine.strokeStyle = "white";
     renderEngine.lineWidth = 2;
     renderEngine.strokeRect(x, y, barWidth, barHeight);
+    compiledTextStyle();
+    renderEngine.fillText("HP", 5, 732);
 }
