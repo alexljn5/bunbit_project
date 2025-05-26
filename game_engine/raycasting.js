@@ -4,8 +4,8 @@ import { textureIdMap } from "./mapdata/maptextures.js";
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from "./renderengine.js";
 
 export const playerFOV = Math.PI / 6;
-export const numCastRays = 1000;
-export const maxRayDepth = 40;
+export const numCastRays = 500;
+export const maxRayDepth = 10;
 
 let map_01 = mapTable.get("map_01");
 
