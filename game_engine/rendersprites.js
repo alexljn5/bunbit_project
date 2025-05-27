@@ -106,7 +106,7 @@ casperLesserDemonSprite.onload = () => {
     casperLesserDemonSpriteLoaded = true;
     console.log("Casper loaded!");
 }
-export const casperLesserDemonSpriteWorldPos = { x: 6 * tileSectors, z: 10.3 * tileSectors };
+export const casperLesserDemonSpriteWorldPos = { x: 6.8 * tileSectors, z: 15 * tileSectors };
 
 
 export function drawSprites(rayData) {
@@ -119,7 +119,7 @@ export function drawSprites(rayData) {
 }
 
 function drawStaticSprites(rayData) {
-    playerHandSpriteFunction();
+    //playerHandSpriteFunction();
     corpse1SpriteFunction(rayData);
     metalPipeSpriteFunction(rayData);
     boyKisserEnemySpriteFunction(rayData);
@@ -132,7 +132,7 @@ function animatedSpriteRenderer(rayData) {
 
 function boyKisserEnemySpriteFunction(rayData) {
     if (!boyKisserEnemySpriteLoaded) {
-        console.warn("corpse1Sprite not loaded");
+        console.warn("Boykisser not loaded");
         return;
     }
 
@@ -144,8 +144,8 @@ function boyKisserEnemySpriteFunction(rayData) {
     // Apply perspective correction (same as walls)
     const relativeAngle = Math.atan2(dz, dx) - playerPosition.angle;
     const correctedDistance = distance * Math.cos(relativeAngle);
-    if (correctedDistance < 1) {
-        //console.log("Corpse too close, skipping");
+    if (correctedDistance < 0.1) {
+        console.log("Corpse too close, skipping");
         return;
     }
 
@@ -185,7 +185,7 @@ function boyKisserEnemySpriteFunction(rayData) {
             spriteHeight
         );
     } else {
-        //console.log("Corpse1 not drawn: off-screen or occluded");
+        console.log("Corpse1 not drawn: off-screen or occluded");
     }
 }
 
@@ -203,7 +203,7 @@ function casperLesserDemonSpriteFunction(rayData) {
     // Apply perspective correction (same as walls)
     const relativeAngle = Math.atan2(dz, dx) - playerPosition.angle;
     const correctedDistance = distance * Math.cos(relativeAngle);
-    if (correctedDistance < 1) {
+    if (correctedDistance < 0.1) {
         //console.log("Corpse too close, skipping");
         return;
     }
@@ -262,7 +262,7 @@ function corpse1SpriteFunction(rayData) {
     // Apply perspective correction (same as walls)
     const relativeAngle = Math.atan2(dz, dx) - playerPosition.angle;
     const correctedDistance = distance * Math.cos(relativeAngle);
-    if (correctedDistance < 1) {
+    if (correctedDistance < 0.1) {
         console.log("Corpse too close, skipping");
         return;
     }
@@ -325,7 +325,7 @@ function metalPipeSpriteFunction(rayData) {
     // Apply perspective correction (same as walls)
     const relativeAngle = Math.atan2(dz, dx) - playerPosition.angle;
     const correctedDistance = distance * Math.cos(relativeAngle);
-    if (correctedDistance < 1) {
+    if (correctedDistance < 0.1) {
         console.log("Metal Pipe too close, skipping");
         return;
     }
@@ -417,7 +417,7 @@ function creamSpinTestSprite(rayData) {
     // Apply perspective correction (same as walls)
     const relativeAngle = Math.atan2(dz, dx) - playerPosition.angle;
     const correctedDistance = distance * Math.cos(relativeAngle);
-    if (correctedDistance < 1) {
+    if (correctedDistance < 0.1) {
         console.log("CreamSpin too close, skipping");
         return;
     }

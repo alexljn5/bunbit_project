@@ -112,6 +112,5 @@ export function castRays() {
             rayData.push(null);
         }
     }
-
     return rayData;
 }
