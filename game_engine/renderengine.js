@@ -3,7 +3,7 @@ import { playerVantagePointX, playerVantagePointY, playerLogic } from "./playerd
 import { playerInventoryGodFunction } from "./playerdata/playerinventory.js";
 import { compiledDevTools, compiledTextStyle } from "./debugtools.js";
 import { mapTable, tileSectors } from "./mapdata/maps.js";
-import { castRays } from "./raycasting.js";
+import { castRays, testFuckingAround } from "./raycasting.js";
 import { drawSprites } from "./rendersprites.js";
 import { mainGameMenu } from "./menu.js";
 import { texturesLoaded, tileTexturesMap, getDemonLaughingCurrentFrame } from "./mapdata/maptextures.js";
@@ -65,6 +65,7 @@ function gameRenderEngine() {
     playerUI();
     collissionGodFunction();
     enemyAiGodFunction();
+    testFuckingAround();
 }
 
 function drawBackground() {

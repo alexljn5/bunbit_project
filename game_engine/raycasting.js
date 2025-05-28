@@ -3,9 +3,10 @@ import { tileSectors, mapTable } from "./mapdata/maps.js";
 import { textureIdMap } from "./mapdata/maptextures.js";
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from "./renderengine.js";
 
-export const playerFOV = Math.PI / 6;
-export const numCastRays = 500;
-export const maxRayDepth = 10;
+// Define constants with let and export them
+export let playerFOV = Math.PI / 6;
+export let numCastRays = 800;
+export let maxRayDepth = 20;
 
 let map_01 = mapTable.get("map_01");
 
@@ -83,15 +84,6 @@ export function castRays() {
                 hitY = (sinAngle > 0 ? cellY : cellY + 1) * tileSectors;
             }
 
-            // Debug tile boundary alignment check. Keep just in case.
-            /*
-            const expectedHitX = Math.round(hitX / tileSectors) * tileSectors;
-            const expectedHitY = Math.round(hitY / tileSectors) * tileSectors;
-            if (Math.abs(hitX - expectedHitX) > 0.01 || Math.abs(hitY - expectedHitY) > 0.01) {
-                console.warn(`Ray ${x}: Hit position misaligned! HitX: ${hitX.toFixed(2)}, ExpectedX: ${expectedHitX.toFixed(2)}, HitY: ${hitY.toFixed(2)}, ExpectedY: ${expectedHitY.toFixed(2)}`);
-            }
-                */
-
             // Validate hit position
             if (isNaN(hitX) || isNaN(hitY) || Math.abs(hitX) > CANVAS_WIDTH || Math.abs(hitY) > CANVAS_WIDTH) {
                 console.warn(`Ray ${x}: Invalid hit position (HitX: ${hitX}, HitY: ${hitY})`);
@@ -113,4 +105,31 @@ export function castRays() {
         }
     }
     return rayData;
+}
+
+export function testFuckingAround() {
+
+
+    setInterval(() => {
+        for (let i = 6; i > 0; i--) {
+            playerFOV = playerFOV + 1;
+        }
+
+    }, 1000);
+
+    setInterval(() => {
+        for (let i = 10; i < 0; i++) {
+            playerFOV = playerFOV * numCastRays;
+        }
+    }, 10000)
+
+    setInterval(() => {
+        playerFOV = Math.PI / 6;
+    }, 5000);
+
+    setInterval(() => {
+        numCastRays / 2;
+
+    }, 6000);
+
 }

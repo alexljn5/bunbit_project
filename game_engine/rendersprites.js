@@ -119,7 +119,7 @@ export function drawSprites(rayData) {
 }
 
 function drawStaticSprites(rayData) {
-    //playerHandSpriteFunction();
+    playerHandSpriteFunction();
     corpse1SpriteFunction(rayData);
     metalPipeSpriteFunction(rayData);
     boyKisserEnemySpriteFunction(rayData);
