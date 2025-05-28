@@ -56,7 +56,7 @@ function gameRenderEngine() {
     drawBackground();
     const rayData = castRays(); // Store raycasting data
     renderRaycastWalls(rayData); // Pass to walls
-    renderRaycastFloors(rayData);
+    //renderRaycastFloors(rayData);
     drawSprites(rayData); // Pass to sprites
     if (showDebugTools) {
         compiledDevTools();

@@ -5,7 +5,7 @@ import { CANVAS_WIDTH, CANVAS_HEIGHT } from "./renderengine.js";
 
 // Define constants with let and export them
 export let playerFOV = Math.PI / 6;
-export let numCastRays = 200;
+export let numCastRays = 400;
 export let maxRayDepth = 40;
 
 let map_01 = mapTable.get("map_01");

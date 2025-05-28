@@ -1,5 +1,6 @@
 import { renderEngine, CANVAS_WIDTH, CANVAS_HEIGHT } from "../renderengine.js";
 import { compiledTextStyle } from "../debugtools.js";
+import { playerInventory } from "./playerinventory.js";
 
 export let playerVantagePointX = {
     playerVantagePointX: 0
@@ -18,7 +19,8 @@ export const keys = {
     e: false,
     [" "]: false,
     shift: false,
-    alt: false
+    alt: false,
+    p: false
 };
 
 let playerMovementSpeed = 100; // Speed in pixels per second
@@ -29,13 +31,12 @@ let maxStamina = 100;
 let drainRate = 50; // Stamina per second when sprinting
 let regenRate = 20; // Stamina per second when not sprinting
 let maxHealth = 100;
-export let playerHealthBar = 100; // This will now follow playerHealth.playerHealth
+export let playerHealthBar = 100;
 export const playerHealth = {
     playerHealth: 100,
 };
 
 let gameOver = false;
-
 
 const canvas = document.getElementById('mainGameRender');
 canvas.requestPointerLock = canvas.requestPointerLock || canvas.mozRequestPointerLock;
@@ -49,14 +50,14 @@ export let playerPosition = {
 export let previousPosition = {
     x: playerPosition.x,
     z: playerPosition.z
-}; // Add previousPosition
+};
 
 export let playerMovement = {
     x: 0,
     z: 0
 };
 
-// Dedicated listener for Ctrl+W and Ctrl+Shift+W
+// Dedicated listener for Ctrl+W
 window.addEventListener(
     "keydown",
     (event) => {
@@ -74,15 +75,17 @@ window.addEventListener(
     true
 );
 
-// General keydown listener for other keys
+// General keydown listener
 window.addEventListener(
     "keydown",
     (event) => {
         const key = event.key.toLowerCase();
+        console.log(`Keydown: ${key}, in keys: ${key in keys}`); // Debug
         if (key in keys) {
             event.preventDefault();
             event.stopPropagation();
             keys[key] = true;
+            console.log(`Set keys[${key}] = true`); // Debug
         }
     },
     true
@@ -91,14 +94,16 @@ window.addEventListener(
 // Keyup listener
 window.addEventListener("keyup", (event) => {
     const key = event.key.toLowerCase();
+    console.log(`Keyup: ${key}`); // Debug
     if (key in keys) {
         event.preventDefault();
         event.stopPropagation();
         keys[key] = false;
+        console.log(`Set keys[${key}] = false`); // Debug
     }
 });
 
-// Reset keys on window blur or focus loss
+// Reset keys on window blur
 window.addEventListener("blur", () => {
     console.log("Window blurred, resetting keys");
     for (let key in keys) {
@@ -110,6 +115,7 @@ canvas.addEventListener('click', () => {
     canvas.requestFullscreen();
     canvas.requestPointerLock();
     canvas.focus();
+    console.log("Canvas clicked, requesting pointer lock"); // Debug
 });
 
 document.addEventListener('pointerlockchange', () => {
@@ -125,17 +131,17 @@ document.addEventListener('pointerlockchange', () => {
 
 export function playerLogic() {
     if (gameOver) {
+        console.log("Game over, skipping playerLogic"); // Debug
         return;
     }
     const now = performance.now();
     const deltaTime = (now - lastTime) / 1000;
     lastTime = now;
 
-    // Save current position before movement
-    previousPosition.x = playerPosition.x;
-    previousPosition.z = playerPosition.z;
+    // Debug key states
+    console.log(`Key states: space=${keys[" "]}, p=${keys.p}`); // Debug
 
-    //Health management
+    // Health management
     playerHealthBar = playerHealth.playerHealth;
 
     // Stamina management
@@ -185,12 +191,17 @@ export function playerLogic() {
         console.log("shart");
     }
 
+    if (keys.p) {
+        console.log("Mike has a CBT fetish");
+    }
+
     playerMovement.x = playerPosition.x - 2.5 * 50 / 2;
     playerMovement.z = playerPosition.z - 2.5 * 50 / 2;
     playerVantagePointX.playerVantagePointX = playerMovement.x * 0.02;
     playerVantagePointY.playerVantagePointY = playerMovement.z * 0.02;
 
     if (playerHealth.playerHealth <= 0) {
+        gameOver = true; // Set gameOver to true
         compiledTextStyle();
         renderEngine.fillText("DEAD", 100, 100);
     }
@@ -215,7 +226,7 @@ function staminaBarMeterOnCanvas() {
     renderEngine.lineWidth = 2;
     renderEngine.strokeRect(x, y, barWidth, barHeight);
     compiledTextStyle();
-    renderEngine.fillText("Stamina", 680, 732)
+    renderEngine.fillText("Stamina", 680, 732);
 }
 
 function healthMeterOnCanvas() {
