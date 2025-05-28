@@ -56,7 +56,7 @@ function gameRenderEngine() {
     drawBackground();
     const rayData = castRays(); // Store raycasting data
     renderRaycastWalls(rayData); // Pass to walls
-    //renderRaycastFloors(rayData);
+    renderRaycastFloors(rayData);
     drawSprites(rayData); // Pass to sprites
     if (showDebugTools) {
         compiledDevTools();
@@ -161,49 +161,50 @@ function renderRaycastFloors(rayData) {
         return;
     }
 
-    const playerHeight = tileSectors / 2; // Assume player is at half tile height
+    const playerHeight = tileSectors / 2;
     const projectionPlaneDist = (CANVAS_WIDTH / 2) / Math.tan(playerFOV / 2);
+
+    // Precompute cos/sin for each ray column
+    const rayAngles = new Array(numCastRays);
+    const cosAngles = new Array(numCastRays);
+    const sinAngles = new Array(numCastRays);
+
+    for (let x = 0; x < numCastRays; x++) {
+        rayAngles[x] = playerPosition.angle + (-playerFOV / 2 + (x / numCastRays) * playerFOV);
+        cosAngles[x] = Math.cos(rayAngles[x]);
+        sinAngles[x] = Math.sin(rayAngles[x]);
+    }
 
     for (let x = 0; x < numCastRays; x++) {
         const ray = rayData[x];
         if (!ray || !ray.floorTextureKey) continue;
 
-        const column = ray.column;
+        const texture = tileTexturesMap.get(ray.floorTextureKey);
+        if (!texture) continue;
+
         const wallHeight = (CANVAS_HEIGHT / ray.distance) * tileSectors;
         const wallBottom = (CANVAS_HEIGHT + wallHeight) / 2;
 
-        // Render floor from wall bottom to screen bottom
-        for (let y = Math.floor(wallBottom); y < CANVAS_HEIGHT; y++) {
-            // Calculate distance to floor point
-            const rowDistance = playerHeight / ((y - CANVAS_HEIGHT / 2) / projectionPlaneDist);
+        const cosA = cosAngles[x];
+        const sinA = sinAngles[x];
+        const texWidth = texture.width;
+        const texHeight = texture.height;
 
-            // Calculate world coordinates of floor point
-            const rayAngle = playerPosition.angle + (-playerFOV / 2 + (x / numCastRays) * playerFOV);
-            const floorX = playerPosition.x + rowDistance * Math.cos(rayAngle);
-            const floorY = playerPosition.z + rowDistance * Math.sin(rayAngle);
+        for (let y = Math.floor(wallBottom); y < CANVAS_HEIGHT; y += 2) { // Skip 1 row for perf
+            const rowDistance = (tileSectors / 2) / ((y - CANVAS_HEIGHT / 2) / projectionPlaneDist);
+            const floorX = playerPosition.x + rowDistance * cosA;
+            const floorY = playerPosition.z + rowDistance * sinA;
 
-            // Get texture coordinates
-            const textureX = (floorX % tileSectors) / tileSectors;
-            const textureY = (floorY % tileSectors) / tileSectors;
+            const textureX = ((floorX % tileSectors + tileSectors) % tileSectors) / tileSectors;
+            const textureY = ((floorY % tileSectors + tileSectors) % tileSectors) / tileSectors;
 
-            // Get floor texture
-            const texture = tileTexturesMap.get(ray.floorTextureKey) || tileTexturesMap.get("floor_concrete");
-            if (!texture) {
-                console.error(`Floor texture not found for key: ${ray.floorTextureKey}`);
-                continue;
-            }
+            const texX = (textureX * texWidth) | 0;
+            const texY = (textureY * texHeight) | 0;
 
-            // Sample texture pixel
-            const texWidth = texture.width;
-            const texHeight = texture.height;
-            const texX = Math.floor(textureX * texWidth) % texWidth;
-            const texY = Math.floor(textureY * texHeight) % texHeight;
-
-            // Draw single pixel
             renderEngine.drawImage(
                 texture,
                 texX, texY, 1, 1,
-                column, y, CANVAS_WIDTH / numCastRays, 1
+                x * (CANVAS_WIDTH / numCastRays), y, (CANVAS_WIDTH / numCastRays), 2
             );
         }
     }

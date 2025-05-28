@@ -29,49 +29,66 @@ function wallCollision() {
     const mapWidth = map_01[0].length;
     const mapHeight = map_01.length;
     const playerRadius = 10;
-    const buffer = 0.1; // Small buffer to prevent sticking
+    const buffer = 0.1;
 
-    // Calculate movement delta
+    // Calculate proposed movement
     const deltaX = playerPosition.x - previousPosition.x;
     const deltaZ = playerPosition.z - previousPosition.z;
 
-    // Get map cells for the player's bounding circle
-    const minX = Math.floor((playerPosition.x - playerRadius) / tileSectors);
-    const maxX = Math.floor((playerPosition.x + playerRadius) / tileSectors);
-    const minZ = Math.floor((playerPosition.z - playerRadius) / tileSectors);
-    const maxZ = Math.floor((playerPosition.z + playerRadius) / tileSectors);
+    let proposedX = playerPosition.x;
+    let proposedZ = playerPosition.z;
 
-    let newX = playerPosition.x;
-    let newZ = playerPosition.z;
+    // Check X-axis movement separately
+    let newX = proposedX;
     let collisionX = false;
-    let collisionZ = false;
+    const xMin = Math.floor((proposedX - playerRadius) / tileSectors);
+    const xMax = Math.floor((proposedX + playerRadius) / tileSectors);
+    const zMin = Math.floor((previousPosition.z - playerRadius) / tileSectors);
+    const zMax = Math.floor((previousPosition.z + playerRadius) / tileSectors);
 
-    // Check for wall collisions
-    for (let x = minX; x <= maxX; x++) {
-        for (let z = minZ; z <= maxZ; z++) {
+    for (let x = xMin; x <= xMax; x++) {
+        for (let z = zMin; z <= zMax; z++) {
             if (x >= 0 && x < mapWidth && z >= 0 && z < mapHeight) {
                 const tile = map_01[z][x];
                 if (tile.type === "wall") {
                     const tileLeft = x * tileSectors;
                     const tileRight = (x + 1) * tileSectors;
+
+                    if (proposedX + playerRadius > tileLeft && proposedX - playerRadius < tileRight) {
+                        if (deltaX > 0) {
+                            newX = tileLeft - playerRadius - buffer;
+                        } else if (deltaX < 0) {
+                            newX = tileRight + playerRadius + buffer;
+                        }
+                        collisionX = true;
+                    }
+                }
+            }
+        }
+    }
+
+    // Check Z-axis movement separately
+    let newZ = proposedZ;
+    let collisionZ = false;
+    const zMin2 = Math.floor((proposedZ - playerRadius) / tileSectors);
+    const zMax2 = Math.floor((proposedZ + playerRadius) / tileSectors);
+    const xMin2 = Math.floor((newX - playerRadius) / tileSectors);
+    const xMax2 = Math.floor((newX + playerRadius) / tileSectors);
+
+    for (let x = xMin2; x <= xMax2; x++) {
+        for (let z = zMin2; z <= zMax2; z++) {
+            if (x >= 0 && x < mapWidth && z >= 0 && z < mapHeight) {
+                const tile = map_01[z][x];
+                if (tile.type === "wall") {
                     const tileTop = z * tileSectors;
                     const tileBottom = (z + 1) * tileSectors;
 
-                    // X-axis collision
-                    if (deltaX > 0 && playerPosition.x + playerRadius > tileLeft && previousPosition.x + playerRadius <= tileLeft) {
-                        newX = tileLeft - playerRadius - buffer;
-                        collisionX = true;
-                    } else if (deltaX < 0 && playerPosition.x - playerRadius < tileRight && previousPosition.x - playerRadius >= tileRight) {
-                        newX = tileRight + playerRadius + buffer;
-                        collisionX = true;
-                    }
-
-                    // Z-axis collision
-                    if (deltaZ > 0 && playerPosition.z + playerRadius > tileTop && previousPosition.z + playerRadius <= tileTop) {
-                        newZ = tileTop - playerRadius - buffer;
-                        collisionZ = true;
-                    } else if (deltaZ < 0 && playerPosition.z - playerRadius < tileBottom && previousPosition.z - playerRadius >= tileBottom) {
-                        newZ = tileBottom + playerRadius + buffer;
+                    if (proposedZ + playerRadius > tileTop && proposedZ - playerRadius < tileBottom) {
+                        if (deltaZ > 0) {
+                            newZ = tileTop - playerRadius - buffer;
+                        } else if (deltaZ < 0) {
+                            newZ = tileBottom + playerRadius + buffer;
+                        }
                         collisionZ = true;
                     }
                 }
@@ -79,10 +96,11 @@ function wallCollision() {
         }
     }
 
-    // Apply collision response
+    // Apply the corrected position
     if (collisionX || collisionZ) {
-        console.log(`Collision: X=${collisionX}, Z=${collisionZ}, Adjust to: x=${newX.toFixed(2)}, z=${newZ.toFixed(2)}`);
-        playerPosition.x = collisionX ? newX : playerPosition.x;
-        playerPosition.z = collisionZ ? newZ : playerPosition.z;
+        console.log(`Collision: X=${collisionX}, Z=${collisionZ}, Adjusted to: x=${newX.toFixed(2)}, z=${newZ.toFixed(2)}`);
     }
+
+    playerPosition.x = collisionX ? newX : proposedX;
+    playerPosition.z = collisionZ ? newZ : proposedZ;
 }
