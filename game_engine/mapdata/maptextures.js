@@ -46,15 +46,16 @@ export const textureIdMap = new Map([
     [8, "wall_laughing_demon"],
 ]);
 
-export const fullTile = { type: "wall", textureId: 1 }; // Default: wall_creamlol
+// In maptextures.js
+export const fullTile = { type: "wall", textureId: 1 }; // wall_creamlol, no floor needed
 export const fullTileBrick = { type: "wall", textureId: 2 }; // wall_brick
 export const fullTileAldi = { type: "wall", textureId: 3 }; // wall_aldi
-export const fullTileSatanic = { type: "wall", textureId: 4 }; // wall_satanic01
+export const fullTileSatanic = { type: "wall", textureId: 4 }; // wall_satanic
 export const fullTileSchizoEye = { type: "wall", textureId: 5 }; // wall_schizoeye
-export const fullTileRustyDoor01 = { type: "wall", textureId: 6 }; // door_rusty01
+export const fullTileRustyDoor01 = { type: "wall", textureId: 6 }; // door_rusty_01
 export const fullTileBrickGraffiti01 = { type: "wall", textureId: 7 }; // wall_brick_graffiti_01
-export const fullTileLaughingDemon = { type: "wall", textureId: 8 };
-export const emptyTile = { type: "empty" }; // Fixed: Correct type for empty tiles
+export const fullTileLaughingDemon = { type: "wall", textureId: 8 }; // wall_laughing_demon
+export const emptyTile = { type: "empty", floorTextureId: 50 }; // empty with floor_concrete
 export const tileTexturesMap = new Map();
 
 // Roof Textures
@@ -69,6 +70,37 @@ export const roofTextureIdMap = new Map([
 ]);
 
 export const roofConcrete = { type: "roof", textureId: 1 }; // roof_concrete
+
+// Floor Textures
+const floorTextures = {
+    floor_concrete: new Image(),
+};
+floorTextures.floor_concrete.src = "./img/sprites/floors/floor_wood01.png";
+
+export const floorTextureIdMap = new Map([
+    [50, "floor_concrete"],
+]);
+
+export const floorConcrete = { type: "floor", textureId: 1 }; // floor_concrete
+
+// Add to tileTexturesMap
+for (const [key, texture] of Object.entries(floorTextures)) {
+    tileTexturesMap.set(key, texture);
+}
+for (const [key, texture] of Object.entries(roofTextures)) {
+    tileTexturesMap.set(key, texture);
+}
+
+// Update texture loading check
+texturesToLoad += Object.keys(floorTextures).length + Object.keys(roofTextures).length;
+for (const [name, texture] of Object.entries(floorTextures)) {
+    texture.onload = checkTexturesLoaded(name);
+    texture.onerror = handleTextureError(name);
+}
+for (const [name, texture] of Object.entries(roofTextures)) {
+    texture.onload = checkTexturesLoaded(name);
+    texture.onerror = handleTextureError(name);
+}
 
 export function getDemonLaughingCurrentFrame() {
     if (!demonLaughingLoaded) return null;

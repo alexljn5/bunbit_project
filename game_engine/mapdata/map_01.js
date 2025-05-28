@@ -3,7 +3,7 @@ import { fullTile, emptyTile, fullTileAldi, fullTileBrick, fullTileSatanic, full
 
 // Starting room (10x8)
 const map_01_sector1 = [
-    [fullTileBrick, fullTileBrick, fullTileBrickGraffiti01, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick],
+    [fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick],
     [fullTileBrick, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick],
     [fullTileBrick, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick],
     [fullTileBrick, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick],
