@@ -108,8 +108,6 @@ export function castRays() {
 }
 
 export function testFuckingAround() {
-
-
     setInterval(() => {
         for (let i = 6; i > 0; i--) {
             playerFOV = playerFOV + 1;
@@ -128,8 +126,7 @@ export function testFuckingAround() {
     }, 5000);
 
     setInterval(() => {
-        numCastRays / 2;
+        numCastRays * 2;
 
     }, 6000);
-
 }

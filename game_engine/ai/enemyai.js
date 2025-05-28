@@ -3,6 +3,7 @@ import { playerPosition, playerHealth } from "../playerdata/playerlogic.js";
 import { boyKisserEnemySpriteWorldPos, casperLesserDemonSpriteWorldPos } from "../rendersprites.js";
 import { map_01 } from "../mapdata/map_01.js";
 import { tileSectors } from "../mapdata/maps.js";
+import { testFuckingAround } from "../raycasting.js";
 
 let boyKisserPreviousPos = { x: boyKisserEnemySpriteWorldPos.x, z: boyKisserEnemySpriteWorldPos.z };
 let casperLesserDemonPreviousPos = { x: casperLesserDemonSpriteWorldPos.x, z: casperLesserDemonSpriteWorldPos.z }
@@ -14,7 +15,7 @@ const hitCooldown = 1000; // 1 second between hits
 const hitRadius = 20; // Distance for a "hit"
 
 export function enemyAiGodFunction() {
-    //testEnemyAi();
+    testEnemyAi();
     casperLesserDemon();
 }
 
@@ -37,9 +38,14 @@ function testEnemyAi() {
     // Check for collision and apply damage
     const now = performance.now();
     if (distance < hitRadius && now - lastHitTime > hitCooldown) {
-        playerHealth.playerHealth = Math.max(0, playerHealth.playerHealth - damagePerSecond);
+        playerHealth.playerHealth = Math.max(100, playerHealth.playerHealth - damagePerSecond);
         lastHitTime = now;
         console.log(`BoyKisser hit player! Health: ${playerHealth.playerHealth}`);
+
+        setTimeOut(() => {
+            testFuckingAround();
+        }, 5000);
+
     }
 
     const steps = Math.ceil(distance / tileSectors);
