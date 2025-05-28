@@ -5,7 +5,7 @@ import { CANVAS_WIDTH, CANVAS_HEIGHT } from "./renderengine.js";
 
 // Define constants with let and export them
 export let playerFOV = Math.PI / 6;
-export let numCastRays = 800;
+export let numCastRays = 400;
 export let maxRayDepth = 20;
 
 let map_01 = mapTable.get("map_01");
@@ -108,25 +108,36 @@ export function castRays() {
 }
 
 export function testFuckingAround() {
-    setInterval(() => {
-        for (let i = 6; i > 0; i--) {
-            playerFOV = playerFOV + 1;
-        }
+    return new Promise((resolve) => {
+        const interval1 = setInterval(() => {
+            playerFOV += 6;
+        }, 1000);
 
-    }, 1000);
+        const interval2 = setInterval(() => {
+            playerFOV *= Math.pow(8, 10);
+        }, 10000);
 
-    setInterval(() => {
-        for (let i = 10; i < 0; i++) {
-            playerFOV = playerFOV * numCastRays;
-        }
-    }, 10000)
+        const interval3 = setInterval(() => {
+            playerFOV = Math.PI / 6;
+        }, 5000);
 
-    setInterval(() => {
-        playerFOV = Math.PI / 6;
-    }, 5000);
+        const interval4 = setInterval(() => {
+            playerFOV = (playerFOV * 0.5) % 2;
+        }, 6000);
 
-    setInterval(() => {
-        numCastRays * 2;
+        // Stop all intervals after 15 seconds
+        setTimeout(() => {
+            clearInterval(interval1);
+            clearInterval(interval2);
+            clearInterval(interval3);
+            clearInterval(interval4);
 
-    }, 6000);
+            // Reset playerFOV
+            playerFOV = Math.PI / 6;
+            console.log("All intervals stopped and playerFOV reset.");
+
+            // Resolve with reset value
+            resolve(playerFOV);
+        }, 5000);  // 15000ms = 15 seconds
+    });
 }

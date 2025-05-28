@@ -65,7 +65,6 @@ function gameRenderEngine() {
     playerUI();
     collissionGodFunction();
     enemyAiGodFunction();
-    //testFuckingAround();
 }
 
 function drawBackground() {

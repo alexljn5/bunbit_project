@@ -42,9 +42,11 @@ function testEnemyAi() {
         lastHitTime = now;
         console.log(`BoyKisser hit player! Health: ${playerHealth.playerHealth}`);
 
-        setTimeOut(() => {
+        /*setTimeOut(() => {
             testFuckingAround();
         }, 5000);
+        */
+        testFuckingAround();
 
     }
 
