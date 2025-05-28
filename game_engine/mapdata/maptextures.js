@@ -75,13 +75,15 @@ export const roofConcrete = { type: "roof", textureId: 1 }; // roof_concrete
 const floorTextures = {
     floor_concrete: new Image(),
 };
-floorTextures.floor_concrete.src = "./img/sprites/floors/floor_wood01.png";
+
+//floorTextures.floor_concrete.src = "./img/sprites/floors/floor_wood01.png";
+floorTextures.floor_concrete.src = "./img/sprites/roofs/roof_concrete.png";
 
 export const floorTextureIdMap = new Map([
     [50, "floor_concrete"],
 ]);
 
-export const floorConcrete = { type: "floor", textureId: 1 }; // floor_concrete
+export const floorConcrete = { type: "floor", textureId: 50 }; // floor_concrete
 
 // Add to tileTexturesMap
 for (const [key, texture] of Object.entries(floorTextures)) {

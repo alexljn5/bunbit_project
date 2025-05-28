@@ -41,13 +41,7 @@ function testEnemyAi() {
         playerHealth.playerHealth = Math.max(100, playerHealth.playerHealth - damagePerSecond);
         lastHitTime = now;
         console.log(`BoyKisser hit player! Health: ${playerHealth.playerHealth}`);
-
-        /*setTimeOut(() => {
-            testFuckingAround();
-        }, 5000);
-        */
         testFuckingAround();
-
     }
 
     const steps = Math.ceil(distance / tileSectors);

@@ -1,12 +1,12 @@
 import { playerPosition } from "./playerdata/playerlogic.js";
 import { tileSectors, mapTable } from "./mapdata/maps.js";
-import { textureIdMap } from "./mapdata/maptextures.js";
+import { textureIdMap, floorTextureIdMap } from "./mapdata/maptextures.js";
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from "./renderengine.js";
 
 // Define constants with let and export them
 export let playerFOV = Math.PI / 6;
-export let numCastRays = 400;
-export let maxRayDepth = 20;
+export let numCastRays = 200;
+export let maxRayDepth = 40;
 
 let map_01 = mapTable.get("map_01");
 
@@ -26,16 +26,18 @@ export function castRays() {
         let hitWallType = null;
         let rayX = posX;
         let rayY = posZ;
-        let stepX, stepY, cellX, cellY;
         let hitSide = null;
         let textureKey = null;
+        let floorTextureKey = null; // Add for floor texture
+        let floorX = 0; // Floor hit position X
+        let floorY = 0; // Floor hit position Y
 
         const cosAngle = Math.cos(rayAngle);
         const sinAngle = Math.sin(rayAngle);
 
         // Initialize cellX and cellY
-        cellX = Math.floor(rayX / tileSectors);
-        cellY = Math.floor(rayY / tileSectors);
+        let cellX = Math.floor(rayX / tileSectors);
+        let cellY = Math.floor(rayY / tileSectors);
 
         // Calculate initial distances to next tile boundary
         let distToNextX = cosAngle !== 0 ? ((cosAngle > 0 ? cellX + 1 : cellX) * tileSectors - rayX) / cosAngle : Infinity;
@@ -65,6 +67,10 @@ export function castRays() {
                     hitWallType = tile.type;
                     textureKey = textureIdMap.get(tile.textureId) || "wall_creamlol";
                 } else if (tile.type === "empty") {
+                    // Store floor texture for the last empty tile before hitting a wall
+                    floorTextureKey = floorTextureIdMap.get(tile.floorTextureId) || "floor_concrete";
+                    floorX = rayX + distance * cosAngle;
+                    floorY = rayY + distance * sinAngle;
                     continue;
                 }
             } else {
@@ -79,7 +85,7 @@ export function castRays() {
 
             // Snap hit position to tile boundary
             if (hitSide === "y") {
-                hitX = (cosAngle > 0 ? cellX : cellX + 1) * tileSectors; // Adjust for ray direction
+                hitX = (cosAngle > 0 ? cellX : cellX + 1) * tileSectors;
             } else {
                 hitY = (sinAngle > 0 ? cellY : cellY + 1) * tileSectors;
             }
@@ -98,7 +104,10 @@ export function castRays() {
                 hitX: hitX,
                 hitY: hitY,
                 hitSide: hitSide,
-                textureKey: textureKey
+                textureKey: textureKey,
+                floorTextureKey: floorTextureKey, // Add floor texture key
+                floorX: floorX, // Add floor hit position
+                floorY: floorY  // Add floor hit position
             });
         } else {
             rayData.push(null);
@@ -122,7 +131,7 @@ export function testFuckingAround() {
         }, 5000);
 
         const interval4 = setInterval(() => {
-            playerFOV = (playerFOV * 0.5) % 2;
+            playerFOV = (playerFOV * 5.5) % 2;
         }, 6000);
 
         // Stop all intervals after 15 seconds
@@ -139,5 +148,40 @@ export function testFuckingAround() {
             // Resolve with reset value
             resolve(playerFOV);
         }, 5000);  // 15000ms = 15 seconds
+    });
+}
+
+export function testAnimationFuckingAround() {
+    return new Promise((resolve) => {
+        const interval1 = setInterval(() => {
+            playerFOV += 1;
+        }, 1000);
+
+        const interval2 = setInterval(() => {
+            playerFOV *= Math.pow(0.5, 5 * 5 / 2 % 4);
+        }, 10000);
+
+        const interval3 = setInterval(() => {
+            playerFOV = Math.PI / 2;
+        }, 5000);
+
+        const interval4 = setInterval(() => {
+            playerFOV = (playerFOV * 0.5) % 2;
+        }, 6000);
+
+        // Stop all intervals after 15 seconds
+        setTimeout(() => {
+            clearInterval(interval1);
+            clearInterval(interval2);
+            clearInterval(interval3);
+            clearInterval(interval4);
+
+            // Reset playerFOV
+            playerFOV = Math.PI / 6;
+            console.log("All intervals stopped and playerFOV reset.");
+
+            // Resolve with reset value
+            resolve(playerFOV);
+        }, 15000);  // 15000ms = 15 seconds
     });
 }
