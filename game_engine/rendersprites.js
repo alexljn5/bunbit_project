@@ -17,6 +17,18 @@ playerHandSprite.onerror = () => {
     console.error("Failed to load playerhand_default.png at ./img/sprites/playerhand/playerhand_default.png");
 };
 
+export const pillar01Sprite = new Image(128, 128);
+pillar01Sprite.src = "./img/sprites/decoration/pillar_01.png";
+export let pillar01Loaded = false;
+pillar01Sprite.onload = () => {
+    pillar01Loaded = true;
+    console.log("Pillar 01 sprite loaded");
+};
+pillar01Sprite.onerror = () => {
+    console.error("Failed to load pillar_01.png at ./img/sprites/decoration/pillar_01.png");
+};
+export const pillar01SpriteWorldPos = { x: 2.5 * tileSectors, z: 6 * tileSectors }; // (150, 150)
+
 export const creamTestSprite = new Image(200, 50);
 creamTestSprite.src = "./img/sprites/creamtest.png";
 export let creamTestLoaded = false;
@@ -67,7 +79,7 @@ corpse1Sprite.onload = () => {
 corpse1Sprite.onerror = () => {
     console.error("Failed to load corpse_1.png at ./img/sprites/decoration/corpse_1.png");
 };
-export const corpse1WorldPos = { x: 6 * tileSectors, z: 1.3 * tileSectors }; // (150, 150)
+export const corpse1WorldPos = { x: 1 * tileSectors, z: 1.3 * tileSectors }; // (150, 150)
 
 export const metalPipeSprite = new Image(128, 128);
 metalPipeSprite.src = "./img/sprites/items/metal_pipe.png";
@@ -76,7 +88,7 @@ metalPipeSprite.onload = () => {
     metalPipeLoaded = true;
     console.log("Metal pipe sprite loaded");
 };
-export const metalPipeWorldPos = { x: 7 * tileSectors, z: 5 * tileSectors };
+export const metalPipeWorldPos = { x: 1 * tileSectors, z: 1 * tileSectors };
 export const spriteState = {
     isMetalPipeCollected: false
 };
@@ -97,7 +109,7 @@ boyKisserEnemySprite.onload = () => {
     boyKisserEnemySpriteLoaded = true;
     console.log("Boy kisser loaded!");
 }
-export const boyKisserEnemySpriteWorldPos = { x: 6 * tileSectors, z: 8.3 * tileSectors };
+export const boyKisserEnemySpriteWorldPos = { x: 6 * tileSectors, z: 7.3 * tileSectors };
 
 export const casperLesserDemonSprite = new Image(128, 128);
 casperLesserDemonSprite.src = "./img/sprites/enemy/casperdemon.png";
@@ -106,7 +118,7 @@ casperLesserDemonSprite.onload = () => {
     casperLesserDemonSpriteLoaded = true;
     console.log("Casper loaded!");
 }
-export const casperLesserDemonSpriteWorldPos = { x: 6.8 * tileSectors, z: 15 * tileSectors };
+export const casperLesserDemonSpriteWorldPos = { x: 2.5 * tileSectors, z: 8 * tileSectors };
 
 
 export function drawSprites(rayData) {
@@ -124,11 +136,62 @@ function drawStaticSprites(rayData) {
     metalPipeSpriteFunction(rayData);
     boyKisserEnemySpriteFunction(rayData);
     casperLesserDemonSpriteFunction(rayData);
+    pillar01SpriteFunction(rayData);
 }
 
 function animatedSpriteRenderer(rayData) {
     creamSpinTestSprite(rayData);
 }
+
+function pillar01SpriteFunction(rayData) {
+    if (!pillar01Loaded) {
+        console.warn("Pillar 01 sprite not loaded");
+        return;
+    }
+    // Calculate distance from player to sprite     
+    const dx = pillar01SpriteWorldPos.x - playerPosition.x;
+    const dz = pillar01SpriteWorldPos.z - playerPosition.z;
+    const distance = Math.sqrt(dx * dx + dz * dz);
+    // Apply perspective correction (same as walls) 
+    const relativeAngle = Math.atan2(dz, dx) - playerPosition.angle;
+    const correctedDistance = distance * Math.cos(relativeAngle);
+    if (correctedDistance < 0.1) {
+        console.log("Pillar too close, skipping");
+        return;
+    }
+    // Calculate sprite size based on distance, matching wall scaling       
+    const spriteHeight = (CANVAS_HEIGHT / correctedDistance) * tileSectors / 2;
+    const spriteWidth = spriteHeight * (128 / 128); // Fixed: Use 128x128 aspect ratio
+    //const spriteY = (CANVAS_HEIGHT - spriteHeight) / 2; // Center vertically
+    const spriteY = 400;
+    const screenX = (CANVAS_WIDTH / 2) + (CANVAS_WIDTH / 2) * (relativeAngle / (playerFOV / 2));
+    const adjustedScreenX = screenX - playerVantagePointX.playerVantagePointX;
+    const startColumn = Math.max(0, Math.floor((adjustedScreenX - spriteWidth / 2) / (CANVAS_WIDTH / numCastRays)));
+    const endColumn = Math.min(numCastRays - 1, Math.ceil((adjustedScreenX + spriteWidth / 2) / (CANVAS_WIDTH / numCastRays)));
+    // Check if sprite is visible (not occluded by walls)   
+    let isVisible = false;
+    for (let col = startColumn; col <= endColumn; col++) {
+        const ray = rayData[col];
+        if (!ray || correctedDistance < ray.distance) {
+            isVisible = true;
+            break;
+        }
+    }
+    // Only draw if sprite is on screen and not occluded
+    if (isVisible && adjustedScreenX + spriteWidth / 2 >= 0 && adjustedScreenX - spriteWidth / 2 <= CANVAS_WIDTH) {
+
+        renderEngine.drawImage(
+            pillar01Sprite,
+            adjustedScreenX - spriteWidth / 2,
+            spriteY - playerVantagePointY.playerVantagePointY,
+            spriteWidth,
+            spriteHeight
+        );
+    } else {
+        console.log("Pillar 01 not drawn: off-screen or occluded");
+    }
+}
+
 
 function boyKisserEnemySpriteFunction(rayData) {
     if (!boyKisserEnemySpriteLoaded) {

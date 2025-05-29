@@ -4,7 +4,7 @@ import { textureIdMap, floorTextureIdMap } from "./mapdata/maptextures.js";
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from "./renderengine.js";
 
 export let playerFOV = Math.PI / 6; // 60 degrees
-export let numCastRays = 200; // Keep at 50 as it works
+export let numCastRays = 300; // Keep at 50 as it works
 export let maxRayDepth = 20;
 
 const worker1 = new Worker("./raycastworker.js", { type: "module" });
