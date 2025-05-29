@@ -4,8 +4,8 @@ import { textureIdMap, floorTextureIdMap } from "./mapdata/maptextures.js";
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from "./renderengine.js";
 
 export let playerFOV = Math.PI / 6; // 60 degrees
-export let numCastRays = 200; // Reduced from 300 for performance
-export let maxRayDepth = 40;
+export let numCastRays = 120; // Reduced from 300 for performance
+export let maxRayDepth = 30;
 
 const worker1 = new Worker("./raycastworker.js", { type: "module" });
 const worker2 = new Worker("./raycastworker.js", { type: "module" });
@@ -90,119 +90,6 @@ function Q_rsqrt(number) {
     y = f[0];
     y = y * (threehalfs - (x2 * y * y));
     return y;
-}
-
-function castRaysMainThread(posX, posZ, playerAngle, playerFOV) {
-    const rayData = [];
-    const startTime = performance.now();
-
-    for (let x = 0; x < numCastRays; x++) {
-        const rayAngle = playerAngle + (-playerFOV / 2 + (x / numCastRays) * playerFOV);
-
-        let distance = 0;
-        let hit = false;
-        let hitWallType = null;
-        let rayX = posX;
-        let rayY = posZ;
-        let hitSide = null;
-        let textureKey = null;
-        let floorTextureKey = "floor_concrete";
-        let floorX = 0;
-        let floorY = 0;
-        let lastFloorTile = null;
-
-        const cosAngle = Math.cos(rayAngle);
-        const sinAngle = Math.sin(rayAngle);
-
-        let cellX = Math.floor(rayX / tileSectors);
-        let cellY = Math.floor(rayY / tileSectors);
-
-        let distToNextX = cosAngle !== 0 ? ((cosAngle > 0 ? cellX + 1 : cellX) * tileSectors - rayX) / cosAngle : Infinity;
-        let distToNextY = sinAngle !== 0 ? ((sinAngle > 0 ? cellY + 1 : cellY) * tileSectors - rayY) / sinAngle : Infinity;
-
-        const deltaDistX = Math.abs(tileSectors / cosAngle) || Infinity;
-        const deltaDistY = Math.abs(tileSectors / sinAngle) || Infinity;
-
-        let steps = 0;
-        const maxSteps = maxRayDepth * 2;
-
-        while (distance < maxRayDepth * tileSectors && !hit && steps < maxSteps) {
-            steps++;
-            if (distToNextX < distToNextY) {
-                distance = distToNextX;
-                cellX += cosAngle > 0 ? 1 : -1;
-                distToNextX += deltaDistX;
-                hitSide = "y";
-            } else {
-                distance = distToNextY;
-                cellY += sinAngle > 0 ? 1 : -1;
-                distToNextY += deltaDistY;
-                hitSide = "x";
-            }
-
-            if (cellX >= 0 && cellX < map_01[0].length && cellY >= 0 && cellY < map_01.length) {
-                const tile = map_01[cellY][cellX];
-                if (!tile || typeof tile !== "object") {
-                    console.log(`Main thread: Invalid tile at [${cellY}][${cellX}] for ray ${x}`);
-                    break;
-                }
-                if (tile.type === "wall") {
-                    hit = true;
-                    hitWallType = tile.type;
-                    textureKey = textureIdMap.get(tile.textureId) || "wall_creamlol";
-                    if (lastFloorTile) {
-                        floorTextureKey = floorTextureIdMap.get(lastFloorTile.floorTextureId) || "floor_concrete";
-                    }
-                } else if (tile.type === "empty") {
-                    lastFloorTile = tile;
-                    floorTextureKey = floorTextureIdMap.get(tile.floorTextureId) || "floor_concrete";
-                    floorX = rayX + distance * cosAngle;
-                    floorY = rayY + distance * sinAngle;
-                    continue;
-                }
-            } else {
-                console.log(`Main thread: Ray ${x} out of bounds at cellX=${cellX}, cellY=${cellY}`);
-                break;
-            }
-        }
-
-        if (hit) {
-            // Use fast inverse square root for perspective correction
-            const angleDiff = rayAngle - playerAngle;
-            const cosApprox = Q_rsqrt(1 + angleDiff * angleDiff); // 1/cos for small angles
-            const correctedDistance = distance * cosApprox;
-            let hitX = rayX + distance * cosAngle;
-            let hitY = rayY + distance * sinAngle;
-
-            if (hitSide === "y") {
-                hitX = (cosAngle > 0 ? cellX : cellX + 1) * tileSectors;
-            } else {
-                hitY = (sinAngle > 0 ? cellY : cellY + 1) * tileSectors;
-            }
-
-            if (isNaN(hitX) || isNaN(hitY) || Math.abs(hitX) > CANVAS_WIDTH * 2 || Math.abs(hitY) > CANVAS_WIDTH * 2) {
-                rayData.push(null);
-                continue;
-            }
-
-            rayData.push({
-                column: Math.floor(x * (CANVAS_WIDTH / numCastRays)),
-                distance: correctedDistance,
-                wallType: hitWallType,
-                hitX: hitX,
-                hitY: hitY,
-                hitSide: hitSide,
-                textureKey: textureKey,
-                floorTextureKey: floorTextureKey,
-                floorX: floorX,
-                floorY: floorY,
-            });
-        } else {
-            rayData.push(null);
-        }
-    }
-
-    return rayData;
 }
 
 export async function castRays() {

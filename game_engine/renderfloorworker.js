@@ -14,7 +14,7 @@ self.addEventListener("message", (e) => {
         frameId
     } = e.data;
 
-    // Precompute cos/sin for each ray column
+    // Precompute ray angles and their cos/sin for each column
     const rayAngles = new Float32Array(numCastRays);
     const cosAngles = new Float32Array(numCastRays);
     const sinAngles = new Float32Array(numCastRays);
@@ -24,7 +24,6 @@ self.addEventListener("message", (e) => {
         sinAngles[x] = Math.sin(rayAngles[x]);
     }
 
-    // Hoist constants
     const projectionPlaneDist = (CANVAS_WIDTH / 2) / Math.tan(playerFOV / 2);
     const halfCanvasHeight = CANVAS_HEIGHT / 2;
     const halfTile = tileSectors / 2;
@@ -56,15 +55,11 @@ self.addEventListener("message", (e) => {
         let rowDistance = halfTile / ((y - halfCanvasHeight) / projectionPlaneDist);
         let floorX = playerX + rowDistance * cosA;
         let floorY = playerZ + rowDistance * sinA;
-        // Compute step per scanline
+        // Precompute step per scanline
         const step = 2;
-        // Precompute deltaRowDistance for DDA
-        const deltaRowDistance = halfTile / ((step) / projectionPlaneDist);
-        // Precompute world step per scanline
         let prevRowDistance = rowDistance;
         for (let i = 0; i < yCount; i++, y += step) {
             if (i > 0) {
-                // DDA: Instead of recalculating, incrementally update rowDistance and world pos
                 rowDistance = halfTile / ((y - halfCanvasHeight) / projectionPlaneDist);
                 const dr = rowDistance - prevRowDistance;
                 floorX += dr * cosA;

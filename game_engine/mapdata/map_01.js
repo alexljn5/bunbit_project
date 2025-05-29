@@ -2,58 +2,35 @@
 import { fullTile, emptyTile, fullTileAldi, fullTileBrick, fullTileSatanic, fullTileSchizoEye, fullTileBrickGraffiti01, fullTileLaughingDemon } from './maptextures.js';
 
 // Starting room (10x8)
-/*
 const map_01_sector1 = [
-    [fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick],
-    [fullTileBrick, emptyTile, emptyTile, fullTileBrick],
-    [fullTileBrick, emptyTile, emptyTile, fullTileBrick],
-    [fullTileBrick, emptyTile, emptyTile, fullTileBrick],
-    [fullTileBrick, fullTileBrick, emptyTile, fullTileBrick],
-    [fullTileBrick, fullTileBrick, emptyTile, fullTileBrick],
-    [fullTileBrick, fullTileBrick, emptyTile, fullTileBrick],
-    [fullTileBrick, fullTileBrick, emptyTile, fullTileBrick],
-    [fullTileBrick, emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick],
-    [fullTileBrick, emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick],
-    [fullTileBrick, emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick],
-    [fullTileBrick, emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick,],
+    [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [fullTileBrick, fullTileBrick, emptyTile, fullTileBrick, fullTileBrick],
+    [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
     [fullTileBrick, fullTileBrick, fullTile, fullTileBrick, fullTileBrick, fullTileBrick],
 ];
-*/
-
-
-const map_01_sector1 = [
-    [fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick],
-    [fullTileBrick, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick],
-    [fullTileBrick, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick],
-    [fullTileBrick, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick],
-    [fullTileBrick, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick],
-    [fullTileBrick, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick],
-    [fullTileBrick, emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick, emptyTile, emptyTile],
-    [fullTileBrick, emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick, emptyTile, emptyTile],
-    [fullTileBrick, fullTileBrick, fullTileBrick, emptyTile, fullTileBrick, fullTileBrick, emptyTile, fullTileBrick],
-    [fullTileBrick, emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick, emptyTile, fullTileBrick],
-    [fullTileBrick, emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick, emptyTile, fullTileBrick],
-    [fullTileBrick, emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick, emptyTile, fullTileBrick],
-    [fullTileBrick, emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick, emptyTile, fullTileBrick],
-    [fullTileBrick, emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick, emptyTile, fullTileBrick],
-    [fullTileBrick, emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick, emptyTile, fullTileBrick],
-    [fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileLaughingDemon, fullTileBrick],
-];
-
 
 // Hallway (8x4)
 const map_01_sector2 = [
-    [fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick],
-    [emptyTile, emptyTile, emptyTile, emptyTile],
-    [emptyTile, emptyTile, emptyTile, emptyTile],
-    [emptyTile, emptyTile, emptyTile, emptyTile],
-    [emptyTile, emptyTile, emptyTile, emptyTile],
-    [emptyTile, emptyTile, emptyTile, emptyTile],
-    [emptyTile, emptyTile, emptyTile, emptyTile],
-    [emptyTile, emptyTile, emptyTile, emptyTile],
-    [emptyTile, emptyTile, emptyTile, emptyTile],
-    [emptyTile, emptyTile, emptyTile, emptyTile],
-    [emptyTile, emptyTile, emptyTile, emptyTile],
+    [fullTileBrick, fullTileBrick, fullTileBrick, emptyTile],
+    [emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [emptyTile, emptyTile, emptyTile, fullTileBrick],
     [fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick],
 ];
 

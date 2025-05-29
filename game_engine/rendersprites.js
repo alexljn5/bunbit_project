@@ -88,7 +88,7 @@ metalPipeSprite.onload = () => {
     metalPipeLoaded = true;
     console.log("Metal pipe sprite loaded");
 };
-export const metalPipeWorldPos = { x: 1 * tileSectors, z: 1 * tileSectors };
+export const metalPipeWorldPos = { x: 2.5 * tileSectors, z: 4.5 * tileSectors };
 export const spriteState = {
     isMetalPipeCollected: false
 };

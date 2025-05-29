@@ -90,7 +90,7 @@ async function gameRenderEngine() {
         playerInventoryGodFunction();
         playerUI();
         collissionGodFunction();
-        enemyAiGodFunction();
+        //enemyAiGodFunction();
         //testAnimationFuckingAround();
     } catch (error) {
         console.error("gameRenderEngine error:", error);
