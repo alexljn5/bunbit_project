@@ -2,6 +2,7 @@
 import { fullTile, emptyTile, fullTileAldi, fullTileBrick, fullTileSatanic, fullTileSchizoEye, fullTileBrickGraffiti01, fullTileLaughingDemon } from './maptextures.js';
 
 // Starting room (10x8)
+/*
 const map_01_sector1 = [
     [fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick],
     [fullTileBrick, emptyTile, emptyTile, fullTileBrick],
@@ -17,8 +18,9 @@ const map_01_sector1 = [
     [fullTileBrick, emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick],
     [fullTileBrick, fullTileBrick, fullTile, fullTileBrick, fullTileBrick, fullTileBrick],
 ];
+*/
 
-/*
+
 const map_01_sector1 = [
     [fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick],
     [fullTileBrick, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick],
@@ -37,7 +39,7 @@ const map_01_sector1 = [
     [fullTileBrick, emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick, emptyTile, fullTileBrick],
     [fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileLaughingDemon, fullTileBrick],
 ];
-*/
+
 
 // Hallway (8x4)
 const map_01_sector2 = [
@@ -73,8 +75,8 @@ const map_01_sector3 = [
 // Combine sectors into a flat 2D map_01
 const sectorPositions = [
     { sector: map_01_sector1, startY: 0, startX: 0 },
-    //{ sector: map_01_sector2, startY: 0, startX: 8 },
-    //{ sector: map_01_sector3, startY: 0, startX: 12 },
+    { sector: map_01_sector2, startY: 0, startX: 8 },
+    { sector: map_01_sector3, startY: 0, startX: 12 },
 ];
 
 // Calculate map size dynamically

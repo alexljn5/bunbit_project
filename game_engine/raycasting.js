@@ -4,8 +4,8 @@ import { textureIdMap, floorTextureIdMap } from "./mapdata/maptextures.js";
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from "./renderengine.js";
 
 export let playerFOV = Math.PI / 6; // 60 degrees
-export let numCastRays = 300; // Keep at 50 as it works
-export let maxRayDepth = 20;
+export let numCastRays = 200; // Reduced from 300 for performance
+export let maxRayDepth = 40;
 
 const worker1 = new Worker("./raycastworker.js", { type: "module" });
 const worker2 = new Worker("./raycastworker.js", { type: "module" });
@@ -21,13 +21,7 @@ const worker1PendingFrames = new Map();
 const worker2PendingFrames = new Map();
 
 worker1.onmessage = (e) => {
-    console.log("Worker1 response:", {
-        frameId: e.data.frameId,
-        rayCount: e.data.rayData?.length,
-        workerTime: e.data.workerTime,
-        nonNullRays: e.data.rayData?.filter(ray => ray !== null).length,
-        error: e.data.error || null
-    });
+    // Removed console.log for performance
     const { frameId } = e.data;
     if (worker1PendingFrames.has(frameId)) {
         worker1PendingFrames.get(frameId)(e.data);
@@ -83,7 +77,21 @@ async function initializeWorkers() {
     return workersInitialized;
 }
 
-// Main-thread raycasting fallback
+// Fast inverse square root (Quake III style)
+function Q_rsqrt(number) {
+    const threehalfs = 1.5;
+    const x2 = number * 0.5;
+    let y = number;
+    const buf = new ArrayBuffer(4);
+    const f = new Float32Array(buf);
+    const i = new Uint32Array(buf);
+    f[0] = y;
+    i[0] = 0x5f3759df - (i[0] >> 1);
+    y = f[0];
+    y = y * (threehalfs - (x2 * y * y));
+    return y;
+}
+
 function castRaysMainThread(posX, posZ, playerAngle, playerFOV) {
     const rayData = [];
     const startTime = performance.now();
@@ -159,7 +167,10 @@ function castRaysMainThread(posX, posZ, playerAngle, playerFOV) {
         }
 
         if (hit) {
-            const correctedDistance = distance * Math.cos(rayAngle - playerAngle);
+            // Use fast inverse square root for perspective correction
+            const angleDiff = rayAngle - playerAngle;
+            const cosApprox = Q_rsqrt(1 + angleDiff * angleDiff); // 1/cos for small angles
+            const correctedDistance = distance * cosApprox;
             let hitX = rayX + distance * cosAngle;
             let hitY = rayY + distance * sinAngle;
 
@@ -170,7 +181,6 @@ function castRaysMainThread(posX, posZ, playerAngle, playerFOV) {
             }
 
             if (isNaN(hitX) || isNaN(hitY) || Math.abs(hitX) > CANVAS_WIDTH * 2 || Math.abs(hitY) > CANVAS_WIDTH * 2) {
-                console.log(`Main thread: Invalid hit coordinates for ray ${x}: hitX=${hitX}, hitY=${hitY}`);
                 rayData.push(null);
                 continue;
             }
@@ -192,7 +202,6 @@ function castRaysMainThread(posX, posZ, playerAngle, playerFOV) {
         }
     }
 
-    console.log("Main thread castRays time:", performance.now() - startTime, "ms");
     return rayData;
 }
 

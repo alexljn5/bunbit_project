@@ -94,19 +94,47 @@ function wallCollision() {
             normalZ.value /= normalLength;
         }
 
-        // Push player out of the wall
-        const penetrationDepth = playerRadius + buffer;
-        newX += normalX.value * penetrationDepth;
-        newZ += normalZ.value * penetrationDepth;
+        // Compute overlap (penetration depth)
+        // Find the minimum overlap among all collisions
+        // For simplicity, use the first detected overlap (could be improved for multiple walls)
+        let minOverlap = playerRadius + buffer;
+        for (let x = xMin; x <= xMax; x++) {
+            for (let z = zMin; z <= zMax; z++) {
+                if (x >= 0 && x < mapWidth && z >= 0 && z < mapHeight) {
+                    const tile = map_01[z][x];
+                    if (tile.type !== "wall") continue;
+                    const tileLeft = x * tileSectors;
+                    const tileRight = (x + 1) * tileSectors;
+                    const tileTop = z * tileSectors;
+                    const tileBottom = (z + 1) * tileSectors;
+                    const closestX = Math.max(tileLeft, Math.min(proposedX, tileRight));
+                    const closestZ = Math.max(tileTop, Math.min(proposedZ, tileBottom));
+                    const dx = proposedX - closestX;
+                    const dz = proposedZ - closestZ;
+                    const distance = Math.sqrt(dx * dx + dz * dz);
+                    if (distance < playerRadius + epsilon) {
+                        const overlap = playerRadius + buffer - distance;
+                        if (overlap < minOverlap) minOverlap = overlap;
+                    }
+                }
+            }
+        }
 
-        // Slide along the wall
+        // Push player out of the wall by the actual overlap
+        newX += normalX.value * minOverlap;
+        newZ += normalZ.value * minOverlap;
+
+        // Only apply sliding if the player is moving into the wall
         const dot = deltaX * normalX.value + deltaZ * normalZ.value;
-        const slideX = deltaX - dot * normalX.value;
-        const slideZ = deltaZ - dot * normalZ.value;
-        newX += slideX;
-        newZ += slideZ;
-
-        console.log(`Collision: Adjusted to x=${newX.toFixed(2)}, z=${newZ.toFixed(2)}, Normal=(${normalX.value.toFixed(2)}, ${normalZ.value.toFixed(2)}), Slide=(${slideX.toFixed(2)}, ${slideZ.toFixed(2)})`);
+        if (dot < 0) { // Only slide if moving into the wall
+            const slideX = deltaX - dot * normalX.value;
+            const slideZ = deltaZ - dot * normalZ.value;
+            newX += slideX;
+            newZ += slideZ;
+            console.log(`Collision: Adjusted to x=${newX.toFixed(2)}, z=${newZ.toFixed(2)}, Normal=(${normalX.value.toFixed(2)}, ${normalZ.value.toFixed(2)}), Slide=(${slideX.toFixed(2)}, ${slideZ.toFixed(2)})`);
+        } else {
+            console.log(`Collision: Adjusted to x=${newX.toFixed(2)}, z=${newZ.toFixed(2)}, Normal=(${normalX.value.toFixed(2)}, ${normalZ.value.toFixed(2)})`);
+        }
     }
 
     // Update position

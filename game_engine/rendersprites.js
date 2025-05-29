@@ -192,7 +192,6 @@ function pillar01SpriteFunction(rayData) {
     }
 }
 
-
 function boyKisserEnemySpriteFunction(rayData) {
     if (!boyKisserEnemySpriteLoaded) {
         console.warn("Boykisser not loaded");

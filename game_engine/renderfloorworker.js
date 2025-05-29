@@ -48,12 +48,29 @@ self.addEventListener("message", (e) => {
             floorPixels[x] = null;
             continue;
         }
+        // DDA: Compute initial world position and step per scanline
         const arr = new Float32Array(yCount * 3); // [y, texX, texY, ...]
         let idx = 0;
-        for (let y = clampedYStart; y < CANVAS_HEIGHT; y += 2) {
-            const rowDistance = halfTile / ((y - halfCanvasHeight) / projectionPlaneDist);
-            const floorX = playerX + rowDistance * cosA;
-            const floorY = playerZ + rowDistance * sinA;
+        let y = clampedYStart;
+        // Compute initial rowDistance
+        let rowDistance = halfTile / ((y - halfCanvasHeight) / projectionPlaneDist);
+        let floorX = playerX + rowDistance * cosA;
+        let floorY = playerZ + rowDistance * sinA;
+        // Compute step per scanline
+        const step = 2;
+        // Precompute deltaRowDistance for DDA
+        const deltaRowDistance = halfTile / ((step) / projectionPlaneDist);
+        // Precompute world step per scanline
+        let prevRowDistance = rowDistance;
+        for (let i = 0; i < yCount; i++, y += step) {
+            if (i > 0) {
+                // DDA: Instead of recalculating, incrementally update rowDistance and world pos
+                rowDistance = halfTile / ((y - halfCanvasHeight) / projectionPlaneDist);
+                const dr = rowDistance - prevRowDistance;
+                floorX += dr * cosA;
+                floorY += dr * sinA;
+                prevRowDistance = rowDistance;
+            }
             const textureX = ((floorX % tileSectors + tileSectors) % tileSectors) / tileSectors;
             const textureY = ((floorY % tileSectors + tileSectors) % tileSectors) / tileSectors;
             arr[idx++] = y;

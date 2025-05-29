@@ -94,7 +94,12 @@ self.addEventListener("message", (e) => {
             }
 
             if (hit) {
-                const correctedDistance = distance * Math.cos(rayAngle - playerAngle);
+                // Use fast inverse square root for perspective correction
+                const angleDiff = rayAngle - playerAngle;
+                // cos(angleDiff) ≈ 1 for small angles, but use Q_rsqrt for more general case
+                // For small angleDiff, cos(angleDiff) ≈ 1 - 0.5*angleDiff^2, but Q_rsqrt is a fast approx
+                const cosApprox = Q_rsqrt(1 + angleDiff * angleDiff); // 1/cos for small angles
+                const correctedDistance = distance * cosApprox;
                 let hitX = rayX + distance * cosAngle;
                 let hitY = rayY + distance * sinAngle;
                 if (hitSide === "y") hitX = (cosAngle > 0 ? cellX : cellX + 1) * tileSectors;
@@ -131,3 +136,19 @@ self.addEventListener("message", (e) => {
         });
     }
 });
+
+// Fast inverse square root (Quake III style)
+function Q_rsqrt(number) {
+    const threehalfs = 1.5;
+    const x2 = number * 0.5;
+    let y = number;
+    const buf = new ArrayBuffer(4);
+    const f = new Float32Array(buf);
+    const i = new Uint32Array(buf);
+    f[0] = y;
+    i[0] = 0x5f3759df - (i[0] >> 1);
+    y = f[0];
+    y = y * (threehalfs - (x2 * y * y)); // 1st iteration
+    // y = y * (threehalfs - (x2 * y * y)); // 2nd iteration (optional)
+    return y;
+}
