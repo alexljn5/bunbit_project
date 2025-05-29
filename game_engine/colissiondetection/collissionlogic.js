@@ -21,7 +21,6 @@ function simpleCollissionTest() {
     if (distance <= pickupDistance && !playerInventory.includes("metal_pipe")) {
         playerInventory.push("metal_pipe");
         spriteState.isMetalPipeCollected = true;
-        console.log("Picked up metal pipe! Inventory:", playerInventory);
     }
 }
 
@@ -53,34 +52,33 @@ function wallCollision() {
 
     for (let x = xMin; x <= xMax; x++) {
         for (let z = zMin; z <= zMax; z++) {
-            if (x >= 0 && x < mapWidth && z >= 0 && z < mapHeight) {
-                const tile = map_01[z][x];
-                if (tile.type !== "wall") continue;
+            if (x < 0 || x >= mapWidth || z < 0 || z >= mapHeight) continue;
+            const tile = map_01[z][x];
+            if (tile.type !== "wall") continue;
 
-                const tileLeft = x * tileSectors;
-                const tileRight = (x + 1) * tileSectors;
-                const tileTop = z * tileSectors;
-                const tileBottom = (z + 1) * tileSectors;
+            const tileLeft = x * tileSectors;
+            const tileRight = (x + 1) * tileSectors;
+            const tileTop = z * tileSectors;
+            const tileBottom = (z + 1) * tileSectors;
 
-                // Check if player overlaps with tile
-                const closestX = Math.max(tileLeft, Math.min(proposedX, tileRight));
-                const closestZ = Math.max(tileTop, Math.min(proposedZ, tileBottom));
-                const dx = proposedX - closestX;
-                const dz = proposedZ - closestZ;
-                const distance = Math.sqrt(dx * dx + dz * dz);
+            // Check if player overlaps with tile
+            const closestX = Math.max(tileLeft, Math.min(proposedX, tileRight));
+            const closestZ = Math.max(tileTop, Math.min(proposedZ, tileBottom));
+            const dx = proposedX - closestX;
+            const dz = proposedZ - closestZ;
+            const distance = Math.hypot(dx, dz);
 
-                if (distance < playerRadius + epsilon) {
-                    collision = true;
-                    // Calculate penetration depth
-                    const overlap = playerRadius - distance;
-                    if (distance > 0) {
-                        normalX.value += dx / distance;
-                        normalZ.value += dz / distance;
-                    } else {
-                        // Player is exactly on the wall, push away along movement direction
-                        normalX.value += deltaX !== 0 ? -Math.sign(deltaX) : 0;
-                        normalZ.value += deltaZ !== 0 ? -Math.sign(deltaZ) : 0;
-                    }
+            if (distance < playerRadius + epsilon) {
+                collision = true;
+                // Calculate penetration depth
+                const overlap = playerRadius - distance;
+                if (distance > 0) {
+                    normalX.value += dx / distance;
+                    normalZ.value += dz / distance;
+                } else {
+                    // Player is exactly on the wall, push away along movement direction
+                    normalX.value += deltaX !== 0 ? -Math.sign(deltaX) : 0;
+                    normalZ.value += deltaZ !== 0 ? -Math.sign(deltaZ) : 0;
                 }
             }
         }
@@ -88,34 +86,31 @@ function wallCollision() {
 
     if (collision) {
         // Normalize the collision normal
-        const normalLength = Math.sqrt(normalX.value * normalX.value + normalZ.value * normalZ.value);
+        const normalLength = Math.hypot(normalX.value, normalZ.value);
         if (normalLength > 0) {
             normalX.value /= normalLength;
             normalZ.value /= normalLength;
         }
 
-        // Compute overlap (penetration depth)
-        // Find the minimum overlap among all collisions
-        // For simplicity, use the first detected overlap (could be improved for multiple walls)
+        // Find minimum overlap (penetration depth)
         let minOverlap = playerRadius + buffer;
         for (let x = xMin; x <= xMax; x++) {
             for (let z = zMin; z <= zMax; z++) {
-                if (x >= 0 && x < mapWidth && z >= 0 && z < mapHeight) {
-                    const tile = map_01[z][x];
-                    if (tile.type !== "wall") continue;
-                    const tileLeft = x * tileSectors;
-                    const tileRight = (x + 1) * tileSectors;
-                    const tileTop = z * tileSectors;
-                    const tileBottom = (z + 1) * tileSectors;
-                    const closestX = Math.max(tileLeft, Math.min(proposedX, tileRight));
-                    const closestZ = Math.max(tileTop, Math.min(proposedZ, tileBottom));
-                    const dx = proposedX - closestX;
-                    const dz = proposedZ - closestZ;
-                    const distance = Math.sqrt(dx * dx + dz * dz);
-                    if (distance < playerRadius + epsilon) {
-                        const overlap = playerRadius + buffer - distance;
-                        if (overlap < minOverlap) minOverlap = overlap;
-                    }
+                if (x < 0 || x >= mapWidth || z < 0 || z >= mapHeight) continue;
+                const tile = map_01[z][x];
+                if (tile.type !== "wall") continue;
+                const tileLeft = x * tileSectors;
+                const tileRight = (x + 1) * tileSectors;
+                const tileTop = z * tileSectors;
+                const tileBottom = (z + 1) * tileSectors;
+                const closestX = Math.max(tileLeft, Math.min(proposedX, tileRight));
+                const closestZ = Math.max(tileTop, Math.min(proposedZ, tileBottom));
+                const dx = proposedX - closestX;
+                const dz = proposedZ - closestZ;
+                const distance = Math.hypot(dx, dz);
+                if (distance < playerRadius + epsilon) {
+                    const overlap = playerRadius + buffer - distance;
+                    if (overlap < minOverlap) minOverlap = overlap;
                 }
             }
         }
@@ -126,22 +121,19 @@ function wallCollision() {
 
         // Only apply sliding if the player is moving into the wall
         const dot = deltaX * normalX.value + deltaZ * normalZ.value;
-        if (dot < 0) { // Only slide if moving into the wall
+        if (dot < 0) {
+            // Slide along the wall
             const slideX = deltaX - dot * normalX.value;
             const slideZ = deltaZ - dot * normalZ.value;
             newX += slideX;
             newZ += slideZ;
-            console.log(`Collision: Adjusted to x=${newX.toFixed(2)}, z=${newZ.toFixed(2)}, Normal=(${normalX.value.toFixed(2)}, ${normalZ.value.toFixed(2)}), Slide=(${slideX.toFixed(2)}, ${slideZ.toFixed(2)})`);
-        } else {
-            console.log(`Collision: Adjusted to x=${newX.toFixed(2)}, z=${newZ.toFixed(2)}, Normal=(${normalX.value.toFixed(2)}, ${normalZ.value.toFixed(2)})`);
-        }
+            // Commented out for performance: console.log(`Collision: Adjusted to x=${newX.toFixed(2)}, z=${newZ.toFixed(2)}, Normal=(${normalX.value.toFixed(2)}, ${normalZ.value.toFixed(2)}), Slide=(${slideX.toFixed(2)}, ${slideZ.toFixed(2)})`);
+        } // else: no sliding needed
     }
 
     // Update position
     playerPosition.x = newX;
     playerPosition.z = newZ;
-
-    // Update previous position for next frame
     previousPosition.x = newX;
     previousPosition.z = newZ;
 }

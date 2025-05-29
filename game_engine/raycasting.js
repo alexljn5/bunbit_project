@@ -4,46 +4,34 @@ import { textureIdMap, floorTextureIdMap } from "./mapdata/maptextures.js";
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from "./renderengine.js";
 
 export let playerFOV = Math.PI / 6; // 60 degrees
-export let numCastRays = 120; // Reduced from 300 for performance
+export let numCastRays = 150; // Reduced for performance
 export let maxRayDepth = 30;
 
-const worker1 = new Worker("./raycastworker.js", { type: "module" });
-const worker2 = new Worker("./raycastworker.js", { type: "module" });
+const NUM_WORKERS = 4;
+const workers = Array.from({ length: NUM_WORKERS }, () => new Worker("./workers/raycastworker.js", { type: "module" }));
+const workerPendingFrames = Array.from({ length: NUM_WORKERS }, () => new Map());
 
 let map_01 = mapTable.get("map_01");
 let workersInitialized = false;
 let currentFrameId = 0;
 let lastFrameResults = { frameId: -1, results: null };
-let timeoutCount = 0;
 
-// Track pending frame promises
-const worker1PendingFrames = new Map();
-const worker2PendingFrames = new Map();
-
-worker1.onmessage = (e) => {
-    // Removed console.log for performance
-    const { frameId } = e.data;
-    if (worker1PendingFrames.has(frameId)) {
-        worker1PendingFrames.get(frameId)(e.data);
-        worker1PendingFrames.delete(frameId);
-    }
-};
-
-worker2.onmessage = (e) => {
-    const { frameId } = e.data;
-    if (worker2PendingFrames.has(frameId)) {
-        worker2PendingFrames.get(frameId)(e.data);
-        worker2PendingFrames.delete(frameId);
-    }
-};
-
-worker1.onerror = (error) => {
-    console.error("Worker1 error:", error);
-    for (const [frameId, resolve] of worker1PendingFrames.entries()) {
-        resolve({ startRay: 0, rayData: [], frameId });
-    }
-    worker1PendingFrames.clear();
-};
+workers.forEach((worker, idx) => {
+    worker.onmessage = (e) => {
+        const { frameId } = e.data;
+        if (workerPendingFrames[idx].has(frameId)) {
+            workerPendingFrames[idx].get(frameId)(e.data);
+            workerPendingFrames[idx].delete(frameId);
+        }
+    };
+    worker.onerror = (error) => {
+        console.error(`Worker${idx + 1} error:`, error);
+        for (const [frameId, resolve] of workerPendingFrames[idx].entries()) {
+            resolve({ startRay: 0, rayData: [], frameId });
+        }
+        workerPendingFrames[idx].clear();
+    };
+});
 
 async function initializeWorkers() {
     if (!map_01 || !Array.isArray(map_01) || !map_01[0]) {
@@ -60,24 +48,19 @@ async function initializeWorkers() {
         numCastRays,
         maxRayDepth
     };
-
     const initPromise = new Promise((resolve) => {
         const handler = (e) => {
-            if (e.data.type === "init") {
-                resolve(e.data.success);
-            }
+            if (e.data.type === "init") resolve(e.data.success);
         };
-        worker1.addEventListener("message", handler, { once: true });
-        worker1.addEventListener("error", () => resolve(false), { once: true });
+        workers[0].addEventListener("message", handler, { once: true });
+        workers[0].addEventListener("error", () => resolve(false), { once: true });
     });
-
-    worker1.postMessage(staticData);
+    workers.forEach(w => w.postMessage(staticData));
     const success = await initPromise;
     workersInitialized = success;
     return workersInitialized;
 }
 
-// Fast inverse square root (Quake III style)
 function Q_rsqrt(number) {
     const threehalfs = 1.5;
     const x2 = number * 0.5;
@@ -93,81 +76,81 @@ function Q_rsqrt(number) {
 }
 
 export async function castRays() {
-    const startTime = performance.now();
     if (!map_01 || !Array.isArray(map_01) || !map_01[0]) {
         return lastFrameResults.results || new Array(numCastRays).fill(null);
     }
-
     if (!workersInitialized) {
         const initialized = await initializeWorkers();
         if (!initialized) {
             return lastFrameResults.results || new Array(numCastRays).fill(null);
         }
     }
-
     const posX = playerPosition.x;
     const posZ = playerPosition.z;
     const playerAngle = playerPosition.angle;
     currentFrameId++;
     const frameId = currentFrameId;
-
-    // Validate player position
     if (posX < 0 || posZ < 0 || posX > map_01[0].length * tileSectors || posZ > map_01.length * tileSectors) {
         playerPosition.x = 5 * tileSectors;
         playerPosition.z = 5 * tileSectors;
         return lastFrameResults.results || new Array(numCastRays).fill(null);
     }
-
-    // --- OPTIMIZATION: Only update the screen if we have a new, complete frame ---
-    let frameResolved = false;
-    const workerData = {
-        type: "frame",
-        posX,
-        posZ,
-        playerAngle,
-        playerFOV,
-        frameId,
-        startRay: 0,
-        endRay: numCastRays
-    };
-
-    const worker1Promise = new Promise((resolve) => {
-        worker1PendingFrames.set(frameId, (data) => {
-            if (data.error) {
-                resolve({ startRay: 0, rayData: [], frameId: -1 });
-            } else if (data.frameId === frameId) {
-                resolve(data);
-            }
+    // Split rays into NUM_WORKERS segments
+    const seg = Math.floor(numCastRays / NUM_WORKERS);
+    const ranges = Array.from({ length: NUM_WORKERS }, (_, i) => ({
+        start: i * seg,
+        end: i === NUM_WORKERS - 1 ? numCastRays : (i + 1) * seg
+    }));
+    const promises = workers.map((worker, idx) => {
+        const { start, end } = ranges[idx];
+        const workerData = {
+            type: "frame",
+            posX,
+            posZ,
+            playerAngle,
+            playerFOV,
+            frameId,
+            startRay: start,
+            endRay: end
+        };
+        return new Promise((resolve) => {
+            workerPendingFrames[idx].set(frameId, (data) => {
+                if (data.error) {
+                    resolve({ startRay: start, rayData: [], frameId: -1 });
+                } else if (data.frameId === frameId) {
+                    resolve(data);
+                }
+            });
+            worker.postMessage(workerData);
         });
     });
-
-    worker1.postMessage(workerData);
-
-    // --- OPTIMIZATION: Use a longer timeout, but never show a blank frame ---
-    const result = await Promise.race([
-        worker1Promise,
-        new Promise((resolve) => setTimeout(() => {
-            resolve({ startRay: 0, rayData: [], frameId: -1 });
-        }, 20))
+    // Wait for all workers, with a timeout fallback
+    const timeoutPromise = new Promise((resolve) => setTimeout(() => {
+        resolve(null);
+    }, 30));
+    const results = await Promise.race([
+        Promise.all(promises),
+        timeoutPromise
     ]);
-
-    if (result.frameId !== frameId || !result.rayData || result.rayData.length !== numCastRays) {
+    if (!results || results.some(r => !r || r.frameId !== frameId)) {
         return lastFrameResults.results || new Array(numCastRays).fill(null);
     }
-
-    // --- OPTIMIZATION: Reuse the same rayData array if possible ---
-    let rayData = lastFrameResults.results || new Array(numCastRays).fill(null);
-    for (let i = 0; i < numCastRays; i++) {
-        rayData[i] = result.rayData[i];
+    // Merge rayData in order
+    let rayData = new Array(numCastRays).fill(null);
+    for (let i = 0; i < NUM_WORKERS; i++) {
+        const { startRay, rayData: segData } = results[i];
+        for (let j = 0; j < segData.length; j++) {
+            rayData[startRay + j] = segData[j];
+        }
     }
     lastFrameResults = { frameId, results: rayData };
     return rayData;
 }
 
 export function cleanupWorkers() {
-    worker1.terminate();
+    workers.forEach(w => w.terminate());
     workersInitialized = false;
-    console.log("Raycast worker terminated");
+    console.log("Raycast workers terminated");
 }
 
 export function testFuckingAround() {

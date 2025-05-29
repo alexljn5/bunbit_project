@@ -121,320 +121,15 @@ casperLesserDemonSprite.onload = () => {
 export const casperLesserDemonSpriteWorldPos = { x: 2.5 * tileSectors, z: 8 * tileSectors };
 
 
-export function drawSprites(rayData) {
-    if (!rayData) {
-        console.warn("rayData is undefined, skipping sprite rendering");
-        return;
-    }
-    drawStaticSprites(rayData);
-    animatedSpriteRenderer(rayData);
-}
-
-function drawStaticSprites(rayData) {
-    playerHandSpriteFunction();
-    corpse1SpriteFunction(rayData);
-    metalPipeSpriteFunction(rayData);
-    boyKisserEnemySpriteFunction(rayData);
-    casperLesserDemonSpriteFunction(rayData);
-    pillar01SpriteFunction(rayData);
-}
-
-function animatedSpriteRenderer(rayData) {
-    creamSpinTestSprite(rayData);
-}
-
-function pillar01SpriteFunction(rayData) {
-    if (!pillar01Loaded) {
-        console.warn("Pillar 01 sprite not loaded");
-        return;
-    }
-    // Calculate distance from player to sprite     
-    const dx = pillar01SpriteWorldPos.x - playerPosition.x;
-    const dz = pillar01SpriteWorldPos.z - playerPosition.z;
-    const distance = Math.sqrt(dx * dx + dz * dz);
-    // Apply perspective correction (same as walls) 
-    const relativeAngle = Math.atan2(dz, dx) - playerPosition.angle;
-    const correctedDistance = distance * Math.cos(relativeAngle);
-    if (correctedDistance < 0.1) {
-        console.log("Pillar too close, skipping");
-        return;
-    }
-    // Calculate sprite size based on distance, matching wall scaling       
-    const spriteHeight = (CANVAS_HEIGHT / correctedDistance) * tileSectors / 2;
-    const spriteWidth = spriteHeight * (128 / 128); // Fixed: Use 128x128 aspect ratio
-    //const spriteY = (CANVAS_HEIGHT - spriteHeight) / 2; // Center vertically
-    const spriteY = 400;
-    const screenX = (CANVAS_WIDTH / 2) + (CANVAS_WIDTH / 2) * (relativeAngle / (playerFOV / 2));
-    const adjustedScreenX = screenX - playerVantagePointX.playerVantagePointX;
-    const startColumn = Math.max(0, Math.floor((adjustedScreenX - spriteWidth / 2) / (CANVAS_WIDTH / numCastRays)));
-    const endColumn = Math.min(numCastRays - 1, Math.ceil((adjustedScreenX + spriteWidth / 2) / (CANVAS_WIDTH / numCastRays)));
-    // Check if sprite is visible (not occluded by walls)   
-    let isVisible = false;
-    for (let col = startColumn; col <= endColumn; col++) {
-        const ray = rayData[col];
-        if (!ray || correctedDistance < ray.distance) {
-            isVisible = true;
-            break;
-        }
-    }
-    // Only draw if sprite is on screen and not occluded
-    if (isVisible && adjustedScreenX + spriteWidth / 2 >= 0 && adjustedScreenX - spriteWidth / 2 <= CANVAS_WIDTH) {
-
-        renderEngine.drawImage(
-            pillar01Sprite,
-            adjustedScreenX - spriteWidth / 2,
-            spriteY - playerVantagePointY.playerVantagePointY,
-            spriteWidth,
-            spriteHeight
-        );
-    } else {
-        console.log("Pillar 01 not drawn: off-screen or occluded");
-    }
-}
-
-function boyKisserEnemySpriteFunction(rayData) {
-    if (!boyKisserEnemySpriteLoaded) {
-        console.warn("Boykisser not loaded");
-        return;
-    }
-
-    // Calculate distance from player to sprite
-    const dx = boyKisserEnemySpriteWorldPos.x - playerPosition.x; // Fixed: Use corpse1WorldPos
-    const dz = boyKisserEnemySpriteWorldPos.z - playerPosition.z;
-    const distance = Math.sqrt(dx * dx + dz * dz);
-
-    // Apply perspective correction (same as walls)
-    const relativeAngle = Math.atan2(dz, dx) - playerPosition.angle;
-    const correctedDistance = distance * Math.cos(relativeAngle);
-    if (correctedDistance < 0.1) {
-        console.log("Corpse too close, skipping");
-        return;
-    }
-
-    // Calculate sprite size based on distance, matching wall scaling
-    const spriteHeight = (CANVAS_HEIGHT / correctedDistance) * tileSectors / 2;
-    const spriteWidth = spriteHeight * (128 / 80); // Fixed: Use 128x64 aspect ratio
-
-    //const spriteY = (CANVAS_HEIGHT - spriteHeight) / 2; // Center vertically
-    const spriteY = 400; // Center vertically
-
-    // Calculate screen X position
-    const screenX = (CANVAS_WIDTH / 2) + (CANVAS_WIDTH / 2) * (relativeAngle / (playerFOV / 2));
-
-    // Apply vantage point offset
-    const adjustedScreenX = screenX - playerVantagePointX.playerVantagePointX;
-
-    // Determine the screen columns the sprite spans
-    const startColumn = Math.max(0, Math.floor((adjustedScreenX - spriteWidth / 2) / (CANVAS_WIDTH / numCastRays)));
-    const endColumn = Math.min(numCastRays - 1, Math.ceil((adjustedScreenX + spriteWidth / 2) / (CANVAS_WIDTH / numCastRays)));
-
-    // Check if sprite is visible (not occluded by walls)
-    let isVisible = false;
-    for (let col = startColumn; col <= endColumn; col++) {
-        const ray = rayData[col];
-        if (!ray || correctedDistance < ray.distance) {
-            isVisible = true;
-            break;
-        }
-    }
-    // Only draw if sprite is on screen and not occluded
-    if (isVisible && adjustedScreenX + spriteWidth / 2 >= 0 && adjustedScreenX - spriteWidth / 2 <= CANVAS_WIDTH) {
-        renderEngine.drawImage(
-            boyKisserEnemySprite,
-            adjustedScreenX - spriteWidth / 2,
-            spriteY - playerVantagePointY.playerVantagePointY,
-            spriteWidth,
-            spriteHeight
-        );
-    } else {
-        console.log("Corpse1 not drawn: off-screen or occluded");
-    }
-}
-
-function casperLesserDemonSpriteFunction(rayData) {
-    if (!casperLesserDemonSpriteLoaded) {
-        console.warn("corpse1Sprite not loaded");
-        return;
-    }
-
-    // Calculate distance from player to sprite
-    const dx = casperLesserDemonSpriteWorldPos.x - playerPosition.x; // Fixed: Use corpse1WorldPos
-    const dz = casperLesserDemonSpriteWorldPos.z - playerPosition.z;
-    const distance = Math.sqrt(dx * dx + dz * dz);
-
-    // Apply perspective correction (same as walls)
-    const relativeAngle = Math.atan2(dz, dx) - playerPosition.angle;
-    const correctedDistance = distance * Math.cos(relativeAngle);
-    if (correctedDistance < 0.1) {
-        //console.log("Corpse too close, skipping");
-        return;
-    }
-
-    // Calculate sprite size based on distance, matching wall scaling
-    const spriteHeight = (CANVAS_HEIGHT / correctedDistance) * tileSectors / 2;
-    const spriteWidth = spriteHeight * (128 / 80); // Fixed: Use 128x64 aspect ratio
-
-    //const spriteY = (CANVAS_HEIGHT - spriteHeight) / 2; // Center vertically
-    const spriteY = 400; // Center vertically
-
-    // Calculate screen X position
-    const screenX = (CANVAS_WIDTH / 2) + (CANVAS_WIDTH / 2) * (relativeAngle / (playerFOV / 2));
-
-    // Apply vantage point offset
-    const adjustedScreenX = screenX - playerVantagePointX.playerVantagePointX;
-
-    // Determine the screen columns the sprite spans
-    const startColumn = Math.max(0, Math.floor((adjustedScreenX - spriteWidth / 2) / (CANVAS_WIDTH / numCastRays)));
-    const endColumn = Math.min(numCastRays - 1, Math.ceil((adjustedScreenX + spriteWidth / 2) / (CANVAS_WIDTH / numCastRays)));
-
-    // Check if sprite is visible (not occluded by walls)
-    let isVisible = false;
-    for (let col = startColumn; col <= endColumn; col++) {
-        const ray = rayData[col];
-        if (!ray || correctedDistance < ray.distance) {
-            isVisible = true;
-            break;
-        }
-    }
-    // Only draw if sprite is on screen and not occluded
-    if (isVisible && adjustedScreenX + spriteWidth / 2 >= 0 && adjustedScreenX - spriteWidth / 2 <= CANVAS_WIDTH) {
-        renderEngine.drawImage(
-            casperLesserDemonSprite,
-            adjustedScreenX - spriteWidth / 2,
-            spriteY - playerVantagePointY.playerVantagePointY,
-            spriteWidth,
-            spriteHeight
-        );
-    } else {
-        //console.log("Corpse1 not drawn: off-screen or occluded");
-    }
-}
-
-function corpse1SpriteFunction(rayData) {
-    if (!corpse1Loaded) {
-        console.warn("corpse1Sprite not loaded");
-        return;
-    }
-
-    // Calculate distance from player to sprite
-    const dx = corpse1WorldPos.x - playerPosition.x; // Fixed: Use corpse1WorldPos
-    const dz = corpse1WorldPos.z - playerPosition.z;
-    const distance = Math.sqrt(dx * dx + dz * dz);
-
-    // Apply perspective correction (same as walls)
-    const relativeAngle = Math.atan2(dz, dx) - playerPosition.angle;
-    const correctedDistance = distance * Math.cos(relativeAngle);
-    if (correctedDistance < 0.1) {
-        console.log("Corpse too close, skipping");
-        return;
-    }
-
-    // Calculate sprite size based on distance, matching wall scaling
-    const spriteHeight = (CANVAS_HEIGHT / correctedDistance) * tileSectors / 2;
-    const spriteWidth = spriteHeight * (128 / 80); // Fixed: Use 128x64 aspect ratio
-
-    //const spriteY = (CANVAS_HEIGHT - spriteHeight) / 2; // Center vertically
-    const spriteY = 400; // Center vertically
-
-    // Calculate screen X position
-    const screenX = (CANVAS_WIDTH / 2) + (CANVAS_WIDTH / 2) * (relativeAngle / (playerFOV / 2));
-
-    // Apply vantage point offset
-    const adjustedScreenX = screenX - playerVantagePointX.playerVantagePointX;
-
-    // Determine the screen columns the sprite spans
-    const startColumn = Math.max(0, Math.floor((adjustedScreenX - spriteWidth / 2) / (CANVAS_WIDTH / numCastRays)));
-    const endColumn = Math.min(numCastRays - 1, Math.ceil((adjustedScreenX + spriteWidth / 2) / (CANVAS_WIDTH / numCastRays)));
-
-    // Check if sprite is visible (not occluded by walls)
-    let isVisible = false;
-    for (let col = startColumn; col <= endColumn; col++) {
-        const ray = rayData[col];
-        if (!ray || correctedDistance < ray.distance) {
-            isVisible = true;
-            break;
-        }
-    }
-    // Only draw if sprite is on screen and not occluded
-    if (isVisible && adjustedScreenX + spriteWidth / 2 >= 0 && adjustedScreenX - spriteWidth / 2 <= CANVAS_WIDTH) {
-        renderEngine.drawImage(
-            corpse1Sprite,
-            adjustedScreenX - spriteWidth / 2,
-            spriteY - playerVantagePointY.playerVantagePointY,
-            spriteWidth,
-            spriteHeight
-        );
-    } else {
-        //console.log("Corpse1 not drawn: off-screen or occluded");
-    }
-}
-
-function metalPipeSpriteFunction(rayData) {
-    if (!metalPipeSprite) {
-        console.warn("corpse1Sprite not loaded");
-        return;
-    }
-
-    if (!metalPipeLoaded || spriteState.isMetalPipeCollected) {
-        return;
-    }
-
-    // Calculate distance from player to sprite
-    const dx = metalPipeWorldPos.x - playerPosition.x;
-    const dz = metalPipeWorldPos.z - playerPosition.z;
-    const distance = Math.sqrt(dx * dx + dz * dz);
-
-    // Apply perspective correction (same as walls)
-    const relativeAngle = Math.atan2(dz, dx) - playerPosition.angle;
-    const correctedDistance = distance * Math.cos(relativeAngle);
-    if (correctedDistance < 0.1) {
-        console.log("Metal Pipe too close, skipping");
-        return;
-    }
-
-    const spriteHeight = (CANVAS_HEIGHT / correctedDistance) * tileSectors / 2;
-    const spriteWidth = spriteHeight * (128 / 80);
-    const spriteY = 500;
-    const screenX = (CANVAS_WIDTH / 2) + (CANVAS_WIDTH / 2) * (relativeAngle / (playerFOV / 2));
-    // Apply vantage point offset
-    const adjustedScreenX = screenX - playerVantagePointX.playerVantagePointX;
-    // Determine the screen columns the sprite spans
-    const startColumn = Math.max(0, Math.floor((adjustedScreenX - spriteWidth / 2) / (CANVAS_WIDTH / numCastRays)));
-    const endColumn = Math.min(numCastRays - 1, Math.ceil((adjustedScreenX + spriteWidth / 2) / (CANVAS_WIDTH / numCastRays)));
-    // Check if sprite is visible (not occluded by walls)
-    let isVisible = false;
-    for (let col = startColumn; col <= endColumn; col++) {
-        const ray = rayData[col];
-        if (!ray || correctedDistance < ray.distance) {
-            isVisible = true;
-            break;
-        }
-    }
-    // Only draw if sprite is on screen and not occluded
-    if (isVisible && adjustedScreenX + spriteWidth / 2 >= 0 && adjustedScreenX - spriteWidth / 2 <= CANVAS_WIDTH) {
-        renderEngine.drawImage(
-            metalPipeSprite,
-            adjustedScreenX - spriteWidth / 2,
-            spriteY - playerVantagePointY.playerVantagePointY,
-            spriteWidth,
-            spriteHeight
-        );
-    } else {
-        //console.log("Corpse1 not drawn: off-screen or occluded");
-    }
-}
-
 function playerHandSpriteFunction() {
     const defaultPlayerHandX = 0;
     const defaultPlayerHandY = 0;
     const defaultPlayerHandWidth = 100;
     const defaultPlayerHandHeight = 100;
-
     const playerHandMetalPipeX = 450;
     const playerHandMetalPipeY = 400;
     const playerHandMetalPipeWidth = 256;
     const playerHandMetalPipeHeight = 512;
-
     if (playerInventory.includes("metal_pipe") && metalPipePlayerHandLoaded) {
         renderEngine.drawImage(metalPipePlayerHandSprite, playerHandMetalPipeX, playerHandMetalPipeY, playerHandMetalPipeWidth, playerHandMetalPipeHeight);
     } else if (handLoaded) {
@@ -480,7 +175,6 @@ function creamSpinTestSprite(rayData) {
     const relativeAngle = Math.atan2(dz, dx) - playerPosition.angle;
     const correctedDistance = distance * Math.cos(relativeAngle);
     if (correctedDistance < 0.1) {
-        console.log("CreamSpin too close, skipping");
         return;
     }
 
@@ -521,5 +215,159 @@ function creamSpinTestSprite(rayData) {
             );
         }
     } else {
+    }
+}
+
+// Utility: check if a sprite is visible (not occluded by walls)
+function isSpriteVisible(rayData, startColumn, endColumn, correctedDistance) {
+    for (let col = startColumn; col <= endColumn; col++) {
+        const ray = rayData[col];
+        if (!ray || correctedDistance < ray.distance) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Utility: calculate sprite screen X and columns
+function getSpriteScreenParams(relativeAngle, spriteWidth) {
+    const screenX = (CANVAS_WIDTH / 2) + (CANVAS_WIDTH / 2) * (relativeAngle / (playerFOV / 2));
+    const adjustedScreenX = screenX - playerVantagePointX.playerVantagePointX;
+    const startColumn = Math.max(0, Math.floor((adjustedScreenX - spriteWidth / 2) / (CANVAS_WIDTH / numCastRays)));
+    const endColumn = Math.min(numCastRays - 1, Math.ceil((adjustedScreenX + spriteWidth / 2) / (CANVAS_WIDTH / numCastRays)));
+    return { adjustedScreenX, startColumn, endColumn };
+}
+
+export function drawSprites(rayData) {
+    if (!rayData) return;
+    drawStaticSprites(rayData);
+    animatedSpriteRenderer(rayData);
+}
+
+function drawStaticSprites(rayData) {
+    playerHandSpriteFunction();
+    corpse1SpriteFunction(rayData);
+    metalPipeSpriteFunction(rayData);
+    boyKisserEnemySpriteFunction(rayData);
+    casperLesserDemonSpriteFunction(rayData);
+    pillar01SpriteFunction(rayData);
+}
+
+function animatedSpriteRenderer(rayData) {
+    creamSpinTestSprite(rayData);
+}
+
+function pillar01SpriteFunction(rayData) {
+    if (!pillar01Loaded) return;
+    const dx = pillar01SpriteWorldPos.x - playerPosition.x;
+    const dz = pillar01SpriteWorldPos.z - playerPosition.z;
+    const distance = Math.sqrt(dx * dx + dz * dz);
+    const relativeAngle = Math.atan2(dz, dx) - playerPosition.angle;
+    const correctedDistance = distance * Math.cos(relativeAngle);
+    if (correctedDistance < 0.1) return;
+    const spriteHeight = (CANVAS_HEIGHT / correctedDistance) * tileSectors / 2;
+    const spriteWidth = spriteHeight;
+    const spriteY = 400;
+    const { adjustedScreenX, startColumn, endColumn } = getSpriteScreenParams(relativeAngle, spriteWidth);
+    if (isSpriteVisible(rayData, startColumn, endColumn, correctedDistance) && adjustedScreenX + spriteWidth / 2 >= 0 && adjustedScreenX - spriteWidth / 2 <= CANVAS_WIDTH) {
+        renderEngine.drawImage(
+            pillar01Sprite,
+            adjustedScreenX - spriteWidth / 2,
+            spriteY - playerVantagePointY.playerVantagePointY,
+            spriteWidth,
+            spriteHeight
+        );
+    }
+}
+
+function boyKisserEnemySpriteFunction(rayData) {
+    if (!boyKisserEnemySpriteLoaded) return;
+    const dx = boyKisserEnemySpriteWorldPos.x - playerPosition.x;
+    const dz = boyKisserEnemySpriteWorldPos.z - playerPosition.z;
+    const distance = Math.sqrt(dx * dx + dz * dz);
+    const relativeAngle = Math.atan2(dz, dx) - playerPosition.angle;
+    const correctedDistance = distance * Math.cos(relativeAngle);
+    if (correctedDistance < 0.1) return;
+    const spriteHeight = (CANVAS_HEIGHT / correctedDistance) * tileSectors / 2;
+    const spriteWidth = spriteHeight * (128 / 80);
+    const spriteY = 400;
+    const { adjustedScreenX, startColumn, endColumn } = getSpriteScreenParams(relativeAngle, spriteWidth);
+    if (isSpriteVisible(rayData, startColumn, endColumn, correctedDistance) && adjustedScreenX + spriteWidth / 2 >= 0 && adjustedScreenX - spriteWidth / 2 <= CANVAS_WIDTH) {
+        renderEngine.drawImage(
+            boyKisserEnemySprite,
+            adjustedScreenX - spriteWidth / 2,
+            spriteY - playerVantagePointY.playerVantagePointY,
+            spriteWidth,
+            spriteHeight
+        );
+    }
+}
+
+function casperLesserDemonSpriteFunction(rayData) {
+    if (!casperLesserDemonSpriteLoaded) return;
+    const dx = casperLesserDemonSpriteWorldPos.x - playerPosition.x;
+    const dz = casperLesserDemonSpriteWorldPos.z - playerPosition.z;
+    const distance = Math.sqrt(dx * dx + dz * dz);
+    const relativeAngle = Math.atan2(dz, dx) - playerPosition.angle;
+    const correctedDistance = distance * Math.cos(relativeAngle);
+    if (correctedDistance < 0.1) return;
+    const spriteHeight = (CANVAS_HEIGHT / correctedDistance) * tileSectors / 2;
+    const spriteWidth = spriteHeight * (128 / 80);
+    const spriteY = 400;
+    const { adjustedScreenX, startColumn, endColumn } = getSpriteScreenParams(relativeAngle, spriteWidth);
+    if (isSpriteVisible(rayData, startColumn, endColumn, correctedDistance) && adjustedScreenX + spriteWidth / 2 >= 0 && adjustedScreenX - spriteWidth / 2 <= CANVAS_WIDTH) {
+        renderEngine.drawImage(
+            casperLesserDemonSprite,
+            adjustedScreenX - spriteWidth / 2,
+            spriteY - playerVantagePointY.playerVantagePointY,
+            spriteWidth,
+            spriteHeight
+        );
+    }
+}
+
+function corpse1SpriteFunction(rayData) {
+    if (!corpse1Loaded) return;
+    const dx = corpse1WorldPos.x - playerPosition.x;
+    const dz = corpse1WorldPos.z - playerPosition.z;
+    const distance = Math.sqrt(dx * dx + dz * dz);
+    const relativeAngle = Math.atan2(dz, dx) - playerPosition.angle;
+    const correctedDistance = distance * Math.cos(relativeAngle);
+    if (correctedDistance < 0.1) return;
+    const spriteHeight = (CANVAS_HEIGHT / correctedDistance) * tileSectors / 2;
+    const spriteWidth = spriteHeight * (128 / 80);
+    const spriteY = 400;
+    const { adjustedScreenX, startColumn, endColumn } = getSpriteScreenParams(relativeAngle, spriteWidth);
+    if (isSpriteVisible(rayData, startColumn, endColumn, correctedDistance) && adjustedScreenX + spriteWidth / 2 >= 0 && adjustedScreenX - spriteWidth / 2 <= CANVAS_WIDTH) {
+        renderEngine.drawImage(
+            corpse1Sprite,
+            adjustedScreenX - spriteWidth / 2,
+            spriteY - playerVantagePointY.playerVantagePointY,
+            spriteWidth,
+            spriteHeight
+        );
+    }
+}
+
+function metalPipeSpriteFunction(rayData) {
+    if (!metalPipeSprite || !metalPipeLoaded || spriteState.isMetalPipeCollected) return;
+    const dx = metalPipeWorldPos.x - playerPosition.x;
+    const dz = metalPipeWorldPos.z - playerPosition.z;
+    const distance = Math.sqrt(dx * dx + dz * dz);
+    const relativeAngle = Math.atan2(dz, dx) - playerPosition.angle;
+    const correctedDistance = distance * Math.cos(relativeAngle);
+    if (correctedDistance < 0.1) return;
+    const spriteHeight = (CANVAS_HEIGHT / correctedDistance) * tileSectors / 2;
+    const spriteWidth = spriteHeight * (128 / 80);
+    const spriteY = 500;
+    const { adjustedScreenX, startColumn, endColumn } = getSpriteScreenParams(relativeAngle, spriteWidth);
+    if (isSpriteVisible(rayData, startColumn, endColumn, correctedDistance) && adjustedScreenX + spriteWidth / 2 >= 0 && adjustedScreenX - spriteWidth / 2 <= CANVAS_WIDTH) {
+        renderEngine.drawImage(
+            metalPipeSprite,
+            adjustedScreenX - spriteWidth / 2,
+            spriteY - playerVantagePointY.playerVantagePointY,
+            spriteWidth,
+            spriteHeight
+        );
     }
 }

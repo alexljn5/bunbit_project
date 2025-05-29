@@ -19,43 +19,45 @@ const domElements = {
     debugGameButton: document.getElementById("debugGameButton")
 };
 
+// --- Optimized renderengine.js ---
+
+// Use a single function to get the canvas context
 export const renderEngine = domElements.mainGameRender.getContext("2d");
 
 let game = null;
 let showDebugTools = false;
 
 // Create render workers once
-const renderWorker1 = new Worker("./renderengineworker.js", { type: "module" });
-const renderWorker2 = new Worker("./renderengineworker.js", { type: "module" });
+const renderWorker1 = new Worker("./workers/renderengineworker.js", { type: "module" });
+const renderWorker2 = new Worker("./workers/renderengineworker.js", { type: "module" });
 let renderWorkersInitialized = false;
 
 // Create floor render worker
-const floorWorker = new Worker("./renderfloorworker.js", { type: "module" });
+const floorWorker = new Worker("./workers/renderfloorworker.js", { type: "module" });
 let floorWorkerFrameId = 0;
-let floorWorkerPending = new Map();
+const floorWorkerPending = new Map();
 
-domElements.playGameButton.addEventListener("click", playGameButton);
-domElements.stopGameButton.addEventListener("click", stopGameButton);
-domElements.debugGameButton.addEventListener("click", debugGameButton);
+// Use event delegation for button events (faster, less memory)
+domElements.playGameButton.onclick = playGameButton;
+domElements.stopGameButton.onclick = stopGameButton;
+domElements.debugGameButton.onclick = debugGameButton;
 
 function playGameButton() {
     if (!game) {
         mainGameRender();
-        initializeRenderWorkers();
+        //initializeRenderWorkers();
     }
     game.start();
-    console.log("Starting >.<!!!!");
 }
 
 function stopGameButton() {
     if (game) {
         game.stop();
-        cleanupWorkers(); // Clean up raycast workers
-        cleanupRenderWorkers(); // Clean up render workers
+        cleanupWorkers();
+        cleanupRenderWorkers();
         compiledTextStyle();
         renderEngine.fillText("Stopped", 600, 500);
     }
-    console.log("Stopped <3 ^u^");
 }
 
 function debugGameButton() {
@@ -68,15 +70,18 @@ function mainGameRender() {
 
 let isRenderingFrame = false;
 
+
+
+// In gameRenderEngine, use Java raycasting if available
 async function gameRenderEngine() {
     if (isRenderingFrame) return;
     isRenderingFrame = true;
-
     try {
-        const rayData = await castRays();
-        console.log("rayData:", rayData); // Debug: Inspect rayData
+        let rayData = await getJavaRaycastData();
+        if (!rayData) {
+            rayData = await castRays(); // fallback to JS raycasting
+        }
         if (!rayData || rayData.every(ray => ray === null)) {
-            console.warn("No valid ray data, filling red");
             renderEngine.fillStyle = "red";
             renderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
             return;
@@ -90,8 +95,6 @@ async function gameRenderEngine() {
         playerInventoryGodFunction();
         playerUI();
         collissionGodFunction();
-        //enemyAiGodFunction();
-        //testAnimationFuckingAround();
     } catch (error) {
         console.error("gameRenderEngine error:", error);
     } finally {
@@ -109,25 +112,19 @@ export const CANVAS_WIDTH = 800;
 export const CANVAS_HEIGHT = 800;
 
 function drawQuad({ topX, topY, leftX, leftY, rightX, rightY, color, texture, textureX }) {
-    const adjustedTopX = topX - playerVantagePointX.playerVantagePointX;
-    const adjustedTopY = topY - playerVantagePointY.playerVantagePointY;
-    const adjustedLeftX = leftX - playerVantagePointX.playerVantagePointX;
-    const adjustedLeftY = leftY - playerVantagePointY.playerVantagePointY;
-    const adjustedRightX = rightX - playerVantagePointX.playerVantagePointX;
-    const adjustedRightY = rightY - playerVantagePointY.playerVantagePointY;
-
+    // Remove unnecessary adjustments if not needed for your camera system
     renderEngine.beginPath();
-    renderEngine.moveTo(adjustedTopX, adjustedTopY);
-    renderEngine.lineTo(adjustedLeftX, adjustedLeftY);
-    renderEngine.lineTo(adjustedRightX, adjustedRightY);
+    renderEngine.moveTo(topX, topY);
+    renderEngine.lineTo(leftX, leftY);
+    renderEngine.lineTo(rightX, rightY);
     renderEngine.closePath();
 
     if (texture && textureX !== undefined && texturesLoaded) {
-        const destWidth = adjustedRightX - adjustedLeftX;
+        const destWidth = rightX - leftX;
         renderEngine.drawImage(
             texture,
             textureX * texture.width, 0, 1, texture.height,
-            adjustedLeftX, adjustedTopY, destWidth, adjustedRightY - adjustedTopY
+            leftX, topY, destWidth, rightY - topY
         );
     } else {
         renderEngine.fillStyle = color;
@@ -147,51 +144,45 @@ function initializeRenderWorkers() {
     renderWorkersInitialized = true;
 }
 
+// Remove CheerpJ Java raycasting integration
+// Use only JS raycasting
+async function getJavaRaycastData() {
+    // Always return null, disables CheerpJ integration
+    return null;
+}
+
 function renderRaycastWalls(rayData) {
     if (!texturesLoaded) {
-        console.warn("Textures not loaded, using fallback");
         renderEngine.fillStyle = "gray";
         renderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
         return;
     }
-
+    const colWidth = CANVAS_WIDTH / numCastRays;
     for (let i = 0; i < rayData.length; i++) {
         const ray = rayData[i];
         if (!ray) continue;
-
         const wallHeight = (CANVAS_HEIGHT / ray.distance) * tileSectors;
         const wallTop = (CANVAS_HEIGHT - wallHeight) / 2;
         const wallBottom = wallTop + wallHeight;
-
-        let textureX;
-        if (ray.hitSide === "x") {
-            textureX = (ray.hitX % tileSectors) / tileSectors;
-        } else {
-            textureX = (ray.hitY % tileSectors) / tileSectors;
-        }
+        let textureX = ray.hitSide === "x"
+            ? (ray.hitX % tileSectors) / tileSectors
+            : (ray.hitY % tileSectors) / tileSectors;
         textureX = Math.max(0, Math.min(1, textureX));
-
         let texture = tileTexturesMap.get(ray.textureKey) || tileTexturesMap.get("wall_creamlol");
         if (ray.textureKey === "wall_laughing_demon") {
             texture = getDemonLaughingCurrentFrame() || tileTexturesMap.get("wall_creamlol");
         }
-
-        if (!texture) {
-            console.error(`Texture not found for key: ${ray.textureKey}`);
-            continue;
-        }
-
-        // PATCH: Use i (ray index) for column position, not ray.column
+        if (!texture) continue;
         drawQuad({
-            topX: i * (CANVAS_WIDTH / numCastRays),
+            topX: i * colWidth,
             topY: wallTop,
-            leftX: i * (CANVAS_WIDTH / numCastRays),
+            leftX: i * colWidth,
             leftY: wallBottom,
-            rightX: (i + 1) * (CANVAS_WIDTH / numCastRays),
+            rightX: (i + 1) * colWidth,
             rightY: wallBottom,
             color: "red",
-            texture: texture,
-            textureX: textureX
+            texture,
+            textureX
         });
     }
 }
@@ -200,7 +191,6 @@ function cleanupRenderWorkers() {
     renderWorker1.terminate();
     renderWorker2.terminate();
     renderWorkersInitialized = false;
-    console.log("Render workers terminated");
 }
 
 floorWorker.onmessage = (e) => {
@@ -242,7 +232,7 @@ async function renderRaycastFloors(rayData) {
     });
     floorWorker.postMessage(msg);
     const floorPixels = await floorPromise;
-    // Draw the floor pixels efficiently (new format: { texKey, data: Float32Array } per column)
+    const colWidth = CANVAS_WIDTH / numCastRays;
     for (let x = 0; x < floorPixels.length; x++) {
         const col = floorPixels[x];
         if (!col || !col.data || !col.texKey) continue;
@@ -258,7 +248,7 @@ async function renderRaycastFloors(rayData) {
             renderEngine.drawImage(
                 texture,
                 texPx, texPy, 1, 1,
-                x * (CANVAS_WIDTH / numCastRays), y, (CANVAS_WIDTH / numCastRays), 2
+                x * colWidth, y, colWidth, 2
             );
         }
     }
