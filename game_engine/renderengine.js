@@ -1,9 +1,10 @@
+// renderengine.js
 import { gameLoop } from "./main_game.js";
 import { playerVantagePointX, playerVantagePointY, playerLogic, playerPosition } from "./playerdata/playerlogic.js";
 import { playerInventoryGodFunction } from "./playerdata/playerinventory.js";
 import { compiledDevTools, compiledTextStyle } from "./debugtools.js";
 import { mapTable, tileSectors } from "./mapdata/maps.js";
-import { castRays, testAnimationFuckingAround, testFuckingAround, playerFOV, numCastRays } from "./raycasting.js";
+import { castRays, cleanupWorkers, numCastRays, playerFOV, testAnimationFuckingAround } from "./raycasting.js"; // Import cleanupWorkers
 import { drawSprites } from "./rendersprites.js";
 import { mainGameMenu } from "./menu.js";
 import { texturesLoaded, tileTexturesMap, getDemonLaughingCurrentFrame } from "./mapdata/maptextures.js";
@@ -23,6 +24,16 @@ export const renderEngine = domElements.mainGameRender.getContext("2d");
 let game = null;
 let showDebugTools = false;
 
+// Create render workers once
+const renderWorker1 = new Worker("./renderengineworker.js", { type: "module" });
+const renderWorker2 = new Worker("./renderengineworker.js", { type: "module" });
+let renderWorkersInitialized = false;
+
+// Create floor render worker
+const floorWorker = new Worker("./renderfloorworker.js", { type: "module" });
+let floorWorkerFrameId = 0;
+let floorWorkerPending = new Map();
+
 domElements.playGameButton.addEventListener("click", playGameButton);
 domElements.stopGameButton.addEventListener("click", stopGameButton);
 domElements.debugGameButton.addEventListener("click", debugGameButton);
@@ -30,6 +41,7 @@ domElements.debugGameButton.addEventListener("click", debugGameButton);
 function playGameButton() {
     if (!game) {
         mainGameRender();
+        initializeRenderWorkers();
     }
     game.start();
     console.log("Starting >.<!!!!");
@@ -38,8 +50,10 @@ function playGameButton() {
 function stopGameButton() {
     if (game) {
         game.stop();
+        cleanupWorkers(); // Clean up raycast workers
+        cleanupRenderWorkers(); // Clean up render workers
         compiledTextStyle();
-        renderEngine.fillText("Stopped", 890, 30);
+        renderEngine.fillText("Stopped", 600, 500);
     }
     console.log("Stopped <3 ^u^");
 }
@@ -52,21 +66,37 @@ function mainGameRender() {
     game = gameLoop(gameRenderEngine);
 }
 
-function gameRenderEngine() {
-    drawBackground();
-    const rayData = castRays(); // Store raycasting data
-    renderRaycastWalls(rayData); // Pass to walls
-    renderRaycastFloors(rayData);
-    drawSprites(rayData); // Pass to sprites
-    if (showDebugTools) {
-        compiledDevTools();
+let isRenderingFrame = false;
+
+async function gameRenderEngine() {
+    if (isRenderingFrame) return;
+    isRenderingFrame = true;
+
+    try {
+        const rayData = await castRays();
+        console.log("rayData:", rayData); // Debug: Inspect rayData
+        if (!rayData || rayData.every(ray => ray === null)) {
+            console.warn("No valid ray data, filling red");
+            renderEngine.fillStyle = "red";
+            renderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            return;
+        }
+        drawBackground();
+        await renderRaycastWalls(rayData);
+        await renderRaycastFloors(rayData);
+        drawSprites(rayData);
+        if (showDebugTools) compiledDevTools();
+        playerLogic();
+        playerInventoryGodFunction();
+        playerUI();
+        collissionGodFunction();
+        //enemyAiGodFunction();
+        //testAnimationFuckingAround();
+    } catch (error) {
+        console.error("gameRenderEngine error:", error);
+    } finally {
+        isRenderingFrame = false;
     }
-    playerLogic();
-    playerInventoryGodFunction();
-    playerUI();
-    collissionGodFunction();
-    enemyAiGodFunction();
-    //testAnimationFuckingAround();
 }
 
 function drawBackground() {
@@ -105,6 +135,18 @@ function drawQuad({ topX, topY, leftX, leftY, rightX, rightY, color, texture, te
     }
 }
 
+function initializeRenderWorkers() {
+    const staticData = {
+        type: "init",
+        tileSectors,
+        CANVAS_HEIGHT,
+        CANVAS_WIDTH
+    };
+    renderWorker1.postMessage(staticData);
+    renderWorker2.postMessage(staticData);
+    renderWorkersInitialized = true;
+}
+
 function renderRaycastWalls(rayData) {
     if (!texturesLoaded) {
         console.warn("Textures not loaded, using fallback");
@@ -139,12 +181,13 @@ function renderRaycastWalls(rayData) {
             continue;
         }
 
+        // PATCH: Use i (ray index) for column position, not ray.column
         drawQuad({
-            topX: ray.column,
+            topX: i * (CANVAS_WIDTH / numCastRays),
             topY: wallTop,
-            leftX: ray.column,
+            leftX: i * (CANVAS_WIDTH / numCastRays),
             leftY: wallBottom,
-            rightX: ray.column + 1,
+            rightX: (i + 1) * (CANVAS_WIDTH / numCastRays),
             rightY: wallBottom,
             color: "red",
             texture: texture,
@@ -153,59 +196,71 @@ function renderRaycastWalls(rayData) {
     }
 }
 
-function renderRaycastFloors(rayData) {
+function cleanupRenderWorkers() {
+    renderWorker1.terminate();
+    renderWorker2.terminate();
+    renderWorkersInitialized = false;
+    console.log("Render workers terminated");
+}
+
+floorWorker.onmessage = (e) => {
+    const { frameId, floorPixels } = e.data;
+    if (floorWorkerPending.has(frameId)) {
+        floorWorkerPending.get(frameId)(floorPixels);
+        floorWorkerPending.delete(frameId);
+    }
+};
+
+async function renderRaycastFloors(rayData) {
     if (!texturesLoaded) {
-        console.warn("Textures not loaded, skipping floor rendering");
         renderEngine.fillStyle = "gray";
         renderEngine.fillRect(0, CANVAS_HEIGHT / 2, CANVAS_WIDTH, CANVAS_HEIGHT / 2);
         return;
     }
-
-    const playerHeight = tileSectors / 2;
-    const projectionPlaneDist = (CANVAS_WIDTH / 2) / Math.tan(playerFOV / 2);
-
-    // Precompute cos/sin for each ray column
-    const rayAngles = new Array(numCastRays);
-    const cosAngles = new Array(numCastRays);
-    const sinAngles = new Array(numCastRays);
-
-    for (let x = 0; x < numCastRays; x++) {
-        rayAngles[x] = playerPosition.angle + (-playerFOV / 2 + (x / numCastRays) * playerFOV);
-        cosAngles[x] = Math.cos(rayAngles[x]);
-        sinAngles[x] = Math.sin(rayAngles[x]);
-    }
-
-    for (let x = 0; x < numCastRays; x++) {
-        const ray = rayData[x];
-        if (!ray || !ray.floorTextureKey) continue;
-
-        const texture = tileTexturesMap.get(ray.floorTextureKey);
+    floorWorkerFrameId++;
+    const frameId = floorWorkerFrameId;
+    const playerX = playerPosition.x;
+    const playerZ = playerPosition.z;
+    const playerAngleVal = playerPosition.angle;
+    const floorTextures = {};
+    tileTexturesMap.forEach((tex, key) => { floorTextures[key] = { width: tex.width, height: tex.height }; });
+    const msg = {
+        rayData,
+        playerX,
+        playerZ,
+        playerAngle: playerAngleVal,
+        playerFOV,
+        tileSectors,
+        CANVAS_WIDTH,
+        CANVAS_HEIGHT,
+        numCastRays,
+        floorTextures,
+        frameId
+    };
+    const floorPromise = new Promise((resolve) => {
+        floorWorkerPending.set(frameId, resolve);
+    });
+    floorWorker.postMessage(msg);
+    const floorPixels = await floorPromise;
+    // Draw the floor pixels efficiently (new format: { texKey, data: Float32Array } per column)
+    for (let x = 0; x < floorPixels.length; x++) {
+        const col = floorPixels[x];
+        if (!col || !col.data || !col.texKey) continue;
+        const texture = tileTexturesMap.get(col.texKey);
         if (!texture) continue;
-
-        const wallHeight = (CANVAS_HEIGHT / ray.distance) * tileSectors;
-        const wallBottom = (CANVAS_HEIGHT + wallHeight) / 2;
-
-        const cosA = cosAngles[x];
-        const sinA = sinAngles[x];
-        const texWidth = texture.width;
-        const texHeight = texture.height;
-
-        for (let y = Math.floor(wallBottom); y < CANVAS_HEIGHT; y += 2) { // Skip 1 row for perf
-            const rowDistance = (tileSectors / 2) / ((y - CANVAS_HEIGHT / 2) / projectionPlaneDist);
-            const floorX = playerPosition.x + rowDistance * cosA;
-            const floorY = playerPosition.z + rowDistance * sinA;
-
-            const textureX = ((floorX % tileSectors + tileSectors) % tileSectors) / tileSectors;
-            const textureY = ((floorY % tileSectors + tileSectors) % tileSectors) / tileSectors;
-
-            const texX = (textureX * texWidth) | 0;
-            const texY = (textureY * texHeight) | 0;
-
+        const arr = col.data;
+        for (let i = 0; i < arr.length; i += 3) {
+            const y = arr[i];
+            const texX = arr[i + 1];
+            const texY = arr[i + 2];
+            const texPx = Math.floor(texX * texture.width);
+            const texPy = Math.floor(texY * texture.height);
             renderEngine.drawImage(
                 texture,
-                texX, texY, 1, 1,
+                texPx, texPy, 1, 1,
                 x * (CANVAS_WIDTH / numCastRays), y, (CANVAS_WIDTH / numCastRays), 2
             );
         }
     }
 }
+
