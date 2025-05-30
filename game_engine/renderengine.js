@@ -4,7 +4,7 @@ import { playerVantagePointX, playerVantagePointY, playerLogic, playerPosition }
 import { playerInventoryGodFunction } from "./playerdata/playerinventory.js";
 import { compiledDevTools, compiledTextStyle } from "./debugtools.js";
 import { mapTable, tileSectors } from "./mapdata/maps.js";
-import { castRays, cleanupWorkers, numCastRays, playerFOV, testAnimationFuckingAround } from "./raycasting.js"; // Import cleanupWorkers
+import { castRays, cleanupWorkers, numCastRays, playerFOV } from "./raycasting.js"; // Import cleanupWorkers
 import { drawSprites } from "./rendersprites.js";
 import { mainGameMenu } from "./menu.js";
 import { texturesLoaded, tileTexturesMap, getDemonLaughingCurrentFrame } from "./mapdata/maptextures.js";
@@ -45,7 +45,7 @@ domElements.debugGameButton.onclick = debugGameButton;
 function playGameButton() {
     if (!game) {
         mainGameRender();
-        //initializeRenderWorkers();
+        initializeRenderWorkers();
     }
     game.start();
 }
@@ -70,17 +70,13 @@ function mainGameRender() {
 
 let isRenderingFrame = false;
 
-
-
-// In gameRenderEngine, use Java raycasting if available
+// --- Main Game Render Loop ---
 async function gameRenderEngine() {
     if (isRenderingFrame) return;
     isRenderingFrame = true;
     try {
-        let rayData = await getJavaRaycastData();
-        if (!rayData) {
-            rayData = await castRays(); // fallback to JS raycasting
-        }
+        // Only use JS raycasting
+        let rayData = await castRays();
         if (!rayData || rayData.every(ray => ray === null)) {
             renderEngine.fillStyle = "red";
             renderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
@@ -112,13 +108,11 @@ export const CANVAS_WIDTH = 800;
 export const CANVAS_HEIGHT = 800;
 
 function drawQuad({ topX, topY, leftX, leftY, rightX, rightY, color, texture, textureX }) {
-    // Remove unnecessary adjustments if not needed for your camera system
     renderEngine.beginPath();
     renderEngine.moveTo(topX, topY);
     renderEngine.lineTo(leftX, leftY);
     renderEngine.lineTo(rightX, rightY);
     renderEngine.closePath();
-
     if (texture && textureX !== undefined && texturesLoaded) {
         const destWidth = rightX - leftX;
         renderEngine.drawImage(
@@ -133,6 +127,7 @@ function drawQuad({ topX, topY, leftX, leftY, rightX, rightY, color, texture, te
 }
 
 function initializeRenderWorkers() {
+    if (renderWorkersInitialized) return;
     const staticData = {
         type: "init",
         tileSectors,
@@ -142,13 +137,6 @@ function initializeRenderWorkers() {
     renderWorker1.postMessage(staticData);
     renderWorker2.postMessage(staticData);
     renderWorkersInitialized = true;
-}
-
-// Remove CheerpJ Java raycasting integration
-// Use only JS raycasting
-async function getJavaRaycastData() {
-    // Always return null, disables CheerpJ integration
-    return null;
 }
 
 function renderRaycastWalls(rayData) {

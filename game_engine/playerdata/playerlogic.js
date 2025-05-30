@@ -2,149 +2,83 @@ import { renderEngine, CANVAS_WIDTH, CANVAS_HEIGHT } from "../renderengine.js";
 import { compiledTextStyle } from "../debugtools.js";
 import { playerInventory } from "./playerinventory.js";
 
-export let playerVantagePointX = {
-    playerVantagePointX: 0
-};
+// --- Optimized and Cleaned Up Player Logic ---
 
-export let playerVantagePointY = {
-    playerVantagePointY: 0
-};
+export let playerVantagePointX = { playerVantagePointX: 0 };
+export let playerVantagePointY = { playerVantagePointY: 0 };
 
-export const keys = {
-    w: false,
-    a: false,
-    s: false,
-    d: false,
-    q: false,
-    e: false,
-    [" "]: false,
-    shift: false,
-    alt: false,
-    p: false
-};
+export const keys = Object.fromEntries([
+    ["w", false], ["a", false], ["s", false], ["d", false],
+    ["q", false], ["e", false], [" ", false], ["shift", false],
+    ["alt", false], ["p", false]
+]);
 
-let playerMovementSpeed = 100; // Speed in pixels per second
-let playerRotationSpeed = Math.PI / 3; // 90°/s
+let playerMovementSpeed = 100;
+let playerRotationSpeed = Math.PI / 3;
 let lastTime = performance.now();
 export let playerStaminaBar = 100;
 let maxStamina = 100;
-let drainRate = 50; // Stamina per second when sprinting
-let regenRate = 20; // Stamina per second when not sprinting
+let drainRate = 50;
+let regenRate = 20;
 let maxHealth = 100;
 export let playerHealthBar = 100;
-export const playerHealth = {
-    playerHealth: 100,
-};
-
+export const playerHealth = { playerHealth: 100 };
 let gameOver = false;
 
 const canvas = document.getElementById('mainGameRender');
 canvas.requestPointerLock = canvas.requestPointerLock || canvas.mozRequestPointerLock;
 
-export let playerPosition = {
-    x: 2.5 * 50 / 2, // 62.5
-    z: 2.5 * 50 / 2, // 62.5
-    angle: 0
-};
+export let playerPosition = { x: 2.5 * 50 / 2, z: 2.5 * 50 / 2, angle: 0 };
+export let previousPosition = { x: playerPosition.x, z: playerPosition.z };
+export let playerMovement = { x: 0, z: 0 };
 
-export let previousPosition = {
-    x: playerPosition.x,
-    z: playerPosition.z
-};
-
-export let playerMovement = {
-    x: 0,
-    z: 0
-};
-
-// Dedicated listener for Ctrl+W
-window.addEventListener(
-    "keydown",
-    (event) => {
-        const key = event.key.toLowerCase();
-        if (event.ctrlKey && (key === "w" || key === "W")) {
-            console.log("Ctrl+W intercepted!");
-            event.preventDefault();
-            event.stopPropagation();
-            event.stopImmediatePropagation();
-            keys.w = true;
-            keys.alt = true;
-            return false;
-        }
-    },
-    true
-);
-
-// General keydown listener
-window.addEventListener(
-    "keydown",
-    (event) => {
-        const key = event.key.toLowerCase();
-        console.log(`Keydown: ${key}, in keys: ${key in keys}`); // Debug
-        if (key in keys) {
-            event.preventDefault();
-            event.stopPropagation();
-            keys[key] = true;
-            console.log(`Set keys[${key}] = true`); // Debug
-        }
-    },
-    true
-);
-
-// Keyup listener
-window.addEventListener("keyup", (event) => {
+// --- Input Listeners ---
+window.addEventListener("keydown", (event) => {
     const key = event.key.toLowerCase();
-    console.log(`Keyup: ${key}`); // Debug
+    if (event.ctrlKey && (key === "w")) {
+        event.preventDefault();
+        keys.w = true;
+        keys.alt = true;
+        return false;
+    }
     if (key in keys) {
         event.preventDefault();
-        event.stopPropagation();
+        keys[key] = true;
+    }
+}, true);
+
+window.addEventListener("keyup", (event) => {
+    const key = event.key.toLowerCase();
+    if (key in keys) {
+        event.preventDefault();
         keys[key] = false;
-        console.log(`Set keys[${key}] = false`); // Debug
     }
 });
 
-// Reset keys on window blur
 window.addEventListener("blur", () => {
-    console.log("Window blurred, resetting keys");
-    for (let key in keys) {
-        keys[key] = false;
-    }
+    for (let key in keys) keys[key] = false;
 });
 
 canvas.addEventListener('click', () => {
     canvas.requestFullscreen();
     canvas.requestPointerLock();
     canvas.focus();
-    console.log("Canvas clicked, requesting pointer lock"); // Debug
 });
 
 document.addEventListener('pointerlockchange', () => {
-    if (document.pointerLockElement === canvas || document.mozPointerLockElement === canvas) {
-        console.log("Pointer lock acquired");
-    } else {
-        console.log("Pointer lock lost, resetting keys");
-        for (let key in keys) {
-            keys[key] = false;
-        }
+    if (document.pointerLockElement !== canvas && document.mozPointerLockElement !== canvas) {
+        for (let key in keys) keys[key] = false;
     }
 });
 
 export function playerLogic() {
-    if (gameOver) {
-        console.log("Game over, skipping playerLogic"); // Debug
-        return;
-    }
+    if (gameOver) return;
     const now = performance.now();
     const deltaTime = (now - lastTime) / 1000;
     lastTime = now;
 
-    // Debug key states
-    console.log(`Key states: space=${keys[" "]}, p=${keys.p}`); // Debug
-
-    // Health management
+    // Health and stamina management
     playerHealthBar = playerHealth.playerHealth;
-
-    // Stamina management
     let isSprinting = false;
     if (keys.alt && (keys.w || keys.s || keys.q || keys.e) && playerStaminaBar > 0) {
         isSprinting = true;
@@ -154,46 +88,32 @@ export function playerLogic() {
     }
 
     // Movement
-    if (keys.a) {
-        playerPosition.angle -= playerRotationSpeed * deltaTime;
-    }
-
-    if (keys.d) {
-        playerPosition.angle += playerRotationSpeed * deltaTime;
-    }
-
+    if (keys.a) playerPosition.angle -= playerRotationSpeed * deltaTime;
+    if (keys.d) playerPosition.angle += playerRotationSpeed * deltaTime;
     const cosAngle = Math.cos(playerPosition.angle);
     const sinAngle = Math.sin(playerPosition.angle);
     const sprintMultiplier = isSprinting && playerStaminaBar > 0 ? 2 : 1;
     const slowMultiplier = keys.shift ? 0.5 : 1;
-
     if (keys.w) {
         playerPosition.x += cosAngle * playerMovementSpeed * sprintMultiplier * slowMultiplier * deltaTime;
         playerPosition.z += sinAngle * playerMovementSpeed * sprintMultiplier * slowMultiplier * deltaTime;
     }
-
     if (keys.s) {
         playerPosition.x -= cosAngle * playerMovementSpeed * sprintMultiplier * slowMultiplier * deltaTime;
         playerPosition.z -= sinAngle * playerMovementSpeed * sprintMultiplier * slowMultiplier * deltaTime;
     }
-
     if (keys.q) {
-        playerPosition.x += Math.sin(playerPosition.angle) * playerMovementSpeed * sprintMultiplier * slowMultiplier * deltaTime;
-        playerPosition.z -= Math.cos(playerPosition.angle) * playerMovementSpeed * sprintMultiplier * slowMultiplier * deltaTime;
+        playerPosition.x += sinAngle * playerMovementSpeed * sprintMultiplier * slowMultiplier * deltaTime;
+        playerPosition.z -= cosAngle * playerMovementSpeed * sprintMultiplier * slowMultiplier * deltaTime;
     }
-
     if (keys.e) {
-        playerPosition.x -= Math.sin(playerPosition.angle) * playerMovementSpeed * sprintMultiplier * slowMultiplier * deltaTime;
-        playerPosition.z += Math.cos(playerPosition.angle) * playerMovementSpeed * sprintMultiplier * slowMultiplier * deltaTime;
+        playerPosition.x -= sinAngle * playerMovementSpeed * sprintMultiplier * slowMultiplier * deltaTime;
+        playerPosition.z += cosAngle * playerMovementSpeed * sprintMultiplier * slowMultiplier * deltaTime;
     }
 
-    if (keys[" "]) {
-        console.log("shart");
-    }
-
-    if (keys.p) {
-        console.log("Mike has a CBT fetish");
-    }
+    // Debug/test keys
+    if (keys[" "]) console.log("shart");
+    if (keys.p) console.log("Mike has a CBT fetish");
 
     playerMovement.x = playerPosition.x - 2.5 * 50 / 2;
     playerMovement.z = playerPosition.z - 2.5 * 50 / 2;
@@ -201,27 +121,22 @@ export function playerLogic() {
     playerVantagePointY.playerVantagePointY = playerMovement.z * 0.02;
 
     if (playerHealth.playerHealth <= 0) {
-        gameOver = true; // Set gameOver to true
+        gameOver = true;
         compiledTextStyle();
         renderEngine.fillText("DEAD", 100, 100);
     }
-
     staminaBarMeterOnCanvas();
     healthMeterOnCanvas();
 }
 
 function staminaBarMeterOnCanvas() {
-    const barWidth = 180;
-    const barHeight = 20;
-    const x = (CANVAS_WIDTH - barWidth); // Center horizontally
-    const y = CANVAS_HEIGHT - barHeight - 40; // Near bottom
-
+    const barWidth = 180, barHeight = 20;
+    const x = CANVAS_WIDTH - barWidth;
+    const y = CANVAS_HEIGHT - barHeight - 40;
     renderEngine.fillStyle = 'rgba(255, 255, 255, 0.5)';
     renderEngine.fillRect(x, y, barWidth, barHeight);
-
-    renderEngine.fillStyle = playerStaminaBar <= 20 ? 'rgba(0, 255, 0, 0.8)' : 'rgba(0, 255, 0, 0.8)';
+    renderEngine.fillStyle = 'rgba(0, 255, 0, 0.8)';
     renderEngine.fillRect(x, y, (barWidth * playerStaminaBar) / maxStamina, barHeight);
-
     renderEngine.strokeStyle = "white";
     renderEngine.lineWidth = 2;
     renderEngine.strokeRect(x, y, barWidth, barHeight);
@@ -230,17 +145,13 @@ function staminaBarMeterOnCanvas() {
 }
 
 function healthMeterOnCanvas() {
-    const barWidth = 180;
-    const barHeight = 20;
-    const x = (CANVAS_WIDTH - barWidth) / 100; // Center horizontally
-    const y = CANVAS_HEIGHT - barHeight - 40; // Near bottom
-
+    const barWidth = 180, barHeight = 20;
+    const x = (CANVAS_WIDTH - barWidth) / 100;
+    const y = CANVAS_HEIGHT - barHeight - 40;
     renderEngine.fillStyle = 'rgba(255, 255, 255, 0.5)';
     renderEngine.fillRect(x, y, barWidth, barHeight);
-
-    renderEngine.fillStyle = playerHealthBar <= 20 ? 'rgba(255, 0, 0, 0.8)' : 'rgba(255, 0, 0, 0.8)';
+    renderEngine.fillStyle = 'rgba(255, 0, 0, 0.8)';
     renderEngine.fillRect(x, y, (barWidth * playerHealthBar) / maxHealth, barHeight);
-
     renderEngine.strokeStyle = "white";
     renderEngine.lineWidth = 2;
     renderEngine.strokeRect(x, y, barWidth, barHeight);

@@ -13,7 +13,7 @@ export let showInventorySprite = false; // New flag to control sprite drawing
 const justForTesting = "fartshittyaids";
 
 export function playerInventoryGodFunction() {
-    console.log(playerInventory);
+    //console.log(playerInventory);
 }
 
 function playerInventoryButton() {
