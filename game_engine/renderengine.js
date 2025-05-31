@@ -1,22 +1,22 @@
 import { gameLoop } from "./main_game.js";
-import { playerVantagePointX, playerVantagePointY, playerLogic, playerPosition, showDebugTools } from "./playerdata/playerlogic.js";
+import { playerVantagePointY, playerLogic, playerPosition, showDebugTools } from "./playerdata/playerlogic.js";
 import { playerInventoryGodFunction } from "./playerdata/playerinventory.js";
-import { compiledDevTools, compiledTextStyle } from "./debugtools.js";
+import { compiledDevTools } from "./debugtools.js";
 import { mapTable, tileSectors } from "./mapdata/maps.js";
 import { castRays, cleanupWorkers, numCastRays, playerFOV } from "./raycasting.js";
 import { drawSprites } from "./rendersprites.js";
 import { mainGameMenu, setupMenuClickHandler } from "./menus/menu.js";
 import { texturesLoaded, tileTexturesMap, getDemonLaughingCurrentFrame } from "./mapdata/maptextures.js";
 import { playerUI } from "./playerdata/playerui.js";
-import { collissionGodFunction } from "./colissiondetection/collissionlogic.js";
+import { collissionGodFunction } from "./colissiondetection/collissionlogichandler.js";
 import { enemyAiGodFunction } from "./ai/enemyai.js";
-import { boyKisserNpcAIGodFunction } from "./ai/boykissernpc.js";
+import { boyKisserNpcAIGodFunction } from "./ai/friendlycat.js";
 import { menuActive, setMenuActive } from "./gameState.js";
 import { playMusicGodFunction } from "./audio/audiohandler.js";
-import { gunHandlerGodFunction } from "./itemhandler/gunhandler.js";
 import { menuHandler } from "./menus/menuhandler.js";
 import { animationHandler } from "./animations/animationhandler.js";
 import { introActive } from "./animations/newgamestartanimation.js";
+import { itemHandlerGodFunction } from "./itemhandler/itemhandler.js";
 
 
 // --- DOM Elements ---
@@ -81,16 +81,16 @@ async function gameRenderEngine() {
         }
         await renderRaycastWalls(rayData);
         await renderRaycastFloors(rayData);
-        //drawSprites(rayData);
+        drawSprites(rayData);
         if (showDebugTools) compiledDevTools();
         playerLogic();
         playerInventoryGodFunction();
-        gunHandlerGodFunction();
+        itemHandlerGodFunction();
         playerUI();
         collissionGodFunction();
         boyKisserNpcAIGodFunction();
         //enemyAiGodFunction();
-        //playMusicGodFunction();
+        playMusicGodFunction();
     } catch (error) {
         console.error("gameRenderEngine error:", error);
     } finally {

@@ -7,6 +7,8 @@ const tileTextures = {
     door_rusty_01: new Image(),
     wall_brick_graffiti_01: new Image(),
     wall_laughing_demon: [], // Array for animated frames
+    wall_brick_door01_closed: new Image(),
+    wall_brick_door01_open: new Image(),
 };
 
 tileTextures.wall_creamlol.src = "./img/sprites/walls/creamlol.png";
@@ -17,6 +19,8 @@ tileTextures.wall_schizoeye.src = "./img/website/schizoeye.gif";
 tileTextures.door_rusty_01.src = "./img/sprites/doors/door_rusty_01.png";
 tileTextures.wall_brick_graffiti_01.src = "./img/sprites/decoration/wall_brick_graffiti_01.png";
 tileTextures.wall_laughing_demon[0] = new Image();
+tileTextures.wall_brick_door01_open.src = "./img/sprites/walls/wall_brick_door01_open.png";
+tileTextures.wall_brick_door01_closed.src = "./img/sprites/walls/wall_brick_door01_closed.png";
 
 const demonLaughingFrameCount = 7;
 export let demonLaughingLoaded = false;
@@ -44,6 +48,8 @@ export const textureIdMap = new Map([
     [6, "door_rusty_01"],
     [7, "wall_brick_graffiti_01"],
     [8, "wall_laughing_demon"],
+    [9, "wall_brick_door01_open"],
+    [10, "wall_brick_door01_closed"],
 ]);
 
 // In maptextures.js
@@ -55,6 +61,9 @@ export const fullTileSchizoEye = { type: "wall", textureId: 5 }; // wall_schizoe
 export const fullTileRustyDoor01 = { type: "wall", textureId: 6 }; // door_rusty_01
 export const fullTileBrickGraffiti01 = { type: "wall", textureId: 7 }; // wall_brick_graffiti_01
 export const fullTileLaughingDemon = { type: "wall", textureId: 8 }; // wall_laughing_demon
+export const fullTileBrickDoor01Open = { type: "wall", textureId: 9 }; // wall_brick_door01_open
+export const fullTileBrickDoor01Closed = { type: "wall", textureId: 10 }; // wall_brick_door01_closed
+
 export const emptyTile = { type: "empty", floorTextureId: 50 }; // empty with floor_concrete
 export const tileTexturesMap = new Map();
 

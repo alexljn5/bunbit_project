@@ -4,8 +4,8 @@ import { renderEngine } from "../renderengine.js";
 let track_level01 = new Audio("./audio/music/track_level01.mp3");
 let musicVolume = 1.0; // Range: 0.0 - 1.0
 let sliderDragging = false;
-const sliderX = 60;
-const sliderY = 150;
+const sliderX = 365;
+const sliderY = 190;
 const sliderWidth = 200;
 const sliderHeight = 16;
 
@@ -34,17 +34,18 @@ export function setMusicVolume(val) {
 
 export function volumeSlidersGodFunction() {
     musicVolumeSlider();
+    soundVolumeSlider();
 }
 
 function musicVolumeSlider() {
     // Draw slider background
-    renderEngine.fillStyle = '#444';
+    renderEngine.fillStyle = 'gray';
     renderEngine.fillRect(sliderX, sliderY, sliderWidth, sliderHeight);
     // Draw filled portion
-    renderEngine.fillStyle = '#FFD700';
+    renderEngine.fillStyle = 'red';
     renderEngine.fillRect(sliderX, sliderY, sliderWidth * musicVolume, sliderHeight);
     // Draw border
-    renderEngine.strokeStyle = '#fff';
+    renderEngine.strokeStyle = 'black';
     renderEngine.lineWidth = 2;
     renderEngine.strokeRect(sliderX, sliderY, sliderWidth, sliderHeight);
     // Draw label
@@ -55,7 +56,32 @@ function musicVolumeSlider() {
     const knobX = sliderX + sliderWidth * musicVolume;
     renderEngine.beginPath();
     renderEngine.arc(knobX, sliderY + sliderHeight / 2, 10, 0, 2 * Math.PI);
-    renderEngine.fillStyle = '#FFD700';
+    renderEngine.fillStyle = 'black';
+    renderEngine.fill();
+    renderEngine.strokeStyle = '#fff';
+    renderEngine.stroke();
+}
+
+function soundVolumeSlider() {
+    // Draw slider background
+    renderEngine.fillStyle = 'gray';
+    renderEngine.fillRect(sliderX, sliderY + 40, sliderWidth, sliderHeight);
+    // Draw filled portion
+    renderEngine.fillStyle = 'red';
+    renderEngine.fillRect(sliderX, sliderY + 40, sliderWidth * musicVolume, sliderHeight);
+    // Draw border
+    renderEngine.strokeStyle = 'black';
+    renderEngine.lineWidth = 2;
+    renderEngine.strokeRect(sliderX, sliderY + 40, sliderWidth, sliderHeight);
+    // Draw label
+    renderEngine.fillStyle = '#fff';
+    renderEngine.font = '18px Arial';
+    renderEngine.fillText('Sound Volume', sliderX, sliderY + 30);
+    // Draw knob
+    const knobX = sliderX + sliderWidth * musicVolume;
+    renderEngine.beginPath();
+    renderEngine.arc(knobX, sliderY + 40 + sliderHeight / 2, 10, 0, 2 * Math.PI);
+    renderEngine.fillStyle = 'black';
     renderEngine.fill();
     renderEngine.strokeStyle = '#fff';
     renderEngine.stroke();

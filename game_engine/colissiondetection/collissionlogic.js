@@ -4,12 +4,7 @@ import { spriteState, metalPipeWorldPos } from "../rendersprites.js";
 import { playerInventory } from "../playerdata/playerinventory.js";
 import { map_01 } from "../mapdata/map_01.js";
 
-export function collissionGodFunction() {
-    simpleCollissionTest();
-    wallCollision();
-}
-
-function simpleCollissionTest() {
+export function simpleCollissionTest() {
     if (spriteState.isMetalPipeCollected) return;
 
     const dx = metalPipeWorldPos.x - playerPosition.x;
@@ -24,7 +19,7 @@ function simpleCollissionTest() {
     }
 }
 
-function wallCollision() {
+export function wallCollision() {
     const mapWidth = map_01[0].length;
     const mapHeight = map_01.length;
     const playerRadius = 10; // Increased for stability

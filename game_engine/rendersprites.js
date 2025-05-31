@@ -110,7 +110,7 @@ genericGunSprite.onload = () => {
 };
 
 export const genericGunPlayerHandSprite = new Image(128, 128);
-genericGunPlayerHandSprite.src = "./img/sprites/playerhand/playerhand_placeholder.png";
+genericGunPlayerHandSprite.src = "./img/sprites/playerhand/playerhand_generic_gun.png";
 export let genericGunPlayerHandLoaded = false;
 genericGunPlayerHandSprite.onload = () => {
     genericGunPlayerHandLoaded = true;

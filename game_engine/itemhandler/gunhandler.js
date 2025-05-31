@@ -1,4 +1,3 @@
-import { playerInventory } from "../playerdata/playerinventory.js";
 import { keys } from "../playerdata/playerlogic.js";
 
 let genericGunAmmo = 10;

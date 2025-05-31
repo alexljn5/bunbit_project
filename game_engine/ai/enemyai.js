@@ -42,13 +42,14 @@ export function isOccludedByWall(x0, z0, x1, z1, map, tileSectors) {
 
 //Follows you Demon
 function testEnemyAi() {
+    /*
     if (!lastKnownPlayerPos) {
         lastKnownPlayerPos = { x: playerPosition.x, z: playerPosition.z };
     }
 
     const enemySpeed = 0.3 * 2;
     const randomFactor = 0.2;
-    const enemyRadius = 10;
+    const enemyRadius = 20;
     const buffer = 0.3;
     const visionRange = 500;
 
@@ -157,6 +158,7 @@ function testEnemyAi() {
     boyKisserEnemySpriteWorldPos.z = Math.max(enemyRadius, Math.min(maxZBound, boyKisserEnemySpriteWorldPos.z));
 
     console.log(`BoyKisser moved to: x=${boyKisserEnemySpriteWorldPos.x.toFixed(2)}, z=${boyKisserEnemySpriteWorldPos.z.toFixed(2)}, targetDistance=${targetDistance.toFixed(2)}, canSeePlayer=${canSeePlayer}`);
+    */
 }
 
 //Stalker Demon

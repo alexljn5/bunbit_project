@@ -1,6 +1,6 @@
 import { renderEngine, mainGameRender, initializeRenderWorkers } from "../renderengine.js";
 import { compiledTextStyle } from "../debugtools.js";
-import { menuActive, setMenuActive } from "../gameState.js";
+import { setMenuActive } from "../gameState.js";
 let CANVAS_WIDTH = 800;
 let CANVAS_HEIGHT = 800;
 
