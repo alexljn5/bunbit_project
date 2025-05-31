@@ -23,7 +23,8 @@ let menuBackgroundLoaded = false;
 function menuBackGround() {
     if (!menuBackgroundImage) {
         menuBackgroundImage = new Image();
-        menuBackgroundImage.src = "./img/menu/cream_ascii.png";
+        //menuBackgroundImage.src = "./img/menu/cream_ascii.png";
+        menuBackgroundImage.src = "./img/menu/goon.png";
         menuBackgroundImage.onload = () => {
             menuBackgroundLoaded = true;
         };
@@ -63,7 +64,7 @@ export function setupMenuClickHandler() {
         console.error("Canvas not found! Click handler not attached.");
         return;
     }
-    canvas.style.border = "3px solid red"; // DEBUG
+    canvas.style.border = "black"; // DEBUG
     canvas.onmousemove = function (e) {
         const rect = canvas.getBoundingClientRect();
         const scaleX = CANVAS_WIDTH / rect.width;

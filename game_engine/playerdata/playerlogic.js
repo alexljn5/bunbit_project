@@ -10,7 +10,8 @@ export let playerVantagePointY = { playerVantagePointY: 0 };
 export const keys = Object.fromEntries([
     ["w", false], ["a", false], ["s", false], ["d", false],
     ["q", false], ["e", false], [" ", false], ["shift", false],
-    ["alt", false], ["p", false], ["t", false], ["enter", false]
+    ["alt", false], ["p", false], ["t", false], ["enter", false],
+    ["i", false]
 ]);
 
 let playerMovementSpeed = 100;

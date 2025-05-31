@@ -6,6 +6,13 @@ import { tileSectors } from "../mapdata/maps.js";
 import { renderEngine } from "../renderengine.js";
 import { isOccludedByWall } from "./enemyai.js";
 
+// Listen for T key to advance dialogue if active
+window.addEventListener("keydown", (event) => {
+    if (dialogueActive && event.key.toLowerCase() === "t") {
+        event.preventDefault();
+        advanceNpcDialogue();
+    }
+}, true);
 
 const npcTriggerRadius = 60;
 let npcLastTriggered = false;
@@ -56,7 +63,9 @@ function boyKisserNpcAI() {
             startNpcDialogue([
                 "BoyKisser: Hello there, traveler!",
                 "BoyKisser: Press T to continue...",
-                "BoyKisser: That's all I have to say. Bye!"
+                "BoyKisser: Please take this item!",
+                "BoyKisser: It's a special gift for you.",
+                "BoyKisser: Remember, kindness is key!",
             ]);
             npcLastTriggered = true;
         }
@@ -80,10 +89,3 @@ function drawNpcDialogue() {
     renderEngine.restore();
 }
 
-// Listen for T key to advance dialogue if active
-window.addEventListener("keydown", (event) => {
-    if (dialogueActive && event.key.toLowerCase() === "t") {
-        event.preventDefault();
-        advanceNpcDialogue();
-    }
-}, true);
