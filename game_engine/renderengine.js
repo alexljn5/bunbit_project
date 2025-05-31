@@ -15,6 +15,8 @@ import { menuActive, setMenuActive } from "./gameState.js";
 import { playMusicGodFunction } from "./audio/audiohandler.js";
 import { gunHandlerGodFunction } from "./itemhandler/gunhandler.js";
 import { menuHandler } from "./menus/menuhandler.js";
+import { animationHandler } from "./animations/animationhandler.js";
+
 
 // --- Performance/cleanup: cache dom lookups, remove redundant code, use let/const, remove debug logs, and ensure only one event handler per button ---
 const domElements = {
@@ -73,6 +75,7 @@ async function gameRenderEngine() {
             return;
         }
         drawBackground();
+        animationHandler();
         await renderRaycastWalls(rayData);
         await renderRaycastFloors(rayData);
         drawSprites(rayData);

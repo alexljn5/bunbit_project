@@ -169,3 +169,16 @@ export function testFuckingAround() {
         console.log("First 10 rays:", rayData.slice(0, 10));
     });
 }
+
+let increasing = true;
+export function fuckTheScreenUpBaby() {
+    for (let i = 0; i < 100; i++) {
+        if (increasing) {
+            playerFOV++;
+            if (playerFOV >= 5) increasing = false;
+        } else {
+            playerFOV--;
+            if (playerFOV <= 0) increasing = true;
+        }
+    }
+}

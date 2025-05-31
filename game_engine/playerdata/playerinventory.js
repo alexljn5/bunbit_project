@@ -3,14 +3,6 @@ import { metalPipeSprite, genericGunSprite } from "../rendersprites.js";
 import { compiledTextStyle } from "../debugtools.js";
 import { keys } from "./playerlogic.js";
 
-const domElements = {
-    playerInventoryButton: document.getElementById("playerInventory")
-};
-
-domElements.playerInventoryButton.addEventListener("click", () => {
-    showInventorySprite = !showInventorySprite;
-});
-
 export let playerInventory = [];
 export let showInventorySprite = false;
 export let selectedInventoryIndex = 0; // Track selected slot
