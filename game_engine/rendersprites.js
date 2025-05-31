@@ -80,7 +80,7 @@ corpse1Sprite.onerror = () => {
     console.error("Failed to load corpse_1.png at ./img/sprites/decoration/corpse_1.png");
 };
 export const corpse1WorldPos = { x: 1 * tileSectors, z: 1.3 * tileSectors }; // (150, 150)
-
+//Items
 export const metalPipeSprite = new Image(128, 128);
 metalPipeSprite.src = "./img/sprites/items/metal_pipe.png";
 export let metalPipeLoaded = false;
@@ -100,6 +100,16 @@ metalPipePlayerHandSprite.onload = () => {
     metalPipePlayerHandLoaded = true;
     console.log("Metal pipe player hand sprite loaded");
 };
+
+export const genericGunSprite = new Image(128, 128);
+genericGunSprite.src = "./img/sprites/items/generic_gun.png";
+export let genericGunSpriteLoaded = false;
+genericGunSprite.onload = () => {
+    genericGunSpriteLoaded = true;
+    console.log("Generic gun sprite loaded");
+};
+
+//End of Items
 
 export const boyKisserEnemySprite = new Image(128, 128);
 boyKisserEnemySprite.src = "./img/sprites/enemy/boykisser.png";

@@ -1,12 +1,19 @@
-// BoyKisser NPC AI (not enemy, just triggers when close)
 import { playerPosition, isInteractionKeyPressed } from "../playerdata/playerlogic.js";
 import { boyKisserEnemySpriteWorldPos } from "../rendersprites.js";
 import { map_01 } from "../mapdata/map_01.js";
 import { tileSectors } from "../mapdata/maps.js";
 import { renderEngine } from "../renderengine.js";
 import { isOccludedByWall } from "./enemyai.js";
+import { playerInventory } from "../playerdata/playerinventory.js";
 
-// Clean up: optimize dialogue system, event handling, and rendering
+const npcTriggerRadius = 60;
+let npcLastTriggered = false;
+let dialogueActive = false;
+let dialogueLines = [];
+let currentDialogueIndex = 0;
+let lastInteractionState = false; // Track previous interaction key state
+
+export let playerMovementDisabled = false;
 
 window.addEventListener("keydown", (event) => {
     if (dialogueActive && event.key.toLowerCase() === "t") {
@@ -15,16 +22,11 @@ window.addEventListener("keydown", (event) => {
     }
 }, true);
 
-const npcTriggerRadius = 60;
-let npcLastTriggered = false;
-let dialogueActive = false;
-let dialogueLines = [];
-let currentDialogueIndex = 0;
-
 function startNpcDialogue(lines) {
     dialogueActive = true;
     dialogueLines = lines;
     currentDialogueIndex = 0;
+    playerMovementDisabled = true;
 }
 
 function advanceNpcDialogue() {
@@ -34,6 +36,8 @@ function advanceNpcDialogue() {
         dialogueActive = false;
         dialogueLines = [];
         currentDialogueIndex = 0;
+        playerMovementDisabled = false;
+        npcLastTriggered = false; // Reset to allow new interaction
     }
 }
 
@@ -42,11 +46,19 @@ function getCurrentNpcDialogueLine() {
 }
 
 export function boyKisserNpcAIGodFunction() {
-    boyKisserNpcAI();
+    if (!dialogueActive) boyKisserNpcAI();
     if (dialogueActive) drawNpcDialogue();
 }
 
 function boyKisserNpcAI() {
+    // Get current interaction key state
+    const currentInteractionState = isInteractionKeyPressed();
+    // Only trigger if key is pressed AND it wasn't pressed last frame (fresh press)
+    if (dialogueActive || npcLastTriggered || !currentInteractionState || lastInteractionState) {
+        lastInteractionState = currentInteractionState;
+        return;
+    }
+
     const dx = playerPosition.x - boyKisserEnemySpriteWorldPos.x;
     const dz = playerPosition.z - boyKisserEnemySpriteWorldPos.z;
     const distance = Math.sqrt(dx * dx + dz * dz);
@@ -55,20 +67,27 @@ function boyKisserNpcAI() {
         playerPosition.x, playerPosition.z,
         map_01, tileSectors
     );
+
     if (distance < npcTriggerRadius && !isOccluded) {
-        if (isInteractionKeyPressed() && !dialogueActive) {
-            startNpcDialogue([
-                "BoyKisser: Hello there, traveler!",
-                "BoyKisser: Press T to continue...",
-                "BoyKisser: Please take this item!",
-                "BoyKisser: It's a special gift for you.",
-                "BoyKisser: Remember, kindness is key!",
-            ]);
-            npcLastTriggered = true;
+        const dialogue = [
+            "BoyKisser: Hello there, traveler!",
+            "BoyKisser: Press T to continue...",
+            "BoyKisser: Please take this item!",
+            "BoyKisser: It's a special gift for you.",
+            "BoyKisser: Remember, kindness is key!",
+        ];
+        if (playerInventory.includes("generic_gun")) {
+            dialogue.push("BoyKisser: You already have a gun, no need for another.");
+        } else {
+            playerInventory.push("generic_gun");
+            console.log("Generic gun added to inventory.", playerInventory);
         }
+        startNpcDialogue(dialogue);
+        npcLastTriggered = true;
     } else {
         npcLastTriggered = false;
     }
+    lastInteractionState = currentInteractionState; // Update key state
 }
 
 function drawNpcDialogue() {
@@ -85,4 +104,3 @@ function drawNpcDialogue() {
     }
     renderEngine.restore();
 }
-

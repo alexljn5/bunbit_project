@@ -12,6 +12,7 @@ import { collissionGodFunction } from "./colissiondetection/collissionlogic.js";
 import { enemyAiGodFunction } from "./ai/enemyai.js";
 import { boyKisserNpcAIGodFunction } from "./ai/boykissernpc.js";
 import { menuActive, setMenuActive } from "./gameState.js";
+import { playMusicGodFunction } from "./audio/audiohandler.js";
 
 // --- Performance/cleanup: cache dom lookups, remove redundant code, use let/const, remove debug logs, and ensure only one event handler per button ---
 const domElements = {
@@ -79,6 +80,7 @@ async function gameRenderEngine() {
         playerUI();
         collissionGodFunction();
         boyKisserNpcAIGodFunction();
+        playMusicGodFunction();
     } catch (error) {
         console.error("gameRenderEngine error:", error);
     } finally {

@@ -1,5 +1,5 @@
 import { renderEngine } from "../renderengine.js";
-import { metalPipeSprite } from "../rendersprites.js";
+import { metalPipeSprite, genericGunSprite } from "../rendersprites.js";
 import { compiledTextStyle } from "../debugtools.js";
 import { keys } from "./playerlogic.js";
 
@@ -27,10 +27,18 @@ function inventoryUIShit() {
         renderEngine.fillStyle = "#222";
         renderEngine.fillRect(0, 0, 800, 100);
         renderEngine.globalAlpha = 1.0;
-        if (playerInventory.includes("metal_pipe")) {
-            renderEngine.drawImage(metalPipeSprite, 10, 10, 64, 64);
-            renderEngine.fillStyle = "#fff";
-            renderEngine.fillText("Metal Pipe", 80, 40);
+        // Render items in consistent order, but only if present
+        const itemSprites = [
+            { key: "metal_pipe", sprite: metalPipeSprite },
+            { key: "generic_gun", sprite: genericGunSprite }
+        ];
+        let x = 10;
+        for (const item of itemSprites) {
+            if (playerInventory.includes(item.key)) {
+                renderEngine.drawImage(item.sprite, x, 10, 64, 64);
+                renderEngine.fillStyle = "#fff";
+                x += 64 + 10; // next slot
+            }
         }
         renderEngine.restore();
     }

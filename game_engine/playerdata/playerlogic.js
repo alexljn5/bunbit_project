@@ -1,6 +1,8 @@
 import { renderEngine, CANVAS_WIDTH, CANVAS_HEIGHT } from "../renderengine.js";
 import { compiledTextStyle } from "../debugtools.js";
 import { playerInventory } from "./playerinventory.js";
+import { staminaBarMeterOnCanvas, healthMeterOnCanvas } from "./playerui.js";
+import { playerMovementDisabled } from "../ai/boykissernpc.js";
 
 // --- Optimized and Cleaned Up Player Logic ---
 
@@ -11,7 +13,8 @@ export const keys = Object.fromEntries([
     ["w", false], ["a", false], ["s", false], ["d", false],
     ["q", false], ["e", false], [" ", false], ["shift", false],
     ["alt", false], ["p", false], ["t", false], ["enter", false],
-    ["i", false]
+    ["i", false], ["1", false], ["2", false], ["3", false], ["4", false],
+    ["5", false], ["6", false], ["7", false], ["8", false], ["9", false]
 ]);
 
 let playerMovementSpeed = 100;
@@ -68,6 +71,8 @@ document.addEventListener('pointerlockchange', () => {
 
 export function playerLogic() {
     if (gameOver) return;
+    if (playerMovementDisabled) return;
+
     const now = performance.now();
     const deltaTime = (now - lastTime) / 1000;
     lastTime = now;
@@ -129,32 +134,3 @@ export function isInteractionKeyPressed() {
     return keys.t;
 }
 
-function staminaBarMeterOnCanvas() {
-    const barWidth = 180, barHeight = 20;
-    const x = CANVAS_WIDTH - barWidth;
-    const y = CANVAS_HEIGHT - barHeight - 40;
-    renderEngine.fillStyle = 'rgba(255, 255, 255, 0.5)';
-    renderEngine.fillRect(x, y, barWidth, barHeight);
-    renderEngine.fillStyle = 'rgba(0, 255, 0, 0.8)';
-    renderEngine.fillRect(x, y, (barWidth * playerStaminaBar) / maxStamina, barHeight);
-    renderEngine.strokeStyle = "white";
-    renderEngine.lineWidth = 2;
-    renderEngine.strokeRect(x, y, barWidth, barHeight);
-    compiledTextStyle();
-    renderEngine.fillText("Stamina", 680, 732);
-}
-
-function healthMeterOnCanvas() {
-    const barWidth = 180, barHeight = 20;
-    const x = (CANVAS_WIDTH - barWidth) / 100;
-    const y = CANVAS_HEIGHT - barHeight - 40;
-    renderEngine.fillStyle = 'rgba(255, 255, 255, 0.5)';
-    renderEngine.fillRect(x, y, barWidth, barHeight);
-    renderEngine.fillStyle = 'rgba(255, 0, 0, 0.8)';
-    renderEngine.fillRect(x, y, (barWidth * playerHealthBar) / maxHealth, barHeight);
-    renderEngine.strokeStyle = "white";
-    renderEngine.lineWidth = 2;
-    renderEngine.strokeRect(x, y, barWidth, barHeight);
-    compiledTextStyle();
-    renderEngine.fillText("HP", 5, 732);
-}
