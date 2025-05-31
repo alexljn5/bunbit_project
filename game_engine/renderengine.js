@@ -14,6 +14,7 @@ import { boyKisserNpcAIGodFunction } from "./ai/boykissernpc.js";
 import { menuActive, setMenuActive } from "./gameState.js";
 import { playMusicGodFunction } from "./audio/audiohandler.js";
 import { gunHandlerGodFunction } from "./itemhandler/gunhandler.js";
+import { menuHandler } from "./menus/menuhandler.js";
 
 // --- Performance/cleanup: cache dom lookups, remove redundant code, use let/const, remove debug logs, and ensure only one event handler per button ---
 const domElements = {
@@ -64,6 +65,7 @@ async function gameRenderEngine() {
             isRenderingFrame = false;
             return;
         }
+        menuHandler();
         let rayData = await castRays();
         if (!rayData || rayData.every(ray => ray === null)) {
             renderEngine.fillStyle = "red";
@@ -81,7 +83,7 @@ async function gameRenderEngine() {
         playerUI();
         collissionGodFunction();
         boyKisserNpcAIGodFunction();
-        enemyAiGodFunction();
+        //enemyAiGodFunction();
         playMusicGodFunction();
     } catch (error) {
         console.error("gameRenderEngine error:", error);
