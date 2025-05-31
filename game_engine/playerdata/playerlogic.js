@@ -112,7 +112,6 @@ export function playerLogic() {
     }
 
     // Debug/test keys
-    if (keys[" "]) console.log("shart");
     if (keys.p) console.log("Mike has a CBT fetish");
 
     playerMovement.x = playerPosition.x - 2.5 * 50 / 2;

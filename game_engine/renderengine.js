@@ -13,6 +13,7 @@ import { enemyAiGodFunction } from "./ai/enemyai.js";
 import { boyKisserNpcAIGodFunction } from "./ai/boykissernpc.js";
 import { menuActive, setMenuActive } from "./gameState.js";
 import { playMusicGodFunction } from "./audio/audiohandler.js";
+import { gunHandlerGodFunction } from "./itemhandler/gunhandler.js";
 
 // --- Performance/cleanup: cache dom lookups, remove redundant code, use let/const, remove debug logs, and ensure only one event handler per button ---
 const domElements = {
@@ -77,9 +78,11 @@ async function gameRenderEngine() {
         if (showDebugTools) compiledDevTools();
         playerLogic();
         playerInventoryGodFunction();
+        gunHandlerGodFunction();
         playerUI();
         collissionGodFunction();
         boyKisserNpcAIGodFunction();
+        enemyAiGodFunction();
         playMusicGodFunction();
     } catch (error) {
         console.error("gameRenderEngine error:", error);

@@ -138,6 +138,10 @@ casperLesserDemonSprite.onload = () => {
 }
 export const casperLesserDemonSpriteWorldPos = { x: 5.5 * tileSectors, z: 11.3 * tileSectors };
 
+export let boyKisserEnemyHealth = 5; // Example: 5 health points
+if (typeof window !== 'undefined') window.boyKisserEnemyHealth = boyKisserEnemyHealth;
+else if (typeof globalThis !== 'undefined') globalThis.boyKisserEnemyHealth = boyKisserEnemyHealth;
+
 
 export function playerHandSpriteFunction() {
     // Determine which hand sprite to render based on selected inventory slot
@@ -312,6 +316,12 @@ function boyKisserEnemySpriteFunction(rayData) {
     const spriteWidth = spriteHeight * (128 / 80);
     const spriteY = 400;
     const { adjustedScreenX, startColumn, endColumn } = getSpriteScreenParams(relativeAngle, spriteWidth);
+    // Sync global health value for rendering
+    if (typeof window !== 'undefined' && typeof window.boyKisserEnemyHealth === 'number') {
+        boyKisserEnemyHealth = window.boyKisserEnemyHealth;
+    } else if (typeof globalThis !== 'undefined' && typeof globalThis.boyKisserEnemyHealth === 'number') {
+        boyKisserEnemyHealth = globalThis.boyKisserEnemyHealth;
+    }
     if (isSpriteVisible(rayData, startColumn, endColumn, correctedDistance) && adjustedScreenX + spriteWidth / 2 >= 0 && adjustedScreenX - spriteWidth / 2 <= CANVAS_WIDTH) {
         renderEngine.drawImage(
             boyKisserEnemySprite,
@@ -320,6 +330,23 @@ function boyKisserEnemySpriteFunction(rayData) {
             spriteWidth,
             spriteHeight
         );
+        // Draw a simple health bar above the sprite
+        const barWidth = 60;
+        const barHeight = 8;
+        const maxHealth = 5;
+        const healthPercent = Math.max(0, Math.min(1, boyKisserEnemyHealth / maxHealth));
+        const barX = adjustedScreenX - barWidth / 2;
+        const barY = spriteY - playerVantagePointY.playerVantagePointY - barHeight - 10;
+        // Background
+        renderEngine.fillStyle = '#222';
+        renderEngine.fillRect(barX, barY, barWidth, barHeight);
+        // Health
+        renderEngine.fillStyle = '#FFD700';
+        renderEngine.fillRect(barX, barY, barWidth * healthPercent, barHeight);
+        // Border
+        renderEngine.strokeStyle = '#000';
+        renderEngine.lineWidth = 2;
+        renderEngine.strokeRect(barX, barY, barWidth, barHeight);
     }
 }
 
