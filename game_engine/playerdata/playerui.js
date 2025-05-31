@@ -2,8 +2,8 @@
 import { compiledTextStyle } from "../debugtools.js";
 import { CANVAS_HEIGHT, CANVAS_WIDTH, renderEngine } from "../renderengine.js";
 import { casperFace1, casperFace2, casperFace3, casperFace4, casperFace5, casperFace1Loaded, casperFace2Loaded, casperFace3Loaded, casperFace4Loaded, casperFace5Loaded } from "./playertextures.js";
-import { playerInventory } from "./playerinventory.js";
-import { metalPipeSprite } from "../rendersprites.js";
+import { playerInventory, selectedInventoryIndex } from "./playerinventory.js";
+import { metalPipeSprite, genericGunSprite } from "../rendersprites.js";
 import { playerStaminaBar, playerHealthBar } from "./playerlogic.js";
 
 // Animation state
@@ -46,8 +46,12 @@ export function playerUI() {
         renderEngine.fillText("Loading...", 373, 742);
     }
 
-    if (playerInventory.includes("metal_pipe")) {
-        renderEngine.drawImage(metalPipeSprite, 492, 672)
+    // Render the sprite of the item in the selected inventory slot (if any)
+    const selectedItem = playerInventory[selectedInventoryIndex];
+    if (selectedItem === "metal_pipe") {
+        renderEngine.drawImage(metalPipeSprite, 492, 672);
+    } else if (selectedItem === "generic_gun") {
+        renderEngine.drawImage(genericGunSprite, 492, 672);
     }
 }
 
