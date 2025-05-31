@@ -1,5 +1,7 @@
-import { newGameStartAnimation } from "./newgamestartanimation.js";
+import { newGameStartAnimation, introActive } from "./newgamestartanimation.js";
 
 export function animationHandler() {
-    newGameStartAnimation();
+    if (introActive) {
+        newGameStartAnimation();
+    }
 }

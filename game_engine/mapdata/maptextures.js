@@ -109,7 +109,7 @@ export function getDemonLaughingCurrentFrame() {
     demonLaughingFrameTimer++;
     if (demonLaughingFrameTimer >= demonLaughingFrameDelay) {
         demonLaughingFrameIndex = (demonLaughingFrameIndex + 1) % demonLaughingFrameCount;
-        demonLaughingFrameTimer = -1000;
+        demonLaughingFrameTimer = 0;
     }
     return tileTextures.wall_laughing_demon[demonLaughingFrameIndex];
 }

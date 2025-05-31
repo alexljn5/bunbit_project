@@ -16,9 +16,10 @@ import { playMusicGodFunction } from "./audio/audiohandler.js";
 import { gunHandlerGodFunction } from "./itemhandler/gunhandler.js";
 import { menuHandler } from "./menus/menuhandler.js";
 import { animationHandler } from "./animations/animationhandler.js";
+import { introActive } from "./animations/newgamestartanimation.js";
 
 
-// --- Performance/cleanup: cache dom lookups, remove redundant code, use let/const, remove debug logs, and ensure only one event handler per button ---
+// --- DOM Elements ---
 const domElements = {
     mainGameRender: document.getElementById("mainGameRender"),
     playGameButton: document.getElementById("playGameButton"),
@@ -30,22 +31,21 @@ export const CANVAS_WIDTH = domElements.mainGameRender.width;
 export const CANVAS_HEIGHT = domElements.mainGameRender.height;
 
 let game = null;
-
-const renderWorker1 = new Worker("./workers/renderengineworker.js", { type: "module" });
-const renderWorker2 = new Worker("./workers/renderengineworker.js", { type: "module" });
+let isRenderingFrame = false;
 let renderWorkersInitialized = false;
-
-const floorWorker = new Worker("./workers/renderfloorworker.js", { type: "module" });
 let floorWorkerFrameId = 0;
 const floorWorkerPending = new Map();
 
+const renderWorker1 = new Worker("./workers/renderengineworker.js", { type: "module" });
+const renderWorker2 = new Worker("./workers/renderengineworker.js", { type: "module" });
+const floorWorker = new Worker("./workers/renderfloorworker.js", { type: "module" });
+
+// --- Button Handlers ---
 domElements.playGameButton.onclick = function () {
-    setMenuActive(true); // Ensure menu is active
-    setupMenuClickHandler(); // Set up canvas click handlers
-    if (!game) {
-        mainGameRender(); // Start the game loop
-    }
-    game.start(); // Start rendering
+    setMenuActive(true);
+    setupMenuClickHandler();
+    if (!game) mainGameRender();
+    game.start();
 };
 
 domElements.debugGameButton && (domElements.debugGameButton.onclick = () => {
@@ -56,8 +56,7 @@ export function mainGameRender() {
     game = gameLoop(gameRenderEngine);
 }
 
-let isRenderingFrame = false;
-
+// --- Main Render Loop ---
 async function gameRenderEngine() {
     if (isRenderingFrame) return;
     isRenderingFrame = true;
@@ -75,10 +74,14 @@ async function gameRenderEngine() {
             return;
         }
         drawBackground();
-        animationHandler();
+        if (introActive) {
+            animationHandler();
+            isRenderingFrame = false;
+            return;
+        }
         await renderRaycastWalls(rayData);
         await renderRaycastFloors(rayData);
-        drawSprites(rayData);
+        //drawSprites(rayData);
         if (showDebugTools) compiledDevTools();
         playerLogic();
         playerInventoryGodFunction();
@@ -87,7 +90,7 @@ async function gameRenderEngine() {
         collissionGodFunction();
         boyKisserNpcAIGodFunction();
         //enemyAiGodFunction();
-        playMusicGodFunction();
+        //playMusicGodFunction();
     } catch (error) {
         console.error("gameRenderEngine error:", error);
     } finally {
@@ -95,6 +98,7 @@ async function gameRenderEngine() {
     }
 }
 
+// --- Utility Functions ---
 function drawBackground() {
     renderEngine.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     renderEngine.fillStyle = "black";
@@ -133,6 +137,13 @@ function initializeRenderWorkers() {
     renderWorkersInitialized = true;
 }
 
+function cleanupRenderWorkers() {
+    renderWorker1.terminate();
+    renderWorker2.terminate();
+    renderWorkersInitialized = false;
+}
+
+// --- Raycast Rendering ---
 function renderRaycastWalls(rayData) {
     if (!texturesLoaded) {
         renderEngine.fillStyle = "gray";
@@ -167,12 +178,6 @@ function renderRaycastWalls(rayData) {
             textureX
         });
     }
-}
-
-function cleanupRenderWorkers() {
-    renderWorker1.terminate();
-    renderWorker2.terminate();
-    renderWorkersInitialized = false;
 }
 
 floorWorker.onmessage = (e) => {

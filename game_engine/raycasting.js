@@ -156,11 +156,7 @@ export function cleanupWorkers() {
 }
 
 // --- TEST/DEBUG FUNCTIONS ---
-// These are for development and debugging purposes only.
-// They are not used in production but can be helpful for visualizing ray data, etc.
-
 export function testFuckingAround() {
-    // Example: Log the first 10 rays for the current frame
     castRays().then(rayData => {
         if (!rayData) {
             console.log("No ray data available");
@@ -170,15 +166,28 @@ export function testFuckingAround() {
     });
 }
 
+// --- FOV Animation (fuckTheScreenUpBaby) ---
 let increasing = true;
+let fovAnimationActive = false;
+let fovResetTimeout = null;
+
 export function fuckTheScreenUpBaby() {
+    if (!fovAnimationActive) {
+        fovAnimationActive = true;
+        // Reset FOV and stop animation after 2 seconds
+        fovResetTimeout = setTimeout(() => {
+            playerFOV = Math.PI / 6;
+            fovAnimationActive = false;
+        }, 2000);
+    }
+    if (!fovAnimationActive) return;
     for (let i = 0; i < 100; i++) {
         if (increasing) {
             playerFOV++;
-            if (playerFOV >= 5) increasing = false;
+            if (playerFOV >= 100) increasing = false;
         } else {
             playerFOV--;
-            if (playerFOV <= 0) increasing = true;
+            if (playerFOV <= 6) increasing = true;
         }
     }
 }
