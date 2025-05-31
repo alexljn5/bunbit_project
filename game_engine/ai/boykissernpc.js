@@ -6,7 +6,8 @@ import { tileSectors } from "../mapdata/maps.js";
 import { renderEngine } from "../renderengine.js";
 import { isOccludedByWall } from "./enemyai.js";
 
-// Listen for T key to advance dialogue if active
+// Clean up: optimize dialogue system, event handling, and rendering
+
 window.addEventListener("keydown", (event) => {
     if (dialogueActive && event.key.toLowerCase() === "t") {
         event.preventDefault();
@@ -49,15 +50,11 @@ function boyKisserNpcAI() {
     const dx = playerPosition.x - boyKisserEnemySpriteWorldPos.x;
     const dz = playerPosition.z - boyKisserEnemySpriteWorldPos.z;
     const distance = Math.sqrt(dx * dx + dz * dz);
-
-    // Use shared occlusion utility
     const isOccluded = isOccludedByWall(
         boyKisserEnemySpriteWorldPos.x, boyKisserEnemySpriteWorldPos.z,
         playerPosition.x, playerPosition.z,
         map_01, tileSectors
     );
-
-    // Trigger event if player is close to the NPC and not occluded
     if (distance < npcTriggerRadius && !isOccluded) {
         if (isInteractionKeyPressed() && !dialogueActive) {
             startNpcDialogue([

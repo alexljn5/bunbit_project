@@ -7,43 +7,39 @@ const domElements = {
     playerInventoryButton: document.getElementById("playerInventory")
 };
 
-domElements.playerInventoryButton.addEventListener("click", playerInventoryButton);
+domElements.playerInventoryButton.addEventListener("click", () => {
+    showInventorySprite = !showInventorySprite;
+});
 
 export let playerInventory = [];
-export let showInventorySprite = false; // New flag to control sprite drawing
+export let showInventorySprite = false;
 
 export function playerInventoryGodFunction() {
-    inventoryUIShit(); // Call inventory UI rendering
-    keyHandlingOfInventory(); // Handle key inputs for inventory
-}
-
-function playerInventoryButton() {
-    showInventorySprite = !showInventorySprite; // Toggle inventory display
+    inventoryUIShit();
+    keyHandlingOfInventory();
 }
 
 function inventoryUIShit() {
     if (showInventorySprite) {
         compiledTextStyle();
-        // Save context before changing globalAlpha
         renderEngine.save();
-        renderEngine.globalAlpha = 0.588; // Semi-transparent background
+        renderEngine.globalAlpha = 0.588;
         renderEngine.fillStyle = "#222";
         renderEngine.fillRect(0, 0, 800, 100);
-        renderEngine.globalAlpha = 1.0; // Restore alpha for item drawing
+        renderEngine.globalAlpha = 1.0;
         if (playerInventory.includes("metal_pipe")) {
-            renderEngine.drawImage(metalPipeSprite, 10, 10, 64, 64); // Draw metal pipe sprite
+            renderEngine.drawImage(metalPipeSprite, 10, 10, 64, 64);
             renderEngine.fillStyle = "#fff";
-            renderEngine.fillText("Metal Pipe", 80, 40); // Label for the item
+            renderEngine.fillText("Metal Pipe", 80, 40);
         }
-        // Restore context after drawing
         renderEngine.restore();
     }
 }
 
 function keyHandlingOfInventory() {
-    if (keys["i"]) { // Toggle inventory with 'i' key
+    if (keys["i"]) {
         showInventorySprite = !showInventorySprite;
-        keys["i"] = false; // Reset key state to prevent repeated toggling
+        keys["i"] = false;
     }
 }
 

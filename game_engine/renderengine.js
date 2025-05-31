@@ -13,9 +13,11 @@ import { enemyAiGodFunction } from "./ai/enemyai.js";
 import { boyKisserNpcAIGodFunction } from "./ai/boykissernpc.js";
 import { menuActive, setMenuActive } from "./gameState.js";
 
+// --- Performance/cleanup: cache dom lookups, remove redundant code, use let/const, remove debug logs, and ensure only one event handler per button ---
 const domElements = {
     mainGameRender: document.getElementById("mainGameRender"),
     playGameButton: document.getElementById("playGameButton"),
+    debugGameButton: document.getElementById("debugGameButton"),
 };
 
 export const renderEngine = domElements.mainGameRender.getContext("2d");
@@ -34,7 +36,6 @@ let floorWorkerFrameId = 0;
 const floorWorkerPending = new Map();
 
 domElements.playGameButton.onclick = function () {
-    console.log("playGameButton clicked, menuActive:", menuActive); // DEBUG
     setMenuActive(true); // Ensure menu is active
     setupMenuClickHandler(); // Set up canvas click handlers
     if (!game) {
@@ -43,8 +44,11 @@ domElements.playGameButton.onclick = function () {
     game.start(); // Start rendering
 };
 
+domElements.debugGameButton && (domElements.debugGameButton.onclick = () => {
+    showDebugTools = !showDebugTools;
+});
+
 export function mainGameRender() {
-    console.log("mainGameRender called, menuActive:", menuActive); // DEBUG
     game = gameLoop(gameRenderEngine);
 }
 
@@ -53,12 +57,9 @@ let isRenderingFrame = false;
 async function gameRenderEngine() {
     if (isRenderingFrame) return;
     isRenderingFrame = true;
-
     try {
-        console.log("gameRenderEngine, menuActive:", menuActive); // DEBUG
         if (menuActive) {
             mainGameMenu();
-            console.log("Rendering menu"); // DEBUG
             isRenderingFrame = false;
             return;
         }

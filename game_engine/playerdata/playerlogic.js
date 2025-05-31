@@ -60,13 +60,6 @@ window.addEventListener("blur", () => {
     for (let key in keys) keys[key] = false;
 });
 
-// Remove canvas click handler for fullscreen/pointer lock
-// canvas.addEventListener('click', () => {
-//     canvas.requestFullscreen();
-//     canvas.requestPointerLock();
-//     canvas.focus();
-// });
-
 document.addEventListener('pointerlockchange', () => {
     if (document.pointerLockElement !== canvas && document.mozPointerLockElement !== canvas) {
         for (let key in keys) keys[key] = false;
