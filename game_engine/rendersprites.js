@@ -3,7 +3,7 @@ import { renderEngine } from "./renderengine.js";
 import { tileSectors } from "./mapdata/maps.js";
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from "./renderengine.js";
 import { castRays, numCastRays, playerFOV } from "./raycasting.js";
-import { playerInventory } from "./playerdata/playerinventory.js"; // Add this import
+import { playerInventory, selectedInventoryIndex } from "./playerdata/playerinventory.js"; // Add this import
 
 // Preload Sprites
 export const playerHandSprite = new Image(100, 100);
@@ -109,6 +109,14 @@ genericGunSprite.onload = () => {
     console.log("Generic gun sprite loaded");
 };
 
+export const genericGunPlayerHandSprite = new Image(128, 128);
+genericGunPlayerHandSprite.src = "./img/sprites/playerhand/playerhand_placeholder.png";
+export let genericGunPlayerHandLoaded = false;
+genericGunPlayerHandSprite.onload = () => {
+    genericGunPlayerHandLoaded = true;
+    console.log("Generic gun player hand sprite loaded");
+}
+
 //End of Items
 
 export const boyKisserEnemySprite = new Image(128, 128);
@@ -131,22 +139,20 @@ casperLesserDemonSprite.onload = () => {
 export const casperLesserDemonSpriteWorldPos = { x: 5.5 * tileSectors, z: 11.3 * tileSectors };
 
 
-function playerHandSpriteFunction() {
-    const defaultPlayerHandX = 0;
-    const defaultPlayerHandY = 0;
-    const defaultPlayerHandWidth = 100;
-    const defaultPlayerHandHeight = 100;
-    const playerHandMetalPipeX = 450;
-    const playerHandMetalPipeY = 400;
-    const playerHandMetalPipeWidth = 256;
-    const playerHandMetalPipeHeight = 512;
-    if (playerInventory.includes("metal_pipe") && metalPipePlayerHandLoaded) {
-        renderEngine.drawImage(metalPipePlayerHandSprite, playerHandMetalPipeX, playerHandMetalPipeY, playerHandMetalPipeWidth, playerHandMetalPipeHeight);
-    } else if (handLoaded) {
-        renderEngine.drawImage(playerHandSprite, defaultPlayerHandX, defaultPlayerHandY, defaultPlayerHandWidth, defaultPlayerHandHeight);
-    } else {
+export function playerHandSpriteFunction() {
+    // Determine which hand sprite to render based on selected inventory slot
+    let handSprite = playerHandSprite;
+    const selectedItem = playerInventory[selectedInventoryIndex];
+    if (selectedItem === "metal_pipe" && metalPipePlayerHandLoaded) {
+        handSprite = metalPipePlayerHandSprite;
+    } else if (selectedItem === "generic_gun" && genericGunPlayerHandLoaded) {
+        handSprite = genericGunPlayerHandSprite;
+    } else if (!handLoaded) {
         console.warn("No player hand sprite loaded");
+        return;
     }
+    // Draw the hand sprite at the original position
+    renderEngine.drawImage(handSprite, 450, 400, 256, 512);
 }
 
 // Animation state

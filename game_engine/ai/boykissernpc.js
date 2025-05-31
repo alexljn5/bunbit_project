@@ -69,16 +69,19 @@ function boyKisserNpcAI() {
     );
 
     if (distance < npcTriggerRadius && !isOccluded) {
-        const dialogue = [
-            "BoyKisser: Hello there, traveler!",
-            "BoyKisser: Press T to continue...",
-            "BoyKisser: Please take this item!",
-            "BoyKisser: It's a special gift for you.",
-            "BoyKisser: Remember, kindness is key!",
-        ];
+        let dialogue;
         if (playerInventory.includes("generic_gun")) {
-            dialogue.push("BoyKisser: You already have a gun, no need for another.");
+            // If player has the gun, skip to the single-line dialogue
+            dialogue = ["BoyKisser: You already have a gun, no need for another."];
         } else {
+            // Full dialogue for first interaction, add gun to inventory
+            dialogue = [
+                "BoyKisser: Hello there, traveler!",
+                "BoyKisser: Press T to continue...",
+                "BoyKisser: Please take this item!",
+                "BoyKisser: It's a special gift for you.",
+                "BoyKisser: Remember, kindness is key!",
+            ];
             playerInventory.push("generic_gun");
             console.log("Generic gun added to inventory.", playerInventory);
         }
@@ -100,7 +103,27 @@ function drawNpcDialogue() {
     renderEngine.font = "24px Arial";
     const line = getCurrentNpcDialogueLine();
     if (line) {
-        renderEngine.fillText(line, 120, 650);
+        // Word wrap: split long lines to fit inside the dialogue box
+        const maxWidth = 560; // width of the text area inside the box
+        const x = 120;
+        let y = 650;
+        const lineHeight = 32;
+        const words = line.split(' ');
+        let currentLine = '';
+        for (let i = 0; i < words.length; i++) {
+            const testLine = currentLine + words[i] + ' ';
+            const metrics = renderEngine.measureText(testLine);
+            if (metrics.width > maxWidth && currentLine !== '') {
+                renderEngine.fillText(currentLine, x, y);
+                currentLine = words[i] + ' ';
+                y += lineHeight;
+            } else {
+                currentLine = testLine;
+            }
+        }
+        if (currentLine) {
+            renderEngine.fillText(currentLine, x, y);
+        }
     }
     renderEngine.restore();
 }
