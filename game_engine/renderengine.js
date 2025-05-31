@@ -1,81 +1,67 @@
-// renderengine.js
 import { gameLoop } from "./main_game.js";
 import { playerVantagePointX, playerVantagePointY, playerLogic, playerPosition } from "./playerdata/playerlogic.js";
 import { playerInventoryGodFunction } from "./playerdata/playerinventory.js";
 import { compiledDevTools, compiledTextStyle } from "./debugtools.js";
 import { mapTable, tileSectors } from "./mapdata/maps.js";
-import { castRays, cleanupWorkers, numCastRays, playerFOV } from "./raycasting.js"; // Import cleanupWorkers
+import { castRays, cleanupWorkers, numCastRays, playerFOV } from "./raycasting.js";
 import { drawSprites } from "./rendersprites.js";
-import { mainGameMenu } from "./menu.js";
+import { mainGameMenu, setupMenuClickHandler } from "./menus/menu.js";
 import { texturesLoaded, tileTexturesMap, getDemonLaughingCurrentFrame } from "./mapdata/maptextures.js";
 import { playerUI } from "./playerdata/playerui.js";
 import { collissionGodFunction } from "./colissiondetection/collissionlogic.js";
 import { enemyAiGodFunction } from "./ai/enemyai.js";
+import { boyKisserNpcAIGodFunction } from "./ai/boykissernpc.js";
+import { menuActive, setMenuActive } from "./gameState.js";
 
 const domElements = {
     mainGameRender: document.getElementById("mainGameRender"),
     playGameButton: document.getElementById("playGameButton"),
-    stopGameButton: document.getElementById("stopGameButton"),
-    debugGameButton: document.getElementById("debugGameButton")
 };
 
-// --- Optimized renderengine.js ---
-
-// Use a single function to get the canvas context
 export const renderEngine = domElements.mainGameRender.getContext("2d");
+export const CANVAS_WIDTH = domElements.mainGameRender.width;
+export const CANVAS_HEIGHT = domElements.mainGameRender.height;
 
 let game = null;
 let showDebugTools = false;
 
-// Create render workers once
 const renderWorker1 = new Worker("./workers/renderengineworker.js", { type: "module" });
 const renderWorker2 = new Worker("./workers/renderengineworker.js", { type: "module" });
 let renderWorkersInitialized = false;
 
-// Create floor render worker
 const floorWorker = new Worker("./workers/renderfloorworker.js", { type: "module" });
 let floorWorkerFrameId = 0;
 const floorWorkerPending = new Map();
 
-// Use event delegation for button events (faster, less memory)
-domElements.playGameButton.onclick = playGameButton;
-domElements.stopGameButton.onclick = stopGameButton;
-domElements.debugGameButton.onclick = debugGameButton;
-
-function playGameButton() {
+domElements.playGameButton.onclick = function () {
+    console.log("playGameButton clicked, menuActive:", menuActive); // DEBUG
+    setMenuActive(true); // Ensure menu is active
+    setupMenuClickHandler(); // Set up canvas click handlers
     if (!game) {
-        mainGameRender();
-        initializeRenderWorkers();
+        mainGameRender(); // Start the game loop
     }
-    game.start();
-}
+    game.start(); // Start rendering
+};
 
-function stopGameButton() {
-    if (game) {
-        game.stop();
-        cleanupWorkers();
-        cleanupRenderWorkers();
-        compiledTextStyle();
-        renderEngine.fillText("Stopped", 600, 500);
-    }
-}
-
-function debugGameButton() {
-    showDebugTools = !showDebugTools;
-}
-
-function mainGameRender() {
+export function mainGameRender() {
+    console.log("mainGameRender called, menuActive:", menuActive); // DEBUG
     game = gameLoop(gameRenderEngine);
 }
 
 let isRenderingFrame = false;
 
-// --- Main Game Render Loop ---
 async function gameRenderEngine() {
     if (isRenderingFrame) return;
     isRenderingFrame = true;
+
     try {
-        // Only use JS raycasting
+        console.log("gameRenderEngine, menuActive:", menuActive); // DEBUG
+        if (menuActive) {
+            mainGameMenu();
+            console.log("Rendering menu"); // DEBUG
+            isRenderingFrame = false;
+            return;
+        }
         let rayData = await castRays();
         if (!rayData || rayData.every(ray => ray === null)) {
             renderEngine.fillStyle = "red";
@@ -91,6 +77,7 @@ async function gameRenderEngine() {
         playerInventoryGodFunction();
         playerUI();
         collissionGodFunction();
+        boyKisserNpcAIGodFunction();
     } catch (error) {
         console.error("gameRenderEngine error:", error);
     } finally {
@@ -103,9 +90,6 @@ function drawBackground() {
     renderEngine.fillStyle = "black";
     renderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 }
-
-export const CANVAS_WIDTH = 800;
-export const CANVAS_HEIGHT = 800;
 
 function drawQuad({ topX, topY, leftX, leftY, rightX, rightY, color, texture, textureX }) {
     renderEngine.beginPath();
@@ -242,3 +226,5 @@ async function renderRaycastFloors(rayData) {
     }
 }
 
+// Export mainGameRender and initializeRenderWorkers for menu.js
+export { initializeRenderWorkers };

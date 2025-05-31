@@ -102,14 +102,14 @@ metalPipePlayerHandSprite.onload = () => {
 };
 
 export const boyKisserEnemySprite = new Image(128, 128);
-//boyKisserEnemySprite.src = "./img/sprites/enemy/boykisser.png";
-boyKisserEnemySprite.src = "./img/sprites/enemy/carenemytest.png";
+boyKisserEnemySprite.src = "./img/sprites/enemy/boykisser.png";
+//boyKisserEnemySprite.src = "./img/sprites/enemy/carenemytest.png";
 export let boyKisserEnemySpriteLoaded = false;
 boyKisserEnemySprite.onload = () => {
     boyKisserEnemySpriteLoaded = true;
     console.log("Boy kisser loaded!");
 }
-export const boyKisserEnemySpriteWorldPos = { x: 6 * tileSectors, z: 7.3 * tileSectors };
+export const boyKisserEnemySpriteWorldPos = { x: 3.4 * tileSectors, z: 1.2 * tileSectors };
 
 export const casperLesserDemonSprite = new Image(128, 128);
 casperLesserDemonSprite.src = "./img/sprites/enemy/casperdemon.png";
@@ -118,7 +118,7 @@ casperLesserDemonSprite.onload = () => {
     casperLesserDemonSpriteLoaded = true;
     console.log("Casper loaded!");
 }
-export const casperLesserDemonSpriteWorldPos = { x: 2.5 * tileSectors, z: 8 * tileSectors };
+export const casperLesserDemonSpriteWorldPos = { x: 5.5 * tileSectors, z: 11.3 * tileSectors };
 
 
 function playerHandSpriteFunction() {
@@ -220,7 +220,12 @@ function creamSpinTestSprite(rayData) {
 
 // Utility: check if a sprite is visible (not occluded by walls)
 function isSpriteVisible(rayData, startColumn, endColumn, correctedDistance) {
-    for (let col = startColumn; col <= endColumn; col++) {
+    // Clamp columns to valid range
+    startColumn = Math.max(0, startColumn);
+    endColumn = Math.min(numCastRays - 1, endColumn);
+    // If the sprite is behind the player, always return false
+    if (correctedDistance < 0) return false;
+    for (let col = startColumn; col <= endColumn; ++col) {
         const ray = rayData[col];
         if (!ray || correctedDistance < ray.distance) {
             return true;
@@ -228,16 +233,6 @@ function isSpriteVisible(rayData, startColumn, endColumn, correctedDistance) {
     }
     return false;
 }
-
-// Utility: calculate sprite screen X and columns
-function getSpriteScreenParams(relativeAngle, spriteWidth) {
-    const screenX = (CANVAS_WIDTH / 2) + (CANVAS_WIDTH / 2) * (relativeAngle / (playerFOV / 2));
-    const adjustedScreenX = screenX - playerVantagePointX.playerVantagePointX;
-    const startColumn = Math.max(0, Math.floor((adjustedScreenX - spriteWidth / 2) / (CANVAS_WIDTH / numCastRays)));
-    const endColumn = Math.min(numCastRays - 1, Math.ceil((adjustedScreenX + spriteWidth / 2) / (CANVAS_WIDTH / numCastRays)));
-    return { adjustedScreenX, startColumn, endColumn };
-}
-
 export function drawSprites(rayData) {
     if (!rayData) return;
     drawStaticSprites(rayData);
@@ -255,6 +250,15 @@ function drawStaticSprites(rayData) {
 
 function animatedSpriteRenderer(rayData) {
     creamSpinTestSprite(rayData);
+}
+
+// Utility: calculate sprite screen X and columns
+function getSpriteScreenParams(relativeAngle, spriteWidth) {
+    const screenX = (CANVAS_WIDTH / 2) + (CANVAS_WIDTH / 2) * (relativeAngle / (playerFOV / 2));
+    const adjustedScreenX = screenX - playerVantagePointX.playerVantagePointX;
+    const startColumn = Math.max(0, Math.floor((adjustedScreenX - spriteWidth / 2) / (CANVAS_WIDTH / numCastRays)));
+    const endColumn = Math.min(numCastRays - 1, Math.ceil((adjustedScreenX + spriteWidth / 2) / (CANVAS_WIDTH / numCastRays)));
+    return { adjustedScreenX, startColumn, endColumn };
 }
 
 function pillar01SpriteFunction(rayData) {

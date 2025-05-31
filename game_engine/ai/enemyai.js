@@ -19,6 +19,27 @@ export function enemyAiGodFunction() {
     casperLesserDemon();
 }
 
+// --- Utility: Line-of-sight (occlusion) check between two points ---
+export function isOccludedByWall(x0, z0, x1, z1, map, tileSectors) {
+    const dx = x1 - x0;
+    const dz = z1 - z0;
+    const distance = Math.sqrt(dx * dx + dz * dz);
+    const steps = Math.ceil(distance / tileSectors);
+    for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        const checkX = x0 + t * dx;
+        const checkZ = z0 + t * dz;
+        const cellX = Math.floor(checkX / tileSectors);
+        const cellZ = Math.floor(checkZ / tileSectors);
+        if (cellX >= 0 && cellX < map[0].length && cellZ >= 0 && cellZ < map.length) {
+            if (map[cellZ][cellX].type === "wall") {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 //Follows you Demon
 function testEnemyAi() {
     if (!lastKnownPlayerPos) {
@@ -44,21 +65,12 @@ function testEnemyAi() {
         testFuckingAround();
     }
 
-    const steps = Math.ceil(distance / tileSectors);
-    let isOccluded = false;
-    for (let i = 0; i <= steps; i++) {
-        const t = i / steps;
-        const checkX = boyKisserEnemySpriteWorldPos.x + t * dx;
-        const checkZ = boyKisserEnemySpriteWorldPos.z + t * dz;
-        const cellX = Math.floor(checkX / tileSectors);
-        const cellZ = Math.floor(checkZ / tileSectors);
-        if (cellX >= 0 && cellX < map_01[0].length && cellZ >= 0 && cellZ < map_01.length) {
-            if (map_01[cellZ][cellX].type === "wall") {
-                isOccluded = true;
-                break;
-            }
-        }
-    }
+    // Check for occlusion (BoyKisser)
+    const isOccluded = isOccludedByWall(
+        boyKisserEnemySpriteWorldPos.x, boyKisserEnemySpriteWorldPos.z,
+        playerPosition.x, playerPosition.z,
+        map_01, tileSectors
+    );
 
     if (!isOccluded && distance < visionRange) {
         lastKnownPlayerPos.x = playerPosition.x;
@@ -175,9 +187,15 @@ function casperLesserDemon() {
         console.log(`Casper hit player! Health: ${playerHealth.playerHealth}`);
     }
 
+    // Check for occlusion (Casper)
+    const isOccluded = isOccludedByWall(
+        casperLesserDemonSpriteWorldPos.x, casperLesserDemonSpriteWorldPos.z,
+        playerPosition.x, playerPosition.z,
+        map_01, tileSectors
+    );
+
     // Line-of-sight check
     const steps = Math.ceil(distance / tileSectors);
-    let isOccluded = false;
     let nearestWallDistance = Infinity;
     let nearestWallPos = null;
     let isHalfwayBehindWall = false;
@@ -190,7 +208,6 @@ function casperLesserDemon() {
         const cellZ = Math.floor(checkZ / tileSectors);
         if (cellX >= 0 && cellX < map_01[0].length && cellZ >= 0 && cellZ < map_01.length) {
             if (map_01[cellZ][cellX].type === "wall") {
-                isOccluded = true;
                 const wallDist = Math.sqrt(
                     (checkX - casperLesserDemonSpriteWorldPos.x) ** 2 +
                     (checkZ - casperLesserDemonSpriteWorldPos.z) ** 2

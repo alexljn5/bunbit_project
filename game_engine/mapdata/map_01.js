@@ -10,7 +10,7 @@ const map_01_sector1 = [
     [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
     [fullTileBrick, fullTileBrick, emptyTile, fullTileBrick, fullTileBrick],
     [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
-    [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [fullTileBrick, emptyTile, emptyTile, emptyTile, emptyTile],
     [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
     [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
     [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
@@ -20,39 +20,42 @@ const map_01_sector1 = [
 
 // Hallway (8x4)
 const map_01_sector2 = [
-    [fullTileBrick, fullTileBrick, fullTileBrick, emptyTile],
-    [emptyTile, emptyTile, emptyTile, fullTileBrick],
-    [emptyTile, emptyTile, emptyTile, fullTileBrick],
-    [emptyTile, emptyTile, emptyTile, fullTileBrick],
-    [emptyTile, emptyTile, emptyTile, fullTileBrick],
-    [emptyTile, emptyTile, emptyTile, fullTileBrick],
-    [emptyTile, emptyTile, emptyTile, fullTileBrick],
-    [emptyTile, emptyTile, emptyTile, fullTileBrick],
-    [emptyTile, emptyTile, emptyTile, fullTileBrick],
-    [emptyTile, emptyTile, emptyTile, fullTileBrick],
-    [emptyTile, emptyTile, emptyTile, fullTileBrick],
-    [fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick],
+    [fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick,],
+    [emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [fullTileBrick, fullTileBrick, fullTile, fullTileBrick, fullTileBrick, fullTileBrick],
 ];
 
 // Test sector (7x4)
 const map_01_sector3 = [
-    [fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick],
-    [fullTileBrick, emptyTile, emptyTile, fullTileBrick],
-    [emptyTile, emptyTile, emptyTile, fullTileBrick],
-    [emptyTile, emptyTile, emptyTile, fullTile],
-    [emptyTile, emptyTile, emptyTile, fullTileBrick],
-    [fullTileBrick, emptyTile, emptyTile, fullTileBrick],
-    [fullTileBrick, emptyTile, emptyTile, fullTileBrick],
-    [fullTileBrick, emptyTile, emptyTile, fullTileBrick],
-    [fullTileBrick, emptyTile, emptyTile, fullTileBrick],
-    [fullTileBrick, emptyTile, emptyTile, fullTileBrick],
-    [fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick,],
+    [fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick,],
+    [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [fullTileBrick, fullTileBrick, emptyTile, fullTileBrick, fullTileBrick],
+    [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [fullTileBrick, emptyTile, emptyTile, emptyTile, emptyTile],
+    [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [fullTileBrick, fullTileBrick, fullTile, fullTileBrick, fullTileBrick, fullTileBrick],
 ];
 
 // Combine sectors into a flat 2D map_01
 const sectorPositions = [
     { sector: map_01_sector1, startY: 0, startX: 0 },
-    { sector: map_01_sector2, startY: 0, startX: 8 },
+    { sector: map_01_sector2, startY: 0, startX: 5 },
     { sector: map_01_sector3, startY: 0, startX: 12 },
 ];
 

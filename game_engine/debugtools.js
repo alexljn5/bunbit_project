@@ -97,19 +97,18 @@ export function drawMinimap() {
             if (tile.type !== "empty") continue;
 
             // Check neighbors (up, down, left, right)
-            const hasWallNeighbor =
-                (y > 0 && map_01[y - 1][x].type === "wall") ||
-                (y < mapHeight - 1 && map_01[y + 1][x].type === "wall") ||
-                (x > 0 && map_01[y][x - 1].type === "wall") ||
-                (x < mapWidth - 1 && map_01[y][x + 1].type === "wall");
+            let hasWallNeighbor = false;
+            if (y > 0 && map_01[y - 1][x].type === "wall") hasWallNeighbor = true;
+            if (y < mapHeight - 1 && map_01[y + 1][x].type === "wall") hasWallNeighbor = true;
+            if (x > 0 && map_01[y][x - 1].type === "wall") hasWallNeighbor = true;
+            if (x < mapWidth - 1 && map_01[y][x + 1].type === "wall") hasWallNeighbor = true;
 
-            if (hasWallNeighbor) {
-                const pixelX = x * minimapTileSize;
-                const pixelY = y * minimapTileSize;
-                renderEngine.strokeStyle = "white";
-                renderEngine.lineWidth = 1;
-                renderEngine.strokeRect(pixelX, pixelY, minimapTileSize, minimapTileSize);
-            }
+            const pixelX = x * minimapTileSize;
+            const pixelY = y * minimapTileSize;
+            // Always draw the border for empty tiles, but use the same gray as wall fill if not adjacent to a wall
+            renderEngine.strokeStyle = hasWallNeighbor ? "white" : "#777777";
+            renderEngine.lineWidth = 1;
+            renderEngine.strokeRect(pixelX, pixelY, minimapTileSize, minimapTileSize);
         }
     }
 

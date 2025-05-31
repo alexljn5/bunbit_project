@@ -5,7 +5,7 @@ import { CANVAS_WIDTH } from "./renderengine.js";
 
 export let playerFOV = Math.PI / 6; // 60 degrees
 export let numCastRays = 300; // Reduced for performance
-export let maxRayDepth = 30;
+export let maxRayDepth = 11;
 
 // --- OPTIMIZED RAYCASTING WORKER MANAGEMENT ---
 const NUM_WORKERS = 4;

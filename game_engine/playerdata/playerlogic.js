@@ -10,7 +10,7 @@ export let playerVantagePointY = { playerVantagePointY: 0 };
 export const keys = Object.fromEntries([
     ["w", false], ["a", false], ["s", false], ["d", false],
     ["q", false], ["e", false], [" ", false], ["shift", false],
-    ["alt", false], ["p", false]
+    ["alt", false], ["p", false], ["t", false], ["enter", false]
 ]);
 
 let playerMovementSpeed = 100;
@@ -59,11 +59,12 @@ window.addEventListener("blur", () => {
     for (let key in keys) keys[key] = false;
 });
 
-canvas.addEventListener('click', () => {
-    canvas.requestFullscreen();
-    canvas.requestPointerLock();
-    canvas.focus();
-});
+// Remove canvas click handler for fullscreen/pointer lock
+// canvas.addEventListener('click', () => {
+//     canvas.requestFullscreen();
+//     canvas.requestPointerLock();
+//     canvas.focus();
+// });
 
 document.addEventListener('pointerlockchange', () => {
     if (document.pointerLockElement !== canvas && document.mozPointerLockElement !== canvas) {
@@ -127,6 +128,11 @@ export function playerLogic() {
     }
     staminaBarMeterOnCanvas();
     healthMeterOnCanvas();
+}
+
+// --- Interaction Key Handling ---
+export function isInteractionKeyPressed() {
+    return keys.t;
 }
 
 function staminaBarMeterOnCanvas() {
