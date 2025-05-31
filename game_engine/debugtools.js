@@ -9,6 +9,7 @@ import {
     boyKisserEnemySprite, boyKisserEnemySpriteLoaded, boyKisserEnemySpriteWorldPos,
     casperLesserDemonSprite, casperLesserDemonSpriteLoaded, casperLesserDemonSpriteWorldPos
 } from "./rendersprites.js";
+import { keys } from "./playerdata/playerlogic.js";
 
 export function compiledDevTools() {
     fpsMeter();

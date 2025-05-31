@@ -14,7 +14,8 @@ export const keys = Object.fromEntries([
     ["q", false], ["e", false], [" ", false], ["shift", false],
     ["alt", false], ["p", false], ["t", false], ["enter", false],
     ["i", false], ["1", false], ["2", false], ["3", false], ["4", false],
-    ["5", false], ["6", false], ["7", false], ["8", false], ["9", false]
+    ["5", false], ["6", false], ["7", false], ["8", false], ["9", false],
+    ["f3", false]
 ]);
 
 let playerMovementSpeed = 100;
@@ -28,6 +29,7 @@ let maxHealth = 100;
 export let playerHealthBar = 100;
 export const playerHealth = { playerHealth: 100 };
 let gameOver = false;
+let showDebugTools = false;
 
 const canvas = document.getElementById('mainGameRender');
 canvas.requestPointerLock = canvas.requestPointerLock || canvas.mozRequestPointerLock;
@@ -48,6 +50,10 @@ window.addEventListener("keydown", (event) => {
     if (key in keys) {
         event.preventDefault();
         keys[key] = true;
+    }
+    // Toggle debug tools with F3
+    if (event.key === "F3" || event.key === "f3") {
+        showDebugTools = !showDebugTools;
     }
 }, true);
 
@@ -132,4 +138,6 @@ export function playerLogic() {
 export function isInteractionKeyPressed() {
     return keys.t;
 }
+
+export { showDebugTools };
 

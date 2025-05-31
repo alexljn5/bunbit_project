@@ -1,5 +1,5 @@
 import { gameLoop } from "./main_game.js";
-import { playerVantagePointX, playerVantagePointY, playerLogic, playerPosition } from "./playerdata/playerlogic.js";
+import { playerVantagePointX, playerVantagePointY, playerLogic, playerPosition, showDebugTools } from "./playerdata/playerlogic.js";
 import { playerInventoryGodFunction } from "./playerdata/playerinventory.js";
 import { compiledDevTools, compiledTextStyle } from "./debugtools.js";
 import { mapTable, tileSectors } from "./mapdata/maps.js";
@@ -27,7 +27,6 @@ export const CANVAS_WIDTH = domElements.mainGameRender.width;
 export const CANVAS_HEIGHT = domElements.mainGameRender.height;
 
 let game = null;
-let showDebugTools = false;
 
 const renderWorker1 = new Worker("./workers/renderengineworker.js", { type: "module" });
 const renderWorker2 = new Worker("./workers/renderengineworker.js", { type: "module" });
