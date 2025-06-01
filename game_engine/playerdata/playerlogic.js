@@ -3,6 +3,7 @@ import { compiledTextStyle } from "../debugtools.js";
 import { playerInventory } from "./playerinventory.js";
 import { staminaBarMeterOnCanvas, healthMeterOnCanvas } from "./playerui.js";
 import { playerMovementDisabled } from "../ai/friendlycat.js";
+import { wallCollision } from "../collissiondetection/collissionwalllogic.js";
 
 // --- Optimized and Cleaned Up Player Logic ---
 
@@ -37,6 +38,12 @@ canvas.requestPointerLock = canvas.requestPointerLock || canvas.mozRequestPointe
 export let playerPosition = { x: 2.5 * 50 / 2, z: 2.5 * 50 / 2, angle: 0 };
 export let previousPosition = { x: playerPosition.x, z: playerPosition.z };
 export let playerMovement = { x: 0, z: 0 };
+
+// --- Bobbing effect state ---
+let bobbingTime = 0;
+let bobbingOffset = 0;
+const BOBBING_SPEED = 8; // Higher = faster bobbing
+const BOBBING_AMPLITUDE = 14; // Higher = more vertical movement
 
 // --- Input Listeners ---
 window.addEventListener("keydown", (event) => {
@@ -93,6 +100,10 @@ export function playerLogic() {
         playerStaminaBar = Math.min(maxStamina, playerStaminaBar + regenRate * deltaTime);
     }
 
+    // Store previous position before updating
+    previousPosition.x = playerPosition.x;
+    previousPosition.z = playerPosition.z;
+
     // Movement
     if (keys.a) playerPosition.angle -= playerRotationSpeed * deltaTime;
     if (keys.d) playerPosition.angle += playerRotationSpeed * deltaTime;
@@ -100,6 +111,7 @@ export function playerLogic() {
     const sinAngle = Math.sin(playerPosition.angle);
     const sprintMultiplier = isSprinting && playerStaminaBar > 0 ? 2 : 1;
     const slowMultiplier = keys.shift ? 0.5 : 1;
+    let isMoving = keys.w || keys.s || keys.q || keys.e;
     if (keys.w) {
         playerPosition.x += cosAngle * playerMovementSpeed * sprintMultiplier * slowMultiplier * deltaTime;
         playerPosition.z += sinAngle * playerMovementSpeed * sprintMultiplier * slowMultiplier * deltaTime;
@@ -117,9 +129,20 @@ export function playerLogic() {
         playerPosition.z += cosAngle * playerMovementSpeed * sprintMultiplier * slowMultiplier * deltaTime;
     }
 
-    // Debug/test keys
-    if (keys.p) console.log("Mike has a CBT fetish");
+    // --- Bobbing effect update ---
+    if (isMoving) {
+        bobbingTime += deltaTime * (isSprinting ? BOBBING_SPEED * 1.5 : BOBBING_SPEED);
+        bobbingOffset = Math.sin(bobbingTime) * (isSprinting ? BOBBING_AMPLITUDE * 1.2 : BOBBING_AMPLITUDE);
+    } else {
+        // Smoothly return to zero when not moving
+        bobbingOffset *= 0.85;
+        bobbingTime += deltaTime * BOBBING_SPEED * 0.5;
+    }
 
+    // Apply collision detection
+    wallCollision(isSprinting, playerMovementSpeed, deltaTime);
+
+    // Update vantage point
     playerMovement.x = playerPosition.x - 2.5 * 50 / 2;
     playerMovement.z = playerPosition.z - 2.5 * 50 / 2;
     playerVantagePointX.playerVantagePointX = playerMovement.x * 0.02;
@@ -132,6 +155,11 @@ export function playerLogic() {
     }
     staminaBarMeterOnCanvas();
     healthMeterOnCanvas();
+}
+
+// --- Bobbing offset getter for use in sprite rendering ---
+export function getPlayerBobbingOffset() {
+    return bobbingOffset;
 }
 
 // --- Interaction Key Handling ---

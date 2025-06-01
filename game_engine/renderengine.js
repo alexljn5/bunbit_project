@@ -1,15 +1,15 @@
 import { gameLoop } from "./main_game.js";
-import { playerVantagePointY, playerLogic, playerPosition, showDebugTools } from "./playerdata/playerlogic.js";
+import { playerLogic, playerPosition, showDebugTools } from "./playerdata/playerlogic.js";
 import { playerInventoryGodFunction } from "./playerdata/playerinventory.js";
 import { compiledDevTools } from "./debugtools.js";
-import { mapTable, tileSectors } from "./mapdata/maps.js";
+import { tileSectors } from "./mapdata/maps.js";
 import { castRays, cleanupWorkers, numCastRays, playerFOV } from "./raycasting.js";
 import { drawSprites } from "./rendersprites.js";
 import { mainGameMenu, setupMenuClickHandler } from "./menus/menu.js";
 import { texturesLoaded, tileTexturesMap, getDemonLaughingCurrentFrame } from "./mapdata/maptextures.js";
 import { playerUI } from "./playerdata/playerui.js";
-import { collissionGodFunction } from "./colissiondetection/collissionlogichandler.js";
-import { enemyAiGodFunction } from "./ai/enemyai.js";
+import { collissionGodFunction } from "./collissiondetection/collissionlogichandler.js";
+import { enemyAiGodFunction } from "./ai/aihandler.js";
 import { boyKisserNpcAIGodFunction } from "./ai/friendlycat.js";
 import { menuActive, setMenuActive } from "./gameState.js";
 import { playMusicGodFunction } from "./audio/audiohandler.js";
@@ -74,11 +74,13 @@ async function gameRenderEngine() {
             return;
         }
         drawBackground();
+        /*
         if (introActive) {
             animationHandler();
             isRenderingFrame = false;
             return;
         }
+            */
         await renderRaycastWalls(rayData);
         await renderRaycastFloors(rayData);
         drawSprites(rayData);
@@ -89,7 +91,7 @@ async function gameRenderEngine() {
         playerUI();
         collissionGodFunction();
         boyKisserNpcAIGodFunction();
-        //enemyAiGodFunction();
+        enemyAiGodFunction();
         playMusicGodFunction();
     } catch (error) {
         console.error("gameRenderEngine error:", error);

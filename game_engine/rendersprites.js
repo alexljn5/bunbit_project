@@ -1,4 +1,4 @@
-import { keys, playerMovement, playerPosition, playerVantagePointX, playerVantagePointY } from "./playerdata/playerlogic.js";
+import { keys, playerMovement, playerPosition, playerVantagePointX, playerVantagePointY, getPlayerBobbingOffset } from "./playerdata/playerlogic.js";
 import { renderEngine } from "./renderengine.js";
 import { tileSectors } from "./mapdata/maps.js";
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from "./renderengine.js";
@@ -155,8 +155,9 @@ export function playerHandSpriteFunction() {
         console.warn("No player hand sprite loaded");
         return;
     }
-    // Draw the hand sprite at the original position
-    renderEngine.drawImage(handSprite, 450, 400, 256, 512);
+    // Bobbing effect
+    const bobbingY = 400 + getPlayerBobbingOffset();
+    renderEngine.drawImage(handSprite, 450, bobbingY, 256, 512);
 }
 
 // Animation state

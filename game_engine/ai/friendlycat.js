@@ -3,8 +3,10 @@ import { boyKisserEnemySpriteWorldPos } from "../rendersprites.js";
 import { map_01 } from "../mapdata/map_01.js";
 import { tileSectors } from "../mapdata/maps.js";
 import { renderEngine } from "../renderengine.js";
-import { isOccludedByWall } from "./enemyai.js";
 import { playerInventory } from "../playerdata/playerinventory.js";
+import { basicPickUpMenuStyle } from "../menus/menuhandler.js";
+import { genericGunSprite } from "../rendersprites.js";
+import { isOccludedByWall } from "./aihandler.js";
 
 const npcTriggerRadius = 60;
 let npcLastTriggered = false;
@@ -37,21 +39,20 @@ function advanceNpcDialogue() {
         dialogueLines = [];
         currentDialogueIndex = 0;
         playerMovementDisabled = false;
-        npcLastTriggered = false; // Reset to allow new interaction
+        npcLastTriggered = false;
+        // Only show the pickup box if the player just got the gun (not if they already had it)
+        if (showGunPickupBox === false && playerInventory.includes("generic_gun") && gunPickupTimer === 0 && justReceivedGun) {
+            showGunPickupBox = true;
+            gunPickupTimer = GUN_PICKUP_DURATION;
+            justReceivedGun = false;
+        }
     }
 }
 
-function getCurrentNpcDialogueLine() {
-    return dialogueActive ? dialogueLines[currentDialogueIndex] : null;
-}
+// Track if the player just received the gun in this interaction
+let justReceivedGun = false;
 
-export function boyKisserNpcAIGodFunction() {
-    if (!dialogueActive) boyKisserNpcAI();
-    if (dialogueActive) drawNpcDialogue();
-    friendlyCatAi();
-}
-
-function boyKisserNpcAI() {
+export function boyKisserNpcAI() {
     // Get current interaction key state
     const currentInteractionState = isInteractionKeyPressed();
     // Only trigger if key is pressed AND it wasn't pressed last frame (fresh press)
@@ -71,11 +72,10 @@ function boyKisserNpcAI() {
 
     if (distance < npcTriggerRadius && !isOccluded) {
         let dialogue;
+        justReceivedGun = false;
         if (playerInventory.includes("generic_gun")) {
-            // If player has the gun, skip to the single-line dialogue
             dialogue = ["BoyKisser: You already have a gun, no need for another."];
         } else {
-            // Full dialogue for first interaction, add gun to inventory
             dialogue = [
                 "BoyKisser: Hello there, traveler!",
                 "BoyKisser: Press T to continue...",
@@ -84,14 +84,33 @@ function boyKisserNpcAI() {
                 "BoyKisser: Remember, kindness is key!",
             ];
             playerInventory.push("generic_gun");
-            console.log("Generic gun added to inventory.", playerInventory);
+            justReceivedGun = true;
         }
         startNpcDialogue(dialogue);
         npcLastTriggered = true;
     } else {
         npcLastTriggered = false;
     }
-    lastInteractionState = currentInteractionState; // Update key state
+    lastInteractionState = currentInteractionState;
+}
+
+function getCurrentNpcDialogueLine() {
+    return dialogueActive ? dialogueLines[currentDialogueIndex] : null;
+}
+
+let showGunPickupBox = false;
+let gunPickupTimer = 0;
+const GUN_PICKUP_DURATION = 120; // 2 seconds at 60fps
+
+export function boyKisserNpcAIGodFunction() {
+    if (!dialogueActive) boyKisserNpcAI();
+    if (dialogueActive) drawNpcDialogue();
+    if (showGunPickupBox && gunPickupTimer > 0) {
+        drawGunPickupBox();
+        gunPickupTimer--;
+        if (gunPickupTimer === 0) showGunPickupBox = false;
+    }
+    friendlyCatAi();
 }
 
 function drawNpcDialogue() {
@@ -128,6 +147,31 @@ function drawNpcDialogue() {
     }
     renderEngine.restore();
 }
+
+function drawGunPickupBox() {
+    basicPickUpMenuStyle();
+    // Centered box: 400x200 at (200,200) on 800x800 canvas
+    // Place text and image neatly inside
+    renderEngine.save();
+    renderEngine.globalAlpha = 1.0;
+    renderEngine.fillStyle = "white"; // White text like NPC dialogue
+    renderEngine.font = "24px Arial";
+    const text = "You received a generic gun!";
+    // Center text horizontally in the box (box x=200, width=400)
+    const textMetrics = renderEngine.measureText(text);
+    const textX = 200 + (400 - textMetrics.width) / 2;
+    const textY = 350; // nicely below the top of the box
+    renderEngine.fillText(text, textX, textY);
+    // Draw gun image centered below the text
+    const gunImg = genericGunSprite; // Use loaded sprite
+    const imgWidth = 96;
+    const imgHeight = 48;
+    const imgX = 200 + (400 - imgWidth) / 2;
+    const imgY = 370; // below the text, inside the box
+    renderEngine.drawImage(gunImg, imgX, imgY, imgWidth, imgHeight);
+    renderEngine.restore();
+}
+
 let lastKnownPlayerPos = null;
 let canSeePlayer = false;
 
@@ -243,3 +287,25 @@ function friendlyCatAi() {
 
     console.log(`BoyKisser moved to: x=${boyKisserEnemySpriteWorldPos.x.toFixed(2)}, z=${boyKisserEnemySpriteWorldPos.z.toFixed(2)}, targetDistance=${targetDistance.toFixed(2)}, canSeePlayer=${canSeePlayer}`);
 }
+
+/*
+function isOccludedByWall(x0, z0, x1, z1, map, tileSectors) {
+    const dx = x1 - x0;
+    const dz = z1 - z0;
+    const distance = Math.sqrt(dx * dx + dz * dz);
+    const steps = Math.ceil(distance / tileSectors);
+    for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        const checkX = x0 + t * dx;
+        const checkZ = z0 + t * dz;
+        const cellX = Math.floor(checkX / tileSectors);
+        const cellZ = Math.floor(checkZ / tileSectors);
+        if (cellX >= 0 && cellX < map[0].length && cellZ >= 0 && cellZ < map.length) {
+            if (map[cellZ][cellX].type === "wall") {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+*/
