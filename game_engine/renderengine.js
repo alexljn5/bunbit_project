@@ -74,13 +74,11 @@ async function gameRenderEngine() {
             return;
         }
         drawBackground();
-        /*
         if (introActive) {
             animationHandler();
             isRenderingFrame = false;
             return;
         }
-            */
         await renderRaycastWalls(rayData);
         await renderRaycastFloors(rayData);
         drawSprites(rayData);
