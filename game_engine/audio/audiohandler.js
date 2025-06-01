@@ -3,7 +3,8 @@ import { renderEngine } from "../renderengine.js";
 
 let track_level01 = new Audio("./audio/music/track_level01.mp3");
 let musicVolume = 1.0; // Range: 0.0 - 1.0
-let sliderDragging = false;
+let soundVolume = 1.0; // Range: 0.0 - 1.0
+let sliderDragging = null; // null, 'music', or 'sound'
 const sliderX = 365;
 const sliderY = 190;
 const sliderWidth = 200;
@@ -30,6 +31,15 @@ export function getMusicVolume() {
 export function setMusicVolume(val) {
     musicVolume = Math.max(0, Math.min(1, val));
     if (track_level01) track_level01.volume = musicVolume;
+}
+
+export function getSoundVolume() {
+    return soundVolume;
+}
+
+export function setSoundVolume(val) {
+    soundVolume = Math.max(0, Math.min(1, val));
+    // Set global sound effect volume here if needed
 }
 
 export function volumeSlidersGodFunction() {
@@ -68,7 +78,7 @@ function soundVolumeSlider() {
     renderEngine.fillRect(sliderX, sliderY + 40, sliderWidth, sliderHeight);
     // Draw filled portion
     renderEngine.fillStyle = 'red';
-    renderEngine.fillRect(sliderX, sliderY + 40, sliderWidth * musicVolume, sliderHeight);
+    renderEngine.fillRect(sliderX, sliderY + 40, sliderWidth * soundVolume, sliderHeight);
     // Draw border
     renderEngine.strokeStyle = 'black';
     renderEngine.lineWidth = 2;
@@ -78,7 +88,7 @@ function soundVolumeSlider() {
     renderEngine.font = '18px Arial';
     renderEngine.fillText('Sound Volume', sliderX, sliderY + 30);
     // Draw knob
-    const knobX = sliderX + sliderWidth * musicVolume;
+    const knobX = sliderX + sliderWidth * soundVolume;
     renderEngine.beginPath();
     renderEngine.arc(knobX, sliderY + 40 + sliderHeight / 2, 10, 0, 2 * Math.PI);
     renderEngine.fillStyle = 'black';
@@ -87,6 +97,7 @@ function soundVolumeSlider() {
     renderEngine.stroke();
 }
 
+// Cleaned up audio handler for clarity and maintainability
 export function setupAudioSliderHandlers() {
     if (typeof window !== 'undefined') {
         const canvas = renderEngine && renderEngine.canvas;
@@ -95,23 +106,34 @@ export function setupAudioSliderHandlers() {
                 const rect = canvas.getBoundingClientRect();
                 const mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
                 const mouseY = (e.clientY - rect.top) * (canvas.height / rect.height);
+                // Check which slider is clicked
                 if (
                     mouseX >= sliderX && mouseX <= sliderX + sliderWidth &&
                     mouseY >= sliderY && mouseY <= sliderY + sliderHeight
                 ) {
-                    sliderDragging = true;
+                    sliderDragging = 'music';
                     setMusicVolume((mouseX - sliderX) / sliderWidth);
+                } else if (
+                    mouseX >= sliderX && mouseX <= sliderX + sliderWidth &&
+                    mouseY >= sliderY + 40 && mouseY <= sliderY + 40 + sliderHeight
+                ) {
+                    sliderDragging = 'sound';
+                    setSoundVolume((mouseX - sliderX) / sliderWidth);
                 }
             });
             canvas.addEventListener('mousemove', function (e) {
                 if (sliderDragging) {
                     const rect = canvas.getBoundingClientRect();
                     const mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
-                    setMusicVolume((mouseX - sliderX) / sliderWidth);
+                    if (sliderDragging === 'music') {
+                        setMusicVolume((mouseX - sliderX) / sliderWidth);
+                    } else if (sliderDragging === 'sound') {
+                        setSoundVolume((mouseX - sliderX) / sliderWidth);
+                    }
                 }
             });
             window.addEventListener('mouseup', function () {
-                sliderDragging = false;
+                sliderDragging = null;
             });
             canvas._audioSliderHandlerAttached = true;
         }

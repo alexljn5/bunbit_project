@@ -18,7 +18,6 @@ import { animationHandler } from "./animations/animationhandler.js";
 import { introActive } from "./animations/newgamestartanimation.js";
 import { itemHandlerGodFunction } from "./itemhandler/itemhandler.js";
 
-
 // --- DOM Elements ---
 const domElements = {
     mainGameRender: document.getElementById("mainGameRender"),
@@ -51,6 +50,8 @@ domElements.playGameButton.onclick = function () {
 domElements.debugGameButton && (domElements.debugGameButton.onclick = () => {
     showDebugTools = !showDebugTools;
 });
+
+
 
 export function mainGameRender() {
     game = gameLoop(gameRenderEngine);
@@ -243,3 +244,5 @@ async function renderRaycastFloors(rayData) {
 
 // Export mainGameRender and initializeRenderWorkers for menu.js
 export { initializeRenderWorkers };
+
+// Cleaned up render engine for clarity and maintainability

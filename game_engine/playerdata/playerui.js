@@ -5,6 +5,7 @@ import { casperFace1, casperFace2, casperFace3, casperFace4, casperFace5, casper
 import { playerInventory, selectedInventoryIndex } from "./playerinventory.js";
 import { metalPipeSprite, genericGunSprite } from "../rendersprites.js";
 import { playerStaminaBar, playerHealthBar } from "./playerlogic.js";
+import { genericGunAmmo } from "../itemhandler/gunhandler.js";
 
 // Animation state
 let currentFaceIndex = 0;
@@ -35,23 +36,29 @@ export function playerUI() {
     renderEngine.fillStyle = "rgba(26, 24, 24, 0.5)";
     renderEngine.fillRect(0, 700, 800, 100);
 
-    // Draw current face if loaded
+    // Draw player face (animated or fallback)
     const currentFace = faces[currentFaceIndex];
     if (currentFace.loaded()) {
         renderEngine.drawImage(currentFace.image, 368, 710, 72, 72);
     } else {
-        // Fallback if current image isn't loaded
         compiledTextStyle();
         renderEngine.fillRect(368, 710, 72, 72);
         renderEngine.fillText("Loading...", 373, 742);
     }
-
-    // Render the sprite of the item in the selected inventory slot (if any)
+    // Draw selected inventory item sprite (if any)
     const selectedItem = playerInventory[selectedInventoryIndex];
     if (selectedItem === "metal_pipe") {
         renderEngine.drawImage(metalPipeSprite, 492, 672);
     } else if (selectedItem === "generic_gun") {
         renderEngine.drawImage(genericGunSprite, 492, 672);
+        renderEngine.fillStyle = "white";
+        renderEngine.font = "24px Arial";
+        // Ammo text left of player head
+        const ammoText = `Ammo: ${genericGunAmmo}`;
+        const textMetrics = renderEngine.measureText(ammoText);
+        const textX = 368 - 16 - textMetrics.width;
+        const textY = 672 + 64;
+        renderEngine.fillText(ammoText, textX, textY);
     }
 }
 

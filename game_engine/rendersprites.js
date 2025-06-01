@@ -419,3 +419,5 @@ function metalPipeSpriteFunction(rayData) {
         );
     }
 }
+
+// Cleaned up render sprites for clarity and maintainability

@@ -8,13 +8,13 @@ import { basicPickUpMenuStyle } from "../menus/menuhandler.js";
 import { genericGunSprite } from "../rendersprites.js";
 import { isOccludedByWall } from "./aihandler.js";
 
+// Cleaned up friendly cat (boykisser) NPC AI logic for clarity and maintainability
 const npcTriggerRadius = 60;
 let npcLastTriggered = false;
 let dialogueActive = false;
 let dialogueLines = [];
 let currentDialogueIndex = 0;
-let lastInteractionState = false; // Track previous interaction key state
-
+let lastInteractionState = false;
 export let playerMovementDisabled = false;
 
 window.addEventListener("keydown", (event) => {
@@ -101,7 +101,6 @@ function getCurrentNpcDialogueLine() {
 let showGunPickupBox = false;
 let gunPickupTimer = 0;
 const GUN_PICKUP_DURATION = 120; // 2 seconds at 60fps
-
 export function boyKisserNpcAIGodFunction() {
     if (!dialogueActive) boyKisserNpcAI();
     if (dialogueActive) drawNpcDialogue();
@@ -216,7 +215,6 @@ function friendlyCatAi() {
     const targetDistance = Math.sqrt(targetDx * targetDx + targetDz * targetDz);
 
     if (targetDistance < 50) {
-        console.log("BoyKisser reached target, pausing");
         return;
     }
 
@@ -284,28 +282,4 @@ function friendlyCatAi() {
     const maxZBound = mapHeight * tileSectors - enemyRadius;
     boyKisserEnemySpriteWorldPos.x = Math.max(enemyRadius, Math.min(maxXBound, boyKisserEnemySpriteWorldPos.x));
     boyKisserEnemySpriteWorldPos.z = Math.max(enemyRadius, Math.min(maxZBound, boyKisserEnemySpriteWorldPos.z));
-
-    console.log(`BoyKisser moved to: x=${boyKisserEnemySpriteWorldPos.x.toFixed(2)}, z=${boyKisserEnemySpriteWorldPos.z.toFixed(2)}, targetDistance=${targetDistance.toFixed(2)}, canSeePlayer=${canSeePlayer}`);
 }
-
-/*
-function isOccludedByWall(x0, z0, x1, z1, map, tileSectors) {
-    const dx = x1 - x0;
-    const dz = z1 - z0;
-    const distance = Math.sqrt(dx * dx + dz * dz);
-    const steps = Math.ceil(distance / tileSectors);
-    for (let i = 0; i <= steps; i++) {
-        const t = i / steps;
-        const checkX = x0 + t * dx;
-        const checkZ = z0 + t * dz;
-        const cellX = Math.floor(checkX / tileSectors);
-        const cellZ = Math.floor(checkZ / tileSectors);
-        if (cellX >= 0 && cellX < map[0].length && cellZ >= 0 && cellZ < map.length) {
-            if (map[cellZ][cellX].type === "wall") {
-                return true;
-            }
-        }
-    }
-    return false;
-}
-*/

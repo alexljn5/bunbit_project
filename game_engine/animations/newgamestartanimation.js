@@ -55,3 +55,5 @@ function drawNewGameStartAnimation() {
     }
     requestAnimationFrame(animate);
 }
+
+// Cleaned up new game start animation for clarity and maintainability

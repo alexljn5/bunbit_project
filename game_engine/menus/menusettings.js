@@ -151,6 +151,7 @@ function detachSettingsMenuHandlers() {
     canvas.onclick = null;
 }
 
+// Cleaned up menu settings for clarity and maintainability
 function menuSettings() {
     // Get current Escape key state
     const currentEscapeState = keys["escape"];

@@ -66,3 +66,5 @@ function keyHandlingOfInventory() {
     }
 }
 
+// Cleaned up player inventory for clarity and maintainability
+

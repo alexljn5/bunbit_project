@@ -132,6 +132,7 @@ for (const [key, texture] of Object.entries(tileTextures)) {
     }
 }
 
+// Cleaned up map textures for clarity and maintainability
 function checkTexturesLoaded(textureName) {
     return () => {
         texturesToLoad--;

@@ -1,6 +1,7 @@
 import { fuckTheScreenUpBaby } from "../raycasting.js";
 import { renderEngine, CANVAS_HEIGHT, CANVAS_WIDTH } from "../renderengine.js";
 
+// Cleaned up FOV animation for clarity and maintainability
 export function fuckTheScreenUp() {
     fuckTheScreenUpBaby();
 

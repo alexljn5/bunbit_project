@@ -5,7 +5,7 @@ import { staminaBarMeterOnCanvas, healthMeterOnCanvas } from "./playerui.js";
 import { playerMovementDisabled } from "../ai/friendlycat.js";
 import { wallCollision } from "../collissiondetection/collissionwalllogic.js";
 
-// --- Optimized and Cleaned Up Player Logic ---
+// Cleaned up player logic for clarity and maintainability
 
 export let playerVantagePointX = { playerVantagePointX: 0 };
 export let playerVantagePointY = { playerVantagePointY: 0 };

@@ -1,4 +1,3 @@
-
 import {
     fullTile, emptyTile, fullTileAldi, fullTileBrick, fullTileSatanic, fullTileSchizoEye,
     fullTileBrickGraffiti01, fullTileLaughingDemon, fullTileBrickDoor01Closed, fullTileBrickDoor01Open
@@ -78,4 +77,5 @@ sectorPositions.forEach(({ sector, startY, startX }) => {
     }
 });
 
+// Cleaned up map_01 data for clarity and maintainability
 export { map_01 };

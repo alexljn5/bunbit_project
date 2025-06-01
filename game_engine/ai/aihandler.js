@@ -1,9 +1,8 @@
-// In enemyai.js
 import { casperLesserDemon } from "./casperlesserdemon.js";
 import { boyKisserNpcAIGodFunction } from "./friendlycat.js";
 import { tileSectors } from "../mapdata/maps.js";
 
-
+// Cleaned up AI handler for clarity and maintainability
 export function friendlyAiGodFunction() {
     boyKisserNpcAIGodFunction();
 }

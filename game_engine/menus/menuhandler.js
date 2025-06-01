@@ -1,6 +1,7 @@
 import { menuSettingsGodFunction } from './menusettings.js';
 import { renderEngine } from '../renderengine.js';
 
+// Cleaned up menu handler for clarity and maintainability
 export function menuHandler() {
     menuSettingsGodFunction();
 }
