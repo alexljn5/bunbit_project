@@ -117,6 +117,15 @@ genericGunPlayerHandSprite.onload = () => {
     console.log("Generic gun player hand sprite loaded");
 }
 
+export const nineMMAmmoSprite = new Image(128, 128);
+nineMMAmmoSprite.src = "./img/sprites/items/9mm_ammo_box.png"
+export let nineMMAmmoSpriteLoaded = false;
+nineMMAmmoSprite.onload = () => {
+    nineMMAmmoSpriteLoaded = true;
+    console.log("Generic nine MM ammo loaded");
+}
+export const nineMMAmmoSpriteWorldPos = { x: 3.4 * tileSectors, z: 1.2 * tileSectors };
+
 //End of Items
 
 export const boyKisserEnemySprite = new Image(128, 128);
@@ -158,6 +167,67 @@ export function playerHandSpriteFunction() {
     // Bobbing effect
     const bobbingY = 400 + getPlayerBobbingOffset();
     renderEngine.drawImage(handSprite, 450, bobbingY, 256, 512);
+}
+
+export function drawSprites(rayData) {
+    if (!rayData) return;
+    drawStaticSprites(rayData);
+    animatedSpriteRenderer(rayData);
+}
+
+function drawStaticSprites(rayData) {
+    playerHandSpriteFunction();
+    corpse1SpriteFunction(rayData);
+    metalPipeSpriteFunction(rayData);
+    boyKisserEnemySpriteFunction(rayData);
+    casperLesserDemonSpriteFunction(rayData);
+    pillar01SpriteFunction(rayData);
+    nineMMAmmoSpriteFunction(rayData);
+}
+
+function animatedSpriteRenderer(rayData) {
+    creamSpinTestSprite(rayData);
+}
+
+function nineMMAmmoSpriteFunction(rayData) {
+    if (!nineMMAmmoSpriteLoaded) return;
+
+    // Sprite world position relative to player
+    const dx = nineMMAmmoSpriteWorldPos.x - playerPosition.x;
+    const dz = nineMMAmmoSpriteWorldPos.z - playerPosition.z;
+    const distance = Math.sqrt(dx * dx + dz * dz);
+    const relativeAngle = Math.atan2(dz, dx) - playerPosition.angle;
+    const correctedDistance = distance * Math.cos(relativeAngle);
+    if (correctedDistance < 0.1) return; // Avoid division by zero or too-close sprites
+
+    // Calculate sprite size (same as before)
+    const spriteHeight = (CANVAS_HEIGHT / correctedDistance) * tileSectors / 2;
+    const spriteWidth = spriteHeight; // Maintain aspect ratio
+
+    // Get screen X position and column range
+    const { adjustedScreenX, startColumn, endColumn } = getSpriteScreenParams(relativeAngle, spriteWidth);
+
+    // Check if sprite is visible
+    if (!isSpriteVisible(rayData, startColumn, endColumn, correctedDistance)) return;
+    if (adjustedScreenX + spriteWidth / 2 < 0 || adjustedScreenX - spriteWidth / 2 > CANVAS_WIDTH) return;
+
+    // Calculate floor Y-position using floor projection (same as renderRaycastFloors)
+    const projectionPlaneDist = (CANVAS_WIDTH * 0.5) / Math.tan(playerFOV * 0.5);
+    const halfCanvasHeight = CANVAS_HEIGHT * 0.5;
+    const halfTile = tileSectors * 0.5;
+
+    // Assume sprite is at floor level (z = 0), so rowDistance matches floor at sprite's distance
+    const rowDistance = correctedDistance; // Sprite is at floor level
+    const spriteYBottom = halfCanvasHeight + (halfTile / rowDistance) * projectionPlaneDist;
+
+    // Draw sprite with bottom aligned to floor
+    renderEngine.drawImage(
+        nineMMAmmoSprite,
+        adjustedScreenX - spriteWidth / 2,
+        spriteYBottom - spriteHeight - playerVantagePointY.playerVantagePointY, // Align bottom to floor
+        spriteWidth,
+        spriteHeight
+    );
 }
 
 // Animation state
@@ -253,24 +323,6 @@ function isSpriteVisible(rayData, startColumn, endColumn, correctedDistance) {
         }
     }
     return false;
-}
-export function drawSprites(rayData) {
-    if (!rayData) return;
-    drawStaticSprites(rayData);
-    animatedSpriteRenderer(rayData);
-}
-
-function drawStaticSprites(rayData) {
-    playerHandSpriteFunction();
-    corpse1SpriteFunction(rayData);
-    metalPipeSpriteFunction(rayData);
-    boyKisserEnemySpriteFunction(rayData);
-    casperLesserDemonSpriteFunction(rayData);
-    pillar01SpriteFunction(rayData);
-}
-
-function animatedSpriteRenderer(rayData) {
-    creamSpinTestSprite(rayData);
 }
 
 // Utility: calculate sprite screen X and columns
