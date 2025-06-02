@@ -69,13 +69,11 @@ async function gameRenderEngine() {
             return;
         }
         drawBackground();
-        /*
         if (introActive) {
             animationHandler();
             isRenderingFrame = false;
             return;
         }
-            */
         await renderRaycastWalls(rayData);
         await renderRaycastFloors(rayData);
         drawSprites(rayData);
@@ -87,7 +85,7 @@ async function gameRenderEngine() {
         collissionGodFunction();
         boyKisserNpcAIGodFunction();
         //enemyAiGodFunction();
-        //playMusicGodFunction();
+        playMusicGodFunction();
     } catch (error) {
         console.error("gameRenderEngine error:", error);
     } finally {
@@ -188,7 +186,7 @@ async function renderRaycastFloors(rayData) {
     const projectionPlaneDist = (CANVAS_WIDTH * 0.5) / Math.tan(playerFOV * 0.5);
     const halfCanvasHeight = CANVAS_HEIGHT * 0.5;
     const halfTile = tileSectors * 0.5;
-    const baseStep = 8; // Keep for performance
+    const baseStep = 4; // Keep for performance
     const invTileSectors = 1 / tileSectors;
 
     // Precompute cos and sin for all rays to match worker

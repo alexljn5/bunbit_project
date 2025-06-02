@@ -154,7 +154,6 @@ export function cleanupWorkers() {
     workerPendingFrames.clear();
     console.log("Raycast workers terminated");
 }
-
 // --- TEST/DEBUG FUNCTIONS ---
 export function testFuckingAround() {
     castRays().then(rayData => {
@@ -165,7 +164,6 @@ export function testFuckingAround() {
         console.log("First 10 rays:", rayData.slice(0, 10));
     });
 }
-
 // --- FOV Animation (fuckTheScreenUpBaby) ---
 let increasing = true;
 let fovAnimationActive = false;

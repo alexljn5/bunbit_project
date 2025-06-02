@@ -90,7 +90,8 @@ metalPipeSprite.onload = () => {
 };
 export const metalPipeWorldPos = { x: 2.5 * tileSectors, z: 4.5 * tileSectors };
 export const spriteState = {
-    isMetalPipeCollected: false
+    isMetalPipeCollected: false,
+    isNineMmAmmoCollected: false
 };
 
 export const metalPipePlayerHandSprite = new Image(128, 128);
