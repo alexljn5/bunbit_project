@@ -1,5 +1,5 @@
 import { playerMovement, playerPosition } from "./playerdata/playerlogic.js";
-import { renderEngine, CANVAS_WIDTH, CANVAS_HEIGHT } from "./renderengine.js";
+import { renderEngine } from "./renderengine.js";
 import { map_01, mapWidth, mapHeight } from "./mapdata/map_01.js";
 import { tileSectors } from "./mapdata/maps.js";
 import { tileTexturesMap } from "./mapdata/maptextures.js";
@@ -10,6 +10,7 @@ import {
     casperLesserDemonSprite, casperLesserDemonSpriteLoaded, casperLesserDemonSpriteWorldPos
 } from "./rendersprites.js";
 import { keys } from "./playerdata/playerlogic.js";
+import { CANVAS_WIDTH, CANVAS_HEIGHT } from "./globals.js";
 
 export function compiledDevTools() {
     fpsMeter();

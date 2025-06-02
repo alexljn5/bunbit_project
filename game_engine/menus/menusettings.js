@@ -1,6 +1,7 @@
 import { keys } from "../playerdata/playerlogic.js";
-import { CANVAS_HEIGHT, CANVAS_WIDTH, renderEngine } from "../renderengine.js";
+import { renderEngine } from "../renderengine.js";
 import { volumeSlidersGodFunction, setupAudioSliderHandlers } from "../audio/audiohandler.js";
+import { CANVAS_WIDTH, CANVAS_HEIGHT } from "../globals.js";
 
 // Re-use or define playerMovementDisabled (exported for playerlogic.js)
 export let playerMovementDisabled = false; // Note: If already exported in BoyKisser NPC code, you may not need to redefine here

@@ -1,9 +1,10 @@
-import { renderEngine, CANVAS_WIDTH, CANVAS_HEIGHT } from "../renderengine.js";
+import { renderEngine } from "../renderengine.js";
 import { compiledTextStyle } from "../debugtools.js";
 import { playerInventory } from "./playerinventory.js";
 import { staminaBarMeterOnCanvas, healthMeterOnCanvas } from "./playerui.js";
 import { playerMovementDisabled } from "../ai/friendlycat.js";
 import { wallCollision } from "../collissiondetection/collissionwalllogic.js";
+import { CANVAS_WIDTH, CANVAS_HEIGHT } from "../globals.js";
 
 // Cleaned up player logic for clarity and maintainability
 

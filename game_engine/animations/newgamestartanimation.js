@@ -1,7 +1,7 @@
 import { renderEngine } from "../renderengine.js";
-import { CANVAS_HEIGHT, CANVAS_WIDTH } from "../renderengine.js";
 import { fuckTheScreenUp } from "./fuckthescreenup.js";
 import { getDemonLaughingCurrentFrame } from "../mapdata/maptextures.js";
+import { CANVAS_WIDTH, CANVAS_HEIGHT } from "../globals.js";
 
 export let introActive = true;
 

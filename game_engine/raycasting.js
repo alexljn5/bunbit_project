@@ -1,10 +1,10 @@
 import { playerPosition } from "./playerdata/playerlogic.js";
 import { tileSectors, mapTable } from "./mapdata/maps.js";
 import { textureIdMap, floorTextureIdMap } from "./mapdata/maptextures.js";
-import { CANVAS_WIDTH } from "./renderengine.js";
+import { CANVAS_WIDTH } from "./globals.js";
 
 export let playerFOV = Math.PI / 6; // 60 degrees
-export let numCastRays = 100; // Reduced for performance
+export let numCastRays = 300; // Reduced for performance
 export let maxRayDepth = 11;
 
 // --- OPTIMIZED RAYCASTING WORKER MANAGEMENT ---

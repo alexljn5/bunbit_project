@@ -17,6 +17,7 @@ import { menuHandler } from "./menus/menuhandler.js";
 import { animationHandler } from "./animations/animationhandler.js";
 import { introActive } from "./animations/newgamestartanimation.js";
 import { itemHandlerGodFunction } from "./itemhandler/itemhandler.js";
+import { CANVAS_HEIGHT, CANVAS_WIDTH } from "./globals.js";
 
 // --- DOM Elements ---
 const domElements = {
@@ -26,18 +27,13 @@ const domElements = {
 };
 
 export const renderEngine = domElements.mainGameRender.getContext("2d");
-export const CANVAS_WIDTH = domElements.mainGameRender.width;
-export const CANVAS_HEIGHT = domElements.mainGameRender.height;
 
 let game = null;
 let isRenderingFrame = false;
 let renderWorkersInitialized = false;
-let floorWorkerFrameId = 0;
-const floorWorkerPending = new Map();
 
 const renderWorker1 = new Worker("./workers/renderengineworker.js", { type: "module" });
 const renderWorker2 = new Worker("./workers/renderengineworker.js", { type: "module" });
-const floorWorker = new Worker("./workers/renderfloorworker.js", { type: "module" });
 
 // --- Button Handlers ---
 domElements.playGameButton.onclick = function () {
@@ -50,8 +46,6 @@ domElements.playGameButton.onclick = function () {
 domElements.debugGameButton && (domElements.debugGameButton.onclick = () => {
     showDebugTools = !showDebugTools;
 });
-
-
 
 export function mainGameRender() {
     game = gameLoop(gameRenderEngine);
@@ -75,15 +69,13 @@ async function gameRenderEngine() {
             return;
         }
         drawBackground();
-        /*
         if (introActive) {
             animationHandler();
             isRenderingFrame = false;
             return;
         }
-            */
         await renderRaycastWalls(rayData);
-        //await renderRaycastFloors(rayData);
+        await renderRaycastFloors(rayData);
         drawSprites(rayData);
         if (showDebugTools) compiledDevTools();
         playerLogic();
@@ -93,7 +85,7 @@ async function gameRenderEngine() {
         collissionGodFunction();
         boyKisserNpcAIGodFunction();
         //enemyAiGodFunction();
-        playMusicGodFunction();
+        //playMusicGodFunction();
     } catch (error) {
         console.error("gameRenderEngine error:", error);
     } finally {
@@ -183,68 +175,70 @@ function renderRaycastWalls(rayData) {
     }
 }
 
-floorWorker.onmessage = (e) => {
-    const { frameId, floorPixels } = e.data;
-    if (floorWorkerPending.has(frameId)) {
-        floorWorkerPending.get(frameId)(floorPixels);
-        floorWorkerPending.delete(frameId);
-    }
-};
-
 async function renderRaycastFloors(rayData) {
     if (!texturesLoaded) {
         renderEngine.fillStyle = "gray";
         renderEngine.fillRect(0, CANVAS_HEIGHT / 2, CANVAS_WIDTH, CANVAS_HEIGHT / 2);
         return;
     }
-    floorWorkerFrameId++;
-    const frameId = floorWorkerFrameId;
-    const playerX = playerPosition.x;
-    const playerZ = playerPosition.z;
-    const playerAngleVal = playerPosition.angle;
-    const floorTextures = {};
-    tileTexturesMap.forEach((tex, key) => { floorTextures[key] = { width: tex.width, height: tex.height }; });
-    const msg = {
-        rayData,
-        playerX,
-        playerZ,
-        playerAngle: playerAngleVal,
-        playerFOV,
-        tileSectors,
-        CANVAS_WIDTH,
-        CANVAS_HEIGHT,
-        numCastRays,
-        floorTextures,
-        frameId
-    };
-    const floorPromise = new Promise((resolve) => {
-        floorWorkerPending.set(frameId, resolve);
-    });
-    floorWorker.postMessage(msg);
-    const floorPixels = await floorPromise;
-    const colWidth = CANVAS_WIDTH / numCastRays;
-    for (let x = 0; x < floorPixels.length; x++) {
-        const col = floorPixels[x];
-        if (!col || !col.data || !col.texKey) continue;
-        const texture = tileTexturesMap.get(col.texKey);
+    const floorRayStep = 2; // Use every 2nd ray for 100 columns (numCastRays / 2)
+    const colWidth = CANVAS_WIDTH / (numCastRays / floorRayStep);
+    const projectionPlaneDist = (CANVAS_WIDTH * 0.5) / Math.tan(playerFOV * 0.5);
+    const halfCanvasHeight = CANVAS_HEIGHT * 0.5;
+    const halfTile = tileSectors * 0.5;
+    const baseStep = 8; // Keep for performance
+    const invTileSectors = 1 / tileSectors;
+
+    // Precompute cos and sin for all rays to match worker
+    const cosAngles = new Float32Array(numCastRays);
+    const sinAngles = new Float32Array(numCastRays);
+    const fovStep = playerFOV / numCastRays;
+    let angle = playerPosition.angle - playerFOV / 2;
+    for (let x = 0; x < numCastRays; ++x, angle += fovStep) {
+        cosAngles[x] = Math.cos(angle);
+        sinAngles[x] = Math.sin(angle);
+    }
+
+    for (let x = 0; x < numCastRays; x += floorRayStep) {
+        const ray = rayData[x];
+        if (!ray || !ray.floorTextureKey) continue;
+        const texture = tileTexturesMap.get(ray.floorTextureKey);
         if (!texture) continue;
-        const arr = col.data;
-        for (let i = 0; i < arr.length; i += 3) {
-            const y = arr[i];
-            const texX = arr[i + 1];
-            const texY = arr[i + 2];
+
+        const cosA = cosAngles[x];
+        const sinA = sinAngles[x];
+        const wallHeight = (CANVAS_HEIGHT / ray.distance) * tileSectors;
+        const wallBottom = (CANVAS_HEIGHT + wallHeight) * 0.5;
+        let y = Math.min(Math.floor(wallBottom), CANVAS_HEIGHT);
+        const yEnd = CANVAS_HEIGHT;
+        if (y >= yEnd) continue;
+
+        let rowDistance = halfTile / ((y - halfCanvasHeight) / projectionPlaneDist);
+        let floorX = playerPosition.x + rowDistance * cosA;
+        let floorY = playerPosition.z + rowDistance * sinA;
+        let prevRowDistance = rowDistance;
+
+        for (; y < yEnd; y += baseStep) {
+            if (y !== Math.min(Math.floor(wallBottom), CANVAS_HEIGHT)) {
+                rowDistance = halfTile / ((y - halfCanvasHeight) / projectionPlaneDist);
+                const dr = rowDistance - prevRowDistance;
+                floorX += dr * cosA;
+                floorY += dr * sinA;
+                prevRowDistance = rowDistance;
+            }
+
+            const texX = (floorX - Math.floor(floorX / tileSectors) * tileSectors) * invTileSectors;
+            const texY = (floorY - Math.floor(floorY / tileSectors) * tileSectors) * invTileSectors;
             const texPx = Math.floor(texX * texture.width);
             const texPy = Math.floor(texY * texture.height);
             renderEngine.drawImage(
                 texture,
-                texPx, texPy, 1, 1,
-                x * colWidth, y, colWidth, 2
+                texPx, texPy, 1, 1, // Use 1x1 pixel sampling to match worker
+                (x / floorRayStep) * colWidth, y, colWidth, baseStep
             );
         }
     }
 }
 
-// Export mainGameRender and initializeRenderWorkers for menu.js
+// Export mainGame
 export { initializeRenderWorkers };
-
-// Cleaned up render engine for clarity and maintainability

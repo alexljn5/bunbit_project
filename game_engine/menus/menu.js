@@ -1,9 +1,7 @@
 import { renderEngine, mainGameRender, initializeRenderWorkers } from "../renderengine.js";
 import { compiledTextStyle } from "../debugtools.js";
 import { setMenuActive } from "../gamestate.js";
-let CANVAS_WIDTH = 800;
-let CANVAS_HEIGHT = 800;
-
+import { CANVAS_HEIGHT, CANVAS_WIDTH } from "../globals.js";
 let buttons = [
     { name: "Play", x: CANVAS_WIDTH / 2 - 50, y: CANVAS_HEIGHT / 2 - 200, width: 100, height: 40, hovered: false },
     { name: "Maps", x: CANVAS_WIDTH / 2 - 50, y: CANVAS_HEIGHT / 2 - 80, width: 100, height: 40, hovered: false }

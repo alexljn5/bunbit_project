@@ -1,11 +1,12 @@
 // playerUI.js
 import { compiledTextStyle } from "../debugtools.js";
-import { CANVAS_HEIGHT, CANVAS_WIDTH, renderEngine } from "../renderengine.js";
+import { renderEngine } from "../renderengine.js";
 import { casperFace1, casperFace2, casperFace3, casperFace4, casperFace5, casperFace1Loaded, casperFace2Loaded, casperFace3Loaded, casperFace4Loaded, casperFace5Loaded } from "./playertextures.js";
 import { playerInventory, selectedInventoryIndex } from "./playerinventory.js";
 import { metalPipeSprite, genericGunSprite } from "../rendersprites.js";
 import { playerStaminaBar, playerHealthBar } from "./playerlogic.js";
 import { genericGunAmmo } from "../itemhandler/gunhandler.js";
+import { CANVAS_HEIGHT, CANVAS_WIDTH } from "../globals.js";
 
 // Animation state
 let currentFaceIndex = 0;

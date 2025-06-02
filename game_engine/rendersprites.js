@@ -1,7 +1,7 @@
 import { keys, playerMovement, playerPosition, playerVantagePointX, playerVantagePointY, getPlayerBobbingOffset } from "./playerdata/playerlogic.js";
 import { renderEngine } from "./renderengine.js";
 import { tileSectors } from "./mapdata/maps.js";
-import { CANVAS_HEIGHT, CANVAS_WIDTH } from "./renderengine.js";
+import { CANVAS_HEIGHT, CANVAS_WIDTH } from "./globals.js";
 import { castRays, numCastRays, playerFOV } from "./raycasting.js";
 import { playerInventory, selectedInventoryIndex } from "./playerdata/playerinventory.js"; // Add this import
 
