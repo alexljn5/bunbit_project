@@ -11,7 +11,7 @@ import { playerUI } from "./playerdata/playerui.js";
 import { collissionGodFunction } from "./collissiondetection/collissionlogichandler.js";
 import { enemyAiGodFunction } from "./ai/aihandler.js";
 import { boyKisserNpcAIGodFunction } from "./ai/friendlycat.js";
-import { menuActive, setMenuActive } from "./gameState.js";
+import { menuActive, setMenuActive } from "./gamestate.js";
 import { playMusicGodFunction } from "./audio/audiohandler.js";
 import { menuHandler } from "./menus/menuhandler.js";
 import { animationHandler } from "./animations/animationhandler.js";
@@ -75,13 +75,15 @@ async function gameRenderEngine() {
             return;
         }
         drawBackground();
+        /*
         if (introActive) {
             animationHandler();
             isRenderingFrame = false;
             return;
         }
+            */
         await renderRaycastWalls(rayData);
-        await renderRaycastFloors(rayData);
+        //await renderRaycastFloors(rayData);
         drawSprites(rayData);
         if (showDebugTools) compiledDevTools();
         playerLogic();
@@ -90,7 +92,7 @@ async function gameRenderEngine() {
         playerUI();
         collissionGodFunction();
         boyKisserNpcAIGodFunction();
-        enemyAiGodFunction();
+        //enemyAiGodFunction();
         playMusicGodFunction();
     } catch (error) {
         console.error("gameRenderEngine error:", error);
