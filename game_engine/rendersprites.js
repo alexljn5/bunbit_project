@@ -128,7 +128,6 @@ nineMMAmmoSprite.onload = () => {
 export const nineMMAmmoSpriteWorldPos = { x: 3.4 * tileSectors, z: 1.2 * tileSectors };
 
 //End of Items
-
 export const boyKisserEnemySprite = new Image(128, 128);
 boyKisserEnemySprite.src = "./img/sprites/enemy/boykisser.png";
 //boyKisserEnemySprite.src = "./img/sprites/enemy/carenemytest.png";
@@ -192,7 +191,6 @@ function animatedSpriteRenderer(rayData) {
 
 function nineMMAmmoSpriteFunction(rayData) {
     if (!nineMMAmmoSpriteLoaded) return;
-
     // Sprite world position relative to player
     const dx = nineMMAmmoSpriteWorldPos.x - playerPosition.x;
     const dz = nineMMAmmoSpriteWorldPos.z - playerPosition.z;
@@ -207,8 +205,6 @@ function nineMMAmmoSpriteFunction(rayData) {
 
     // Get screen X position and column range
     const { adjustedScreenX, startColumn, endColumn } = getSpriteScreenParams(relativeAngle, spriteWidth);
-
-    // Check if sprite is visible
     if (!isSpriteVisible(rayData, startColumn, endColumn, correctedDistance)) return;
     if (adjustedScreenX + spriteWidth / 2 < 0 || adjustedScreenX - spriteWidth / 2 > CANVAS_WIDTH) return;
 

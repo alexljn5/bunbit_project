@@ -4,6 +4,11 @@ import { selectedInventoryIndex } from "../playerdata/playerinventory.js";
 
 export let genericGunAmmo = 10;
 
+// Setter function to update genericGunAmmo
+export function setGenericGunAmmo(value) {
+    genericGunAmmo = value;
+}
+
 // Cleaned up gun handler for clarity and maintainability
 export function gunHandlerGodFunction() {
     genericGunHandler();

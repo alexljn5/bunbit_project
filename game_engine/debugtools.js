@@ -61,16 +61,13 @@ const minimapTileSize = tileSectors * minimapScale;
 export function drawMinimap() {
     const minimapX = CANVAS_WIDTH - minimapWidth - 20; // Top-right, 20px from edge
     const minimapY = 20; // 20px from top
-
     // Save the current canvas state
     renderEngine.save();
     // Translate to minimap position
     renderEngine.translate(minimapX, minimapY);
-
     // Clear the minimap area (optional, since drawBackground clears the canvas)
     renderEngine.fillStyle = "black";
     renderEngine.fillRect(0, 0, minimapWidth, minimapHeight);
-
     // Draw map tiles
     for (let y = 0; y < mapHeight; y++) {
         for (let x = 0; x < mapWidth; x++) {
