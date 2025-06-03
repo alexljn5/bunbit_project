@@ -1,7 +1,7 @@
 import { renderEngine } from "../renderengine.js";
 import { fuckTheScreenUp } from "./fuckthescreenup.js";
 import { getDemonLaughingCurrentFrame } from "../mapdata/maptextures.js";
-import { CANVAS_WIDTH, CANVAS_HEIGHT } from "../globals.js";
+import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT } from "../globals.js";
 
 export let introActive = true;
 
@@ -30,14 +30,14 @@ function drawNewGameStartAnimation() {
         // Text 1: 0.1s - 2.2s
         if (elapsed > 100 && elapsed < 2200) {
             renderEngine.fillStyle = "white";
-            renderEngine.font = "20px Arial";
-            renderEngine.fillText("My name is John. B. Ossman. I remember nothing, but then...", 0, 15);
+            renderEngine.font = `${20 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+            renderEngine.fillText("My name is John. B. Ossman. I remember nothing, but then...", 10 * SCALE_X, 15 * SCALE_Y);
         }
         // Text 2 + demon: 2.2s - 4.2s
         if (elapsed > 2200 && elapsed < 4200) {
             renderEngine.fillStyle = "red";
-            renderEngine.font = "20px Arial";
-            renderEngine.fillText("I awaken with a jolt of electricity rushing through my veins...", 0, 40);
+            renderEngine.font = `${20 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+            renderEngine.fillText("I awaken with a jolt of electricity rushing through my veins...", 10 * SCALE_X, 40 * SCALE_Y);
             drawDemonFrame(renderEngine);
         }
         // FOV effect: 4.2s - 4.7s (short, punchy)
@@ -55,5 +55,3 @@ function drawNewGameStartAnimation() {
     }
     requestAnimationFrame(animate);
 }
-
-// Cleaned up new game start animation for clarity and maintainability

@@ -1,46 +1,49 @@
 import { keys } from "../playerdata/playerlogic.js";
 import { renderEngine } from "../renderengine.js";
 import { volumeSlidersGodFunction, setupAudioSliderHandlers } from "../audio/audiohandler.js";
-import { CANVAS_WIDTH, CANVAS_HEIGHT } from "../globals.js";
+import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT } from "../globals.js";
 
-// Re-use or define playerMovementDisabled (exported for playerlogic.js)
-export let playerMovementDisabled = false; // Note: If already exported in BoyKisser NPC code, you may not need to redefine here
+export let playerMovementDisabled = false;
 let menuActive = false;
-let lastEscapeState = false; // Track previous Escape key state
+let lastEscapeState = false;
 
-// Settings menu buttons
+// Settings menu buttons, scaled from 800x800
 const settingsButtons = [
-    { name: "Resume", x: 60, y: 160, width: 140, height: 40, hovered: false },
-    { name: "Audio", x: 60, y: 220, width: 140, height: 40, hovered: false },
-    { name: "Controls", x: 60, y: 280, width: 140, height: 40, hovered: false },
-    { name: "Quit", x: 60, y: 340, width: 140, height: 40, hovered: false }
+    { name: "Resume", x: 60 * SCALE_X, y: 160 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
+    { name: "Audio", x: 60 * SCALE_X, y: 220 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
+    { name: "Controls", x: 60 * SCALE_X, y: 280 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
+    { name: "Quit", x: 60 * SCALE_X, y: 340 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false }
 ];
 
 let showControls = false;
 let showAudio = false;
 
 function drawSettingsButtons() {
-    if (showControls || showAudio) return; // Don't draw main buttons if overlay is up
+    if (showControls || showAudio) return;
     settingsButtons.forEach(button => {
         renderEngine.fillStyle = button.hovered ? "#555" : "#222";
         renderEngine.fillRect(button.x, button.y, button.width, button.height);
         renderEngine.strokeStyle = "#fff";
         renderEngine.strokeRect(button.x, button.y, button.width, button.height);
         renderEngine.fillStyle = "#fff";
-        renderEngine.font = "18px Arial";
-        renderEngine.fillText(button.name, button.x + 20, button.y + 25);
+        renderEngine.font = `${18 * Math.min(SCALE_X, SCALE_Y)}px Arial`; // Scale font
+        renderEngine.fillText(button.name, button.x + 20 * SCALE_X, button.y + 25 * SCALE_Y);
     });
 }
 
 function drawControlsOverlay() {
+    const overlayX = 350 * SCALE_X;
+    const overlayY = 120 * SCALE_Y;
+    const overlayWidth = 400 * SCALE_X;
+    const overlayHeight = 400 * SCALE_Y;
     renderEngine.fillStyle = "rgba(20, 20, 20, 0.95)";
-    renderEngine.fillRect(350, 120, 400, 400);
+    renderEngine.fillRect(overlayX, overlayY, overlayWidth, overlayHeight);
     renderEngine.strokeStyle = "#fff";
-    renderEngine.strokeRect(350, 120, 400, 400);
+    renderEngine.strokeRect(overlayX, overlayY, overlayWidth, overlayHeight);
     renderEngine.fillStyle = "#fff";
-    renderEngine.font = "22px Arial";
-    renderEngine.fillText("Controls", 350, 160);
-    renderEngine.font = "16px Arial";
+    renderEngine.font = `${22 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+    renderEngine.fillText("Controls", overlayX, overlayY + 40 * SCALE_Y);
+    renderEngine.font = `${16 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
     const controls = [
         "WASD: Move",
         "Shift: Walk slow",
@@ -53,37 +56,48 @@ function drawControlsOverlay() {
         "Escape: Open/close menu"
     ];
     controls.forEach((line, i) => {
-        renderEngine.fillText(line, 360, 200 + i * 30);
+        renderEngine.fillText(line, overlayX + 10 * SCALE_X, overlayY + 80 * SCALE_Y + i * 30 * SCALE_Y);
     });
-    // Draw a back button
+    // Draw back button
+    const backButtonX = 60 * SCALE_X;
+    const backButtonY = 470 * SCALE_Y;
+    const backButtonWidth = 100 * SCALE_X;
+    const backButtonHeight = 36 * SCALE_Y;
     renderEngine.fillStyle = showControls ? "#555" : "#222";
-    renderEngine.fillRect(60, 470, 100, 36);
+    renderEngine.fillRect(backButtonX, backButtonY, backButtonWidth, backButtonHeight);
     renderEngine.strokeStyle = "#fff";
-    renderEngine.strokeRect(60, 470, 100, 36);
+    renderEngine.strokeRect(backButtonX, backButtonY, backButtonWidth, backButtonHeight);
     renderEngine.fillStyle = "#fff";
-    renderEngine.font = "18px Arial";
-    renderEngine.fillText("Back", 90, 495);
+    renderEngine.font = `${18 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+    renderEngine.fillText("Back", backButtonX + 30 * SCALE_X, backButtonY + 25 * SCALE_Y);
 }
 
 function drawAudioOverlay() {
+    const overlayX = 350 * SCALE_X;
+    const overlayY = 120 * SCALE_Y;
+    const overlayWidth = 400 * SCALE_X;
+    const overlayHeight = 400 * SCALE_Y;
     renderEngine.fillStyle = "rgba(20, 20, 20, 0.95)";
-    renderEngine.fillRect(350, 120, 400, 400);
+    renderEngine.fillRect(overlayX, overlayY, overlayWidth, overlayHeight);
     renderEngine.strokeStyle = "#fff";
-    renderEngine.strokeRect(350, 120, 400, 400);
+    renderEngine.strokeRect(overlayX, overlayY, overlayWidth, overlayHeight);
     renderEngine.fillStyle = "#fff";
-    renderEngine.font = "22px Arial";
-    renderEngine.fillText("Audio Settings", 350, 160);
-    // Draw sliders (reuse your volumeSlidersGodFunction)
+    renderEngine.font = `${22 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+    renderEngine.fillText("Audio Settings", overlayX, overlayY + 40 * SCALE_Y);
     volumeSlidersGodFunction();
     setupAudioSliderHandlers();
-    // Draw a back button
+    // Draw back button
+    const backButtonX = 60 * SCALE_X;
+    const backButtonY = 470 * SCALE_Y;
+    const backButtonWidth = 100 * SCALE_X;
+    const backButtonHeight = 36 * SCALE_Y;
     renderEngine.fillStyle = showAudio ? "#555" : "#222";
-    renderEngine.fillRect(60, 470, 100, 36);
+    renderEngine.fillRect(backButtonX, backButtonY, backButtonWidth, backButtonHeight);
     renderEngine.strokeStyle = "#fff";
-    renderEngine.strokeRect(60, 470, 100, 36);
+    renderEngine.strokeRect(backButtonX, backButtonY, backButtonWidth, backButtonHeight);
     renderEngine.fillStyle = "#fff";
-    renderEngine.font = "18px Arial";
-    renderEngine.fillText("Back", 90, 495);
+    renderEngine.font = `${18 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+    renderEngine.fillText("Back", backButtonX + 30 * SCALE_X, backButtonY + 25 * SCALE_Y);
 }
 
 function handleSettingsMenuClick(e) {
@@ -94,10 +108,13 @@ function handleSettingsMenuClick(e) {
     const mouseX = (e.clientX - rect.left) * scaleX;
     const mouseY = (e.clientY - rect.top) * scaleY;
     if (showControls) {
-        // Only handle back button for controls, require click
+        const backButtonX = 60 * SCALE_X;
+        const backButtonY = 470 * SCALE_Y;
+        const backButtonWidth = 100 * SCALE_X;
+        const backButtonHeight = 36 * SCALE_Y;
         if (
-            mouseX >= 60 && mouseX <= 160 &&
-            mouseY >= 470 && mouseY <= 506 &&
+            mouseX >= backButtonX && mouseX <= backButtonX + backButtonWidth &&
+            mouseY >= backButtonY && mouseY <= backButtonY + backButtonHeight &&
             e.type === 'click'
         ) {
             showControls = false;
@@ -105,10 +122,13 @@ function handleSettingsMenuClick(e) {
         return;
     }
     if (showAudio) {
-        // Only handle back button for audio, require click
+        const backButtonX = 60 * SCALE_X;
+        const backButtonY = 470 * SCALE_Y;
+        const backButtonWidth = 100 * SCALE_X;
+        const backButtonHeight = 36 * SCALE_Y;
         if (
-            mouseX >= 60 && mouseX <= 160 &&
-            mouseY >= 470 && mouseY <= 506 &&
+            mouseX >= backButtonX && mouseX <= backButtonX + backButtonWidth &&
+            mouseY >= backButtonY && mouseY <= backButtonY + backButtonHeight &&
             e.type === 'click'
         ) {
             showAudio = false;
@@ -137,7 +157,6 @@ function handleSettingsMenuClick(e) {
     });
 }
 
-// Attach mouse handlers when menu is active
 function attachSettingsMenuHandlers() {
     const canvas = renderEngine.canvas;
     if (!canvas) return;
@@ -152,28 +171,20 @@ function detachSettingsMenuHandlers() {
     canvas.onclick = null;
 }
 
-// Cleaned up menu settings for clarity and maintainability
 function menuSettings() {
-    // Get current Escape key state
     const currentEscapeState = keys["escape"];
-
-    // Only toggle menu if Escape is pressed AND it wasn't pressed last frame (fresh press)
     if (!lastEscapeState && currentEscapeState) {
-        menuActive = !menuActive; // Toggle menu state
-        playerMovementDisabled = menuActive; // Update player movement
+        menuActive = !menuActive;
+        playerMovementDisabled = menuActive;
     }
-
-    // Update lastEscapeState for next frame
     lastEscapeState = currentEscapeState;
-
-    // Draw menu if active
     if (menuActive) {
         renderEngine.fillStyle = "rgba(0, 0, 0, 0.8)";
         renderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
         renderEngine.fillStyle = "white";
-        renderEngine.font = "20px Arial";
-        renderEngine.fillText("Settings Menu", 60, 80);
-        renderEngine.fillText("Press Escape to close", 60, 110);
+        renderEngine.font = `${20 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+        renderEngine.fillText("Settings Menu", 60 * SCALE_X, 80 * SCALE_Y);
+        renderEngine.fillText("Press Escape to close", 60 * SCALE_X, 110 * SCALE_Y);
         if (showControls) {
             drawControlsOverlay();
         } else if (showAudio) {
@@ -181,7 +192,6 @@ function menuSettings() {
         } else {
             drawSettingsButtons();
         }
-        // Only show sliders in the audio overlay
         attachSettingsMenuHandlers();
     } else {
         detachSettingsMenuHandlers();

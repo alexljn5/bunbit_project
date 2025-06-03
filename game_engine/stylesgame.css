@@ -109,9 +109,9 @@ body {
 }
 
 .gameButtons {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
+    position: absolute;
+    left: 30px;
+    top: 30px;
 }
 
 .game-container {
@@ -124,7 +124,8 @@ body {
 canvas#mainGameRender {
     border: 1px solid black;
     display: block;
-    /* Prevent flex issues */
+    transform: scale(2);
+    image-rendering: pixelated;
 }
 
 canvas#staminaBar,
@@ -154,4 +155,10 @@ button {
     display: flex;
     justify-content: center;
     margin-bottom: 20px;
+}
+
+.mainPageButton {
+    position: absolute;
+    top: 80px;
+    left: 30px;
 }

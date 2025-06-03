@@ -27,8 +27,8 @@ export function nineMMAmmoCollission() {
 
     const pickupDistance = 50;
 
-    if (distance <= pickupDistance && !playerInventory.includes("9mm_ammo_box")) {
-        playerInventory.push("9mm_ammo_box");
+    if (distance <= pickupDistance) {
+
         setGenericGunAmmo(genericGunAmmo + 5);
         spriteState.isNineMmAmmoCollected = true;
     }

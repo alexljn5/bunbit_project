@@ -7,6 +7,7 @@ import { playerInventory } from "../playerdata/playerinventory.js";
 import { basicPickUpMenuStyle } from "../menus/menuhandler.js";
 import { genericGunSprite } from "../rendersprites.js";
 import { isOccludedByWall } from "./aihandler.js";
+import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT } from "../globals.js";
 
 // Cleaned up friendly cat (boykisser) NPC AI logic for clarity and maintainability
 const npcTriggerRadius = 60;
@@ -116,17 +117,21 @@ function drawNpcDialogue() {
     renderEngine.save();
     renderEngine.globalAlpha = 0.85;
     renderEngine.fillStyle = "black";
-    renderEngine.fillRect(100, 600, 600, 150);
+    const boxX = 100 * SCALE_X;
+    const boxY = 600 * SCALE_Y;
+    const boxWidth = 600 * SCALE_X;
+    const boxHeight = 150 * SCALE_Y;
+    renderEngine.fillRect(boxX, boxY, boxWidth, boxHeight);
     renderEngine.globalAlpha = 1.0;
     renderEngine.fillStyle = "white";
-    renderEngine.font = "24px Arial";
+    renderEngine.font = `${24 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
     const line = getCurrentNpcDialogueLine();
     if (line) {
         // Word wrap: split long lines to fit inside the dialogue box
-        const maxWidth = 560; // width of the text area inside the box
-        const x = 120;
-        let y = 650;
-        const lineHeight = 32;
+        const maxWidth = 560 * SCALE_X; // Scaled text area width
+        const x = 120 * SCALE_X;
+        let y = 650 * SCALE_Y;
+        const lineHeight = 32 * SCALE_Y;
         const words = line.split(' ');
         let currentLine = '';
         for (let i = 0; i < words.length; i++) {
@@ -148,25 +153,23 @@ function drawNpcDialogue() {
 }
 
 function drawGunPickupBox() {
-    basicPickUpMenuStyle();
-    // Centered box: 400x200 at (200,200) on 800x800 canvas
-    // Place text and image neatly inside
+    basicPickUpMenuStyle(); // Already scaled in menuhandler.js
     renderEngine.save();
     renderEngine.globalAlpha = 1.0;
-    renderEngine.fillStyle = "white"; // White text like NPC dialogue
-    renderEngine.font = "24px Arial";
+    renderEngine.fillStyle = "white";
+    renderEngine.font = `${24 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
     const text = "You received a generic gun!";
-    // Center text horizontally in the box (box x=200, width=400)
+    // Center text horizontally in the box (box x=200*SCALE_X, width=400*SCALE_X)
     const textMetrics = renderEngine.measureText(text);
-    const textX = 200 + (400 - textMetrics.width) / 2;
-    const textY = 350; // nicely below the top of the box
+    const textX = (CANVAS_WIDTH - textMetrics.width) / 2; // Centered in scaled box
+    const textY = 350 * SCALE_Y;
     renderEngine.fillText(text, textX, textY);
     // Draw gun image centered below the text
-    const gunImg = genericGunSprite; // Use loaded sprite
-    const imgWidth = 96;
-    const imgHeight = 48;
-    const imgX = 200 + (400 - imgWidth) / 2;
-    const imgY = 370; // below the text, inside the box
+    const gunImg = genericGunSprite;
+    const imgWidth = 96 * SCALE_X;
+    const imgHeight = 48 * SCALE_Y;
+    const imgX = (CANVAS_WIDTH - imgWidth) / 2; // Centered in scaled box
+    const imgY = 370 * SCALE_Y;
     renderEngine.drawImage(gunImg, imgX, imgY, imgWidth, imgHeight);
     renderEngine.restore();
 }

@@ -1,7 +1,7 @@
 import { keys, playerMovement, playerPosition, playerVantagePointX, playerVantagePointY, getPlayerBobbingOffset } from "./playerdata/playerlogic.js";
 import { renderEngine } from "./renderengine.js";
 import { tileSectors } from "./mapdata/maps.js";
-import { CANVAS_HEIGHT, CANVAS_WIDTH } from "./globals.js";
+import { CANVAS_HEIGHT, CANVAS_WIDTH, REF_CANVAS_HEIGHT, REF_CANVAS_WIDTH, SCALE_X, SCALE_Y } from "./globals.js";
 import { castRays, numCastRays, playerFOV } from "./raycasting.js";
 import { playerInventory, selectedInventoryIndex } from "./playerdata/playerinventory.js"; // Add this import
 
@@ -17,7 +17,7 @@ playerHandSprite.onerror = () => {
     console.error("Failed to load playerhand_default.png at ./img/sprites/playerhand/playerhand_default.png");
 };
 
-export const pillar01Sprite = new Image(128, 128);
+export const pillar01Sprite = new Image();
 pillar01Sprite.src = "./img/sprites/decoration/pillar_01.png";
 export let pillar01Loaded = false;
 pillar01Sprite.onload = () => {
@@ -29,7 +29,7 @@ pillar01Sprite.onerror = () => {
 };
 export const pillar01SpriteWorldPos = { x: 2.5 * tileSectors, z: 6 * tileSectors }; // (150, 150)
 
-export const creamTestSprite = new Image(200, 50);
+export const creamTestSprite = new Image();
 creamTestSprite.src = "./img/sprites/creamtest.png";
 export let creamTestLoaded = false;
 creamTestSprite.onload = () => {
@@ -40,7 +40,7 @@ creamTestSprite.onerror = () => {
     console.error("Failed to load creamtest.png at ./img/sprites/creamtest.png");
 };
 
-export const firingSprite = new Image(32, 32);
+export const firingSprite = new Image();
 firingSprite.src = "./img/sprites/placeholder.png";
 export let firingLoaded = false;
 firingSprite.onload = () => {
@@ -69,7 +69,7 @@ for (let i = 0; i < creamSpinFrameCount; i++) {
     };
 }
 
-export const corpse1Sprite = new Image(128, 128);
+export const corpse1Sprite = new Image();
 corpse1Sprite.src = "./img/sprites/decoration/corpse_1.png";
 export let corpse1Loaded = false;
 corpse1Sprite.onload = () => {
@@ -81,7 +81,7 @@ corpse1Sprite.onerror = () => {
 };
 export const corpse1WorldPos = { x: 1 * tileSectors, z: 1.3 * tileSectors }; // (150, 150)
 //Items
-export const metalPipeSprite = new Image(128, 128);
+export const metalPipeSprite = new Image();
 metalPipeSprite.src = "./img/sprites/items/metal_pipe.png";
 export let metalPipeLoaded = false;
 metalPipeSprite.onload = () => {
@@ -94,7 +94,7 @@ export const spriteState = {
     isNineMmAmmoCollected: false
 };
 
-export const metalPipePlayerHandSprite = new Image(128, 128);
+export const metalPipePlayerHandSprite = new Image();
 metalPipePlayerHandSprite.src = "./img/sprites/playerhand/playerhand_metal_pipe.png";
 export let metalPipePlayerHandLoaded = false;
 metalPipePlayerHandSprite.onload = () => {
@@ -102,7 +102,7 @@ metalPipePlayerHandSprite.onload = () => {
     console.log("Metal pipe player hand sprite loaded");
 };
 
-export const genericGunSprite = new Image(128, 128);
+export const genericGunSprite = new Image();
 genericGunSprite.src = "./img/sprites/items/generic_gun.png";
 export let genericGunSpriteLoaded = false;
 genericGunSprite.onload = () => {
@@ -110,7 +110,7 @@ genericGunSprite.onload = () => {
     console.log("Generic gun sprite loaded");
 };
 
-export const genericGunPlayerHandSprite = new Image(128, 128);
+export const genericGunPlayerHandSprite = new Image();
 genericGunPlayerHandSprite.src = "./img/sprites/playerhand/playerhand_generic_gun.png";
 export let genericGunPlayerHandLoaded = false;
 genericGunPlayerHandSprite.onload = () => {
@@ -118,7 +118,7 @@ genericGunPlayerHandSprite.onload = () => {
     console.log("Generic gun player hand sprite loaded");
 }
 
-export const nineMMAmmoSprite = new Image(128, 128);
+export const nineMMAmmoSprite = new Image();
 nineMMAmmoSprite.src = "./img/sprites/items/9mm_ammo_box.png"
 export let nineMMAmmoSpriteLoaded = false;
 nineMMAmmoSprite.onload = () => {
@@ -128,7 +128,7 @@ nineMMAmmoSprite.onload = () => {
 export const nineMMAmmoSpriteWorldPos = { x: 3.4 * tileSectors, z: 1.2 * tileSectors };
 
 //End of Items
-export const boyKisserEnemySprite = new Image(128, 128);
+export const boyKisserEnemySprite = new Image();
 boyKisserEnemySprite.src = "./img/sprites/enemy/boykisser.png";
 //boyKisserEnemySprite.src = "./img/sprites/enemy/carenemytest.png";
 export let boyKisserEnemySpriteLoaded = false;
@@ -138,7 +138,7 @@ boyKisserEnemySprite.onload = () => {
 }
 export const boyKisserEnemySpriteWorldPos = { x: 3.4 * tileSectors, z: 1.2 * tileSectors };
 
-export const casperLesserDemonSprite = new Image(128, 128);
+export const casperLesserDemonSprite = new Image();
 casperLesserDemonSprite.src = "./img/sprites/enemy/casperdemon.png";
 export let casperLesserDemonSpriteLoaded = false;
 casperLesserDemonSprite.onload = () => {
@@ -153,7 +153,6 @@ else if (typeof globalThis !== 'undefined') globalThis.boyKisserEnemyHealth = bo
 
 
 export function playerHandSpriteFunction() {
-    // Determine which hand sprite to render based on selected inventory slot
     let handSprite = playerHandSprite;
     const selectedItem = playerInventory[selectedInventoryIndex];
     if (selectedItem === "metal_pipe" && metalPipePlayerHandLoaded) {
@@ -164,9 +163,13 @@ export function playerHandSpriteFunction() {
         console.warn("No player hand sprite loaded");
         return;
     }
-    // Bobbing effect
-    const bobbingY = 400 + getPlayerBobbingOffset();
-    renderEngine.drawImage(handSprite, 450, bobbingY, 256, 512);
+
+    const bobbingY = (400 / REF_CANVAS_HEIGHT) * CANVAS_HEIGHT + getPlayerBobbingOffset();
+    const spriteWidth = (256 / REF_CANVAS_WIDTH) * CANVAS_WIDTH;
+    const spriteHeight = (512 / REF_CANVAS_HEIGHT) * CANVAS_HEIGHT;
+    const spriteX = (450 / REF_CANVAS_WIDTH) * CANVAS_WIDTH;
+
+    renderEngine.drawImage(handSprite, spriteX, bobbingY, spriteWidth, spriteHeight);
 }
 
 export function drawSprites(rayData) {
@@ -190,38 +193,32 @@ function animatedSpriteRenderer(rayData) {
 }
 
 function nineMMAmmoSpriteFunction(rayData) {
-    if (!nineMMAmmoSpriteLoaded) return;
-    // Sprite world position relative to player
+    if (!nineMMAmmoSpriteLoaded || spriteState.isNineMmAmmoCollected) return;
+
     const dx = nineMMAmmoSpriteWorldPos.x - playerPosition.x;
     const dz = nineMMAmmoSpriteWorldPos.z - playerPosition.z;
     const distance = Math.sqrt(dx * dx + dz * dz);
     const relativeAngle = Math.atan2(dz, dx) - playerPosition.angle;
     const correctedDistance = distance * Math.cos(relativeAngle);
-    if (correctedDistance < 0.1) return; // Avoid division by zero or too-close sprites
+    if (correctedDistance < 0.1) return;
 
-    // Calculate sprite size (same as before)
-    const spriteHeight = (CANVAS_HEIGHT / correctedDistance) * tileSectors / 2;
-    const spriteWidth = spriteHeight; // Maintain aspect ratio
+    const spriteHeight = (CANVAS_HEIGHT / correctedDistance) * tileSectors * 0.5;
+    const spriteWidth = spriteHeight; // Square sprite
 
-    // Get screen X position and column range
     const { adjustedScreenX, startColumn, endColumn } = getSpriteScreenParams(relativeAngle, spriteWidth);
     if (!isSpriteVisible(rayData, startColumn, endColumn, correctedDistance)) return;
     if (adjustedScreenX + spriteWidth / 2 < 0 || adjustedScreenX - spriteWidth / 2 > CANVAS_WIDTH) return;
 
-    // Calculate floor Y-position using floor projection (same as renderRaycastFloors)
     const projectionPlaneDist = (CANVAS_WIDTH * 0.5) / Math.tan(playerFOV * 0.5);
     const halfCanvasHeight = CANVAS_HEIGHT * 0.5;
     const halfTile = tileSectors * 0.5;
-
-    // Assume sprite is at floor level (z = 0), so rowDistance matches floor at sprite's distance
-    const rowDistance = correctedDistance; // Sprite is at floor level
+    const rowDistance = correctedDistance;
     const spriteYBottom = halfCanvasHeight + (halfTile / rowDistance) * projectionPlaneDist;
 
-    // Draw sprite with bottom aligned to floor
     renderEngine.drawImage(
         nineMMAmmoSprite,
         adjustedScreenX - spriteWidth / 2,
-        spriteYBottom - spriteHeight - playerVantagePointY.playerVantagePointY, // Align bottom to floor
+        spriteYBottom - spriteHeight - playerVantagePointY.playerVantagePointY,
         spriteWidth,
         spriteHeight
     );
@@ -254,55 +251,32 @@ function creamSpinTestSprite(rayData) {
         return;
     }
 
-    // Calculate distance from player to sprite
     const dx = creamSpinWorldPos.x - playerPosition.x;
     const dz = creamSpinWorldPos.z - playerPosition.z;
     const distance = Math.sqrt(dx * dx + dz * dz);
-
-    // Apply perspective correction (same as walls)
     const relativeAngle = Math.atan2(dz, dx) - playerPosition.angle;
     const correctedDistance = distance * Math.cos(relativeAngle);
-    if (correctedDistance < 0.1) {
-        return;
-    }
+    if (correctedDistance < 0.1) return;
 
-    // Calculate sprite size based on distance, matching wall scaling
+    // Scale sprite size
     const spriteHeight = (CANVAS_HEIGHT / correctedDistance) * tileSectors;
-    const spriteWidth = spriteHeight * (150 / 250); // 150x250 for creamSpin
-    const spriteY = (CANVAS_HEIGHT - spriteHeight) / 2; // Center vertically
+    const aspectRatio = 150 / 250; // Original sprite dimensions
+    const spriteWidth = spriteHeight * aspectRatio;
+    const spriteY = CANVAS_HEIGHT * 0.5 - spriteHeight / 2; // Center vertically
 
-    // Calculate screen X position
-    const screenX = (CANVAS_WIDTH / 2) + (CANVAS_WIDTH / 2) * (relativeAngle / (playerFOV / 2));
+    const { adjustedScreenX, startColumn, endColumn } = getSpriteScreenParams(relativeAngle, spriteWidth);
+    if (!isSpriteVisible(rayData, startColumn, endColumn, correctedDistance)) return;
+    if (adjustedScreenX + spriteWidth / 2 < 0 || adjustedScreenX - spriteWidth / 2 > CANVAS_WIDTH) return;
 
-    // Apply vantage point offset
-    const adjustedScreenX = screenX - playerVantagePointX.playerVantagePointX;
-
-    // Determine the screen columns the sprite spans
-    const startColumn = Math.max(0, Math.floor((adjustedScreenX - spriteWidth / 2) / (CANVAS_WIDTH / numCastRays)));
-    const endColumn = Math.min(numCastRays - 1, Math.ceil((adjustedScreenX + spriteWidth / 2) / (CANVAS_WIDTH / numCastRays)));
-
-    // Check if sprite is visible (not occluded by walls)
-    let isVisible = false;
-    for (let col = startColumn; col <= endColumn; col++) {
-        const ray = rayData[col];
-        if (!ray || correctedDistance < ray.distance) {
-            isVisible = true;
-            break;
-        }
-    }
-    // Only draw if sprite is on screen and not occluded
-    if (isVisible && adjustedScreenX + spriteWidth / 2 >= 0 && adjustedScreenX - spriteWidth / 2 <= CANVAS_WIDTH) {
-        const currentFrame = getCreamSpinCurrentFrame();
-        if (currentFrame) {
-            renderEngine.drawImage(
-                currentFrame,
-                adjustedScreenX - spriteWidth / 2,
-                spriteY - playerVantagePointY.playerVantagePointY,
-                spriteWidth,
-                spriteHeight
-            );
-        }
-    } else {
+    const currentFrame = getCreamSpinCurrentFrame();
+    if (currentFrame) {
+        renderEngine.drawImage(
+            currentFrame,
+            adjustedScreenX - spriteWidth / 2,
+            spriteY - playerVantagePointY.playerVantagePointY,
+            spriteWidth,
+            spriteHeight
+        );
     }
 }
 
@@ -332,70 +306,53 @@ function getSpriteScreenParams(relativeAngle, spriteWidth) {
 }
 
 function pillar01SpriteFunction(rayData) {
-    if (!pillar01Loaded) return;
-    const dx = pillar01SpriteWorldPos.x - playerPosition.x;
-    const dz = pillar01SpriteWorldPos.z - playerPosition.z;
-    const distance = Math.sqrt(dx * dx + dz * dz);
-    const relativeAngle = Math.atan2(dz, dx) - playerPosition.angle;
-    const correctedDistance = distance * Math.cos(relativeAngle);
-    if (correctedDistance < 0.1) return;
-    const spriteHeight = (CANVAS_HEIGHT / correctedDistance) * tileSectors / 2;
-    const spriteWidth = spriteHeight;
-    const spriteY = 400;
-    const { adjustedScreenX, startColumn, endColumn } = getSpriteScreenParams(relativeAngle, spriteWidth);
-    if (isSpriteVisible(rayData, startColumn, endColumn, correctedDistance) && adjustedScreenX + spriteWidth / 2 >= 0 && adjustedScreenX - spriteWidth / 2 <= CANVAS_WIDTH) {
-        renderEngine.drawImage(
-            pillar01Sprite,
-            adjustedScreenX - spriteWidth / 2,
-            spriteY - playerVantagePointY.playerVantagePointY,
-            spriteWidth,
-            spriteHeight
-        );
-    }
+    renderSprite({
+        sprite: pillar01Sprite,
+        isLoaded: pillar01Loaded,
+        worldPos: pillar01SpriteWorldPos,
+        rayData,
+        baseWidthRatio: 128 / REF_CANVAS_WIDTH, // 128/800
+        baseHeightRatio: 128 / REF_CANVAS_HEIGHT, // 128/800
+        aspectRatio: 1, // Square sprite
+        baseYRatio: 400 / REF_CANVAS_HEIGHT, // 400/800
+        scaleFactor: 0.5 // Matches tileSectors / 2
+    });
 }
 
 function boyKisserEnemySpriteFunction(rayData) {
-    if (!boyKisserEnemySpriteLoaded) return;
-    const dx = boyKisserEnemySpriteWorldPos.x - playerPosition.x;
-    const dz = boyKisserEnemySpriteWorldPos.z - playerPosition.z;
-    const distance = Math.sqrt(dx * dx + dz * dz);
-    const relativeAngle = Math.atan2(dz, dx) - playerPosition.angle;
-    const correctedDistance = distance * Math.cos(relativeAngle);
-    if (correctedDistance < 0.1) return;
-    const spriteHeight = (CANVAS_HEIGHT / correctedDistance) * tileSectors / 2;
-    const spriteWidth = spriteHeight * (128 / 80);
-    const spriteY = 400;
-    const { adjustedScreenX, startColumn, endColumn } = getSpriteScreenParams(relativeAngle, spriteWidth);
-    // Sync global health value for rendering
-    if (typeof window !== 'undefined' && typeof window.boyKisserEnemyHealth === 'number') {
-        boyKisserEnemyHealth = window.boyKisserEnemyHealth;
-    } else if (typeof globalThis !== 'undefined' && typeof globalThis.boyKisserEnemyHealth === 'number') {
-        boyKisserEnemyHealth = globalThis.boyKisserEnemyHealth;
-    }
-    if (isSpriteVisible(rayData, startColumn, endColumn, correctedDistance) && adjustedScreenX + spriteWidth / 2 >= 0 && adjustedScreenX - spriteWidth / 2 <= CANVAS_WIDTH) {
-        renderEngine.drawImage(
-            boyKisserEnemySprite,
-            adjustedScreenX - spriteWidth / 2,
-            spriteY - playerVantagePointY.playerVantagePointY,
-            spriteWidth,
-            spriteHeight
-        );
-        // Draw a simple health bar above the sprite
-        const barWidth = 60;
-        const barHeight = 8;
+    const result = renderSprite({
+        sprite: boyKisserEnemySprite,
+        isLoaded: boyKisserEnemySpriteLoaded,
+        worldPos: boyKisserEnemySpriteWorldPos,
+        rayData,
+        baseWidthRatio: 128 / REF_CANVAS_WIDTH,
+        baseHeightRatio: 80 / REF_CANVAS_HEIGHT,
+        aspectRatio: 128 / 80,
+        baseYRatio: 400 / REF_CANVAS_HEIGHT,
+        scaleFactor: 0.5
+    });
+
+    if (result) {
+        // Sync global health value
+        if (typeof window !== 'undefined' && typeof window.boyKisserEnemyHealth === 'number') {
+            boyKisserEnemyHealth = window.boyKisserEnemyHealth;
+        } else if (typeof globalThis !== 'undefined' && typeof globalThis.boyKisserEnemyHealth === 'number') {
+            boyKisserEnemyHealth = globalThis.boyKisserEnemyHealth;
+        }
+
+        // Draw health bar
+        const barWidth = 60 * SCALE_X;
+        const barHeight = 8 * SCALE_Y;
         const maxHealth = 5;
         const healthPercent = Math.max(0, Math.min(1, boyKisserEnemyHealth / maxHealth));
-        const barX = adjustedScreenX - barWidth / 2;
-        const barY = spriteY - playerVantagePointY.playerVantagePointY - barHeight - 10;
-        // Background
+        const barX = result.adjustedScreenX - barWidth / 2;
+        const barY = result.spriteY - playerVantagePointY.playerVantagePointY - barHeight - 10 * SCALE_Y;
         renderEngine.fillStyle = '#222';
         renderEngine.fillRect(barX, barY, barWidth, barHeight);
-        // Health
         renderEngine.fillStyle = '#FFD700';
         renderEngine.fillRect(barX, barY, barWidth * healthPercent, barHeight);
-        // Border
         renderEngine.strokeStyle = '#000';
-        renderEngine.lineWidth = 2;
+        renderEngine.lineWidth = 2 * Math.min(SCALE_X, SCALE_Y);
         renderEngine.strokeRect(barX, barY, barWidth, barHeight);
     }
 }
@@ -469,4 +426,46 @@ function metalPipeSpriteFunction(rayData) {
     }
 }
 
-// Cleaned up render sprites for clarity and maintainability
+function renderSprite({
+    sprite,
+    isLoaded,
+    worldPos,
+    rayData,
+    baseWidthRatio = 0.25, // Base width as a fraction of canvas width (e.g., 200/800)
+    baseHeightRatio = 0.25, // Base height as a fraction of canvas height
+    aspectRatio = 1, // Sprite width/height ratio (e.g., 128/80 for some sprites)
+    baseYRatio = 0.5, // Base Y position as a fraction of canvas height (e.g., 400/800)
+    scaleFactor = 0.5 // Scaling factor for perspective (e.g., tileSectors / 2)
+}) {
+    if (!isLoaded || !sprite) return;
+
+    const dx = worldPos.x - playerPosition.x;
+    const dz = worldPos.z - playerPosition.z;
+    const distance = Math.sqrt(dx * dx + dz * dz);
+    const relativeAngle = Math.atan2(dz, dx) - playerPosition.angle;
+    const correctedDistance = distance * Math.cos(relativeAngle);
+    if (correctedDistance < 0.1) return;
+
+    // Calculate sprite size based on distance and canvas size
+    const spriteHeight = (CANVAS_HEIGHT / correctedDistance) * tileSectors * scaleFactor;
+    const spriteWidth = spriteHeight * aspectRatio;
+
+    // Scale base Y position
+    const spriteY = CANVAS_HEIGHT * baseYRatio;
+
+    // Calculate screen position
+    const { adjustedScreenX, startColumn, endColumn } = getSpriteScreenParams(relativeAngle, spriteWidth);
+    if (!isSpriteVisible(rayData, startColumn, endColumn, correctedDistance)) return;
+    if (adjustedScreenX + spriteWidth / 2 < 0 || adjustedScreenX - spriteWidth / 2 > CANVAS_WIDTH) return;
+
+    // Draw sprite
+    renderEngine.drawImage(
+        sprite,
+        adjustedScreenX - spriteWidth / 2,
+        spriteY - playerVantagePointY.playerVantagePointY,
+        spriteWidth,
+        spriteHeight
+    );
+
+    return { adjustedScreenX, spriteWidth, spriteY, spriteHeight }; // Return for additional rendering (e.g., health bars)
+}

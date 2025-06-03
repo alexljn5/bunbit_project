@@ -2,10 +2,11 @@ import { renderEngine } from "../renderengine.js";
 import { metalPipeSprite, genericGunSprite } from "../rendersprites.js";
 import { compiledTextStyle } from "../debugtools.js";
 import { keys } from "./playerlogic.js";
+import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT } from "../globals.js";
 
 export let playerInventory = [];
 export let showInventorySprite = false;
-export let selectedInventoryIndex = 0; // Track selected slot
+export let selectedInventoryIndex = 0;
 
 export function playerInventoryGodFunction() {
     inventoryUIShit();
@@ -18,53 +19,44 @@ function inventoryUIShit() {
         renderEngine.save();
         renderEngine.globalAlpha = 0.588;
         renderEngine.fillStyle = "#222";
-        renderEngine.fillRect(0, 0, 800, 100);
+        renderEngine.fillRect(0, 0, CANVAS_WIDTH, 100 * SCALE_Y);
         renderEngine.globalAlpha = 1.0;
-        // Render up to 9 items in the order they appear in playerInventory
         const spriteMap = {
             "metal_pipe": metalPipeSprite,
             "generic_gun": genericGunSprite
         };
-        let x = 10;
+        let x = 10 * SCALE_X;
         const maxSlots = 9;
+        const slotSize = 64 * SCALE_X;
+        const slotSpacing = 10 * SCALE_X;
         for (let i = 0; i < maxSlots; i++) {
             const itemKey = playerInventory[i];
             const sprite = spriteMap[itemKey];
-            // Highlight selected slot
             if (i === selectedInventoryIndex) {
                 renderEngine.strokeStyle = '#FFD700';
-                renderEngine.lineWidth = 4;
-                renderEngine.strokeRect(x - 2, 8, 68, 68);
+                renderEngine.lineWidth = 4 * Math.min(SCALE_X, SCALE_Y);
+                renderEngine.strokeRect(x - 2 * SCALE_X, 8 * SCALE_Y, 68 * SCALE_X, 68 * SCALE_Y);
             }
             if (sprite) {
-                renderEngine.drawImage(sprite, x, 10, 64, 64);
+                renderEngine.drawImage(sprite, x, 10 * SCALE_Y, slotSize, slotSize);
                 renderEngine.fillStyle = "#fff";
-            } else {
-                // Optionally, draw an empty slot or leave blank
-                // renderEngine.strokeStyle = '#555';
-                // renderEngine.strokeRect(x, 10, 64, 64);
             }
-            x += 64 + 10; // next slot
+            x += slotSize + slotSpacing;
         }
         renderEngine.restore();
     }
 }
 
 function keyHandlingOfInventory() {
-    // Toggle inventory UI
     if (keys["i"]) {
         showInventorySprite = !showInventorySprite;
         keys["i"] = false;
     }
-    // Handle keybinds 1-9 for inventory slots
     for (let i = 1; i <= 9; i++) {
         const key = String(i);
         if (keys[key]) {
-            selectedInventoryIndex = i - 1; // Select slot
-            keys[key] = false; // Prevent repeat
+            selectedInventoryIndex = i - 1;
+            keys[key] = false;
         }
     }
 }
-
-// Cleaned up player inventory for clarity and maintainability
-

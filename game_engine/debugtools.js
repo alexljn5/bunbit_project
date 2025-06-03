@@ -9,8 +9,7 @@ import {
     boyKisserEnemySprite, boyKisserEnemySpriteLoaded, boyKisserEnemySpriteWorldPos,
     casperLesserDemonSprite, casperLesserDemonSpriteLoaded, casperLesserDemonSpriteWorldPos
 } from "./rendersprites.js";
-import { keys } from "./playerdata/playerlogic.js";
-import { CANVAS_WIDTH, CANVAS_HEIGHT } from "./globals.js";
+import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT } from "./globals.js";
 
 export function compiledDevTools() {
     fpsMeter();
@@ -20,26 +19,23 @@ export function compiledDevTools() {
 }
 
 export function compiledTextStyle() {
-    let defaultFont = "30px Arial";
     renderEngine.fillStyle = "yellow";
-    renderEngine.font = defaultFont;
+    renderEngine.font = `${30 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
 }
 
 function versionTextDisplay() {
     compiledTextStyle();
-    renderEngine.fillText("IDLE 2.5D TEST: Alpha 0.0.3", 0, 30);
+    renderEngine.fillText("IDLE 2.5D TEST: Alpha 0.0.3", 0, 30 * SCALE_Y);
 }
 
 function fpsMeter() {
     if (!fpsMeter.lastTime) fpsMeter.lastTime = performance.now();
-
     const currentTime = performance.now();
     const deltaTime = (currentTime - fpsMeter.lastTime) / 1000;
     fpsMeter.lastTime = currentTime;
-
     const fps = Math.round(1 / deltaTime);
     compiledTextStyle();
-    renderEngine.fillText(`FPS: ${fps}`, 0, 60);
+    renderEngine.fillText(`FPS: ${fps}`, 0, 60 * SCALE_Y);
 }
 fpsMeter.lastTime = null;
 
@@ -47,11 +43,11 @@ function playerCoordinates() {
     let playerXCoords = Math.round(playerPosition.x + playerMovement.x);
     let playerZCoords = Math.round(playerPosition.z + playerMovement.z);
     compiledTextStyle();
-    renderEngine.fillText(`X: ${playerXCoords}, Z: ${playerZCoords}`, 0, 90);
+    renderEngine.fillText(`X: ${playerXCoords}, Z: ${playerZCoords}`, 0, 90 * SCALE_Y);
 }
 
-const minimapWidth = 200; // Fixed size for minimap
-const minimapHeight = 200;
+const minimapWidth = 200 * SCALE_X;
+const minimapHeight = 200 * SCALE_Y;
 const minimapScale = Math.min(
     minimapWidth / (mapWidth * tileSectors),
     minimapHeight / (mapHeight * tileSectors)
@@ -59,22 +55,17 @@ const minimapScale = Math.min(
 const minimapTileSize = tileSectors * minimapScale;
 
 export function drawMinimap() {
-    const minimapX = CANVAS_WIDTH - minimapWidth - 20; // Top-right, 20px from edge
-    const minimapY = 20; // 20px from top
-    // Save the current canvas state
+    const minimapX = CANVAS_WIDTH - minimapWidth - 20 * SCALE_X;
+    const minimapY = 20 * SCALE_Y;
     renderEngine.save();
-    // Translate to minimap position
     renderEngine.translate(minimapX, minimapY);
-    // Clear the minimap area (optional, since drawBackground clears the canvas)
     renderEngine.fillStyle = "black";
     renderEngine.fillRect(0, 0, minimapWidth, minimapHeight);
-    // Draw map tiles
     for (let y = 0; y < mapHeight; y++) {
         for (let x = 0; x < mapWidth; x++) {
             const tile = map_01[y][x];
             const pixelX = x * minimapTileSize;
             const pixelY = y * minimapTileSize;
-
             if (tile.type === "wall" && tileTexturesMap.has(tile.textureId)) {
                 const texture = tileTexturesMap.get(tile.textureId);
                 renderEngine.drawImage(
@@ -88,34 +79,25 @@ export function drawMinimap() {
             }
         }
     }
-
-    // Draw borders around empty tiles adjacent to wall tiles
     for (let y = 0; y < mapHeight; y++) {
         for (let x = 0; x < mapWidth; x++) {
             const tile = map_01[y][x];
             if (tile.type !== "empty") continue;
-
-            // Check neighbors (up, down, left, right)
             let hasWallNeighbor = false;
             if (y > 0 && map_01[y - 1][x].type === "wall") hasWallNeighbor = true;
             if (y < mapHeight - 1 && map_01[y + 1][x].type === "wall") hasWallNeighbor = true;
             if (x > 0 && map_01[y][x - 1].type === "wall") hasWallNeighbor = true;
             if (x < mapWidth - 1 && map_01[y][x + 1].type === "wall") hasWallNeighbor = true;
-
             const pixelX = x * minimapTileSize;
             const pixelY = y * minimapTileSize;
-            // Always draw the border for empty tiles, but use the same gray as wall fill if not adjacent to a wall
             renderEngine.strokeStyle = hasWallNeighbor ? "white" : "#777777";
-            renderEngine.lineWidth = 1;
+            renderEngine.lineWidth = 1 * Math.min(SCALE_X, SCALE_Y);
             renderEngine.strokeRect(pixelX, pixelY, minimapTileSize, minimapTileSize);
         }
     }
-
-    // Draw player as a red square
     const playerPixelX = playerPosition.x * minimapScale;
     const playerPixelY = playerPosition.z * minimapScale;
-    const playerSize = 5;
-
+    const playerSize = 5 * Math.min(SCALE_X, SCALE_Y);
     renderEngine.fillStyle = "red";
     renderEngine.fillRect(
         playerPixelX - playerSize / 2,
@@ -123,13 +105,10 @@ export function drawMinimap() {
         playerSize,
         playerSize
     );
-
-    // Draw creamTestSprite
     if (creamTestLoaded) {
         const spritePixelX = creamTestWorldPos.x * minimapScale;
         const spritePixelY = creamTestWorldPos.z * minimapScale;
         const spriteSize = minimapTileSize * 0.5;
-
         renderEngine.drawImage(
             creamTestSprite,
             0, 0, creamTestSprite.width, creamTestSprite.height,
@@ -139,15 +118,12 @@ export function drawMinimap() {
             spriteSize
         );
     }
-
-    // Draw creamSpinFrames
     if (creamSpinLoaded) {
         const currentFrame = getCreamSpinCurrentFrame();
         if (currentFrame) {
             const spritePixelX = creamSpinWorldPos.x * minimapScale;
             const spritePixelY = creamSpinWorldPos.z * minimapScale;
             const spriteSize = minimapTileSize * 0.5;
-
             renderEngine.drawImage(
                 currentFrame,
                 0, 0, currentFrame.width, currentFrame.height,
@@ -158,13 +134,10 @@ export function drawMinimap() {
             );
         }
     }
-
-    // Draw BoyKisser enemy
     if (boyKisserEnemySpriteLoaded) {
         const spritePixelX = boyKisserEnemySpriteWorldPos.x * minimapScale;
         const spritePixelY = boyKisserEnemySpriteWorldPos.z * minimapScale;
         const spriteSize = minimapTileSize * 0.5;
-
         renderEngine.drawImage(
             boyKisserEnemySprite,
             0, 0, boyKisserEnemySprite.width, boyKisserEnemySprite.height,
@@ -174,13 +147,10 @@ export function drawMinimap() {
             spriteSize
         );
     }
-
-    // Draw Casper Lesser Demon enemy
     if (casperLesserDemonSpriteLoaded) {
         const spritePixelX = casperLesserDemonSpriteWorldPos.x * minimapScale;
         const spritePixelY = casperLesserDemonSpriteWorldPos.z * minimapScale;
         const spriteSize = minimapTileSize * 0.5;
-
         renderEngine.drawImage(
             casperLesserDemonSprite,
             0, 0, casperLesserDemonSprite.width, casperLesserDemonSprite.height,
@@ -190,12 +160,8 @@ export function drawMinimap() {
             spriteSize
         );
     }
-
-    // Draw minimap border
     renderEngine.strokeStyle = "white";
-    renderEngine.lineWidth = 2;
+    renderEngine.lineWidth = 2 * Math.min(SCALE_X, SCALE_Y);
     renderEngine.strokeRect(0, 0, minimapWidth, minimapHeight);
-
-    // Restore the canvas state
     renderEngine.restore();
 }

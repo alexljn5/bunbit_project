@@ -1,10 +1,11 @@
 import { renderEngine, mainGameRender, initializeRenderWorkers } from "../renderengine.js";
 import { compiledTextStyle } from "../debugtools.js";
 import { setMenuActive } from "../gamestate.js";
-import { CANVAS_HEIGHT, CANVAS_WIDTH } from "../globals.js";
+import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT } from "../globals.js";
+
 let buttons = [
-    { name: "Play", x: CANVAS_WIDTH / 2 - 50, y: CANVAS_HEIGHT / 2 - 200, width: 100, height: 40, hovered: false },
-    { name: "Maps", x: CANVAS_WIDTH / 2 - 50, y: CANVAS_HEIGHT / 2 - 80, width: 100, height: 40, hovered: false }
+    { name: "Play", x: (CANVAS_WIDTH / 2 - 50 * SCALE_X), y: (CANVAS_HEIGHT / 2 - 200 * SCALE_Y), width: 100 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
+    { name: "Maps", x: (CANVAS_WIDTH / 2 - 50 * SCALE_X), y: (CANVAS_HEIGHT / 2 - 80 * SCALE_Y), width: 100 * SCALE_X, height: 40 * SCALE_Y, hovered: false }
 ];
 
 export function mainGameMenu() {
@@ -34,8 +35,8 @@ function menuBackGround() {
 function menuSimpleText() {
     compiledTextStyle();
     renderEngine.fillStyle = "#fff";
-    renderEngine.fillText("Idle Test 2.5D", CANVAS_WIDTH - 500, 100);
-    renderEngine.fillText("Version Alpha 0.0.3", CANVAS_WIDTH - 530, 150);
+    renderEngine.fillText("Idle Test 2.5D", CANVAS_WIDTH - 500 * SCALE_X, 100 * SCALE_Y);
+    renderEngine.fillText("Version Alpha 0.0.3", CANVAS_WIDTH - 530 * SCALE_X, 150 * SCALE_Y);
 }
 
 function menuButtons() {
@@ -46,7 +47,8 @@ function menuButtons() {
         renderEngine.strokeRect(button.x, button.y, button.width, button.height);
         renderEngine.fillStyle = "#fff";
         compiledTextStyle();
-        renderEngine.fillText(button.name, button.x + 20, button.y + 25);
+        renderEngine.font = `${18 * Math.min(SCALE_X, SCALE_Y)}px Arial`; // Override compiledTextStyle font size
+        renderEngine.fillText(button.name, button.x + 20 * SCALE_X, button.y + 25 * SCALE_Y);
     });
 }
 
@@ -86,7 +88,8 @@ export function setupMenuClickHandler() {
                     renderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
                     renderEngine.fillStyle = "#fff";
                     compiledTextStyle();
-                    renderEngine.fillText("Maps Screen (Coming Soon!)", CANVAS_WIDTH / 2 - 100, CANVAS_HEIGHT / 2);
+                    renderEngine.font = `${18 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+                    renderEngine.fillText("Maps Screen (Coming Soon!)", CANVAS_WIDTH / 2 - 100 * SCALE_X, CANVAS_HEIGHT / 2);
                 }
             }
         });
