@@ -4,7 +4,7 @@ import { textureIdMap, floorTextureIdMap } from "./mapdata/maptextures.js";
 import { CANVAS_WIDTH } from "./globals.js";
 
 export let playerFOV = Math.PI / 6; // 60 degrees
-export let numCastRays = 300; // Reduced for performance
+export let numCastRays = 400; // Reduced for performance
 export let maxRayDepth = 11;
 
 // --- OPTIMIZED RAYCASTING WORKER MANAGEMENT ---
@@ -63,20 +63,6 @@ async function initializeWorkers() {
     const success = await initPromise;
     workersInitialized = success;
     return workersInitialized;
-}
-
-function Q_rsqrt(number) {
-    const threehalfs = 1.5;
-    const x2 = number * 0.5;
-    let y = number;
-    const buf = new ArrayBuffer(4);
-    const f = new Float32Array(buf);
-    const i = new Uint32Array(buf);
-    f[0] = y;
-    i[0] = 0x5f3759df - (i[0] >> 1);
-    y = f[0];
-    y = y * (threehalfs - (x2 * y * y));
-    return y;
 }
 
 export async function castRays() {
