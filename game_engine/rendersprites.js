@@ -3,7 +3,7 @@ import { renderEngine } from "./renderengine.js";
 import { tileSectors } from "./mapdata/maps.js";
 import { CANVAS_HEIGHT, CANVAS_WIDTH, REF_CANVAS_HEIGHT, REF_CANVAS_WIDTH, SCALE_X, SCALE_Y } from "./globals.js";
 import { castRays, numCastRays, playerFOV } from "./raycasting.js";
-import { playerInventory, selectedInventoryIndex } from "./playerdata/playerinventory.js"; // Add this import
+import { playerInventory, selectedInventoryIndex } from "./playerdata/playerinventory.js";
 
 // Preload Sprites
 export const playerHandSprite = new Image(100, 100);
@@ -80,7 +80,8 @@ corpse1Sprite.onerror = () => {
     console.error("Failed to load corpse_1.png at ./img/sprites/decoration/corpse_1.png");
 };
 export const corpse1WorldPos = { x: 1 * tileSectors, z: 1.3 * tileSectors }; // (150, 150)
-//Items
+
+// Items
 export const metalPipeSprite = new Image();
 metalPipeSprite.src = "./img/sprites/items/metal_pipe.png";
 export let metalPipeLoaded = false;
@@ -116,26 +117,25 @@ export let genericGunPlayerHandLoaded = false;
 genericGunPlayerHandSprite.onload = () => {
     genericGunPlayerHandLoaded = true;
     console.log("Generic gun player hand sprite loaded");
-}
+};
 
 export const nineMMAmmoSprite = new Image();
-nineMMAmmoSprite.src = "./img/sprites/items/9mm_ammo_box.png"
+nineMMAmmoSprite.src = "./img/sprites/items/9mm_ammo_box.png";
 export let nineMMAmmoSpriteLoaded = false;
 nineMMAmmoSprite.onload = () => {
     nineMMAmmoSpriteLoaded = true;
     console.log("Generic nine MM ammo loaded");
-}
+};
 export const nineMMAmmoSpriteWorldPos = { x: 3.4 * tileSectors, z: 1.2 * tileSectors };
 
-//End of Items
+// End of Items
 export const boyKisserEnemySprite = new Image();
 boyKisserEnemySprite.src = "./img/sprites/enemy/boykisser.png";
-//boyKisserEnemySprite.src = "./img/sprites/enemy/carenemytest.png";
 export let boyKisserEnemySpriteLoaded = false;
 boyKisserEnemySprite.onload = () => {
     boyKisserEnemySpriteLoaded = true;
     console.log("Boy kisser loaded!");
-}
+};
 export const boyKisserEnemySpriteWorldPos = { x: 3.4 * tileSectors, z: 1.2 * tileSectors };
 
 export const casperLesserDemonSprite = new Image();
@@ -144,13 +144,12 @@ export let casperLesserDemonSpriteLoaded = false;
 casperLesserDemonSprite.onload = () => {
     casperLesserDemonSpriteLoaded = true;
     console.log("Casper loaded!");
-}
+};
 export const casperLesserDemonSpriteWorldPos = { x: 5.5 * tileSectors, z: 11.3 * tileSectors };
 
 export let boyKisserEnemyHealth = 5; // Example: 5 health points
 if (typeof window !== 'undefined') window.boyKisserEnemyHealth = boyKisserEnemyHealth;
 else if (typeof globalThis !== 'undefined') globalThis.boyKisserEnemyHealth = boyKisserEnemyHealth;
-
 
 export function playerHandSpriteFunction() {
     let handSprite = playerHandSprite;
@@ -164,10 +163,10 @@ export function playerHandSpriteFunction() {
         return;
     }
 
-    const bobbingY = (400 / REF_CANVAS_HEIGHT) * CANVAS_HEIGHT + getPlayerBobbingOffset();
-    const spriteWidth = (256 / REF_CANVAS_WIDTH) * CANVAS_WIDTH;
-    const spriteHeight = (512 / REF_CANVAS_HEIGHT) * CANVAS_HEIGHT;
-    const spriteX = (450 / REF_CANVAS_WIDTH) * CANVAS_WIDTH;
+    const bobbingY = (400 * SCALE_Y) + getPlayerBobbingOffset();
+    const spriteWidth = 256 * SCALE_X;
+    const spriteHeight = 512 * SCALE_Y;
+    const spriteX = 450 * SCALE_X;
 
     renderEngine.drawImage(handSprite, spriteX, bobbingY, spriteWidth, spriteHeight);
 }
@@ -311,11 +310,11 @@ function pillar01SpriteFunction(rayData) {
         isLoaded: pillar01Loaded,
         worldPos: pillar01SpriteWorldPos,
         rayData,
-        baseWidthRatio: 128 / REF_CANVAS_WIDTH, // 128/800
-        baseHeightRatio: 128 / REF_CANVAS_HEIGHT, // 128/800
-        aspectRatio: 1, // Square sprite
-        baseYRatio: 400 / REF_CANVAS_HEIGHT, // 400/800
-        scaleFactor: 0.5 // Matches tileSectors / 2
+        baseWidthRatio: 128 / REF_CANVAS_WIDTH,
+        baseHeightRatio: 128 / REF_CANVAS_HEIGHT,
+        aspectRatio: 1,
+        baseYRatio: 400 / REF_CANVAS_HEIGHT,
+        scaleFactor: 0.5
     });
 }
 
@@ -358,72 +357,46 @@ function boyKisserEnemySpriteFunction(rayData) {
 }
 
 function casperLesserDemonSpriteFunction(rayData) {
-    if (!casperLesserDemonSpriteLoaded) return;
-    const dx = casperLesserDemonSpriteWorldPos.x - playerPosition.x;
-    const dz = casperLesserDemonSpriteWorldPos.z - playerPosition.z;
-    const distance = Math.sqrt(dx * dx + dz * dz);
-    const relativeAngle = Math.atan2(dz, dx) - playerPosition.angle;
-    const correctedDistance = distance * Math.cos(relativeAngle);
-    if (correctedDistance < 0.1) return;
-    const spriteHeight = (CANVAS_HEIGHT / correctedDistance) * tileSectors / 2;
-    const spriteWidth = spriteHeight * (128 / 80);
-    const spriteY = 400;
-    const { adjustedScreenX, startColumn, endColumn } = getSpriteScreenParams(relativeAngle, spriteWidth);
-    if (isSpriteVisible(rayData, startColumn, endColumn, correctedDistance) && adjustedScreenX + spriteWidth / 2 >= 0 && adjustedScreenX - spriteWidth / 2 <= CANVAS_WIDTH) {
-        renderEngine.drawImage(
-            casperLesserDemonSprite,
-            adjustedScreenX - spriteWidth / 2,
-            spriteY - playerVantagePointY.playerVantagePointY,
-            spriteWidth,
-            spriteHeight
-        );
-    }
+    renderSprite({
+        sprite: casperLesserDemonSprite,
+        isLoaded: casperLesserDemonSpriteLoaded,
+        worldPos: casperLesserDemonSpriteWorldPos,
+        rayData,
+        baseWidthRatio: 128 / REF_CANVAS_WIDTH,
+        baseHeightRatio: 80 / REF_CANVAS_HEIGHT,
+        aspectRatio: 128 / 80,
+        baseYRatio: 400 / REF_CANVAS_HEIGHT,
+        scaleFactor: 0.5
+    });
 }
 
 function corpse1SpriteFunction(rayData) {
-    if (!corpse1Loaded) return;
-    const dx = corpse1WorldPos.x - playerPosition.x;
-    const dz = corpse1WorldPos.z - playerPosition.z;
-    const distance = Math.sqrt(dx * dx + dz * dz);
-    const relativeAngle = Math.atan2(dz, dx) - playerPosition.angle;
-    const correctedDistance = distance * Math.cos(relativeAngle);
-    if (correctedDistance < 0.1) return;
-    const spriteHeight = (CANVAS_HEIGHT / correctedDistance) * tileSectors / 2;
-    const spriteWidth = spriteHeight * (128 / 80);
-    const spriteY = 400;
-    const { adjustedScreenX, startColumn, endColumn } = getSpriteScreenParams(relativeAngle, spriteWidth);
-    if (isSpriteVisible(rayData, startColumn, endColumn, correctedDistance) && adjustedScreenX + spriteWidth / 2 >= 0 && adjustedScreenX - spriteWidth / 2 <= CANVAS_WIDTH) {
-        renderEngine.drawImage(
-            corpse1Sprite,
-            adjustedScreenX - spriteWidth / 2,
-            spriteY - playerVantagePointY.playerVantagePointY,
-            spriteWidth,
-            spriteHeight
-        );
-    }
+    renderSprite({
+        sprite: corpse1Sprite,
+        isLoaded: corpse1Loaded,
+        worldPos: corpse1WorldPos,
+        rayData,
+        baseWidthRatio: 128 / REF_CANVAS_WIDTH,
+        baseHeightRatio: 80 / REF_CANVAS_HEIGHT,
+        aspectRatio: 128 / 80,
+        baseYRatio: 400 / REF_CANVAS_HEIGHT,
+        scaleFactor: 0.5
+    });
 }
 
 function metalPipeSpriteFunction(rayData) {
-    if (!metalPipeSprite || !metalPipeLoaded || spriteState.isMetalPipeCollected) return;
-    const dx = metalPipeWorldPos.x - playerPosition.x;
-    const dz = metalPipeWorldPos.z - playerPosition.z;
-    const distance = Math.sqrt(dx * dx + dz * dz);
-    const relativeAngle = Math.atan2(dz, dx) - playerPosition.angle;
-    const correctedDistance = distance * Math.cos(relativeAngle);
-    if (correctedDistance < 0.1) return;
-    const spriteHeight = (CANVAS_HEIGHT / correctedDistance) * tileSectors / 2;
-    const spriteWidth = spriteHeight * (128 / 80);
-    const spriteY = 500;
-    const { adjustedScreenX, startColumn, endColumn } = getSpriteScreenParams(relativeAngle, spriteWidth);
-    if (isSpriteVisible(rayData, startColumn, endColumn, correctedDistance) && adjustedScreenX + spriteWidth / 2 >= 0 && adjustedScreenX - spriteWidth / 2 <= CANVAS_WIDTH) {
-        renderEngine.drawImage(
-            metalPipeSprite,
-            adjustedScreenX - spriteWidth / 2,
-            spriteY - playerVantagePointY.playerVantagePointY,
-            spriteWidth,
-            spriteHeight
-        );
-    }
+    if (spriteState.isMetalPipeCollected) return;
+    renderSprite({
+        sprite: metalPipeSprite,
+        isLoaded: metalPipeLoaded,
+        worldPos: metalPipeWorldPos,
+        rayData,
+        baseWidthRatio: 128 / REF_CANVAS_WIDTH,
+        baseHeightRatio: 80 / REF_CANVAS_HEIGHT,
+        aspectRatio: 128 / 80,
+        baseYRatio: 500 / REF_CANVAS_HEIGHT,
+        scaleFactor: 0.5
+    });
 }
 
 function renderSprite({
@@ -431,11 +404,11 @@ function renderSprite({
     isLoaded,
     worldPos,
     rayData,
-    baseWidthRatio = 0.25, // Base width as a fraction of canvas width (e.g., 200/800)
-    baseHeightRatio = 0.25, // Base height as a fraction of canvas height
-    aspectRatio = 1, // Sprite width/height ratio (e.g., 128/80 for some sprites)
-    baseYRatio = 0.5, // Base Y position as a fraction of canvas height (e.g., 400/800)
-    scaleFactor = 0.5 // Scaling factor for perspective (e.g., tileSectors / 2)
+    baseWidthRatio = 0.25,
+    baseHeightRatio = 0.25,
+    aspectRatio = 1,
+    baseYRatio = 0.5,
+    scaleFactor = 0.5
 }) {
     if (!isLoaded || !sprite) return;
 
@@ -450,7 +423,7 @@ function renderSprite({
     const spriteHeight = (CANVAS_HEIGHT / correctedDistance) * tileSectors * scaleFactor;
     const spriteWidth = spriteHeight * aspectRatio;
 
-    // Scale base Y position
+    // Base Y position
     const spriteY = CANVAS_HEIGHT * baseYRatio;
 
     // Calculate screen position
