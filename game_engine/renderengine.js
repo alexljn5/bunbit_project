@@ -9,7 +9,7 @@ import { mainGameMenu, setupMenuClickHandler } from "./menus/menu.js";
 import { texturesLoaded, tileTexturesMap, getDemonLaughingCurrentFrame } from "./mapdata/maptextures.js";
 import { playerUI } from "./playerdata/playerui.js";
 import { collissionGodFunction } from "./collissiondetection/collissionlogichandler.js";
-import { enemyAiGodFunction } from "./ai/aihandler.js";
+import { enemyAiGodFunction, friendlyAiGodFunction } from "./ai/aihandler.js";
 import { boyKisserNpcAIGodFunction } from "./ai/friendlycat.js";
 import { menuActive, setMenuActive } from "./gamestate.js";
 import { playMusicGodFunction } from "./audio/audiohandler.js";
@@ -18,6 +18,7 @@ import { animationHandler } from "./animations/animationhandler.js";
 import { introActive } from "./animations/newgamestartanimation.js";
 import { itemHandlerGodFunction } from "./itemhandler/itemhandler.js";
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from "./globals.js";
+import { eventHandler } from "./events/eventhandler.js";
 
 // --- DOM Elements ---
 const domElements = {
@@ -69,11 +70,13 @@ async function gameRenderEngine() {
             return;
         }
         drawBackground();
+        /*
         if (introActive) {
             animationHandler();
             isRenderingFrame = false;
             return;
         }
+            */
         await renderRaycastWalls(rayData);
         await renderRaycastFloors(rayData);
         drawSprites(rayData);
@@ -83,9 +86,10 @@ async function gameRenderEngine() {
         itemHandlerGodFunction();
         playerUI();
         collissionGodFunction();
-        boyKisserNpcAIGodFunction();
-        //enemyAiGodFunction();
+        friendlyAiGodFunction();
+        enemyAiGodFunction();
         playMusicGodFunction();
+        eventHandler();
     } catch (error) {
         console.error("gameRenderEngine error:", error);
     } finally {

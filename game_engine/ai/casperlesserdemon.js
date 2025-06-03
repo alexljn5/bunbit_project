@@ -3,6 +3,7 @@ import { casperLesserDemonSpriteWorldPos } from "../rendersprites.js";
 import { map_01 } from "../mapdata/map_01.js";
 import { tileSectors } from "../mapdata/maps.js";
 import { isOccludedByWall } from "./aihandler.js";
+import { casperLesserDemonDeathScreen } from "../events/map_01_events.js";
 
 let casperLesserDemonPreviousPos = { x: casperLesserDemonSpriteWorldPos.x, z: casperLesserDemonSpriteWorldPos.z }
 let lastKnownPlayerPos = null;
@@ -37,6 +38,7 @@ export function casperLesserDemon() {
         playerHealth.playerHealth = Math.max(0, playerHealth.playerHealth - damagePerSecond);
         lastHitTime = now;
         console.log(`Casper hit player! Health: ${playerHealth.playerHealth}`);
+        casperLesserDemonDeathScreen();
     }
 
     // Check for occlusion (Casper)

@@ -81,6 +81,17 @@ corpse1Sprite.onerror = () => {
 };
 export const corpse1WorldPos = { x: 1 * tileSectors, z: 1.3 * tileSectors }; // (150, 150)
 
+export const exeliarSprite = new Image();
+exeliarSprite.src = "img/sprites/decoration/corpse_1.png";
+export let exeliarSpriteLoaded = false;
+exeliarSprite.onload = () => {
+    exeliarSpriteLoaded = true;
+    console.log("Corpse 1 sprite loaded");
+};
+exeliarSprite.onerror = () => {
+    console.error("Failed to load corpse_1.png at ./img/sprites/decoration/corpse_1.png");
+};
+
 // Items
 export const metalPipeSprite = new Image();
 metalPipeSprite.src = "./img/sprites/items/metal_pipe.png";

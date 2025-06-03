@@ -27,11 +27,11 @@ const map_01_sector2 = [
     [emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick],
     [emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick],
     [emptyTile, emptyTile, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick],
-    [emptyTile, emptyTile, fullTileBrick, emptyTile, emptyTile, fullTileBrick],
-    [emptyTile, emptyTile, fullTileBrick, emptyTile, emptyTile, fullTileBrick],
-    [emptyTile, emptyTile, fullTileBrickDoor01Closed, emptyTile, emptyTile, fullTileBrick],
-    [emptyTile, emptyTile, fullTileBrick, emptyTile, emptyTile, fullTileBrick],
-    [emptyTile, emptyTile, fullTileBrick, emptyTile, emptyTile, fullTileBrick],
+    [emptyTile, emptyTile, fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [emptyTile, emptyTile, fullTileBrickDoor01Closed, emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [emptyTile, emptyTile, fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [emptyTile, emptyTile, fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
     [emptyTile, emptyTile, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick],
     [emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick],
     [fullTileBrick, fullTileBrick, fullTile, fullTileBrick, fullTileBrick, fullTileBrick],
@@ -40,17 +40,17 @@ const map_01_sector2 = [
 // Test sector (7x4)
 const map_01_sector3 = [
     [fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick,],
-    [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
-    [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
-    [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
-    [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
-    [fullTileBrick, fullTileBrick, emptyTile, fullTileBrick, fullTileBrick],
-    [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
-    [fullTileBrick, emptyTile, emptyTile, emptyTile, emptyTile],
-    [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
-    [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
-    [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
-    [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick],
+    [emptyTile, emptyTile, emptyTile, emptyTile, fullTileLaughingDemon],
+    [fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick],
+    [emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick],
+    [emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick],
+    [emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick],
     [fullTileBrick, fullTileBrick, fullTile, fullTileBrick, fullTileBrick, fullTileBrick],
 ];
 
@@ -58,7 +58,7 @@ const map_01_sector3 = [
 const sectorPositions = [
     { sector: map_01_sector1, startY: 0, startX: 0 },
     { sector: map_01_sector2, startY: 0, startX: 5 },
-    { sector: map_01_sector3, startY: 0, startX: 12 },
+    { sector: map_01_sector3, startY: 0, startX: 11 },
 ];
 
 // Calculate map size dynamically
