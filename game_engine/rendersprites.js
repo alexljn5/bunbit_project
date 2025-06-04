@@ -79,7 +79,7 @@ corpse1Sprite.onload = () => {
 corpse1Sprite.onerror = () => {
     console.error("Failed to load corpse_1.png at ./img/sprites/decoration/corpse_1.png");
 };
-export const corpse1WorldPos = { x: 1 * tileSectors, z: 1.3 * tileSectors }; // (150, 150)
+export const corpse1WorldPos = { x: 13 * tileSectors, z: 5.7 * tileSectors }; // (150, 150)
 
 export const exeliarSprite = new Image();
 exeliarSprite.src = "img/sprites/decoration/corpse_1.png";
@@ -291,27 +291,43 @@ function creamSpinTestSprite(rayData) {
 }
 
 // Utility: check if a sprite is visible (not occluded by walls)
-function isSpriteVisible(rayData, startColumn, endColumn, correctedDistance) {
-    // Clamp columns to valid range
+function isSpriteVisible(rayData, startColumn, endColumn, correctedDistance, spriteName) {
     startColumn = Math.max(0, startColumn);
     endColumn = Math.min(numCastRays - 1, endColumn);
-    // If the sprite is behind the player, always return false
-    if (correctedDistance < 0) return false;
+    if (correctedDistance < 0) {
+        console.log(`Sprite ${spriteName} culled: correctedDistance < 0 (${correctedDistance})`);
+        return false;
+    }
+    let visible = false;
     for (let col = startColumn; col <= endColumn; ++col) {
         const ray = rayData[col];
-        if (!ray || correctedDistance < ray.distance) {
-            return true;
+        if (!ray) {
+            console.log(`Sprite ${spriteName} visible: ray ${col} is null`);
+            visible = true;
+            continue;
+        }
+        if (correctedDistance < ray.distance) {
+            console.log(`Sprite ${spriteName} visible: correctedDistance (${correctedDistance}) < ray.distance (${ray.distance}) at column ${col}`);
+            visible = true;
         }
     }
-    return false;
+    if (!visible) {
+        console.log(`Sprite ${spriteName} culled: occluded by wall(s) in columns ${startColumn}-${endColumn}`);
+    }
+    return visible;
 }
 
 // Utility: calculate sprite screen X and columns
 function getSpriteScreenParams(relativeAngle, spriteWidth) {
+    // Normalize relativeAngle to [-π, π]
+    while (relativeAngle > Math.PI) relativeAngle -= 2 * Math.PI;
+    while (relativeAngle < -Math.PI) relativeAngle += 2 * Math.PI;
+
     const screenX = (CANVAS_WIDTH / 2) + (CANVAS_WIDTH / 2) * (relativeAngle / (playerFOV / 2));
     const adjustedScreenX = screenX - playerVantagePointX.playerVantagePointX;
     const startColumn = Math.max(0, Math.floor((adjustedScreenX - spriteWidth / 2) / (CANVAS_WIDTH / numCastRays)));
     const endColumn = Math.min(numCastRays - 1, Math.ceil((adjustedScreenX + spriteWidth / 2) / (CANVAS_WIDTH / numCastRays)));
+    console.log(`Sprite screen params: relativeAngle=${relativeAngle.toFixed(2)}, screenX=${screenX.toFixed(2)}, startColumn=${startColumn}, endColumn=${endColumn}`);
     return { adjustedScreenX, startColumn, endColumn };
 }
 

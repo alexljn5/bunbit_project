@@ -21,8 +21,10 @@ let casperTimeoutId = null;
 const casperSpawnInterval = 500;
 
 export function map01EventsGodFunction(onComplete = () => { }) {
-    console.log(playerPosition.x);
-    console.log(playerPosition.z);
+    if (typeof onComplete !== 'function') {
+        console.warn('onComplete is not a function, defaulting to empty function');
+        onComplete = () => { };
+    }
     map01Event01();
 }
 

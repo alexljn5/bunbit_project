@@ -114,6 +114,12 @@ body {
     top: 30px;
 }
 
+.mainPageButtonClass {
+    position: absolute;
+    left: 30px;
+    top: 75px;
+}
+
 .game-container {
     position: relative;
     /* Anchor for UI canvases */
