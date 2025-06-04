@@ -4,6 +4,7 @@ import { renderEngine } from "../renderengine.js";
 import { CANVAS_HEIGHT, CANVAS_WIDTH, SCALE_X, SCALE_Y } from "../globals.js";
 import { casperLesserDemonSprite } from "../rendersprites.js";
 import { fuckTheScreenUp } from "../animations/fuckthescreenup.js";
+import { playDemonRumble } from "../audio/audiohandler.js";
 
 const startX = 0;
 const startY = 0;
@@ -42,6 +43,7 @@ function map01Event01(onComplete) {
             renderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
             renderEngine.fillStyle = "rgba(0, 0, 0, 0.4)";
             animateDemons(onComplete);
+            playDemonRumble();
         }
     } else {
         eventDemonActive = false;

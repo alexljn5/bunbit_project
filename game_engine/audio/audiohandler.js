@@ -3,6 +3,7 @@ import { renderEngine } from "../renderengine.js";
 import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT } from "../globals.js";
 
 let track_level01 = new Audio("./audio/music/track_level01.mp3");
+let demon_rumble01 = new Audio("./audio/sounds/demonrumble.mp3");
 let musicVolume = 1.0;
 let soundVolume = 1.0;
 let sliderDragging = null;
@@ -32,6 +33,11 @@ export function getMusicVolume() {
 export function setMusicVolume(val) {
     musicVolume = Math.max(0, Math.min(1, val));
     if (track_level01) track_level01.volume = musicVolume;
+}
+
+//sounds
+export function playDemonRumble() {
+    demon_rumble01.play();
 }
 
 export function getSoundVolume() {
