@@ -74,6 +74,9 @@ function animateDemons(onComplete) {
         renderEngine.fillStyle = "rgba(20, 0, 0, 0.5)";
         renderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
+        // Get the demon frame once per render cycle
+        const demonFrame = getDemonLaughingCurrentFrame();
+
         for (let i = 0; i < eventDemonStep; i++) {
             const row = Math.floor(i / numCols);
             const col = i % numCols;
@@ -82,7 +85,6 @@ function animateDemons(onComplete) {
             let width = 128 * SCALE_X;
             let height = 128 * SCALE_Y;
 
-            const demonFrame = getDemonLaughingCurrentFrame();
             if (demonFrame) {
                 renderEngine.drawImage(demonFrame, x, y, width, height);
             }
@@ -168,6 +170,9 @@ export function casperLesserDemonDeathScreen() {
         renderEngine.fillStyle = "rgba(255, 0, 0, 0.1)";
         renderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
+        // Get the demon frame once per render cycle
+        const demonFrame = getDemonLaughingCurrentFrame();
+
         for (let i = 0; i < deathDemonStep; i++) {
             const row = Math.floor(i / numCols);
             const col = i % numCols;
@@ -176,7 +181,6 @@ export function casperLesserDemonDeathScreen() {
             const width = 128 * SCALE_X;
             const height = 128 * SCALE_Y;
 
-            const demonFrame = getDemonLaughingCurrentFrame();
             if (demonFrame) {
                 renderEngine.fillStyle = "rgba(0, 0, 0, 0.7)";
                 renderEngine.fillRect(x, y, width, height);

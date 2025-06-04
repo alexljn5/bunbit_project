@@ -52,7 +52,7 @@ export function mainGameRender() {
     game = gameLoop(gameRenderEngine);
 }
 
-// --- Main Render Loop ---
+//Main game render loop
 async function gameRenderEngine() {
     if (isRenderingFrame) return;
     isRenderingFrame = true;
@@ -70,16 +70,10 @@ async function gameRenderEngine() {
             return;
         }
         drawBackground();
-        /*
-        if (introActive) {
-            animationHandler();
-            isRenderingFrame = false;
-            return;
-        }
-            */
         await renderRaycastWalls(rayData);
         await renderRaycastFloors(rayData);
         drawSprites(rayData);
+        eventHandler(); // Move eventHandler after walls and floors
         if (showDebugTools) compiledDevTools();
         playerLogic();
         playerInventoryGodFunction();
@@ -88,7 +82,6 @@ async function gameRenderEngine() {
         collissionGodFunction();
         friendlyAiGodFunction();
         enemyAiGodFunction();
-        eventHandler();
         playMusicGodFunction();
     } catch (error) {
         console.error("gameRenderEngine error:", error);

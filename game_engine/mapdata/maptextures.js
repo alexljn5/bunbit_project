@@ -31,11 +31,13 @@ for (let i = 0; i < demonLaughingFrameCount; i++) {
 }
 // Animation state for wall_laughing_demon
 let demonLaughingFrameIndex = 0;
-let demonLaughingFrameTimer = 0;
-const demonLaughingFrameDelay = 6; // ~0.1s at 60 FPS (0.1s / (1/60) ≈ 6 frames)
+let lastFrameTime = 0; // Initialize to 0
+const demonLaughingFrameDelay = 100; // 100ms = 0.1s
+let cachedFrame = null; // Cache current frame
 
 let texturesLoaded = false;
 let texturesToLoad = Object.keys(tileTextures).length + demonLaughingFrameCount - 1; // Adjust for array
+
 
 
 // Map texture IDs to texture keys
@@ -114,13 +116,26 @@ for (const [name, texture] of Object.entries(roofTextures)) {
 }
 
 export function getDemonLaughingCurrentFrame() {
-    if (!demonLaughingLoaded) return null;
-    demonLaughingFrameTimer++;
-    if (demonLaughingFrameTimer >= demonLaughingFrameDelay) {
-        demonLaughingFrameIndex = (demonLaughingFrameIndex + 1) % demonLaughingFrameCount;
-        demonLaughingFrameTimer = 0;
+    if (!demonLaughingLoaded) {
+        console.log("Demon textures not loaded yet!");
+        return tileTexturesMap.get("wall_creamlol");
     }
-    return tileTextures.wall_laughing_demon[demonLaughingFrameIndex];
+
+    const now = performance.now();
+    if (now - lastFrameTime >= demonLaughingFrameDelay) {
+        demonLaughingFrameIndex = (demonLaughingFrameIndex + 1) % demonLaughingFrameCount;
+        lastFrameTime = now;
+        const img = tileTextures.wall_laughing_demon[demonLaughingFrameIndex];
+        const tempCanvas = document.createElement("canvas");
+        tempCanvas.width = img.width;
+        tempCanvas.height = img.height;
+        const tempCtx = tempCanvas.getContext("2d");
+        tempCtx.drawImage(img, 0, 0);
+        cachedFrame = tempCanvas;
+        console.log(`Demon frame index: ${demonLaughingFrameIndex}`);
+    }
+
+    return cachedFrame || tileTextures.wall_laughing_demon[0];
 }
 
 // Populate tileTexturesMap
