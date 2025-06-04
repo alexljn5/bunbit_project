@@ -88,8 +88,8 @@ async function gameRenderEngine() {
         collissionGodFunction();
         friendlyAiGodFunction();
         enemyAiGodFunction();
-        playMusicGodFunction();
         eventHandler();
+        playMusicGodFunction();
     } catch (error) {
         console.error("gameRenderEngine error:", error);
     } finally {
