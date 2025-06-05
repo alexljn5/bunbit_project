@@ -20,7 +20,6 @@ const TIME_LIMIT = 50000;
 let casperTimeoutId = null;
 const casperSpawnInterval = 500;
 
-
 export function map01EventsGodFunction(onComplete = () => { }) {
     if (typeof onComplete !== 'function') {
         console.warn('onComplete is not a function, defaulting to empty function');
@@ -28,7 +27,6 @@ export function map01EventsGodFunction(onComplete = () => { }) {
     }
     map01Event01(onComplete);
 }
-
 
 function map01Event01(onComplete) {
     const elapsed = performance.now() - eventStartTimeGlobal;
