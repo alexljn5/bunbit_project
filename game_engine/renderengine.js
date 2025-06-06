@@ -19,6 +19,7 @@ import { introActive } from "./animations/newgamestartanimation.js";
 import { itemHandlerGodFunction } from "./itemhandler/itemhandler.js";
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from "./globals.js";
 import { eventHandler } from "./events/eventhandler.js";
+import { initializeMap } from "./raycasting.js";
 
 // --- DOM Elements ---
 const domElements = {
@@ -63,6 +64,7 @@ async function gameRenderEngine() {
             return;
         }
         menuHandler();
+        initializeMap();
         let rayData = await castRays();
         if (!rayData || rayData.every(ray => ray === null)) {
             renderEngine.fillStyle = "red";

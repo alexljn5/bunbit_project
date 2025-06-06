@@ -1,57 +1,33 @@
-const fullTile = 1;
-const emptyTile = 0;
+import { fullTileBrick, emptyTile, fullTileBrickDoor01Open } from './maptextures.js';
 
-// Starting room (10x8)
-const map_02_sector1 = [
-    [fullTile, fullTile, fullTile, fullTile, fullTile, fullTile, fullTile, fullTile],
-    [fullTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, fullTile],
-    [fullTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, fullTile],
-    [fullTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile],
-    [fullTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile],
-    [fullTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, fullTile],
-    [fullTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, fullTile],
-    [fullTile, fullTile, fullTile, fullTile, fullTile, fullTile, fullTile, fullTile],
+// Example sector for map_02
+export const map_02_sector1 = [
+    [fullTileBrick, fullTileBrick, fullTileBrick],
+    [fullTileBrick, emptyTile, fullTileBrick],
+    [fullTileBrick, fullTileBrickDoor01Open, fullTileBrick]
 ];
 
-// Hallway (8x4)
-const map_02_sector2 = [
-    [fullTile, fullTile, fullTile, fullTile],
-    [emptyTile, emptyTile, emptyTile, emptyTile],
-    [emptyTile, emptyTile, emptyTile, emptyTile],
-    [emptyTile, emptyTile, emptyTile, emptyTile],
-    [emptyTile, emptyTile, emptyTile, emptyTile],
-    [emptyTile, emptyTile, emptyTile, emptyTile],
-    [fullTile, fullTile, fullTile, fullTile],
+export const map_02_sectors = [
+    {
+        id: "sector1",
+        data: map_02_sector1,
+        startX: 0,
+        startY: 0,
+        width: map_02_sector1[0].length,
+        height: map_02_sector1.length
+    }
 ];
 
-// Combine sectors into a flat 2D map_01
-const map_02 = [];
-const sectorPositions = [
-    { sector: map_02_sector1, startY: 0, startX: 0 },
-    { sector: map_02_sector2, startY: 1, startX: 8 },
-];
-const mapHeight = Math.max(...sectorPositions.map(s => s.startY + s.sector.length));
-const mapWidth = Math.max(...sectorPositions.map(s => s.startX + s.sector[0].length));
-
-for (let y = 0; y < mapHeight; y++) {
-    map_02[y] = [];
-    for (let x = 0; x < mapWidth; x++) {
-        map_02[y][x] = emptyTile;
+// Optional full map
+const mapHeight = map_02_sectors[0].height;
+const mapWidth = map_02_sectors[0].width;
+const map_02 = Array(mapHeight).fill().map(() => Array(mapWidth).fill(emptyTile));
+map_02_sectors.forEach(({ data, startY, startX }) => {
+    for (let y = 0; y < data.length; y++) {
+        for (let x = 0; x < data[0].length; x++) {
+            map_02[startY + y][startX + x] = data[y][x];
+        }
     }
-}
+});
 
-// Place map_01_sector1 at (0, 0) to (9, 7)
-for (let y = 0; y < map_02_sector1.length; y++) {
-    for (let x = 0; x < map_02_sector1[0].length; x++) {
-        map_02[y][x] = map_02_sector1[y][x];
-    }
-}
-
-// Place map_02_sector2 at (1, 8) to (8, 11)
-for (let y = 0; y < map_02_sector2.length; y++) {
-    for (let x = 0; x < map_02_sector2[0].length; x++) {
-        map_02[y + 1][x + 8] = map_02_sector2[y][x];
-    }
-}
-
-export { map_02 };
+export { map_02, mapHeight, mapWidth };

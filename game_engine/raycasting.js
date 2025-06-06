@@ -2,6 +2,7 @@ import { playerPosition } from "./playerdata/playerlogic.js";
 import { tileSectors, mapTable } from "./mapdata/maps.js";
 import { textureIdMap, floorTextureIdMap } from "./mapdata/maptextures.js";
 import { CANVAS_WIDTH } from "./globals.js";
+import { mapHandler } from "./mapdata/maphandler.js";
 
 export let playerFOV = Math.PI / 6; // 60 degrees
 export let numCastRays = 1100; // Reduced for performance
@@ -173,5 +174,12 @@ export function fuckTheScreenUpBaby() {
             playerFOV--;
             if (playerFOV <= 6) increasing = true;
         }
+    }
+}
+
+export function initializeMap() {
+    const success = mapHandler.loadMap("map_01", playerPosition);
+    if (!success) {
+        console.error("Failed to initialize map! *pouts*");
     }
 }

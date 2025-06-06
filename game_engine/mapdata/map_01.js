@@ -4,8 +4,8 @@ import {
 } from './maptextures.js';
 
 // Starting room (10x8)
-const map_01_sector1 = [
-    [fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick,],
+export const map_01_sector1 = [
+    [fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick],
     [fullTileBrick, emptyTile, fullTileBrick, emptyTile, emptyTile, fullTileBrick],
     [fullTileBrick, emptyTile, fullTileBrick, emptyTile, emptyTile, fullTileBrick],
     [fullTileBrick, emptyTile, fullTileBrick, emptyTile, emptyTile, fullTileBrick],
@@ -21,8 +21,8 @@ const map_01_sector1 = [
 ];
 
 // Hallway (8x4)
-const map_01_sector2 = [
-    [fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick,],
+export const map_01_sector2 = [
+    [fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick],
     [emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick],
     [emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick],
     [emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick],
@@ -38,8 +38,8 @@ const map_01_sector2 = [
 ];
 
 // Test sector (7x4)
-const map_01_sector3 = [
-    [fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick,],
+export const map_01_sector3 = [
+    [fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick],
     [emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick],
     [emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick],
     [emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick],
@@ -54,28 +54,44 @@ const map_01_sector3 = [
     [fullTileBrick, fullTileBrick, fullTile, fullTileBrick, fullTileBrick, fullTileBrick],
 ];
 
-// Combine sectors into a flat 2D map_01
-const sectorPositions = [
-    { sector: map_01_sector1, startY: 0, startX: 0 },
-    { sector: map_01_sector2, startY: 0, startX: 5 },
-    { sector: map_01_sector3, startY: 0, startX: 11 },
+// Sector metadata for MapHandler (world coordinates with tileSectors = 50)
+export const map_01_sectors = [
+    {
+        id: "sector1",
+        data: map_01_sector1,
+        startX: 0, // World x (in tiles)
+        startY: 0, // World y (in tiles)
+        width: map_01_sector1[0].length, // 5 tiles
+        height: map_01_sector1.length // 13 tiles
+    },
+    {
+        id: "sector2",
+        data: map_01_sector2,
+        startX: 5,
+        startY: 0,
+        width: map_01_sector2[0].length, // 6 tiles
+        height: map_01_sector2.length // 13 tiles
+    },
+    {
+        id: "sector3",
+        data: map_01_sector3,
+        startX: 11,
+        startY: 0,
+        width: map_01_sector3[0].length, // 5 tiles
+        height: map_01_sector3.length // 13 tiles
+    }
 ];
 
-// Calculate map size dynamically
-export const mapHeight = Math.max(...sectorPositions.map(s => s.startY + s.sector.length));
-export const mapWidth = Math.max(...sectorPositions.map(s => s.startX + s.sector[0].length));
-
-// Initialize map_01 with empty tiles
+// Optional: Keep combined map_01 for legacy or full-map rendering
+const mapHeight = Math.max(...map_01_sectors.map(s => s.startY + s.height));
+const mapWidth = Math.max(...map_01_sectors.map(s => s.startX + s.width));
 const map_01 = Array(mapHeight).fill().map(() => Array(mapWidth).fill(emptyTile));
-
-// Place all sectors into map_01 using sectorPositions
-sectorPositions.forEach(({ sector, startY, startX }) => {
-    for (let y = 0; y < sector.length; y++) {
-        for (let x = 0; x < sector[0].length; x++) {
-            map_01[startY + y][startX + x] = sector[y][x];
+map_01_sectors.forEach(({ data, startY, startX }) => {
+    for (let y = 0; y < data.length; y++) {
+        for (let x = 0; x < data[0].length; x++) {
+            map_01[startY + y][startX + x] = data[y][x];
         }
     }
 });
 
-// Cleaned up map_01 data for clarity and maintainability
-export { map_01 };
+export { map_01, mapHeight, mapWidth };

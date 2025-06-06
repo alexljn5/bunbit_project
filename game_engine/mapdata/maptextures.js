@@ -66,7 +66,7 @@ export const fullTileLaughingDemon = { type: "wall", textureId: 8 }; // wall_lau
 export const fullTileBrickDoor01Open = { type: "wall", textureId: 9 }; // wall_brick_door01_open
 export const fullTileBrickDoor01Closed = { type: "wall", textureId: 10 }; // wall_brick_door01_closed
 
-export const emptyTile = { type: "empty", floorTextureId: 50 }; // empty with floor_concrete
+export const emptyTile = { type: "empty", floorTextureId: 50 };
 export const tileTexturesMap = new Map();
 
 // Roof Textures
@@ -87,8 +87,8 @@ const floorTextures = {
     floor_concrete: new Image(),
 };
 
-//floorTextures.floor_concrete.src = "./img/sprites/floors/floor_wood01.png";
-floorTextures.floor_concrete.src = "./img/sprites/roofs/roof_concrete.png";
+floorTextures.floor_concrete.src = "./img/sprites/floors/floor_wood01.png";
+//floorTextures.floor_concrete.src = "./img/sprites/roofs/roof_concrete.png";
 
 export const floorTextureIdMap = new Map([
     [50, "floor_concrete"],

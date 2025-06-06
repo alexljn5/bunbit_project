@@ -6,7 +6,7 @@ import { castRays, numCastRays, playerFOV } from "./raycasting.js";
 import { playerInventory, inventoryState } from "./playerdata/playerinventory.js";
 
 // Define rendering layers
-const LAYERS = {
+export const LAYERS = {
     BACKGROUND: 'background',
     MIDGROUND: 'midground',
     FOREGROUND: 'foreground'
