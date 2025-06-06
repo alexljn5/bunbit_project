@@ -10,12 +10,11 @@ import { texturesLoaded, tileTexturesMap, getDemonLaughingCurrentFrame } from ".
 import { playerUI } from "./playerdata/playerui.js";
 import { collissionGodFunction } from "./collissiondetection/collissionlogichandler.js";
 import { enemyAiGodFunction, friendlyAiGodFunction } from "./ai/aihandler.js";
-import { boyKisserNpcAIGodFunction } from "./ai/friendlycat.js";
 import { menuActive, setMenuActive } from "./gamestate.js";
 import { playMusicGodFunction } from "./audio/audiohandler.js";
 import { menuHandler } from "./menus/menuhandler.js";
 import { animationHandler } from "./animations/animationhandler.js";
-import { introActive } from "./animations/newgamestartanimation.js";
+import { introActive, newGameStartAnimation } from "./animations/newgamestartanimation.js";
 import { itemHandlerGodFunction } from "./itemhandler/itemhandler.js";
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from "./globals.js";
 import { eventHandler } from "./events/eventhandler.js";
@@ -63,19 +62,29 @@ async function gameRenderEngine() {
             isRenderingFrame = false;
             return;
         }
+        /*
+        if (introActive) {
+            newGameStartAnimation();
+            isRenderingFrame = false;
+            return;
+    }
+        animationHandler();
+        */
+
         menuHandler();
         initializeMap();
         let rayData = await castRays();
         if (!rayData || rayData.every(ray => ray === null)) {
             renderEngine.fillStyle = "red";
             renderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            isRenderingFrame = false;
             return;
         }
         drawBackground();
         await renderRaycastWalls(rayData);
         await renderRaycastFloors(rayData);
         drawSprites(rayData);
-        eventHandler(); // Move eventHandler after walls and floors
+        eventHandler();
         if (showDebugTools) compiledDevTools();
         playerLogic();
         playerInventoryGodFunction();

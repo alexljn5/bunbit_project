@@ -2,8 +2,12 @@ import { mapTable } from "../mapdata/maps.js";
 import { renderEngine } from "../renderengine.js";
 import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT } from "../globals.js";
 
-let track_level01 = new Audio("./audio/music/track_level01.mp3");
+
+//Level 01 tracks, cleanup later
+let track_level01 = new Audio("./audio/music/track_level01_new.mp3");
 let demon_rumble01 = new Audio("./audio/sounds/demonrumble.mp3");
+let track_level01_wtf = new Audio("./audio/music/track_level01_wtf.mp3");
+///////////////////
 let musicVolume = 1.0;
 let soundVolume = 1.0;
 let sliderDragging = null;
@@ -19,6 +23,7 @@ export function playMusicGodFunction() {
 function playMusicBasedOnLevelLoads() {
     if (mapTable.get("map_01")) {
         playTrackLevel01();
+        playWtf();
     }
 }
 
@@ -33,6 +38,15 @@ export function getMusicVolume() {
 export function setMusicVolume(val) {
     musicVolume = Math.max(0, Math.min(1, val));
     if (track_level01) track_level01.volume = musicVolume;
+}
+
+export function playWtf() {
+    const nextDelay = Math.random() * 200000 + 5000; // 5 to 25 sec
+    setTimeout(() => {
+        track_level01_wtf.volume = musicVolume;
+        track_level01_wtf.play();
+        playWtf(); // Schedule next one!
+    }, nextDelay);
 }
 
 //sounds

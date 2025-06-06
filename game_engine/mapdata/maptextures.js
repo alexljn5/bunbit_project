@@ -87,8 +87,8 @@ const floorTextures = {
     floor_concrete: new Image(),
 };
 
-floorTextures.floor_concrete.src = "./img/sprites/floors/floor_wood01.png";
-//floorTextures.floor_concrete.src = "./img/sprites/roofs/roof_concrete.png";
+//floorTextures.floor_concrete.src = "./img/sprites/floors/floor_wood01.png";
+floorTextures.floor_concrete.src = "./img/sprites/roofs/roof_concrete.png";
 
 export const floorTextureIdMap = new Map([
     [50, "floor_concrete"],
