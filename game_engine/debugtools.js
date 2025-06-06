@@ -3,13 +3,8 @@ import { renderEngine } from "./renderengine.js";
 import { map_01, mapWidth, mapHeight } from "./mapdata/map_01.js";
 import { tileSectors } from "./mapdata/maps.js";
 import { tileTexturesMap } from "./mapdata/maptextures.js";
-import {
-    creamTestSprite, creamTestLoaded, creamTestWorldPos,
-    creamSpinLoaded, creamSpinWorldPos, getCreamSpinCurrentFrame,
-    boyKisserEnemySprite, boyKisserEnemySpriteLoaded, boyKisserEnemySpriteWorldPos,
-    casperLesserDemonSprite, casperLesserDemonSpriteLoaded, casperLesserDemonSpriteWorldPos
-} from "./rendersprites.js";
-import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT } from "./globals.js";
+import { spriteManager, getCreamSpinCurrentFrame, spriteState } from "./rendersprites.js";
+import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y } from "./globals.js";
 
 export function compiledDevTools() {
     fpsMeter();
@@ -105,55 +100,32 @@ export function drawMinimap() {
         playerSize,
         playerSize
     );
-    if (creamTestLoaded) {
-        const spritePixelX = creamTestWorldPos.x * minimapScale;
-        const spritePixelY = creamTestWorldPos.z * minimapScale;
-        const spriteSize = minimapTileSize * 0.5;
-        renderEngine.drawImage(
-            creamTestSprite,
-            0, 0, creamTestSprite.width, creamTestSprite.height,
-            spritePixelX - spriteSize / 2,
-            spritePixelY - spriteSize / 2,
-            spriteSize,
-            spriteSize
-        );
-    }
-    if (creamSpinLoaded) {
-        const currentFrame = getCreamSpinCurrentFrame();
-        if (currentFrame) {
-            const spritePixelX = creamSpinWorldPos.x * minimapScale;
-            const spritePixelY = creamSpinWorldPos.z * minimapScale;
-            const spriteSize = minimapTileSize * 0.5;
-            renderEngine.drawImage(
-                currentFrame,
-                0, 0, currentFrame.width, currentFrame.height,
-                spritePixelX - spriteSize / 2,
-                spritePixelY - spriteSize / 2,
-                spriteSize,
-                spriteSize
-            );
+    // Render sprites dynamically
+    const spritesToRender = [
+        'creamSpin',
+        'boyKisser',
+        'casperLesserDemon',
+        'metalPipe',
+        'nineMMAmmo'
+    ];
+    for (const spriteId of spritesToRender) {
+        const sprite = spriteManager.getSprite(spriteId);
+        if (!sprite || !sprite.isLoaded || !sprite.worldPos) continue;
+        // Skip collected items
+        if (spriteId === 'metalPipe' && spriteState.isMetalPipeCollected) continue;
+        if (spriteId === 'nineMMAmmo' && spriteState.isNineMmAmmoCollected) continue;
+        let image = sprite.image;
+        if (spriteId === 'creamSpin') {
+            const currentFrame = getCreamSpinCurrentFrame();
+            if (!currentFrame) continue;
+            image = currentFrame;
         }
-    }
-    if (boyKisserEnemySpriteLoaded) {
-        const spritePixelX = boyKisserEnemySpriteWorldPos.x * minimapScale;
-        const spritePixelY = boyKisserEnemySpriteWorldPos.z * minimapScale;
+        const spritePixelX = sprite.worldPos.x * minimapScale;
+        const spritePixelY = sprite.worldPos.z * minimapScale;
         const spriteSize = minimapTileSize * 0.5;
         renderEngine.drawImage(
-            boyKisserEnemySprite,
-            0, 0, boyKisserEnemySprite.width, boyKisserEnemySprite.height,
-            spritePixelX - spriteSize / 2,
-            spritePixelY - spriteSize / 2,
-            spriteSize,
-            spriteSize
-        );
-    }
-    if (casperLesserDemonSpriteLoaded) {
-        const spritePixelX = casperLesserDemonSpriteWorldPos.x * minimapScale;
-        const spritePixelY = casperLesserDemonSpriteWorldPos.z * minimapScale;
-        const spriteSize = minimapTileSize * 0.5;
-        renderEngine.drawImage(
-            casperLesserDemonSprite,
-            0, 0, casperLesserDemonSprite.width, casperLesserDemonSprite.height,
+            image,
+            0, 0, image.width, image.height,
             spritePixelX - spriteSize / 2,
             spritePixelY - spriteSize / 2,
             spriteSize,

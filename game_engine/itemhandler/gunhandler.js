@@ -1,6 +1,7 @@
 import { keys } from "../playerdata/playerlogic.js";
 import { playerInventory } from "../playerdata/playerinventory.js";
-import { selectedInventoryIndex } from "../playerdata/playerinventory.js";
+import { inventoryState } from "../playerdata/playerinventory.js";
+import { boyKisserEnemyHealth } from "../ai/friendlycat.js"; // Import to avoid global
 
 export let genericGunAmmo = 10;
 
@@ -15,17 +16,13 @@ export function gunHandlerGodFunction() {
 }
 
 function genericGunHandler() {
-    if (keys[" "] && playerInventory[selectedInventoryIndex] === "generic_gun") {
+    if (keys[" "] && playerInventory[inventoryState.selectedInventoryIndex] === "generic_gun") {
         if (genericGunAmmo <= 0) {
             keys[" "] = false;
             return;
         } else {
             genericGunAmmo--;
-            if (typeof window !== 'undefined' && window.boyKisserEnemyHealth !== undefined) {
-                window.boyKisserEnemyHealth = Math.max(0, window.boyKisserEnemyHealth - 1);
-            } else if (typeof globalThis !== 'undefined' && globalThis.boyKisserEnemyHealth !== undefined) {
-                globalThis.boyKisserEnemyHealth = Math.max(0, globalThis.boyKisserEnemyHealth - 1);
-            }
+            boyKisserEnemyHealth = Math.max(0, boyKisserEnemyHealth - 1); // Use imported variable
         }
         keys[" "] = false;
     }

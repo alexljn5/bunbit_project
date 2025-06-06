@@ -11,12 +11,53 @@ import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CA
 
 // Cleaned up friendly cat (boykisser) NPC AI logic for clarity and maintainability
 const npcTriggerRadius = 60;
-let npcLastTriggered = false;
-let dialogueActive = false;
-let dialogueLines = [];
-let currentDialogueIndex = 0;
-let lastInteractionState = false;
+export let npcLastTriggered = false;
+export let dialogueActive = false;
+export let dialogueLines = [];
+export let currentDialogueIndex = 0;
+export let lastInteractionState = false;
 export let playerMovementDisabled = false;
+export let boyKisserEnemyHealth = 100; // Explicitly defined and exported
+
+export function setNpcLastTriggered(value) {
+    npcLastTriggered = value;
+}
+
+export function setDialogueActive(value) {
+    dialogueActive = value;
+}
+
+export function setDialogueLines(value) {
+    dialogueLines = value;
+}
+
+export function setCurrentDialogueIndex(value) {
+    currentDialogueIndex = value;
+}
+
+export function setLastInteractionState(value) {
+    lastInteractionState = value;
+}
+
+export function setPlayerMovementDisabled(value) {
+    playerMovementDisabled = value;
+}
+
+export function setJustReceivedGun(value) {
+    justReceivedGun = value;
+}
+
+export function setShowGunPickupBox(value) {
+    showGunPickupBox = value;
+}
+
+export function setGunPickupTimer(value) {
+    gunPickupTimer = value;
+}
+
+export function setBoyKisserEnemyHealth(value) {
+    boyKisserEnemyHealth = value;
+}
 
 window.addEventListener("keydown", (event) => {
     if (dialogueActive && event.key.toLowerCase() === "t") {
@@ -51,7 +92,7 @@ function advanceNpcDialogue() {
 }
 
 // Track if the player just received the gun in this interaction
-let justReceivedGun = false;
+export let justReceivedGun = false;
 
 export function boyKisserNpcAI() {
     // Get current interaction key state
@@ -99,9 +140,10 @@ function getCurrentNpcDialogueLine() {
     return dialogueActive ? dialogueLines[currentDialogueIndex] : null;
 }
 
-let showGunPickupBox = false;
-let gunPickupTimer = 0;
+export let showGunPickupBox = false;
+export let gunPickupTimer = 0;
 const GUN_PICKUP_DURATION = 120; // 2 seconds at 60fps
+
 export function boyKisserNpcAIGodFunction() {
     if (!dialogueActive) boyKisserNpcAI();
     if (dialogueActive) drawNpcDialogue();
@@ -174,10 +216,15 @@ function drawGunPickupBox() {
     renderEngine.restore();
 }
 
-let lastKnownPlayerPos = null;
-let canSeePlayer = false;
+export let lastKnownPlayerPos = null;
+export let canSeePlayer = false;
 
-let boyKisserPreviousPos = { x: boyKisserEnemySpriteWorldPos.x, z: boyKisserEnemySpriteWorldPos.z };
+export function setCanSeePlayer(value) {
+    canSeePlayer = value;
+}
+
+export let boyKisserPreviousPos = { x: boyKisserEnemySpriteWorldPos.x, z: boyKisserEnemySpriteWorldPos.z };
+
 function friendlyCatAi() {
     if (playerInventory.includes("generic_gun")) {
         return; // Stop following if player has the gun

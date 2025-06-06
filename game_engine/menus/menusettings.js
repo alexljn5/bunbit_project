@@ -2,21 +2,36 @@ import { keys } from "../playerdata/playerlogic.js";
 import { renderEngine } from "../renderengine.js";
 import { volumeSlidersGodFunction, setupAudioSliderHandlers } from "../audio/audiohandler.js";
 import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT } from "../globals.js";
+import { saveGame, loadGame } from "../savedata/save_load_game.js";
 
 export let playerMovementDisabled = false;
 let menuActive = false;
 let lastEscapeState = false;
+let showLoadPrompt = false;
 
 // Settings menu buttons, scaled from 800x800
 const settingsButtons = [
     { name: "Resume", x: 60 * SCALE_X, y: 160 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
     { name: "Audio", x: 60 * SCALE_X, y: 220 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
     { name: "Controls", x: 60 * SCALE_X, y: 280 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
-    { name: "Quit", x: 60 * SCALE_X, y: 340 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false }
+    { name: "Save Game", x: 60 * SCALE_X, y: 340 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
+    { name: "Load Game", x: 60 * SCALE_X, y: 400 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
+    { name: "Quit", x: 60 * SCALE_X, y: 460 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false }
 ];
 
 let showControls = false;
 let showAudio = false;
+let showSaveMessage = false;
+let showLoadMessage = false;
+let showNoSaveMessage = false;
+let messageTimer = null;
+
+// Create hidden file input for loading
+const fileInput = document.createElement('input');
+fileInput.type = 'file';
+fileInput.accept = '.json';
+fileInput.style.display = 'none';
+document.body.appendChild(fileInput);
 
 function drawSettingsButtons() {
     if (showControls || showAudio) return;
@@ -26,9 +41,48 @@ function drawSettingsButtons() {
         renderEngine.strokeStyle = "#fff";
         renderEngine.strokeRect(button.x, button.y, button.width, button.height);
         renderEngine.fillStyle = "#fff";
-        renderEngine.font = `${18 * Math.min(SCALE_X, SCALE_Y)}px Arial`; // Scale font
+        renderEngine.font = `${18 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
         renderEngine.fillText(button.name, button.x + 20 * SCALE_X, button.y + 25 * SCALE_Y);
     });
+    // Draw save/load confirmation messages
+    if (showSaveMessage) {
+        renderEngine.fillStyle = "rgba(20, 20, 20, 0.95)";
+        renderEngine.fillRect(350 * SCALE_X, 120 * SCALE_Y, 400 * SCALE_X, 100 * SCALE_Y);
+        renderEngine.strokeStyle = "#fff";
+        renderEngine.strokeRect(350 * SCALE_X, 120 * SCALE_Y, 400 * SCALE_X, 100 * SCALE_Y);
+        renderEngine.fillStyle = "#fff";
+        renderEngine.font = `${20 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+        renderEngine.fillText("Game Saved!", 400 * SCALE_X, 170 * SCALE_Y);
+    }
+    if (showLoadMessage) {
+        renderEngine.fillStyle = "rgba(20, 20, 20, 0.95)";
+        renderEngine.fillRect(350 * SCALE_X, 120 * SCALE_Y, 400 * SCALE_X, 100 * SCALE_Y);
+        renderEngine.strokeStyle = "#fff";
+        renderEngine.strokeRect(350 * SCALE_X, 120 * SCALE_Y, 400 * SCALE_X, 100 * SCALE_Y);
+        renderEngine.fillStyle = "#fff";
+        renderEngine.font = `${20 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+        renderEngine.fillText("Game Loaded!", 400 * SCALE_X, 170 * SCALE_Y);
+    }
+    if (showNoSaveMessage) {
+        renderEngine.fillStyle = "rgba(20, 20, 20, 0.95)";
+        renderEngine.fillRect(350 * SCALE_X, 120 * SCALE_Y, 400 * SCALE_X, 100 * SCALE_Y);
+        renderEngine.strokeStyle = "#fff";
+        renderEngine.strokeRect(350 * SCALE_X, 120 * SCALE_Y, 400 * SCALE_X, 100 * SCALE_Y);
+        renderEngine.fillStyle = "#fff";
+        renderEngine.font = `${20 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+        renderEngine.fillText("No Save Found!", 400 * SCALE_X, 170 * SCALE_Y);
+    }
+    // Draw load prompt
+    if (showLoadPrompt) {
+        renderEngine.fillStyle = "rgba(20, 20, 20, 0.95)";
+        renderEngine.fillRect(250 * SCALE_X, 100 * SCALE_Y, 500 * SCALE_X, 150 * SCALE_Y);
+        renderEngine.strokeStyle = "#fff";
+        renderEngine.strokeRect(250 * SCALE_X, 100 * SCALE_Y, 500 * SCALE_X, 150 * SCALE_Y);
+        renderEngine.fillStyle = "#fff";
+        renderEngine.font = `${20 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+        renderEngine.fillText("Select save.json from your savesdata folder", 280 * SCALE_X, 150 * SCALE_Y);
+        renderEngine.fillText("Click anywhere to continue", 280 * SCALE_X, 180 * SCALE_Y);
+    }
 }
 
 function drawControlsOverlay() {
@@ -53,7 +107,8 @@ function drawControlsOverlay() {
         "1-9: Inventory slots",
         "T: Interact",
         "F3: Toggle debug",
-        "Escape: Open/close menu"
+        "Escape: Open/close menu",
+        "Save files to your savesdata folder!"
     ];
     controls.forEach((line, i) => {
         renderEngine.fillText(line, overlayX + 10 * SCALE_X, overlayY + 80 * SCALE_Y + i * 30 * SCALE_Y);
@@ -100,13 +155,47 @@ function drawAudioOverlay() {
     renderEngine.fillText("Back", backButtonX + 30 * SCALE_X, backButtonY + 25 * SCALE_Y);
 }
 
-function handleSettingsMenuClick(e) {
+async function handleSettingsMenuClick(e) {
     const canvas = renderEngine.canvas;
     const rect = canvas.getBoundingClientRect();
     const scaleX = CANVAS_WIDTH / rect.width;
     const scaleY = CANVAS_HEIGHT / rect.height;
     const mouseX = (e.clientX - rect.left) * scaleX;
     const mouseY = (e.clientY - rect.top) * scaleY;
+
+    // Handle click when load prompt is active
+    if (showLoadPrompt && e.type === 'click') {
+        showLoadPrompt = false;
+        fileInput.click();
+        fileInput.onchange = async () => {
+            const file = fileInput.files[0];
+            try {
+                const success = await loadGame(file);
+                if (success) {
+                    showLoadMessage = true;
+                    if (messageTimer) clearTimeout(messageTimer);
+                    messageTimer = setTimeout(() => {
+                        showLoadMessage = false;
+                    }, 2000);
+                } else {
+                    showNoSaveMessage = true;
+                    if (messageTimer) clearTimeout(messageTimer);
+                    messageTimer = setTimeout(() => {
+                        showNoSaveMessage = false;
+                    }, 2000);
+                }
+            } catch (error) {
+                showNoSaveMessage = true;
+                if (messageTimer) clearTimeout(messageTimer);
+                messageTimer = setTimeout(() => {
+                    showNoSaveMessage = false;
+                }, 2000);
+            }
+            fileInput.value = ''; // Reset input
+        };
+        return;
+    }
+
     if (showControls) {
         const backButtonX = 60 * SCALE_X;
         const backButtonY = 470 * SCALE_Y;
@@ -150,6 +239,16 @@ function handleSettingsMenuClick(e) {
             } else if (button.name === "Controls") {
                 showControls = true;
                 showAudio = false;
+            } else if (button.name === "Save Game") {
+                if (saveGame()) {
+                    showSaveMessage = true;
+                    if (messageTimer) clearTimeout(messageTimer);
+                    messageTimer = setTimeout(() => {
+                        showSaveMessage = false;
+                    }, 2000);
+                }
+            } else if (button.name === "Load Game") {
+                showLoadPrompt = true; // Show prompt before file picker
             } else if (button.name === "Quit") {
                 window.location.reload();
             }
@@ -176,6 +275,7 @@ function menuSettings() {
     if (!lastEscapeState && currentEscapeState) {
         menuActive = !menuActive;
         playerMovementDisabled = menuActive;
+        if (!menuActive) showLoadPrompt = false; // Reset prompt when closing menu
     }
     lastEscapeState = currentEscapeState;
     if (menuActive) {

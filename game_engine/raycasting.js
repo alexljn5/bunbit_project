@@ -4,7 +4,7 @@ import { textureIdMap, floorTextureIdMap } from "./mapdata/maptextures.js";
 import { CANVAS_WIDTH } from "./globals.js";
 
 export let playerFOV = Math.PI / 6; // 60 degrees
-export let numCastRays = 400; // Reduced for performance
+export let numCastRays = 1100; // Reduced for performance
 export let maxRayDepth = 11;
 
 // --- OPTIMIZED RAYCASTING WORKER MANAGEMENT ---

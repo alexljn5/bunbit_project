@@ -1,0 +1,40 @@
+{
+  "name": "idle-test-game",
+  "version": "0.0.3",
+  "main": "heavensgate.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder"
+  },
+  "build": {
+    "appId": "com.yourname.myawesomegame",
+    "productName": "My Awesome Game",
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "icon.ico"
+    },
+    "files": [
+      "heavensgate.js",
+      "index.html",
+      "main.js",
+      "autoclicker.js",
+      "5secondreaper.js",
+      "inventory.js",
+      "andreaslefttoe.js",
+      "npc.js",
+      "bank.js",
+      "prestigesystem.js",
+      "creamfix.gif",
+      "styles.css",
+      "img/**/*",
+      "game_engine/**/*",
+      "audio/**/*"
+    ]
+  },
+  "devDependencies": {
+    "electron": "^latest",
+    "electron-builder": "^latest"
+  }
+}

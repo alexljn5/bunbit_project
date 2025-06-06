@@ -1,12 +1,9 @@
 import { renderEngine } from "../renderengine.js";
 import { compiledTextStyle } from "../debugtools.js";
-import { playerInventory } from "./playerinventory.js";
 import { staminaBarMeterOnCanvas, healthMeterOnCanvas } from "./playerui.js";
 import { playerMovementDisabled } from "../ai/friendlycat.js";
 import { wallCollision } from "../collissiondetection/collissionwalllogic.js";
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from "../globals.js";
-
-// Cleaned up player logic for clarity and maintainability
 
 export let playerVantagePointX = { playerVantagePointX: 0 };
 export let playerVantagePointY = { playerVantagePointY: 0 };
@@ -23,7 +20,7 @@ export const keys = Object.fromEntries([
 let playerMovementSpeed = 100;
 let playerRotationSpeed = Math.PI / 3;
 let lastTime = performance.now();
-export let playerStaminaBar = 100;
+export const playerStamina = { playerStaminaBar: 100 };
 let maxStamina = 100;
 let drainRate = 50;
 let regenRate = 20;
@@ -94,11 +91,11 @@ export function playerLogic() {
     // Health and stamina management
     playerHealthBar = playerHealth.playerHealth;
     let isSprinting = false;
-    if (keys.alt && (keys.w || keys.s || keys.q || keys.e) && playerStaminaBar > 0) {
+    if (keys.alt && (keys.w || keys.s || keys.q || keys.e) && playerStamina.playerStaminaBar > 0) {
         isSprinting = true;
-        playerStaminaBar = Math.max(0, playerStaminaBar - drainRate * deltaTime);
-    } else if (playerStaminaBar < maxStamina) {
-        playerStaminaBar = Math.min(maxStamina, playerStaminaBar + regenRate * deltaTime);
+        playerStamina.playerStaminaBar = Math.max(0, playerStamina.playerStaminaBar - drainRate * deltaTime);
+    } else if (playerStamina.playerStaminaBar < maxStamina) {
+        playerStamina.playerStaminaBar = Math.min(maxStamina, playerStamina.playerStaminaBar + regenRate * deltaTime);
     }
 
     // Store previous position before updating
@@ -110,7 +107,7 @@ export function playerLogic() {
     if (keys.d) playerPosition.angle += playerRotationSpeed * deltaTime;
     const cosAngle = Math.cos(playerPosition.angle);
     const sinAngle = Math.sin(playerPosition.angle);
-    const sprintMultiplier = isSprinting && playerStaminaBar > 0 ? 2 : 1;
+    const sprintMultiplier = isSprinting && playerStamina.playerStaminaBar > 0 ? 2 : 1;
     const slowMultiplier = keys.shift ? 0.5 : 1;
     let isMoving = keys.w || keys.s || keys.q || keys.e;
     if (keys.w) {
@@ -169,4 +166,3 @@ export function isInteractionKeyPressed() {
 }
 
 export { showDebugTools };
-

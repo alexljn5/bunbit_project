@@ -12,7 +12,7 @@ function prestigeButton() {
     if (state.clicks >= 10000000) {
         state.clicks = state.clicks - 10000000;
         displayFunction();
-        window.location.href = "./game_engine/main_game.html"
+        window.location.href = "../game_engine/main_game.html"
     } else {
         alert("Not enough clicks!");
     }

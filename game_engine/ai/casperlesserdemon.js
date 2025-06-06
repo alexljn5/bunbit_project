@@ -5,13 +5,27 @@ import { tileSectors } from "../mapdata/maps.js";
 import { isOccludedByWall } from "./aihandler.js";
 import { casperLesserDemonDeathScreen } from "../events/map_01_events.js";
 
-let casperLesserDemonPreviousPos = { x: casperLesserDemonSpriteWorldPos.x, z: casperLesserDemonSpriteWorldPos.z }
-let lastKnownPlayerPos = null;
-let canSeePlayer = true;
+export let casperLesserDemonPreviousPos = { x: casperLesserDemonSpriteWorldPos.x, z: casperLesserDemonSpriteWorldPos.z };
+export let lastKnownPlayerPos = null;
+export let canSeePlayer = true;
+export let isPeeking = false;
+export let peekStartTime = 0;
 const damagePerSecond = 100; // Health lost per second
 let lastHitTime = 0;
 const hitCooldown = 1000; // 1 second between hits
 const hitRadius = 20; // Distance for a "hit"
+
+export function setCanSeePlayer(value) {
+    canSeePlayer = value;
+}
+
+export function setIsPeeking(value) {
+    isPeeking = value;
+}
+
+export function setPeekStartTime(value) {
+    peekStartTime = value;
+}
 
 export function casperLesserDemon() {
     if (!lastKnownPlayerPos) {
@@ -25,8 +39,6 @@ export function casperLesserDemon() {
     const visionRange = 400; // Slightly shorter vision for sneaky vibe
     const peekDistance = 50; // Distance to check for nearby walls
     const peekDelay = 2000; // 2 seconds to peek
-    let peekStartTime = 0; // Store peek start time
-    let isPeeking = false;
 
     const dx = playerPosition.x - casperLesserDemonSpriteWorldPos.x;
     const dz = playerPosition.z - casperLesserDemonSpriteWorldPos.z;
@@ -88,7 +100,7 @@ export function casperLesserDemon() {
     for (const dir of directions) {
         const checkX = cellX + dir.dx;
         const checkZ = cellZ + dir.dz;
-        if (checkX >= 0 && checkX < map_01[0].length && checkZ >= 0 && checkZ < map_01.length) {
+        if (checkX >= 0 && checkX < map_01[0].length && checkZ >= 0 && cellZ < map_01.length) {
             if (map_01[checkZ][checkX].type === "wall") {
                 adjacentWalls++;
                 // Check if Casper is close to the wall's edge (within peekDistance)
@@ -212,4 +224,3 @@ export function casperLesserDemon() {
 
     console.log(`Casper moved to: x=${casperLesserDemonSpriteWorldPos.x.toFixed(2)}, z=${casperLesserDemonSpriteWorldPos.z.toFixed(2)}, targetDistance=${targetDistance.toFixed(2)}, canSeePlayer=${canSeePlayer}, isPeeking=${isPeeking}, isHalfwayBehindWall=${isHalfwayBehindWall}`);
 }
-

@@ -1,3 +1,21 @@
+@font-face {
+    font-family: "pixelFont";
+    src: url("fonts/MelodicaRegular.otf") format("opentype");
+}
+
+.headers {
+    display: flex;
+    justify-content: center;
+    background-color: white;
+}
+
+.indexLinks {
+    display: flex;
+    justify-content: center;
+    background-color: white;
+    padding: 10px;
+}
+
 .buttonPosition {
     display: flex;
     flex-direction: column;
@@ -74,6 +92,7 @@
 
 body {
     background-color: black;
+    font-family: "pixelFont", sans-serif;
 }
 
 .putElementsUnder {

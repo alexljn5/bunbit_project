@@ -1,9 +1,9 @@
 import { compiledTextStyle } from "../debugtools.js";
 import { renderEngine } from "../renderengine.js";
 import { casperFace1, casperFace2, casperFace3, casperFace4, casperFace5, casperFace1Loaded, casperFace2Loaded, casperFace3Loaded, casperFace4Loaded, casperFace5Loaded } from "./playertextures.js";
-import { playerInventory, selectedInventoryIndex } from "./playerinventory.js";
+import { playerInventory, inventoryState } from "./playerinventory.js";
 import { metalPipeSprite, genericGunSprite } from "../rendersprites.js";
-import { playerStaminaBar, playerHealthBar } from "./playerlogic.js";
+import { playerStamina, playerHealthBar } from "./playerlogic.js";
 import { genericGunAmmo } from "../itemhandler/gunhandler.js";
 import { CANVAS_HEIGHT, CANVAS_WIDTH, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT } from "../globals.js";
 
@@ -55,7 +55,7 @@ export function playerUI() {
     }
 
     // Draw selected inventory item sprite (if any)
-    const selectedItem = playerInventory[selectedInventoryIndex];
+    const selectedItem = playerInventory[inventoryState.selectedInventoryIndex];
     const itemX = 492 * SCALE_X;
     const itemY = 672 * SCALE_Y;
     const itemSize = 64 * Math.min(SCALE_X, SCALE_Y);
@@ -81,7 +81,7 @@ export function staminaBarMeterOnCanvas() {
     renderEngine.fillStyle = 'rgba(255, 255, 255, 0.5)';
     renderEngine.fillRect(x, y, barWidth, barHeight);
     renderEngine.fillStyle = 'rgba(0, 255, 0, 0.8)';
-    renderEngine.fillRect(x, y, (barWidth * playerStaminaBar) / maxStamina, barHeight);
+    renderEngine.fillRect(x, y, (barWidth * playerStamina.playerStaminaBar) / maxStamina, barHeight);
     renderEngine.strokeStyle = "white";
     renderEngine.lineWidth = 2 * Math.min(SCALE_X, SCALE_Y);
     renderEngine.strokeRect(x, y, barWidth, barHeight);

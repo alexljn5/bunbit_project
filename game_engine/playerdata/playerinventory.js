@@ -6,7 +6,7 @@ import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CA
 
 export let playerInventory = [];
 export let showInventorySprite = false;
-export let selectedInventoryIndex = 0;
+export const inventoryState = { selectedInventoryIndex: 0 };
 
 export function playerInventoryGodFunction() {
     inventoryUIShit();
@@ -32,7 +32,7 @@ function inventoryUIShit() {
         for (let i = 0; i < maxSlots; i++) {
             const itemKey = playerInventory[i];
             const sprite = spriteMap[itemKey];
-            if (i === selectedInventoryIndex) {
+            if (i === inventoryState.selectedInventoryIndex) {
                 renderEngine.strokeStyle = '#FFD700';
                 renderEngine.lineWidth = 4 * Math.min(SCALE_X, SCALE_Y);
                 renderEngine.strokeRect(x - 2 * SCALE_X, 8 * SCALE_Y, 68 * SCALE_X, 68 * SCALE_Y);
@@ -55,7 +55,7 @@ function keyHandlingOfInventory() {
     for (let i = 1; i <= 9; i++) {
         const key = String(i);
         if (keys[key]) {
-            selectedInventoryIndex = i - 1;
+            inventoryState.selectedInventoryIndex = i - 1;
             keys[key] = false;
         }
     }
