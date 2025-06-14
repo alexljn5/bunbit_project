@@ -154,7 +154,7 @@ corpse1Sprite.onload = () => {
 corpse1Sprite.onerror = () => {
     console.error("Failed to load corpse_1.png");
 };
-export const corpse1WorldPos = { x: 13 * tileSectors, z: 5.7 * tileSectors };
+export const corpse1WorldPos = { x: 1.3 * tileSectors, z: 11.7 * tileSectors };
 
 // Items
 export const metalPipeSprite = new Image();

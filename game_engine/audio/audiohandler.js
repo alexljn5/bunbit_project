@@ -23,7 +23,7 @@ export function playMusicGodFunction() {
 function playMusicBasedOnLevelLoads() {
     if (mapTable.get("map_01")) {
         playTrackLevel01();
-        playWtf();
+        //playWtf();
     }
 }
 
