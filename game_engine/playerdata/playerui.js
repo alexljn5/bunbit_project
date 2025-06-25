@@ -57,7 +57,7 @@ export function playerUI() {
     // Draw selected inventory item sprite (if any)
     const selectedItem = playerInventory[inventoryState.selectedInventoryIndex];
     const itemX = 492 * SCALE_X;
-    const itemY = 672 * SCALE_Y;
+    const itemY = 704 * SCALE_Y;
     const itemSize = 64 * Math.min(SCALE_X, SCALE_Y);
     if (selectedItem === "metal_pipe") {
         renderEngine.drawImage(metalPipeSprite, itemX, itemY, itemSize, itemSize);
