@@ -29,7 +29,7 @@ const domElements = {
 
 export const renderEngine = domElements.mainGameRender.getContext("2d");
 
-let game = null;
+export let game = null;
 let isRenderingFrame = false;
 let renderWorkersInitialized = false;
 
@@ -189,7 +189,7 @@ async function renderRaycastFloors(rayData) {
         renderEngine.fillRect(0, CANVAS_HEIGHT / 2, CANVAS_WIDTH, CANVAS_HEIGHT / 2);
         return;
     }
-    const floorRayStep = 4; // 30 columns
+    const floorRayStep = 2; //Divides how many rays are cast for the
     const colWidth = CANVAS_WIDTH / (numCastRays / floorRayStep);
     const projectionPlaneDist = (CANVAS_WIDTH * 0.5) / Math.tan(playerFOV * 0.5);
     const halfCanvasHeight = CANVAS_HEIGHT * 0.5;
@@ -239,7 +239,7 @@ async function renderRaycastFloors(rayData) {
             const texPx = Math.floor(texX * texture.width);
             const texPy = Math.floor(texY * texture.height);
 
-            // Draw larger rectanglesudo pacman -Syu
+            // Draw larger rectangles
             renderEngine.drawImage(
                 texture,
                 Math.floor(texPx), Math.floor(texPy), colWidth, baseStep,

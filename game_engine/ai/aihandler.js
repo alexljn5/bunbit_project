@@ -1,5 +1,6 @@
 import { casperLesserDemon } from "./casperlesserdemon.js";
 import { boyKisserNpcAIGodFunction } from "./friendlycat.js";
+import { placeholderAI, placeholderAIGodFunction } from "./placeholderai.js";
 
 // Cleaned up AI handler for clarity and maintainability
 export function friendlyAiGodFunction() {
@@ -8,6 +9,7 @@ export function friendlyAiGodFunction() {
 
 export function enemyAiGodFunction() {
     casperLesserDemon();
+    placeholderAIGodFunction();
 }
 
 export function isOccludedByWall(x0, z0, x1, z1, map, tileSectors) {

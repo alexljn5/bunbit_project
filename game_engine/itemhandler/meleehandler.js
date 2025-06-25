@@ -1,18 +1,47 @@
-import { playerInventory } from "../playerdata/playerinventory.js";
-import { keys } from "../playerdata/playerlogic.js";
-import { inventoryState } from "../playerdata/playerinventory.js";
+import { playerInventory, inventoryState } from "../playerdata/playerinventory.js";
+import { keys, playerPosition } from "../playerdata/playerlogic.js";
+import { placeholderAIHealth, setPlaceholderAIHealth } from "../ai/placeholderAI.js";
+import { map_01 } from "../mapdata/map_01.js";
+import { tileSectors } from "../mapdata/maps.js";
+import { isOccludedByWall } from "../ai/aihandler.js";
+import { placeholderAISpriteWorldPos } from "../rendersprites.js";
+
+const meleeDamage = 10; // Base damage for metal pipe
+const meleeRange = 30; // Melee attack range
+let lastAttackTime = 0; // Cooldown tracker
+const attackCooldown = 500; // 0.5 seconds between attacks
+
+function metalPipeHandler() {
+    if (!keys[" "] || playerInventory[inventoryState.selectedInventoryIndex] !== "metal_pipe") {
+        return;
+    }
+
+    const now = performance.now();
+    if (now - lastAttackTime < attackCooldown) {
+        return;
+    }
+
+    // Check for nearby enemies (e.g., placeholderAI)
+    const dx = playerPosition.x - placeholderAISpriteWorldPos.x;
+    const dz = playerPosition.z - placeholderAISpriteWorldPos.z;
+    const distance = Math.sqrt(dx * dx + dz * dz);
+
+    // Check occlusion and range
+    const isOccluded = isOccludedByWall(
+        playerPosition.x, playerPosition.z,
+        placeholderAISpriteWorldPos.x, placeholderAISpriteWorldPos.z,
+        map_01, tileSectors
+    );
+
+    if (distance < meleeRange && !isOccluded && placeholderAIHealth > 0) {
+        setPlaceholderAIHealth(placeholderAIHealth - meleeDamage);
+        console.log(`Hit Placeholder AI with metal pipe! Health: ${placeholderAIHealth}`);
+        lastAttackTime = now;
+    }
+
+    keys[" "] = false; // Reset space key to prevent continuous firing
+}
 
 export function meleeHandlerGodFunction() {
     metalPipeHandler();
-}
-
-function metalPipeHandler() {
-    if (keys[" "] && playerInventory[inventoryState.selectedInventoryIndex] === "metal_pipe") {
-        if (typeof window !== 'undefined' && window.boyKisserEnemyHealth !== undefined) {
-            window.boyKisserEnemyHealth = Math.max(0, window.boyKisserEnemyHealth - 0.2);
-        } else if (typeof globalThis !== 'undefined' && globalThis.boyKisserEnemyHealth !== undefined) {
-            globalThis.boyKisserEnemyHealth = Math.max(0, globalThis.boyKisserEnemyHealth - 0.2);
-        }
-    }
-    keys[" "] = false; // Reset space key to prevent continuous firing
 }

@@ -221,6 +221,15 @@ casperLesserDemonSprite.onload = () => {
 };
 export const casperLesserDemonSpriteWorldPos = { x: 5.5 * tileSectors, z: 11.3 * tileSectors };
 
+export const placeholderAiSprite = new Image();
+placeholderAiSprite.src = "./img/sprites/enemy/carenemytest.png";
+export let placeholderAiSpriteLoaded = false;
+placeholderAiSprite.onload = () => {
+    placeholderAiSpriteLoaded = true;
+    spriteManager.getSprite('placeholderAI').isLoaded = true;
+};
+export const placeholderAISpriteWorldPos = { x: 2.5 * tileSectors, z: 11.3 * tileSectors };
+
 export let boyKisserEnemyHealth = 5;
 if (typeof window !== 'undefined') window.boyKisserEnemyHealth = boyKisserEnemyHealth;
 else if (typeof globalThis !== 'undefined') globalThis.boyKisserEnemyHealth = boyKisserEnemyHealth;
@@ -456,6 +465,20 @@ spriteManager.addSprite(new Sprite({
         return null; // No depth info needed
     }
 }));
+
+spriteManager.addSprite(new Sprite({
+    id: 'placeholderAI',
+    image: placeholderAiSprite,
+    worldPos: placeholderAISpriteWorldPos,
+    isLoaded: placeholderAiSpriteLoaded,
+    layer: LAYERS.MIDGROUND,
+    baseWidthRatio: 128 / REF_CANVAS_WIDTH,
+    baseHeightRatio: 80 / REF_CANVAS_HEIGHT,
+    aspectRatio: 128 / 80,
+    baseYRatio: 400 / REF_CANVAS_HEIGHT,
+    scaleFactor: 0.5
+}));
+
 
 export function drawSprites(rayData) {
     if (!rayData) return;
