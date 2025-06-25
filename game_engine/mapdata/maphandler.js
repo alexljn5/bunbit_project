@@ -4,14 +4,12 @@ import { floorConcrete } from "./maptextures.js"; // Fallback tile
 
 export class MapHandler {
     constructor() {
-        this.maps = new Map([
-            ["map_01", map_01_sectors]
-        ]);
+        this.maps = new Map([["map_01", map_01_sectors]]);
+        this.fullMapCache = new Map([["map_01", map_01]]);
         this.activeMapKey = null;
         this.activeSector = null;
         this.activeSectorId = null;
-        this.fullMapCache = new Map([["map_01", map_01]]);
-        console.log("MapHandler initialized, available maps:", [...this.maps.keys()]);
+        console.log("MapHandler initialized! *twirls* Available maps:", [...this.maps.keys()]);
     }
 
     loadMap(mapKey, playerPosition) {
@@ -22,15 +20,18 @@ export class MapHandler {
         this.activeMapKey = mapKey;
         this.updateActiveSector(playerPosition);
         if (!this.activeSector) {
-            console.error(`No valid sector found for player at (${playerPosition.x}, ${playerPosition.z})! *pouts*`);
+            console.error(`No valid sector for player at (${playerPosition.x}, ${playerPosition.z})! *hides*`);
             return false;
         }
-        console.log(`Loaded map ${mapKey}, active sector: ${this.activeSectorId} *twirls*`);
+        console.log(`Loaded map ${mapKey}, active sector: ${this.activeSectorId} *claps*`);
         return true;
     }
 
     updateActiveSector(playerPosition) {
-        if (!this.activeMapKey || !this.maps.has(this.activeMapKey)) return false;
+        if (!this.activeMapKey || !this.maps.has(this.activeMapKey)) {
+            console.error("No active map! *pouts*");
+            return false;
+        }
         const sectors = this.maps.get(this.activeMapKey);
         const tileX = Math.floor(playerPosition.x / tileSectors);
         const tileY = Math.floor(playerPosition.z / tileSectors);
@@ -43,35 +44,68 @@ export class MapHandler {
                 if (this.activeSectorId !== sector.id) {
                     this.activeSector = sector.data;
                     this.activeSectorId = sector.id;
-                    console.log(`Switched to sector ${sector.id} at player (${playerPosition.x}, ${playerPosition.z})`);
+                    console.log(`Switched to sector ${sector.id} at (${playerPosition.x}, ${playerPosition.z})`);
+                    // Notify workers of sector change
+                    this.notifyWorkers();
                 }
                 return true;
             }
         }
+        console.warn(`No sector found for player at (${playerPosition.x}, ${playerPosition.z})! *tilts head*`);
+        this.activeSector = null;
+        this.activeSectorId = null;
         return false;
+    }
+
+    notifyWorkers() {
+        // Placeholder for worker notification (implemented in raycasting.js)
+        if (typeof updateWorkersWithSector === "function") {
+            updateWorkersWithSector(this.activeSector, this.getSectorBounds());
+        }
     }
 
     getActiveSector() {
         return this.activeSector;
     }
 
-    getTile(x, z) {
-        if (!this.activeSector || !this.activeMapKey) return floorConcrete; // Fallback
+    getSectorBounds() {
+        if (!this.activeMapKey || !this.activeSectorId) return null;
         const sectors = this.maps.get(this.activeMapKey);
+        const activeSectorInfo = sectors.find(s => s.id === this.activeSectorId);
+        if (!activeSectorInfo) return null;
+        return {
+            startX: activeSectorInfo.startX,
+            startY: activeSectorInfo.startY,
+            width: activeSectorInfo.width,
+            height: activeSectorInfo.height
+        };
+    }
+
+    getTile(x, z) {
+        if (!this.activeSector || !this.activeMapKey) {
+            console.warn("No active sector! Using fallback tile *pouts*");
+            return floorConcrete;
+        }
+        const sectors = this.maps.get(this.activeMapKey);
+        const activeSectorInfo = sectors.find(s => s.id === this.activeSectorId);
+        if (!activeSectorInfo) {
+            console.warn("Invalid sector info! *hides*");
+            return floorConcrete;
+        }
+
         const tileX = Math.floor(x / tileSectors);
         const tileY = Math.floor(z / tileSectors);
-        const activeSectorInfo = sectors.find(s => s.id === this.activeSectorId);
-        if (!activeSectorInfo) return floorConcrete;
-
         const localX = tileX - activeSectorInfo.startX;
         const localY = tileY - activeSectorInfo.startY;
+
         if (
             localX < 0 || localX >= activeSectorInfo.width ||
             localY < 0 || localY >= activeSectorInfo.height
         ) {
-            return floorConcrete;
+            return null; // Stop rendering out-of-bounds
         }
-        return this.activeSector[localY][localX];
+        const tile = this.activeSector[localY][localX];
+        return tile || floorConcrete;
     }
 
     getFullMap(mapKey = this.activeMapKey) {

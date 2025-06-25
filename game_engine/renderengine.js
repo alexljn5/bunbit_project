@@ -184,19 +184,20 @@ function renderRaycastWalls(rayData) {
 
 async function renderRaycastFloors(rayData) {
     if (!texturesLoaded) {
+        console.log("No floor textures! *pouts*");
         renderEngine.fillStyle = "gray";
         renderEngine.fillRect(0, CANVAS_HEIGHT / 2, CANVAS_WIDTH, CANVAS_HEIGHT / 2);
         return;
     }
-    const floorRayStep = 2; // Use every 2nd ray for 100 columns (numCastRays / 2)
+    const floorRayStep = 4; // 30 columns
     const colWidth = CANVAS_WIDTH / (numCastRays / floorRayStep);
     const projectionPlaneDist = (CANVAS_WIDTH * 0.5) / Math.tan(playerFOV * 0.5);
     const halfCanvasHeight = CANVAS_HEIGHT * 0.5;
     const halfTile = tileSectors * 0.5;
-    const baseStep = 4; // Keep for performance
+    const baseStep = 2;
     const invTileSectors = 1 / tileSectors;
 
-    // Precompute cos and sin for all rays to match worker
+    // Precompute cos/sin
     const cosAngles = new Float32Array(numCastRays);
     const sinAngles = new Float32Array(numCastRays);
     const fovStep = playerFOV / numCastRays;
@@ -206,11 +207,20 @@ async function renderRaycastFloors(rayData) {
         sinAngles[x] = Math.sin(angle);
     }
 
+    // Precompute row distances
+    const rowDistances = new Float32Array(CANVAS_HEIGHT);
+    for (let y = 0; y < CANVAS_HEIGHT; y++) {
+        rowDistances[y] = halfTile / ((y - halfCanvasHeight) / projectionPlaneDist);
+    }
+
     for (let x = 0; x < numCastRays; x += floorRayStep) {
         const ray = rayData[x];
         if (!ray || !ray.floorTextureKey) continue;
         const texture = tileTexturesMap.get(ray.floorTextureKey);
-        if (!texture) continue;
+        if (!texture) {
+            console.log(`Missing floor texture: ${ray.floorTextureKey} *tilts head*`);
+            continue;
+        }
 
         const cosA = cosAngles[x];
         const sinA = sinAngles[x];
@@ -220,29 +230,28 @@ async function renderRaycastFloors(rayData) {
         const yEnd = CANVAS_HEIGHT;
         if (y >= yEnd) continue;
 
-        let rowDistance = halfTile / ((y - halfCanvasHeight) / projectionPlaneDist);
-        let floorX = playerPosition.x + rowDistance * cosA;
-        let floorY = playerPosition.z + rowDistance * sinA;
-        let prevRowDistance = rowDistance;
+        let floorX = playerPosition.x + rowDistances[y] * cosA;
+        let floorY = playerPosition.z + rowDistances[y] * sinA;
 
         for (; y < yEnd; y += baseStep) {
-            if (y !== Math.min(Math.floor(wallBottom), CANVAS_HEIGHT)) {
-                rowDistance = halfTile / ((y - halfCanvasHeight) / projectionPlaneDist);
-                const dr = rowDistance - prevRowDistance;
-                floorX += dr * cosA;
-                floorY += dr * sinA;
-                prevRowDistance = rowDistance;
-            }
-
             const texX = (floorX - Math.floor(floorX / tileSectors) * tileSectors) * invTileSectors;
             const texY = (floorY - Math.floor(floorY / tileSectors) * tileSectors) * invTileSectors;
             const texPx = Math.floor(texX * texture.width);
             const texPy = Math.floor(texY * texture.height);
+
+            // Draw larger rectanglesudo pacman -Syu
             renderEngine.drawImage(
                 texture,
-                texPx, texPy, 1, 1, // Use 1x1 pixel sampling to match worker
-                (x / floorRayStep) * colWidth, y, colWidth, baseStep
+                Math.floor(texPx), Math.floor(texPy), colWidth, baseStep,
+                (x / floorRayStep) * colWidth, y, colWidth, Math.min(baseStep, yEnd - y)
             );
+
+            // Update floorX/Y for next step
+            if (y + baseStep < yEnd) {
+                const dr = rowDistances[y + baseStep] - rowDistances[y];
+                floorX += dr * cosA;
+                floorY += dr * sinA;
+            }
         }
     }
 }

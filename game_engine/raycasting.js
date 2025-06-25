@@ -5,11 +5,14 @@ import { CANVAS_WIDTH } from "./globals.js";
 import { mapHandler } from "./mapdata/maphandler.js";
 
 export let playerFOV = Math.PI / 6; // 60 degrees
-export let numCastRays = 1100; // Reduced for performance
-export let maxRayDepth = 11;
+export let numCastRays = 300; // Reduced for performance
+if (/Mobi|Android/i.test(navigator.userAgent) || navigator.hardwareConcurrency <= 4) {
+    numCastRays = 240; // Further reduce for low-end
+}
+export let maxRayDepth = 10;
 
 // --- OPTIMIZED RAYCASTING WORKER MANAGEMENT ---
-const NUM_WORKERS = 4;
+const NUM_WORKERS = Math.min(navigator.hardwareConcurrency || 2, 2);
 const workers = Array.from({ length: NUM_WORKERS }, () => new Worker("./workers/raycastworker.js", { type: "module" }));
 const workerPendingFrames = new Map();
 let workersInitialized = false;
@@ -141,6 +144,7 @@ export function cleanupWorkers() {
     workerPendingFrames.clear();
     console.log("Raycast workers terminated");
 }
+
 // --- TEST/DEBUG FUNCTIONS ---
 export function testFuckingAround() {
     castRays().then(rayData => {
