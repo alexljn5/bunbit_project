@@ -6,7 +6,7 @@ const tileTextures = {
     wall_schizoeye: new Image(),
     door_rusty_01: new Image(),
     wall_brick_graffiti_01: new Image(),
-    wall_laughing_demon: [], // Array for animated frames
+    wall_laughing_demon: [],
     wall_brick_door01_closed: new Image(),
     wall_brick_door01_open: new Image(),
 };
@@ -29,18 +29,15 @@ for (let i = 0; i < demonLaughingFrameCount; i++) {
     img.src = `./img/sprites/demonlaughing/demonlaughing_frame_${i}.gif`;
     tileTextures.wall_laughing_demon[i] = img;
 }
-// Animation state for wall_laughing_demon
+
 let demonLaughingFrameIndex = 0;
-let lastFrameTime = 0; // Initialize to 0
-const demonLaughingFrameDelay = 100; // 100ms = 0.1s
-let cachedFrame = null; // Cache current frame
+let lastFrameTime = 0;
+const demonLaughingFrameDelay = 100;
+let cachedFrame = null;
 
 let texturesLoaded = false;
-let texturesToLoad = Object.keys(tileTextures).length + demonLaughingFrameCount - 1; // Adjust for array
+let texturesToLoad = Object.keys(tileTextures).length + demonLaughingFrameCount - 1;
 
-
-
-// Map texture IDs to texture keys
 export const textureIdMap = new Map([
     [1, "wall_creamlol"],
     [2, "wall_brick"],
@@ -54,57 +51,56 @@ export const textureIdMap = new Map([
     [10, "wall_brick_door01_closed"],
 ]);
 
-// In maptextures.js
-export const fullTile = { type: "wall", textureId: 1 }; // wall_creamlol, no floor needed
-export const fullTileBrick = { type: "wall", textureId: 2 }; // wall_brick
-export const fullTileAldi = { type: "wall", textureId: 3 }; // wall_aldi
-export const fullTileSatanic = { type: "wall", textureId: 4 }; // wall_satanic
-export const fullTileSchizoEye = { type: "wall", textureId: 5 }; // wall_schizoeye
-export const fullTileRustyDoor01 = { type: "wall", textureId: 6 }; // door_rusty_01
-export const fullTileBrickGraffiti01 = { type: "wall", textureId: 7 }; // wall_brick_graffiti_01
-export const fullTileLaughingDemon = { type: "wall", textureId: 8 }; // wall_laughing_demon
-export const fullTileBrickDoor01Open = { type: "wall", textureId: 9 }; // wall_brick_door01_open
-export const fullTileBrickDoor01Closed = { type: "wall", textureId: 10 }; // wall_brick_door01_closed
+export const fullTile = { type: "wall", textureId: 1, floorHeight: 0, floorTextureId: 50, ceilingTextureId: 1 };
+export const fullTileBrick = { type: "wall", textureId: 2, floorHeight: 0, floorTextureId: 50, ceilingTextureId: 1 };
+export const fullTileAldi = { type: "wall", textureId: 3, floorHeight: 0, floorTextureId: 50, ceilingTextureId: 1 };
+export const fullTileSatanic = { type: "wall", textureId: 4, floorHeight: 0, floorTextureId: 50, ceilingTextureId: 1 };
+export const fullTileSchizoEye = { type: "wall", textureId: 5, floorHeight: 0, floorTextureId: 50, ceilingTextureId: 1 };
+export const fullTileRustyDoor01 = { type: "wall", textureId: 6, floorHeight: 0, floorTextureId: 50, ceilingTextureId: 1 };
+export const fullTileBrickGraffiti01 = { type: "wall", textureId: 7, floorHeight: 0, floorTextureId: 50, ceilingTextureId: 1 };
+export const fullTileLaughingDemon = { type: "wall", textureId: 8, floorHeight: 0, floorTextureId: 50, ceilingTextureId: 1 };
+export const fullTileBrickDoor01Open = { type: "wall", textureId: 9, floorHeight: 0, floorTextureId: 50, ceilingTextureId: 1 };
+export const fullTileBrickDoor01Closed = { type: "wall", textureId: 10, floorHeight: 0, floorTextureId: 50, ceilingTextureId: 1 };
+export const emptyTile = { type: "empty", floorHeight: 0, floorTextureId: 50, ceilingTextureId: 1 };
 
-export const emptyTile = { type: "empty", floorTextureId: 50 };
 export const tileTexturesMap = new Map();
 
-// Roof Textures
 const roofTextures = {
     roof_concrete: new Image(),
 };
-
 roofTextures.roof_concrete.src = "./img/sprites/roofs/roof_concrete.png";
 
 export const roofTextureIdMap = new Map([
     [1, "roof_concrete"],
 ]);
 
-export const roofConcrete = { type: "roof", textureId: 1 }; // roof_concrete
+export const roofConcrete = { type: "roof", textureId: 1, floorHeight: 0 };
 
-// Floor Textures
 const floorTextures = {
     floor_concrete: new Image(),
 };
-
-//floorTextures.floor_concrete.src = "./img/sprites/floors/floor_wood01.png";
 floorTextures.floor_concrete.src = "./img/sprites/roofs/roof_concrete.png";
 
 export const floorTextureIdMap = new Map([
     [50, "floor_concrete"],
 ]);
 
-export const floorConcrete = { type: "floor", textureId: 50 }; // floor_concrete
+export const floorConcrete = { type: "floor", textureId: 50, floorHeight: 1 };
 
-// Add to tileTexturesMap
 for (const [key, texture] of Object.entries(floorTextures)) {
     tileTexturesMap.set(key, texture);
 }
 for (const [key, texture] of Object.entries(roofTextures)) {
     tileTexturesMap.set(key, texture);
 }
+for (const [key, texture] of Object.entries(tileTextures)) {
+    if (key === "wall_laughing_demon") {
+        tileTexturesMap.set(key, tileTextures.wall_laughing_demon[0]);
+    } else {
+        tileTexturesMap.set(key, texture);
+    }
+}
 
-// Update texture loading check
 texturesToLoad += Object.keys(floorTextures).length + Object.keys(roofTextures).length;
 for (const [name, texture] of Object.entries(floorTextures)) {
     texture.onload = checkTexturesLoaded(name);
@@ -120,7 +116,6 @@ export function getDemonLaughingCurrentFrame() {
         console.log("Demon textures not loaded yet!");
         return tileTexturesMap.get("wall_creamlol");
     }
-
     const now = performance.now();
     if (now - lastFrameTime >= demonLaughingFrameDelay) {
         demonLaughingFrameIndex = (demonLaughingFrameIndex + 1) % demonLaughingFrameCount;
@@ -134,20 +129,9 @@ export function getDemonLaughingCurrentFrame() {
         cachedFrame = tempCanvas;
         console.log(`Demon frame index: ${demonLaughingFrameIndex}`);
     }
-
     return cachedFrame || tileTextures.wall_laughing_demon[0];
 }
 
-// Populate tileTexturesMap
-for (const [key, texture] of Object.entries(tileTextures)) {
-    if (key === "wall_laughing_demon") {
-        tileTexturesMap.set(key, tileTextures.wall_laughing_demon[0]); // Default to first frame
-    } else {
-        tileTexturesMap.set(key, texture);
-    }
-}
-
-// Cleaned up map textures for clarity and maintainability
 function checkTexturesLoaded(textureName) {
     return () => {
         texturesToLoad--;

@@ -19,6 +19,7 @@ import { itemHandlerGodFunction } from "./itemhandler/itemhandler.js";
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from "./globals.js";
 import { eventHandler } from "./events/eventhandler.js";
 import { initializeMap } from "./raycasting.js";
+import { decorationHandlerGodFunction } from "./decorationhandler/decorationhandler.js";
 
 // --- DOM Elements ---
 const domElements = {
@@ -62,13 +63,14 @@ async function gameRenderEngine() {
             isRenderingFrame = false;
             return;
         }
+        /*
         if (introActive) {
             newGameStartAnimation();
             isRenderingFrame = false;
             return;
         }
-
         animationHandler();
+        */
         menuHandler();
         initializeMap();
         let rayData = await castRays();
@@ -81,6 +83,7 @@ async function gameRenderEngine() {
         drawBackground();
         await renderRaycastWalls(rayData);
         await renderRaycastFloors(rayData);
+        decorationHandlerGodFunction();
         drawSprites(rayData);
         eventHandler();
         if (showDebugTools) compiledDevTools();
