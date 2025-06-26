@@ -62,14 +62,13 @@ async function gameRenderEngine() {
             isRenderingFrame = false;
             return;
         }
-        /*
         if (introActive) {
             newGameStartAnimation();
             isRenderingFrame = false;
             return;
         }
-            */
-        //animationHandler();
+
+        animationHandler();
         menuHandler();
         initializeMap();
         let rayData = await castRays();

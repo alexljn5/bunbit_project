@@ -82,17 +82,40 @@ function handlePlayerAttack() {
 }
 
 function drawPlaceholderAIHealthBar() {
-    // Project AI's world position to screen (simplified, assumes drawSprites provides screen coords)
-    // For simplicity, place health bar above sprite at fixed offset
-    const screenX = CANVAS_WIDTH; // Placeholder (replace with actual sprite screen X)
-    const screenY = CANVAS_HEIGHT / 2 - 50 * SCALE_Y; // Above sprite
+    // Only draw if AI is alive and not occluded
+    if (placeholderAIHealth <= 0 || isOccludedByWall(
+        placeholderAISpriteWorldPos.x, placeholderAISpriteWorldPos.z,
+        playerPosition.x, playerPosition.z, map_01, tileSectors
+    )) {
+        return;
+    }
+
+    // Calculate enemy position relative to player
+    const relativeX = placeholderAISpriteWorldPos.x - playerPosition.x;
+    const relativeZ = placeholderAISpriteWorldPos.z - playerPosition.z;
+
+    // Convert to screen coordinates with adjusted scaling
+    const scaleFactor = 0.04; // Adjusted from 0.02 to reduce skew
+    const screenX = (CANVAS_WIDTH / 2) + (relativeX * scaleFactor * CANVAS_WIDTH);
+    const screenY = (CANVAS_HEIGHT / 2) + (relativeZ * scaleFactor * CANVAS_HEIGHT);
+
+    // Clamp coordinates to ensure the bar stays on-screen
+    const clampedScreenX = Math.max(10 * SCALE_X, Math.min(CANVAS_WIDTH - 70 * SCALE_X, screenX));
+    const clampedScreenY = Math.max(10 * SCALE_Y, Math.min(CANVAS_HEIGHT - 74 * SCALE_Y, screenY));
+
+    // Debug: Draw a dot at the calculated screen position
+    renderEngine.save();
+    renderEngine.fillStyle = "red";
+    renderEngine.fillRect(clampedScreenX - 5, clampedScreenY - 5, 10, 10); // Red dot for sprite center
+    renderEngine.restore();
+
+    // Health bar dimensions
     const barWidth = 60 * SCALE_X;
     const barHeight = 10 * SCALE_Y;
-    const barX = screenX - barWidth / 2;
-    const barY = screenY - 20 * SCALE_Y;
-    console.log("aids");
+    const barX = clampedScreenX - barWidth / 2; // Center horizontally
+    const barY = clampedScreenY - CANVAS_HEIGHT / 2 * SCALE_Y; // Above sprite (adjust for height)
 
-    // Draw background (like dialogue box)
+    // Draw background (like a dialogue box)
     renderEngine.save();
     renderEngine.globalAlpha = 0.85;
     renderEngine.fillStyle = "black";
@@ -113,6 +136,12 @@ function drawPlaceholderAIHealthBar() {
     renderEngine.fillText(`${Math.floor(placeholderAIHealth)} HP`, barX + barWidth / 2 - 15 * SCALE_X, barY + barHeight - 2 * SCALE_Y);
 
     renderEngine.restore();
+
+    // Debug: Log coordinates
+    console.log(`AI World Pos: x=${placeholderAISpriteWorldPos.x}, z=${placeholderAISpriteWorldPos.z}`);
+    console.log(`Player Pos: x=${playerPosition.x}, z=${playerPosition.z}`);
+    console.log(`Screen Pos: x=${screenX}, y=${screenY}`);
+    console.log(`Clamped Screen Pos: x=${clampedScreenX}, y=${clampedScreenY}`);
 }
 
 export function placeholderAIGodFunction() {

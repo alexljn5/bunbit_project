@@ -1,6 +1,6 @@
 import { playerInventory, inventoryState } from "../playerdata/playerinventory.js";
 import { keys, playerPosition } from "../playerdata/playerlogic.js";
-import { placeholderAIHealth, setPlaceholderAIHealth } from "../ai/placeholderAI.js";
+import { placeholderAIHealth, setPlaceholderAIHealth } from "../ai/placeholderai.js";
 import { map_01 } from "../mapdata/map_01.js";
 import { tileSectors } from "../mapdata/maps.js";
 import { isOccludedByWall } from "../ai/aihandler.js";
