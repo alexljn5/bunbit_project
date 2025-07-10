@@ -18,10 +18,10 @@ export const map_02_sectors = [
     }
 ];
 
-// Optional full map
+// Core grid setup
 const mapHeight = map_02_sectors[0].height;
 const mapWidth = map_02_sectors[0].width;
-const map_02 = Array(mapHeight).fill().map(() => Array(mapWidth).fill(emptyTile));
+export const map_02 = Array(mapHeight).fill().map(() => Array(mapWidth).fill(emptyTile));
 map_02_sectors.forEach(({ data, startY, startX }) => {
     for (let y = 0; y < data.length; y++) {
         for (let x = 0; x < data[0].length; x++) {
@@ -30,4 +30,9 @@ map_02_sectors.forEach(({ data, startY, startX }) => {
     }
 });
 
-export { map_02, mapHeight, mapWidth };
+// Map metadata with floor texture
+export const map_02_data = {
+    grid: map_02,
+    sectors: map_02_sectors,
+    floorTextureId: 51 // floor_test
+};

@@ -1,11 +1,13 @@
-import { map_01_sectors, map_01 } from "./map_01.js";
-import { tileSectors } from "./maps.js";
-import { floorConcrete } from "./maptextures.js"; // Fallback tile
+import { tileSectors, mapSectorsTable, mapTable } from "./maps.js";
+import { floorConcrete, floorTextureIdMap } from "./maptextures.js";
 
 export class MapHandler {
     constructor() {
-        this.maps = new Map([["map_01", map_01_sectors]]);
-        this.fullMapCache = new Map([["map_01", map_01]]);
+        this.maps = mapSectorsTable;
+        this.fullMapCache = new Map();
+        for (const [key, map] of mapTable.entries()) {
+            this.fullMapCache.set(key, map);
+        }
         this.activeMapKey = null;
         this.activeSector = null;
         this.activeSectorId = null;
@@ -16,6 +18,11 @@ export class MapHandler {
         if (!this.maps.has(mapKey)) {
             console.error(`Map ${mapKey} not found! *pouts*`);
             return false;
+        }
+        if (mapKey === "map_debug") {
+            playerPosition.x = 75;
+            playerPosition.z = 75;
+            playerPosition.angle = 0;
         }
         this.activeMapKey = mapKey;
         this.updateActiveSector(playerPosition);
@@ -45,8 +52,6 @@ export class MapHandler {
                     this.activeSector = sector.data;
                     this.activeSectorId = sector.id;
                     console.log(`Switched to sector ${sector.id} at (${playerPosition.x}, ${playerPosition.z})`);
-                    // Notify workers of sector change
-                    this.notifyWorkers();
                 }
                 return true;
             }
@@ -55,13 +60,6 @@ export class MapHandler {
         this.activeSector = null;
         this.activeSectorId = null;
         return false;
-    }
-
-    notifyWorkers() {
-        // Placeholder for worker notification (implemented in raycasting.js)
-        if (typeof updateWorkersWithSector === "function") {
-            updateWorkersWithSector(this.activeSector, this.getSectorBounds());
-        }
     }
 
     getActiveSector() {
@@ -102,14 +100,31 @@ export class MapHandler {
             localX < 0 || localX >= activeSectorInfo.width ||
             localY < 0 || localY >= activeSectorInfo.height
         ) {
-            return null; // Stop rendering out-of-bounds
+            return null;
         }
         const tile = this.activeSector[localY][localX];
-        return tile || floorConcrete;
+        const mapData = this.fullMapCache.get(this.activeMapKey);
+        return tile ? { ...tile, floorTextureId: mapData?.floorTextureId || 50 } : floorConcrete;
     }
 
     getFullMap(mapKey = this.activeMapKey) {
-        return this.fullMapCache.get(mapKey) || null;
+        const mapData = this.fullMapCache.get(mapKey);
+        if (!mapData || !mapData.grid) {
+            console.warn(`No grid for map ${mapKey}! *pouts*`);
+            return null;
+        }
+        return mapData.grid;
+    }
+
+    getMapFloorTexture(mapKey = this.activeMapKey) {
+        const mapData = this.fullMapCache.get(mapKey);
+        if (!mapData || !mapData.floorTextureId) {
+            console.warn(`No floorTextureId for map ${mapKey}, defaulting to floor_concrete *pouts*`);
+            return "floor_concrete";
+        }
+        const textureKey = floorTextureIdMap.get(mapData.floorTextureId) || "floor_concrete";
+        console.log(`Map ${mapKey} using floor texture: ${textureKey} *giggles*`);
+        return textureKey;
     }
 
     getMapDimensions() {

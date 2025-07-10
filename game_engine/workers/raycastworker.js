@@ -36,8 +36,8 @@ self.addEventListener("message", (e) => {
         for (let i = 0; i < rayCount; i++) {
             const x = startRay + i;
             const rayAngle = playerAngle + (-playerFOV / 2 + (x / numCastRays) * playerFOV);
-            const cosAngle = Math.cos(rayAngle);
-            const sinAngle = Math.sin(rayAngle);
+            const cosAngle = fastCos(rayAngle);
+            const sinAngle = fastSin(rayAngle);
 
             let distance = 0;
             let rayX = posX;
@@ -136,6 +136,29 @@ self.addEventListener("message", (e) => {
         });
     }
 });
+
+// --- Math Tables for Fast Trig ---
+const SIN_TABLE_SIZE = 2048;
+const TWO_PI = Math.PI * 2;
+const sinTable = new Float32Array(SIN_TABLE_SIZE);
+const cosTable = new Float32Array(SIN_TABLE_SIZE);
+for (let i = 0; i < SIN_TABLE_SIZE; i++) {
+    const angle = (i / SIN_TABLE_SIZE) * TWO_PI;
+    sinTable[i] = Math.sin(angle);
+    cosTable[i] = Math.cos(angle);
+}
+function fastSin(angle) {
+    // angle in radians
+    let idx = Math.floor((angle % TWO_PI) / TWO_PI * SIN_TABLE_SIZE);
+    if (idx < 0) idx += SIN_TABLE_SIZE;
+    return sinTable[idx];
+}
+function fastCos(angle) {
+    // angle in radians
+    let idx = Math.floor((angle % TWO_PI) / TWO_PI * SIN_TABLE_SIZE);
+    if (idx < 0) idx += SIN_TABLE_SIZE;
+    return cosTable[idx];
+}
 
 // Fast inverse square root (Quake III style)
 function Q_rsqrt(number) {

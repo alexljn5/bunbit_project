@@ -54,13 +54,13 @@ export const map_01_sector3 = [
     [fullTileBrick, fullTileBrick, fullTile, fullTileBrick, fullTileBrick, fullTileBrick],
 ];
 
-// Sector metadata for MapHandler (world coordinates with tileSectors = 50)
+// Sector metadata
 export const map_01_sectors = [
     {
         id: "sector1",
         data: map_01_sector1,
-        startX: 0, // World x (in tiles)
-        startY: 0, // World y (in tiles)
+        startX: 0,
+        startY: 0,
         width: map_01_sector1[0].length, // 5 tiles
         height: map_01_sector1.length // 13 tiles
     },
@@ -82,10 +82,10 @@ export const map_01_sectors = [
     }
 ];
 
-// Optional: Keep combined map_01 for legacy or full-map rendering
+// Core grid setup
 const mapHeight = Math.max(...map_01_sectors.map(s => s.startY + s.height));
 const mapWidth = Math.max(...map_01_sectors.map(s => s.startX + s.width));
-const map_01 = Array(mapHeight).fill().map(() => Array(mapWidth).fill(emptyTile));
+export const map_01 = Array(mapHeight).fill().map(() => Array(mapWidth).fill(emptyTile));
 map_01_sectors.forEach(({ data, startY, startX }) => {
     for (let y = 0; y < data.length; y++) {
         for (let x = 0; x < data[0].length; x++) {
@@ -94,4 +94,9 @@ map_01_sectors.forEach(({ data, startY, startX }) => {
     }
 });
 
-export { map_01, mapHeight, mapWidth };
+// Map metadata with floor texture
+export const map_01_data = {
+    grid: map_01,
+    sectors: map_01_sectors,
+    floorTextureId: 50 // floor_concrete
+};

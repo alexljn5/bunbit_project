@@ -2,10 +2,6 @@ body {
     background-color: black;
     margin: 0;
     min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
 }
 
 .ui-container {
@@ -167,4 +163,16 @@ button {
     position: absolute;
     top: 80px;
     left: 30px;
+}
+
+._2DGameRender {
+    display: flex;
+    align-self: flex-start;
+    border: 2px solid white;
+}
+
+._2DGameButtons {
+    display: flex;
+    align-self: flex-start;
+    border: 2px solid white;
 }

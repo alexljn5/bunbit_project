@@ -1,10 +1,12 @@
 import { tileSectors } from "../mapdata/maps.js";
-import { map_01 } from "../mapdata/map_01.js";
+import { mapHandler } from "../mapdata/maphandler.js";
 import { playerPosition, previousPosition, keys } from "../playerdata/playerlogic.js";
 
 export function wallCollision(isSprinting, playerMovementSpeed, deltaTime) {
-    const mapWidth = map_01[0].length;
-    const mapHeight = map_01.length;
+    const activeSector = mapHandler.getActiveSector();
+    if (!activeSector) return;
+    const mapHeight = activeSector.length;
+    const mapWidth = activeSector[0].length;
     const playerRadius = 10;
     const buffer = 0.2; // Increased buffer to prevent sticking
     const epsilon = 0.01;
@@ -37,8 +39,8 @@ export function wallCollision(isSprinting, playerMovementSpeed, deltaTime) {
     for (let x = xMin; x <= xMax; x++) {
         for (let z = zMin; z <= zMax; z++) {
             if (x < 0 || x >= mapWidth || z < 0 || z >= mapHeight) continue;
-            const tile = map_01[z][x];
-            if (tile.type !== "wall") continue;
+            const tile = activeSector[z][x];
+            if (!tile || tile.type !== "wall") continue;
 
             const tileLeft = x * tileSectors;
             const tileRight = (x + 1) * tileSectors;
@@ -76,8 +78,8 @@ export function wallCollision(isSprinting, playerMovementSpeed, deltaTime) {
         for (let x = xMin; x <= xMax; x++) {
             for (let z = zMin; z <= zMax; z++) {
                 if (x < 0 || x >= mapWidth || z < 0 || z >= mapHeight) continue;
-                const tile = map_01[z][x];
-                if (tile.type !== "wall") continue;
+                const tile = activeSector[z][x];
+                if (!tile || tile.type !== "wall") continue;
                 const tileLeft = x * tileSectors;
                 const tileRight = (x + 1) * tileSectors;
                 const tileTop = z * tileSectors;

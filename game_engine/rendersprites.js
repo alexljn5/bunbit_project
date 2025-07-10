@@ -55,7 +55,7 @@ class Sprite {
     }
 }
 
-// SpriteManager to handle sprite registration and layered rendering
+// --- SpriteManager to handle per-map sprites ---
 class SpriteManager {
     constructor() {
         this.sprites = new Map();
@@ -64,17 +64,38 @@ class SpriteManager {
             [LAYERS.MIDGROUND]: [],
             [LAYERS.FOREGROUND]: []
         };
+        this.mapSprites = new Map(); // mapKey -> array of sprite configs
+        this.currentMapKey = null;
     }
 
-    addSprite(sprite) {
-        this.sprites.set(sprite.id, sprite);
-        this.layers[sprite.layer].push(sprite);
+    addSprite(sprite, mapKey = null) {
+        if (mapKey) {
+            if (!this.mapSprites.has(mapKey)) this.mapSprites.set(mapKey, []);
+            this.mapSprites.get(mapKey).push(sprite);
+        }
+    }
+
+    clearSprites() {
+        this.sprites.clear();
+        this.layers = {
+            [LAYERS.BACKGROUND]: [],
+            [LAYERS.MIDGROUND]: [],
+            [LAYERS.FOREGROUND]: []
+        };
+    }
+
+    loadSpritesForMap(mapKey) {
+        this.clearSprites();
+        this.currentMapKey = mapKey;
+        const sprites = this.mapSprites.get(mapKey) || [];
+        for (const sprite of sprites) {
+            this.sprites.set(sprite.id, sprite);
+            this.layers[sprite.layer].push(sprite);
+        }
     }
 
     renderSprites(rayData) {
-        if (!rayData) {
-            return;
-        }
+        if (!rayData) return;
         // Render Background layer (no sorting)
         this.layers[LAYERS.BACKGROUND].forEach(sprite => sprite.renderFunction(rayData, renderEngine));
 
@@ -95,144 +116,16 @@ class SpriteManager {
         this.layers[LAYERS.FOREGROUND].forEach(sprite => sprite.renderFunction(rayData, renderEngine));
     }
 
-    getSprite(id) {
-        return this.sprites.get(id);
+    getSprite(id) { return this.sprites.get(id); }
+
+    addSpriteForMaps(sprite, mapKeys) {
+        for (const mapKey of mapKeys) {
+            this.addSprite(sprite, mapKey);
+        }
     }
 }
 
 export const spriteManager = new SpriteManager();
-
-// Preload Sprites
-export const playerHandSprite = new Image(100, 100);
-playerHandSprite.src = "./img/sprites/playerhand/playerhand_default.png";
-export let handLoaded = false;
-playerHandSprite.onload = () => {
-    handLoaded = true;
-    spriteManager.getSprite('playerHand').isLoaded = true;
-};
-playerHandSprite.onerror = () => {
-    console.error("Failed to load playerhand_default.png");
-};
-
-export const pillar01Sprite = new Image();
-pillar01Sprite.src = "./img/sprites/decoration/pillar_01.png";
-export let pillar01Loaded = false;
-pillar01Sprite.onload = () => {
-    pillar01Loaded = true;
-    spriteManager.getSprite('pillar01').isLoaded = true;
-};
-pillar01Sprite.onerror = () => {
-    console.error("Failed to load pillar_01.png");
-};
-export const pillar01SpriteWorldPos = { x: 2.5 * tileSectors, z: 6 * tileSectors };
-
-export const creamSpinFrames = [];
-export const creamSpinFrameCount = 7;
-export let creamSpinLoaded = false;
-for (let i = 0; i < creamSpinFrameCount; i++) {
-    const img = new Image(150, 250);
-    img.src = `./img/sprites/creamspin/creamspin${i}.png`;
-    img.onload = () => {
-        creamSpinFrames[i] = img;
-        if (creamSpinFrames.filter(f => f).length === creamSpinFrameCount) {
-            creamSpinLoaded = true;
-            spriteManager.getSprite('creamSpin').isLoaded = true;
-        }
-    };
-    img.onerror = () => {
-        console.error(`Failed to load creamspin${i}.png`);
-    };
-}
-
-export const corpse1Sprite = new Image();
-corpse1Sprite.src = "./img/sprites/decoration/corpse_1.png";
-export let corpse1Loaded = false;
-corpse1Sprite.onload = () => {
-    corpse1Loaded = true;
-    spriteManager.getSprite('corpse1').isLoaded = true;
-};
-corpse1Sprite.onerror = () => {
-    console.error("Failed to load corpse_1.png");
-};
-export const corpse1WorldPos = { x: 1.3 * tileSectors, z: 11.7 * tileSectors };
-
-// Items
-export const metalPipeSprite = new Image();
-metalPipeSprite.src = "./img/sprites/items/metal_pipe.png";
-export let metalPipeLoaded = false;
-metalPipeSprite.onload = () => {
-    metalPipeLoaded = true;
-    spriteManager.getSprite('metalPipe').isLoaded = true;
-};
-export const metalPipeWorldPos = { x: 2.5 * tileSectors, z: 4.5 * tileSectors };
-export const spriteState = {
-    isMetalPipeCollected: false,
-    isNineMmAmmoCollected: false
-};
-
-export const metalPipePlayerHandSprite = new Image();
-metalPipePlayerHandSprite.src = "./img/sprites/playerhand/playerhand_metal_pipe.png";
-export let metalPipePlayerHandLoaded = false;
-metalPipePlayerHandSprite.onload = () => {
-    metalPipePlayerHandLoaded = true;
-    spriteManager.getSprite('playerHand').isLoaded = true;
-};
-
-export const genericGunSprite = new Image();
-genericGunSprite.src = "./img/sprites/items/generic_gun.png";
-export let genericGunSpriteLoaded = false;
-genericGunSprite.onload = () => {
-    genericGunSpriteLoaded = true;
-};
-
-export const genericGunPlayerHandSprite = new Image();
-genericGunPlayerHandSprite.src = "./img/sprites/playerhand/playerhand_generic_gun.png";
-export let genericGunPlayerHandLoaded = false;
-genericGunPlayerHandSprite.onload = () => {
-    genericGunPlayerHandLoaded = true;
-    spriteManager.getSprite('playerHand').isLoaded = true;
-};
-
-export const nineMMAmmoSprite = new Image();
-nineMMAmmoSprite.src = "./img/sprites/items/9mm_ammo_box.png";
-export let nineMMAmmoSpriteLoaded = false;
-nineMMAmmoSprite.onload = () => {
-    nineMMAmmoSpriteLoaded = true;
-    spriteManager.getSprite('nineMMAmmo').isLoaded = true;
-};
-export const nineMMAmmoSpriteWorldPos = { x: 3.4 * tileSectors, z: 1.2 * tileSectors };
-
-// End of Items
-export const boyKisserEnemySprite = new Image();
-boyKisserEnemySprite.src = "./img/sprites/enemy/boykisser.png";
-export let boyKisserEnemySpriteLoaded = false;
-boyKisserEnemySprite.onload = () => {
-    boyKisserEnemySpriteLoaded = true;
-    spriteManager.getSprite('boyKisser').isLoaded = true;
-};
-export const boyKisserEnemySpriteWorldPos = { x: 3.4 * tileSectors, z: 1.2 * tileSectors };
-
-export const casperLesserDemonSprite = new Image();
-casperLesserDemonSprite.src = "./img/sprites/enemy/casperdemon.png";
-export let casperLesserDemonSpriteLoaded = false;
-casperLesserDemonSprite.onload = () => {
-    casperLesserDemonSpriteLoaded = true;
-    spriteManager.getSprite('casperLesserDemon').isLoaded = true;
-};
-export const casperLesserDemonSpriteWorldPos = { x: 5.5 * tileSectors, z: 11.3 * tileSectors };
-
-export const placeholderAiSprite = new Image();
-placeholderAiSprite.src = "./img/sprites/enemy/carenemytest.png";
-export let placeholderAiSpriteLoaded = false;
-placeholderAiSprite.onload = () => {
-    placeholderAiSpriteLoaded = true;
-    spriteManager.getSprite('placeholderAI').isLoaded = true;
-};
-export const placeholderAISpriteWorldPos = { x: 2.5 * tileSectors, z: 11.3 * tileSectors };
-
-export let boyKisserEnemyHealth = 5;
-if (typeof window !== 'undefined') window.boyKisserEnemyHealth = boyKisserEnemyHealth;
-else if (typeof globalThis !== 'undefined') globalThis.boyKisserEnemyHealth = boyKisserEnemyHealth;
 
 // Animation state for creamSpin
 let defaultFrameSpeed = 10;
@@ -240,9 +133,72 @@ let creamSpinFrameIndex = 0;
 let creamSpinFrameTimer = 0;
 const creamSpinFrameDelay = defaultFrameSpeed;
 export const creamSpinWorldPos = { x: 3.0 * tileSectors, z: 650 / 50 * tileSectors };
+export const creamSpinFrameCount = 7;
+export let creamSpinLoaded = false;
 
-// Register Sprites with SpriteManager
-spriteManager.addSprite(new Sprite({
+// Preload Sprites
+export const playerHandSprite = new Image(100, 100);
+export let handLoaded = false;
+export const pillar01Sprite = new Image();
+export let pillar01Loaded = false;
+export const pillar01SpriteWorldPos = { x: 2.5 * tileSectors, z: 6 * tileSectors };
+export const creamSpinFrames = [];
+export const corpse1Sprite = new Image();
+export let corpse1Loaded = false;
+export const corpse1WorldPos = { x: 1.3 * tileSectors, z: 11.7 * tileSectors };
+export const metalPipeSprite = new Image();
+export let metalPipeLoaded = false;
+export const metalPipeWorldPos = { x: 2.5 * tileSectors, z: 4.5 * tileSectors };
+export const spriteState = {
+    isMetalPipeCollected: false,
+    isNineMmAmmoCollected: false
+};
+export const metalPipePlayerHandSprite = new Image();
+export let metalPipePlayerHandLoaded = false;
+export const genericGunSprite = new Image();
+export let genericGunSpriteLoaded = false;
+export const genericGunPlayerHandSprite = new Image();
+export let genericGunPlayerHandLoaded = false;
+export const nineMMAmmoSprite = new Image();
+export let nineMMAmmoSpriteLoaded = false;
+export const nineMMAmmoSpriteWorldPos = { x: 3.4 * tileSectors, z: 1.2 * tileSectors };
+export const boyKisserEnemySprite = new Image();
+export let boyKisserEnemySpriteLoaded = false;
+export const boyKisserEnemySpriteWorldPos = { x: 3.4 * tileSectors, z: 1.2 * tileSectors };
+export const casperLesserDemonSprite = new Image();
+export let casperLesserDemonSpriteLoaded = false;
+export const casperLesserDemonSpriteWorldPos = { x: 5.5 * tileSectors, z: 11.3 * tileSectors };
+export const placeholderAiSprite = new Image();
+export let placeholderAiSpriteLoaded = false;
+export const placeholderAISpriteWorldPos = { x: 2.5 * tileSectors, z: 11.3 * tileSectors };
+export let boyKisserEnemyHealth = 5;
+
+// Register Sprites with SpriteManager FIRST
+const playerHand = new Sprite({
+    id: 'playerHand',
+    image: playerHandSprite,
+    isLoaded: handLoaded,
+    layer: LAYERS.FOREGROUND,
+    renderFunction: (rayData, renderEngine) => {
+        if (!handLoaded && !metalPipePlayerHandLoaded && !genericGunPlayerHandLoaded) return null;
+        let handSprite = playerHandSprite;
+        const selectedItem = playerInventory[inventoryState.selectedInventoryIndex];
+        if (selectedItem === "metal_pipe" && metalPipePlayerHandLoaded) {
+            handSprite = metalPipePlayerHandSprite;
+        } else if (selectedItem === "generic_gun" && genericGunPlayerHandLoaded) {
+            handSprite = genericGunPlayerHandSprite;
+        }
+        const bobbingY = (400 * SCALE_Y) + getPlayerBobbingOffset();
+        const spriteWidth = 256 * SCALE_X;
+        const spriteHeight = 512 * SCALE_Y;
+        const spriteX = 450 * SCALE_X;
+        renderEngine.drawImage(handSprite, spriteX, bobbingY, spriteWidth, spriteHeight);
+        return null; // No depth info needed
+    }
+});
+spriteManager.addSprite(playerHand, "map_01");
+
+const pillar01 = new Sprite({
     id: 'pillar01',
     image: pillar01Sprite,
     worldPos: pillar01SpriteWorldPos,
@@ -253,9 +209,10 @@ spriteManager.addSprite(new Sprite({
     aspectRatio: 1,
     baseYRatio: 400 / REF_CANVAS_HEIGHT,
     scaleFactor: 0.5
-}));
+});
+spriteManager.addSprite(pillar01, "map_01");
 
-spriteManager.addSprite(new Sprite({
+const corpse1 = new Sprite({
     id: 'corpse1',
     image: corpse1Sprite,
     worldPos: corpse1WorldPos,
@@ -266,9 +223,10 @@ spriteManager.addSprite(new Sprite({
     aspectRatio: 128 / 80,
     baseYRatio: 400 / REF_CANVAS_HEIGHT,
     scaleFactor: 0.5
-}));
+});
+spriteManager.addSprite(corpse1, "map_01");
 
-spriteManager.addSprite(new Sprite({
+const metalPipe = new Sprite({
     id: 'metalPipe',
     image: metalPipeSprite,
     worldPos: metalPipeWorldPos,
@@ -294,9 +252,10 @@ spriteManager.addSprite(new Sprite({
             spriteId: 'metalPipe'
         });
     }
-}));
+});
+spriteManager.addSprite(metalPipe, "map_01");
 
-spriteManager.addSprite(new Sprite({
+const nineMMAmmo = new Sprite({
     id: 'nineMMAmmo',
     image: nineMMAmmoSprite,
     worldPos: nineMMAmmoSpriteWorldPos,
@@ -337,9 +296,10 @@ spriteManager.addSprite(new Sprite({
         });
         return result ? { adjustedScreenX, spriteWidth, spriteY: spriteYBottom - spriteHeight, spriteHeight } : null;
     }
-}));
+});
+spriteManager.addSprite(nineMMAmmo, "map_01");
 
-spriteManager.addSprite(new Sprite({
+const boyKisser = new Sprite({
     id: 'boyKisser',
     image: boyKisserEnemySprite,
     worldPos: boyKisserEnemySpriteWorldPos,
@@ -387,9 +347,10 @@ spriteManager.addSprite(new Sprite({
         }
         return null;
     }
-}));
+});
+spriteManager.addSprite(boyKisser, "map_01");
 
-spriteManager.addSprite(new Sprite({
+const casperLesserDemon = new Sprite({
     id: 'casperLesserDemon',
     image: casperLesserDemonSprite,
     worldPos: casperLesserDemonSpriteWorldPos,
@@ -400,9 +361,10 @@ spriteManager.addSprite(new Sprite({
     aspectRatio: 128 / 80,
     baseYRatio: 400 / REF_CANVAS_HEIGHT,
     scaleFactor: 0.5
-}));
+});
+spriteManager.addSprite(casperLesserDemon, "map_01");
 
-spriteManager.addSprite(new Sprite({
+const creamSpin = new Sprite({
     id: 'creamSpin',
     image: creamSpinFrames[0], // Placeholder, updated in render
     worldPos: creamSpinWorldPos,
@@ -441,32 +403,10 @@ spriteManager.addSprite(new Sprite({
         });
         return result;
     }
-}));
+});
+spriteManager.addSprite(creamSpin, "map_01");
 
-spriteManager.addSprite(new Sprite({
-    id: 'playerHand',
-    image: playerHandSprite,
-    isLoaded: handLoaded,
-    layer: LAYERS.FOREGROUND,
-    renderFunction: (rayData, renderEngine) => {
-        if (!handLoaded && !metalPipePlayerHandLoaded && !genericGunPlayerHandLoaded) return null;
-        let handSprite = playerHandSprite;
-        const selectedItem = playerInventory[inventoryState.selectedInventoryIndex];
-        if (selectedItem === "metal_pipe" && metalPipePlayerHandLoaded) {
-            handSprite = metalPipePlayerHandSprite;
-        } else if (selectedItem === "generic_gun" && genericGunPlayerHandLoaded) {
-            handSprite = genericGunPlayerHandSprite;
-        }
-        const bobbingY = (400 * SCALE_Y) + getPlayerBobbingOffset();
-        const spriteWidth = 256 * SCALE_X;
-        const spriteHeight = 512 * SCALE_Y;
-        const spriteX = 450 * SCALE_X;
-        renderEngine.drawImage(handSprite, spriteX, bobbingY, spriteWidth, spriteHeight);
-        return null; // No depth info needed
-    }
-}));
-
-spriteManager.addSprite(new Sprite({
+const placeholderAI = new Sprite({
     id: 'placeholderAI',
     image: placeholderAiSprite,
     worldPos: placeholderAISpriteWorldPos,
@@ -477,8 +417,125 @@ spriteManager.addSprite(new Sprite({
     aspectRatio: 128 / 80,
     baseYRatio: 400 / REF_CANVAS_HEIGHT,
     scaleFactor: 0.5
-}));
+});
+spriteManager.addSprite(placeholderAI, "map_01");
 
+// Set up image loading AFTER sprite registration
+playerHandSprite.src = "./img/sprites/playerhand/playerhand_default.png";
+playerHandSprite.onload = () => {
+    handLoaded = true;
+    playerHand.isLoaded = true;
+};
+playerHandSprite.onerror = () => {
+    console.error("Failed to load playerhand_default.png");
+};
+
+pillar01Sprite.src = "./img/sprites/decoration/pillar_01.png";
+pillar01Sprite.onload = () => {
+    pillar01Loaded = true;
+    pillar01.isLoaded = true;
+};
+pillar01Sprite.onerror = () => {
+    console.error("Failed to load pillar_01.png");
+};
+
+for (let i = 0; i < creamSpinFrameCount; i++) {
+    const img = new Image(150, 250);
+    img.src = `./img/sprites/creamspin/creamspin${i}.png`;
+    img.onload = () => {
+        creamSpinFrames[i] = img;
+        if (creamSpinFrames.filter(f => f).length === creamSpinFrameCount) {
+            creamSpinLoaded = true;
+            creamSpin.isLoaded = true;
+        }
+    };
+    img.onerror = () => {
+        console.error(`Failed to load creamspin${i}.png`);
+    };
+}
+
+corpse1Sprite.src = "./img/sprites/decoration/corpse_1.png";
+corpse1Sprite.onload = () => {
+    corpse1Loaded = true;
+    corpse1.isLoaded = true;
+};
+corpse1Sprite.onerror = () => {
+    console.error("Failed to load corpse_1.png");
+};
+
+metalPipeSprite.src = "./img/sprites/items/metal_pipe.png";
+metalPipeSprite.onload = () => {
+    metalPipeLoaded = true;
+    metalPipe.isLoaded = true;
+};
+metalPipeSprite.onerror = () => {
+    console.error("Failed to load metal_pipe.png");
+};
+
+metalPipePlayerHandSprite.src = "./img/sprites/playerhand/playerhand_metal_pipe.png";
+metalPipePlayerHandSprite.onload = () => {
+    metalPipePlayerHandLoaded = true;
+    playerHand.isLoaded = true;
+};
+metalPipePlayerHandSprite.onerror = () => {
+    console.error("Failed to load playerhand_metal_pipe.png");
+};
+
+genericGunSprite.src = "./img/sprites/items/generic_gun.png";
+genericGunSprite.onload = () => {
+    genericGunSpriteLoaded = true;
+};
+genericGunSprite.onerror = () => {
+    console.error("Failed to load generic_gun.png");
+};
+
+genericGunPlayerHandSprite.src = "./img/sprites/playerhand/playerhand_generic_gun.png";
+genericGunPlayerHandSprite.onload = () => {
+    genericGunPlayerHandLoaded = true;
+    playerHand.isLoaded = true;
+};
+genericGunPlayerHandSprite.onerror = () => {
+    console.error("Failed to load playerhand_generic_gun.png");
+};
+
+nineMMAmmoSprite.src = "./img/sprites/items/9mm_ammo_box.png";
+nineMMAmmoSprite.onload = () => {
+    nineMMAmmoSpriteLoaded = true;
+    nineMMAmmo.isLoaded = true;
+};
+nineMMAmmoSprite.onerror = () => {
+    console.error("Failed to load 9mm_ammo_box.png");
+};
+
+boyKisserEnemySprite.src = "./img/sprites/enemy/boykisser.png";
+boyKisserEnemySprite.onload = () => {
+    boyKisserEnemySpriteLoaded = true;
+    boyKisser.isLoaded = true;
+};
+boyKisserEnemySprite.onerror = () => {
+    console.error("Failed to load boykisser.png");
+};
+
+casperLesserDemonSprite.src = "./img/sprites/enemy/casperdemon.png";
+casperLesserDemonSprite.onload = () => {
+    casperLesserDemonSpriteLoaded = true;
+    casperLesserDemon.isLoaded = true;
+};
+casperLesserDemonSprite.onerror = () => {
+    console.error("Failed to load casperdemon.png");
+};
+
+placeholderAiSprite.src = "./img/sprites/enemy/carenemytest.png";
+placeholderAiSprite.onload = () => {
+    placeholderAiSpriteLoaded = true;
+    placeholderAI.isLoaded = true;
+};
+placeholderAiSprite.onerror = () => {
+    console.error("Failed to load carenemytest.png");
+};
+
+if (typeof window !== 'undefined') window.boyKisserEnemyHealth = boyKisserEnemyHealth;
+else if (typeof globalThis !== 'undefined') globalThis.boyKisserEnemyHealth = boyKisserEnemyHealth;
 
 export function drawSprites(rayData) {
     if (!rayData) return;
@@ -509,7 +566,6 @@ function isSpriteVisible(rayData, startColumn, endColumn, correctedDistance, spr
         }
     }
     const visible = visibleStartCol !== -1 && visibleEndCol !== -1;
-    console.log(`Sprite ${spriteName} visibility: visible=${visible}, columns=${visibleStartCol}-${visibleEndCol}, distance=${correctedDistance}`);
     return { visible, visibleStartCol, visibleEndCol };
 }
 

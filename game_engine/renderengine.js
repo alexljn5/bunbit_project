@@ -3,7 +3,7 @@ import { playerLogic, playerPosition, showDebugTools } from "./playerdata/player
 import { playerInventoryGodFunction } from "./playerdata/playerinventory.js";
 import { compiledDevTools } from "./debugtools.js";
 import { tileSectors } from "./mapdata/maps.js";
-import { castRays, cleanupWorkers, numCastRays, playerFOV } from "./raycasting.js";
+import { castRays, cleanupWorkers, numCastRays, playerFOV, initializeMap } from "./raycasting.js";
 import { drawSprites } from "./rendersprites.js";
 import { mainGameMenu, setupMenuClickHandler } from "./menus/menu.js";
 import { texturesLoaded, tileTexturesMap, getDemonLaughingCurrentFrame } from "./mapdata/maptextures.js";
@@ -18,8 +18,8 @@ import { introActive, newGameStartAnimation } from "./animations/newgamestartani
 import { itemHandlerGodFunction } from "./itemhandler/itemhandler.js";
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from "./globals.js";
 import { eventHandler } from "./events/eventhandler.js";
-import { initializeMap } from "./raycasting.js";
 import { decorationHandlerGodFunction } from "./decorationhandler/decorationhandler.js";
+import { mapHandler } from "./mapdata/maphandler.js";
 
 // --- DOM Elements ---
 const domElements = {
@@ -53,7 +53,7 @@ export function mainGameRender() {
     game = gameLoop(gameRenderEngine);
 }
 
-//Main game render loop
+// Main game render loop
 async function gameRenderEngine() {
     if (isRenderingFrame) return;
     isRenderingFrame = true;
@@ -72,10 +72,15 @@ async function gameRenderEngine() {
         animationHandler();
         */
         menuHandler();
-        initializeMap();
+        // Ensure map is initialized
+        if (!mapHandler.activeMapKey) {
+            console.log("No active map, loading map_01 *twirls*");
+            mapHandler.loadMap("map_01", playerPosition);
+        }
         let rayData = await castRays();
         if (!rayData || rayData.every(ray => ray === null)) {
-            renderEngine.fillStyle = "red";
+            console.warn(`Invalid rayData: ${JSON.stringify(rayData)} *pouts*`);
+            renderEngine.fillStyle = "gray";
             renderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
             isRenderingFrame = false;
             return;
@@ -97,6 +102,8 @@ async function gameRenderEngine() {
         playMusicGodFunction();
     } catch (error) {
         console.error("gameRenderEngine error:", error);
+        renderEngine.fillStyle = "gray";
+        renderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     } finally {
         isRenderingFrame = false;
     }
@@ -147,9 +154,31 @@ function cleanupRenderWorkers() {
     renderWorkersInitialized = false;
 }
 
+// --- Math Tables for Fast Trig ---
+const SIN_TABLE_SIZE = 2048;
+const TWO_PI = Math.PI * 2;
+const sinTable = new Float32Array(SIN_TABLE_SIZE);
+const cosTable = new Float32Array(SIN_TABLE_SIZE);
+for (let i = 0; i < SIN_TABLE_SIZE; i++) {
+    const angle = (i / SIN_TABLE_SIZE) * TWO_PI;
+    sinTable[i] = Math.sin(angle);
+    cosTable[i] = Math.cos(angle);
+}
+export function fastSin(angle) {
+    let idx = Math.floor((angle % TWO_PI) / TWO_PI * SIN_TABLE_SIZE);
+    if (idx < 0) idx += SIN_TABLE_SIZE;
+    return sinTable[idx];
+}
+export function fastCos(angle) {
+    let idx = Math.floor((angle % TWO_PI) / TWO_PI * SIN_TABLE_SIZE);
+    if (idx < 0) idx += SIN_TABLE_SIZE;
+    return cosTable[idx];
+}
+
 // --- Raycast Rendering ---
 function renderRaycastWalls(rayData) {
     if (!texturesLoaded) {
+        console.warn("Textures not loaded, rendering gray walls *pouts*");
         renderEngine.fillStyle = "gray";
         renderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
         return;
@@ -169,7 +198,10 @@ function renderRaycastWalls(rayData) {
         if (ray.textureKey === "wall_laughing_demon") {
             texture = getDemonLaughingCurrentFrame() || tileTexturesMap.get("wall_creamlol");
         }
-        if (!texture) continue;
+        if (!texture) {
+            console.warn(`Missing wall texture: ${ray.textureKey} *tilts head*`);
+            continue;
+        }
         drawQuad({
             topX: i * colWidth,
             topY: wallTop,
@@ -177,7 +209,7 @@ function renderRaycastWalls(rayData) {
             leftY: wallBottom,
             rightX: (i + 1) * colWidth,
             rightY: wallBottom,
-            color: "red",
+            color: "gray",
             texture,
             textureX
         });
@@ -185,13 +217,32 @@ function renderRaycastWalls(rayData) {
 }
 
 async function renderRaycastFloors(rayData) {
+    const mapKey = mapHandler.activeMapKey || "map_01";
+    const floorTextureKey = mapHandler.getMapFloorTexture(mapKey);
+    const texture = tileTexturesMap.get(floorTextureKey) || tileTexturesMap.get("floor_concrete");
+
     if (!texturesLoaded) {
-        console.log("No floor textures! *pouts*");
+        console.warn("Textures not loaded, rendering gray floor *pouts*");
         renderEngine.fillStyle = "gray";
         renderEngine.fillRect(0, CANVAS_HEIGHT / 2, CANVAS_WIDTH, CANVAS_HEIGHT / 2);
         return;
     }
-    const floorRayStep = 2; //Divides how many rays are cast for the
+    if (!texture) {
+        console.warn(`Missing floor texture: ${floorTextureKey} for map ${mapKey} *hides*`);
+        renderEngine.fillStyle = "gray";
+        renderEngine.fillRect(0, CANVAS_HEIGHT / 2, CANVAS_WIDTH, CANVAS_HEIGHT / 2);
+        return;
+    }
+    if (!texture.complete) {
+        console.warn(`Floor texture ${floorTextureKey} not loaded yet: ${texture.src} *pouts*`);
+        renderEngine.fillStyle = "gray";
+        renderEngine.fillRect(0, CANVAS_HEIGHT / 2, CANVAS_WIDTH, CANVAS_HEIGHT / 2);
+        return;
+    }
+
+    console.log(`Rendering floor with texture: ${floorTextureKey} for map ${mapKey} *giggles*`);
+
+    const floorRayStep = 2;
     const colWidth = CANVAS_WIDTH / (numCastRays / floorRayStep);
     const projectionPlaneDist = (CANVAS_WIDTH * 0.5) / Math.tan(playerFOV * 0.5);
     const halfCanvasHeight = CANVAS_HEIGHT * 0.5;
@@ -199,7 +250,6 @@ async function renderRaycastFloors(rayData) {
     const baseStep = 2;
     const invTileSectors = 1 / tileSectors;
 
-    // Precompute cos/sin
     const cosAngles = new Float32Array(numCastRays);
     const sinAngles = new Float32Array(numCastRays);
     const fovStep = playerFOV / numCastRays;
@@ -209,7 +259,6 @@ async function renderRaycastFloors(rayData) {
         sinAngles[x] = Math.sin(angle);
     }
 
-    // Precompute row distances
     const rowDistances = new Float32Array(CANVAS_HEIGHT);
     for (let y = 0; y < CANVAS_HEIGHT; y++) {
         rowDistances[y] = halfTile / ((y - halfCanvasHeight) / projectionPlaneDist);
@@ -217,12 +266,7 @@ async function renderRaycastFloors(rayData) {
 
     for (let x = 0; x < numCastRays; x += floorRayStep) {
         const ray = rayData[x];
-        if (!ray || !ray.floorTextureKey) continue;
-        const texture = tileTexturesMap.get(ray.floorTextureKey);
-        if (!texture) {
-            console.log(`Missing floor texture: ${ray.floorTextureKey} *tilts head*`);
-            continue;
-        }
+        if (!ray) continue;
 
         const cosA = cosAngles[x];
         const sinA = sinAngles[x];
@@ -241,14 +285,12 @@ async function renderRaycastFloors(rayData) {
             const texPx = Math.floor(texX * texture.width);
             const texPy = Math.floor(texY * texture.height);
 
-            // Draw larger rectangles
             renderEngine.drawImage(
                 texture,
                 Math.floor(texPx), Math.floor(texPy), colWidth, baseStep,
                 (x / floorRayStep) * colWidth, y, colWidth, Math.min(baseStep, yEnd - y)
             );
 
-            // Update floorX/Y for next step
             if (y + baseStep < yEnd) {
                 const dr = rowDistances[y + baseStep] - rowDistances[y];
                 floorX += dr * cosA;

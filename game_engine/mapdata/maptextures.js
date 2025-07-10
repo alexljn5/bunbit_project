@@ -1,3 +1,5 @@
+import { CANVAS_WIDTH, CANVAS_HEIGHT } from "../globals.js";
+
 const tileTextures = {
     wall_creamlol: new Image(),
     wall_brick: new Image(),
@@ -18,7 +20,6 @@ tileTextures.wall_satanic.src = "./img/sprites/walls/wall_satanic_01.png";
 tileTextures.wall_schizoeye.src = "./img/website/schizoeye.gif";
 tileTextures.door_rusty_01.src = "./img/sprites/doors/door_rusty_01.png";
 tileTextures.wall_brick_graffiti_01.src = "./img/sprites/decoration/wall_brick_graffiti_01.png";
-tileTextures.wall_laughing_demon[0] = new Image();
 tileTextures.wall_brick_door01_open.src = "./img/sprites/walls/wall_brick_door01_open.png";
 tileTextures.wall_brick_door01_closed.src = "./img/sprites/walls/wall_brick_door01_closed.png";
 
@@ -78,26 +79,34 @@ export const roofConcrete = { type: "roof", textureId: 1, floorHeight: 0 };
 
 const floorTextures = {
     floor_concrete: new Image(),
+    floor_test: new Image()
 };
 floorTextures.floor_concrete.src = "./img/sprites/roofs/roof_concrete.png";
+floorTextures.floor_test.src = "./img/sprites/walls/creamlol.png";
 
 export const floorTextureIdMap = new Map([
     [50, "floor_concrete"],
+    [51, "floor_test"],
 ]);
 
 export const floorConcrete = { type: "floor", textureId: 50, floorHeight: 1 };
+export const floorTest = { type: "floor", textureId: 51, floorHeight: 1 };
 
+// Initialize tileTexturesMap
 for (const [key, texture] of Object.entries(floorTextures)) {
     tileTexturesMap.set(key, texture);
+    console.log(`Loading floor texture: ${key} from ${texture.src} *twirls*`);
 }
 for (const [key, texture] of Object.entries(roofTextures)) {
     tileTexturesMap.set(key, texture);
+    console.log(`Loading roof texture: ${key} from ${texture.src} *twirls*`);
 }
 for (const [key, texture] of Object.entries(tileTextures)) {
     if (key === "wall_laughing_demon") {
         tileTexturesMap.set(key, tileTextures.wall_laughing_demon[0]);
     } else {
         tileTexturesMap.set(key, texture);
+        console.log(`Loading wall texture: ${key} from ${texture.src} *claps*`);
     }
 }
 
@@ -113,7 +122,7 @@ for (const [name, texture] of Object.entries(roofTextures)) {
 
 export function getDemonLaughingCurrentFrame() {
     if (!demonLaughingLoaded) {
-        console.log("Demon textures not loaded yet!");
+        console.warn("Demon laughing frames not loaded! Using fallback *pouts*");
         return tileTexturesMap.get("wall_creamlol");
     }
     const now = performance.now();
@@ -127,7 +136,6 @@ export function getDemonLaughingCurrentFrame() {
         const tempCtx = tempCanvas.getContext("2d");
         tempCtx.drawImage(img, 0, 0);
         cachedFrame = tempCanvas;
-        console.log(`Demon frame index: ${demonLaughingFrameIndex}`);
     }
     return cachedFrame || tileTextures.wall_laughing_demon[0];
 }
@@ -135,23 +143,28 @@ export function getDemonLaughingCurrentFrame() {
 function checkTexturesLoaded(textureName) {
     return () => {
         texturesToLoad--;
-        console.log(`Texture loaded: ${textureName}`);
+        console.log(`Texture loaded: ${textureName}, remaining: ${texturesToLoad} *giggles*`);
         if (textureName.includes("demonlaughing")) {
             if (tileTextures.wall_laughing_demon.filter(f => f.complete).length === demonLaughingFrameCount) {
                 demonLaughingLoaded = true;
-                console.log("All demon laughing frames loaded!");
+                console.log("All demon laughing frames loaded! *claps*");
             }
         }
         if (texturesToLoad === 0) {
             texturesLoaded = true;
-            console.log("All textures loaded! *yay*");
+            console.log("All textures loaded! Ready to render! *twirls*");
         }
     };
 }
 
 function handleTextureError(textureName) {
     return () => {
-        console.error(`Failed to load texture: ${textureName}`);
+        console.error(`Failed to load texture: ${textureName} *pouts*`);
+        texturesToLoad--;
+        if (texturesToLoad === 0) {
+            texturesLoaded = true;
+            console.log("All textures processed, but some failed! *hides*");
+        }
     };
 }
 

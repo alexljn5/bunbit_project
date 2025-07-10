@@ -69,23 +69,40 @@ async function initializeWorkers() {
     return workersInitialized;
 }
 
+export function initializeMap() {
+    // No-op or ensure mapHandler has a map loaded, but do not force map_01
+    // Optionally, you can check if a map is loaded and load a default if not
+    if (!mapHandler.activeMapKey) {
+        mapHandler.loadMap("map_01", playerPosition);
+    }
+}
+
 export async function castRays() {
-    const map_01 = mapTable.get("map_01");
-    if (!map_01 || !Array.isArray(map_01) || !map_01[0]) {
+    // Use the currently active map from the handler
+    const currentMap = mapHandler.getFullMap();
+    if (!currentMap || !Array.isArray(currentMap) || !currentMap[0]) {
         return lastFrameResults.results || new Array(numCastRays).fill(null);
     }
     if (!workersInitialized) {
-        const initialized = await initializeWorkers();
-        if (!initialized) {
-            return lastFrameResults.results || new Array(numCastRays).fill(null);
-        }
+        // Pass the current map to the workers
+        for (let w of workers) w.postMessage({
+            type: "init",
+            tileSectors,
+            map_01: currentMap,
+            textureIdMap: Object.fromEntries(textureIdMap),
+            floorTextureIdMap: Object.fromEntries(floorTextureIdMap),
+            CANVAS_WIDTH,
+            numCastRays,
+            maxRayDepth
+        });
+        workersInitialized = true;
     }
     const posX = playerPosition.x;
     const posZ = playerPosition.z;
     const playerAngle = playerPosition.angle;
     currentFrameId++;
     const frameId = currentFrameId;
-    if (posX < 0 || posZ < 0 || posX > map_01[0].length * tileSectors || posZ > map_01.length * tileSectors) {
+    if (posX < 0 || posZ < 0 || posX > currentMap[0].length * tileSectors || posZ > currentMap.length * tileSectors) {
         playerPosition.x = 5 * tileSectors;
         playerPosition.z = 5 * tileSectors;
         return lastFrameResults.results || new Array(numCastRays).fill(null);
@@ -181,9 +198,13 @@ export function fuckTheScreenUpBaby() {
     }
 }
 
-export function initializeMap() {
-    const success = mapHandler.loadMap("map_01", playerPosition);
-    if (!success) {
-        console.error("Failed to initialize map! *pouts*");
-    }
+// --- Math Tables for Fast Trig ---
+const SIN_TABLE_SIZE = 2048;
+const TWO_PI = Math.PI * 2;
+const sinTable = new Float32Array(SIN_TABLE_SIZE);
+const cosTable = new Float32Array(SIN_TABLE_SIZE);
+for (let i = 0; i < SIN_TABLE_SIZE; i++) {
+    const angle = (i / SIN_TABLE_SIZE) * TWO_PI;
+    sinTable[i] = Math.sin(angle);
+    cosTable[i] = Math.cos(angle);
 }

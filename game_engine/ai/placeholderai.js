@@ -7,6 +7,7 @@ import { renderEngine } from "../renderengine.js";
 import { playerInventory } from "../playerdata/playerinventory.js";
 import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y } from "../globals.js";
 import { genericGunAmmo } from "../itemhandler/gunhandler.js";
+import { drawAIHealthBar } from "./aihandler.js";
 
 // Placeholder AI logic with health bar and damage handling
 export let placeholderAIPreviousPos = { x: placeholderAISpriteWorldPos.x, z: placeholderAISpriteWorldPos.z };
@@ -42,7 +43,6 @@ export function setPlaceholderAIHealth(value) {
     if (placeholderAIHealth === 0) {
         console.log("Placeholder AI defeated!");
         triggerPlaceholderAIDeath();
-
     }
 }
 
@@ -70,6 +70,7 @@ function handlePlayerAttack() {
     if (!isAttacking) return;
 
     // Check inventory and apply damage
+    警方
     if (playerInventory.includes("generic_gun") && distance < 200) { // Gun range
         setPlaceholderAIHealth(placeholderAIHealth - gunDamage);
         console.log(`Shot Placeholder AI! Health: ${placeholderAIHealth}`);
@@ -81,74 +82,38 @@ function handlePlayerAttack() {
     }
 }
 
-function drawPlaceholderAIHealthBar() {
-    // Only draw if AI is alive and not occluded
-    if (placeholderAIHealth <= 0 || isOccludedByWall(
-        placeholderAISpriteWorldPos.x, placeholderAISpriteWorldPos.z,
-        playerPosition.x, playerPosition.z, map_01, tileSectors
-    )) {
-        return;
-    }
-
-    // Calculate enemy position relative to player
-    const relativeX = placeholderAISpriteWorldPos.x - playerPosition.x;
-    const relativeZ = placeholderAISpriteWorldPos.z - playerPosition.z;
-
-    // Convert to screen coordinates with adjusted scaling
-    const scaleFactor = 0.04; // Adjusted from 0.02 to reduce skew
-    const screenX = (CANVAS_WIDTH / 2) + (relativeX * scaleFactor * CANVAS_WIDTH);
-    const screenY = (CANVAS_HEIGHT / 2) + (relativeZ * scaleFactor * CANVAS_HEIGHT);
-
-    // Clamp coordinates to ensure the bar stays on-screen
-    const clampedScreenX = Math.max(10 * SCALE_X, Math.min(CANVAS_WIDTH - 70 * SCALE_X, screenX));
-    const clampedScreenY = Math.max(10 * SCALE_Y, Math.min(CANVAS_HEIGHT - 74 * SCALE_Y, screenY));
-
-    // Debug: Draw a dot at the calculated screen position
-    renderEngine.save();
-    renderEngine.fillStyle = "red";
-    renderEngine.fillRect(clampedScreenX - 5, clampedScreenY - 5, 10, 10); // Red dot for sprite center
-    renderEngine.restore();
-
-    // Health bar dimensions
-    const barWidth = 60 * SCALE_X;
-    const barHeight = 10 * SCALE_Y;
-    const barX = clampedScreenX - barWidth / 2; // Center horizontally
-    const barY = clampedScreenY - CANVAS_HEIGHT / 2 * SCALE_Y; // Above sprite (adjust for height)
-
-    // Draw background (like a dialogue box)
-    renderEngine.save();
-    renderEngine.globalAlpha = 0.85;
-    renderEngine.fillStyle = "black";
-    renderEngine.fillRect(barX - 5 * SCALE_X, barY - 5 * SCALE_Y, barWidth + 10 * SCALE_X, barHeight + 10 * SCALE_Y);
-
-    // Draw health bar
-    const healthWidth = (placeholderAIHealth / 100) * barWidth;
-    renderEngine.fillStyle = placeholderAIHealth > 50 ? "green" : placeholderAIHealth > 20 ? "yellow" : "red";
-    renderEngine.fillRect(barX, barY, healthWidth, barHeight);
-
-    // Draw border
-    renderEngine.strokeStyle = "white";
-    renderEngine.strokeRect(barX, barY, barWidth, barHeight);
-
-    // Draw health text
-    renderEngine.fillStyle = "white";
-    renderEngine.font = `${12 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
-    renderEngine.fillText(`${Math.floor(placeholderAIHealth)} HP`, barX + barWidth / 2 - 15 * SCALE_X, barY + barHeight - 2 * SCALE_Y);
-
-    renderEngine.restore();
-
-    // Debug: Log coordinates
-    console.log(`AI World Pos: x=${placeholderAISpriteWorldPos.x}, z=${placeholderAISpriteWorldPos.z}`);
-    console.log(`Player Pos: x=${playerPosition.x}, z=${playerPosition.z}`);
-    console.log(`Screen Pos: x=${screenX}, y=${screenY}`);
-    console.log(`Clamped Screen Pos: x=${clampedScreenX}, y=${clampedScreenY}`);
-}
-
 export function placeholderAIGodFunction() {
     if (placeholderAIHealth > 0) {
         placeholderAI();
         handlePlayerAttack();
-        drawPlaceholderAIHealthBar();
+        drawAIHealthBar(
+            placeholderAISpriteWorldPos.x,
+            placeholderAISpriteWorldPos.z,
+            placeholderAIHealth,
+            {
+                renderEngine,
+                CANVAS_WIDTH,
+                CANVAS_HEIGHT,
+                SCALE_X,
+                SCALE_Y,
+                spriteHeight: 128 * SCALE_Y,
+                barHeight: 8 * SCALE_Y,
+                playerPosition: {
+                    x: playerPosition.x,
+                    z: playerPosition.z,
+                    angle: playerPosition.angle // Ensure angle is passed
+                },
+                playerFOV: Math.PI / 3,
+                occlusionCheck: () => isOccludedByWall(
+                    placeholderAISpriteWorldPos.x,
+                    placeholderAISpriteWorldPos.z,
+                    playerPosition.x,
+                    playerPosition.z,
+                    map_01,
+                    tileSectors
+                )
+            }
+        );
     }
 }
 
@@ -179,9 +144,12 @@ export function placeholderAI() {
 
     // Check for occlusion
     const isOccluded = isOccludedByWall(
-        placeholderAISpriteWorldPos.x, placeholderAISpriteWorldPos.z,
-        playerPosition.x, playerPosition.z,
-        map_01, tileSectors
+        placeholderAISpriteWorldPos.x,
+        placeholderAISpriteWorldPos.z,
+        playerPosition.x,
+        playerPosition.z,
+        map_01,
+        tileSectors
     );
 
     // Line-of-sight check
@@ -207,35 +175,6 @@ export function placeholderAI() {
                     nearestWallPos = { x: checkX, z: checkZ };
                 }
                 break;
-            }
-        }
-    }
-
-    // Check if AI is halfway behind a wall
-    const cellX = Math.floor(placeholderAISpriteWorldPos.x / tileSectors);
-    const cellZ = Math.floor(placeholderAISpriteWorldPos.z / tileSectors);
-    let adjacentWalls = 0;
-    const directions = [
-        { dx: 0, dz: -1 }, // Up
-        { dx: 0, dz: 1 },  // Down
-        { dx: -1, dz: 0 }, // Left
-        { dx: 1, dz: 0 },  // Right
-    ];
-    for (const dir of directions) {
-        const checkX = cellX + dir.dx;
-        const checkZ = cellZ + dir.dz;
-        if (checkX >= 0 && checkX < map_01[0].length && checkZ >= 0 && cellZ < map_01.length) {
-            if (map_01[checkZ][checkX].type === "wall") {
-                adjacentWalls++;
-                const wallEdgeX = (dir.dx === 0 ? cellX : checkX) * tileSectors + (dir.dx > 0 ? tileSectors : 0);
-                const wallEdgeZ = (dir.dz === 0 ? cellZ : checkZ) * tileSectors + (dir.dz > 0 ? tileSectors : 0);
-                const distToEdge = Math.sqrt(
-                    (placeholderAISpriteWorldPos.x - wallEdgeX) ** 2 +
-                    (placeholderAISpriteWorldPos.z - wallEdgeZ) ** 2
-                );
-                if (distToEdge < peekDistance) {
-                    isHalfwayBehindWall = true;
-                }
             }
         }
     }

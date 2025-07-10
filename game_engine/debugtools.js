@@ -35,8 +35,9 @@ function fpsMeter() {
 fpsMeter.last = null;
 
 function playerCoordinates() {
-    const playerX = Math.round(playerPosition.x + playerMovement.deltaX);
-    const playerZ = Math.round(playerPosition.z + playerMovement.deltaY);
+    // Show actual playerPosition.x and playerPosition.z (not delta)
+    const playerX = Math.round(playerPosition.x);
+    const playerZ = Math.round(playerPosition.z);
     compiledTextStyle();
     renderEngine.fillText(`X: ${playerX}, Z: ${playerZ}`, 1, 90 * SCALE_Y);
 }
