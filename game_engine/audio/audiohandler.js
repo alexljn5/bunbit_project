@@ -1,13 +1,16 @@
 import { mapTable } from "../mapdata/maps.js";
 import { renderEngine } from "../renderengine.js";
 import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT } from "../globals.js";
+import { mapHandler } from "../mapdata/maphandler.js";
 
+// Audio tracks per map
+const mapTracks = new Map([
+    ["map_01", new Audio("./audio/music/track_level01_new.mp3")],
+    ["map_02", new Audio("./audio/music/track_level01_wtf.mp3")],
+    ["map_debug", new Audio("./audio/music/placeholder.mp3")]
+]);
 
-//Level 01 tracks, cleanup later
-let track_level01 = new Audio("./audio/music/track_level01_new.mp3");
 let demon_rumble01 = new Audio("./audio/sounds/demonrumble.mp3");
-let track_level01_wtf = new Audio("./audio/music/track_level01_wtf.mp3");
-///////////////////
 let musicVolume = 1.0;
 let soundVolume = 1.0;
 let sliderDragging = null;
@@ -15,20 +18,42 @@ const sliderX = 365 * SCALE_X;
 const sliderY = 190 * SCALE_Y;
 const sliderWidth = 200 * SCALE_X;
 const sliderHeight = 16 * SCALE_Y;
+let currentTrack = null;
 
 export function playMusicGodFunction() {
     playMusicBasedOnLevelLoads();
 }
 
 function playMusicBasedOnLevelLoads() {
-    if (mapTable.get("map_01")) {
-        playTrackLevel01();
-        //playWtf();
+    const activeMapKey = mapHandler.activeMapKey;
+    if (!activeMapKey || !mapTable.get(activeMapKey)) {
+        console.warn(`No active map or invalid map key: ${activeMapKey} *pouts*`);
+        return;
     }
-}
 
-function playTrackLevel01() {
-    track_level01.play();
+    const newTrack = mapTracks.get(activeMapKey);
+    if (!newTrack) {
+        console.warn(`No track defined for map ${activeMapKey}, skipping music *tilts head*`);
+        return;
+    }
+
+    // Stop current track if different
+    if (currentTrack && currentTrack !== newTrack) {
+        currentTrack.pause();
+        currentTrack.currentTime = 0;
+        console.log(`Stopped previous track for map change *giggles*`);
+    }
+
+    // Play new track if not already playing
+    if (newTrack !== currentTrack) {
+        newTrack.volume = musicVolume;
+        newTrack.loop = true; // Optional: loop the track
+        newTrack.play().catch(error => {
+            console.error(`Error playing track for ${activeMapKey}: ${error} *hides*`);
+        });
+        currentTrack = newTrack;
+        console.log(`Playing track for map ${activeMapKey} *claps*`);
+    }
 }
 
 export function getMusicVolume() {
@@ -37,21 +62,35 @@ export function getMusicVolume() {
 
 export function setMusicVolume(val) {
     musicVolume = Math.max(0, Math.min(1, val));
-    if (track_level01) track_level01.volume = musicVolume;
+    if (currentTrack) {
+        currentTrack.volume = musicVolume;
+    }
+    // Update all tracks to maintain consistent volume
+    for (const track of mapTracks.values()) {
+        track.volume = musicVolume;
+    }
 }
 
 export function playWtf() {
     const nextDelay = Math.random() * 200000 + 5000; // 5 to 25 sec
     setTimeout(() => {
-        track_level01_wtf.volume = musicVolume;
-        track_level01_wtf.play();
+        const wtfTrack = mapTracks.get("map_01") || mapTracks.get("map_debug");
+        if (wtfTrack) {
+            wtfTrack.volume = musicVolume;
+            wtfTrack.play().catch(error => {
+                console.error(`Error playing WTF track: ${error} *pouts*`);
+            });
+        }
         playWtf(); // Schedule next one!
     }, nextDelay);
 }
 
-//sounds
+// Sounds
 export function playDemonRumble() {
-    demon_rumble01.play();
+    demon_rumble01.volume = soundVolume;
+    demon_rumble01.play().catch(error => {
+        console.error(`Error playing demon rumble: ${error} *hides*`);
+    });
 }
 
 export function getSoundVolume() {
@@ -60,6 +99,7 @@ export function getSoundVolume() {
 
 export function setSoundVolume(val) {
     soundVolume = Math.max(0, Math.min(1, val));
+    demon_rumble01.volume = soundVolume;
 }
 
 export function volumeSlidersGodFunction() {

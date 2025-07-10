@@ -1,3 +1,4 @@
+// maphandler.js (ENTIRE FILE with AI setup loading added)
 import { tileSectors, mapSectorsTable, mapTable } from "./maps.js";
 import { floorConcrete, floorTextureIdMap } from "./maptextures.js";
 
@@ -14,16 +15,29 @@ export class MapHandler {
         console.log("MapHandler initialized! *twirls* Available maps:", [...this.maps.keys()]);
     }
 
-    loadMap(mapKey, playerPosition) {
+    async loadMap(mapKey, playerPosition) {
         if (!this.maps.has(mapKey)) {
             console.error(`Map ${mapKey} not found! *pouts*`);
             return false;
         }
+
+        // 🎯 Setup per-map logic such as AI
+        try {
+            if (mapKey === "map_01") {
+                const { setupMap01 } = await import("../ai/map_01_setup.js");
+                setupMap01();
+            }
+            // Add more setup imports as needed per map
+        } catch (e) {
+            console.warn(`Couldn't load map setup for ${mapKey} *hides behind Cheese*`, e);
+        }
+
         if (mapKey === "map_debug") {
             playerPosition.x = 75;
             playerPosition.z = 75;
             playerPosition.angle = 0;
         }
+
         this.activeMapKey = mapKey;
         this.updateActiveSector(playerPosition);
         if (!this.activeSector) {

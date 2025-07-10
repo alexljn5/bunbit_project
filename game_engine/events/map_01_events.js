@@ -1,3 +1,5 @@
+// map_01_events.js (fixed to be per-map modular)
+
 import { playerPosition } from "../playerdata/playerlogic.js";
 import { getDemonLaughingCurrentFrame } from "../mapdata/maptextures.js";
 import { renderEngine } from "../renderengine.js";
@@ -6,49 +8,48 @@ import { casperLesserDemonSprite } from "../rendersprites.js";
 import { fuckTheScreenUp } from "../animations/fuckthescreenup.js";
 import { playDemonRumble } from "../audio/audiohandler.js";
 
-const startX = 0;
-const startY = 0;
-const numRows = 31;
-const numCols = 15;
-let demonInterval = 20;
-let eventDemonStep = 10; // Isolated state
-let eventStartTime = 0;
-let eventDemonActive = false;
-let deathDemonActive = false;
-let eventStartTimeGlobal = null;
-const TIME_LIMIT = 50000;
-let casperTimeoutId = null;
-const casperSpawnInterval = 500;
+// Map-local state
+const state = {
+    startX: 0,
+    startY: 0,
+    numRows: 31,
+    numCols: 15,
+    demonInterval: 20,
+    eventDemonStep: 10,
+    eventStartTime: 0,
+    eventDemonActive: false,
+    deathDemonActive: false,
+    eventStartTimeGlobal: null,
+    TIME_LIMIT: 50000,
+    casperTimeoutId: null,
+    casperSpawnInterval: 500,
+};
 
 export function map01EventsGodFunction(onComplete = () => { }) {
-    if (typeof onComplete !== 'function') {
-        console.warn('onComplete is not a function, defaulting to empty function');
-        onComplete = () => { };
-    }
+    if (typeof onComplete !== 'function') onComplete = () => { };
+    if (!state.eventStartTimeGlobal) state.eventStartTimeGlobal = performance.now();
     map01Event01(onComplete);
 }
 
 function map01Event01(onComplete) {
-    const elapsed = performance.now() - eventStartTimeGlobal;
-    if (elapsed > TIME_LIMIT) {
-        eventDemonActive = false;
+    const elapsed = performance.now() - state.eventStartTimeGlobal;
+    if (elapsed > state.TIME_LIMIT) {
+        state.eventDemonActive = false;
         onComplete();
         return;
     }
     if (playerPosition.x > 600 && playerPosition.z < 610) {
-        console.log("shart");
-        if (!eventDemonActive && !deathDemonActive) {
-            console.log("map01Event01 triggered");
-            eventDemonStep = 0;
-            eventStartTime = performance.now();
-            eventDemonActive = true;
+        if (!state.eventDemonActive && !state.deathDemonActive) {
+            state.eventDemonStep = 0;
+            state.eventStartTime = performance.now();
+            state.eventDemonActive = true;
             renderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
             renderEngine.fillStyle = "rgba(0, 0, 0, 0.4)";
             animateDemons(onComplete);
             playDemonRumble();
         }
     } else {
-        eventDemonActive = false;
+        state.eventDemonActive = false;
     }
 }
 
@@ -57,33 +58,30 @@ function animateDemons(onComplete) {
     let lastCasperSpawn = 0;
 
     function render(now) {
-        const elapsed = now - eventStartTime;
-        if (elapsed >= 10000 || !eventDemonActive || deathDemonActive) {
-            eventDemonActive = false;
+        const elapsed = now - state.eventStartTime;
+        if (elapsed >= 10000 || !state.eventDemonActive || state.deathDemonActive) {
+            state.eventDemonActive = false;
             cancelAnimationFrame(animationId);
-            if (casperTimeoutId) {
-                clearTimeout(casperTimeoutId);
-                casperTimeoutId = null;
-            }
+            if (state.casperTimeoutId) clearTimeout(state.casperTimeoutId);
+            state.casperTimeoutId = null;
             onComplete();
             return;
         }
 
-        const totalDemons = numRows * numCols;
-        eventDemonStep = Math.min(totalDemons, Math.floor(elapsed / demonInterval));
+        const totalDemons = state.numRows * state.numCols;
+        state.eventDemonStep = Math.min(totalDemons, Math.floor(elapsed / state.demonInterval));
 
         renderEngine.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
         renderEngine.fillStyle = "rgba(20, 0, 0, 0.5)";
         renderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-        // Get the demon frame once per render cycle
         const demonFrame = getDemonLaughingCurrentFrame();
 
-        for (let i = 0; i < eventDemonStep; i++) {
-            const row = Math.floor(i / numCols);
-            const col = i % numCols;
-            const x = (startX + col * 128) * SCALE_X;
-            const y = (startY + row * 128) * SCALE_Y;
+        for (let i = 0; i < state.eventDemonStep; i++) {
+            const row = Math.floor(i / state.numCols);
+            const col = i % state.numCols;
+            let x = (state.startX + col * 128) * SCALE_X;
+            let y = (state.startY + row * 128) * SCALE_Y;
             let width = 128 * SCALE_X;
             let height = 128 * SCALE_Y;
 
@@ -91,7 +89,7 @@ function animateDemons(onComplete) {
                 renderEngine.drawImage(demonFrame, x, y, width, height);
             }
 
-            if (elapsed - lastCasperSpawn >= casperSpawnInterval) {
+            if (elapsed - lastCasperSpawn >= state.casperSpawnInterval) {
                 lastCasperSpawn = elapsed;
                 renderEngine.save();
                 renderEngine.fillStyle = "rgba(50, 0, 0, 0.7)";
@@ -113,7 +111,7 @@ function animateDemons(onComplete) {
             }
         }
 
-        if (elapsed - lastCasperSpawn >= casperSpawnInterval * (0.5 + Math.random())) {
+        if (elapsed - lastCasperSpawn >= state.casperSpawnInterval * (0.5 + Math.random())) {
             lastCasperSpawn = elapsed;
             renderEngine.save();
             renderEngine.fillStyle = "rgba(80, 0, 0, 0.4)";
@@ -138,48 +136,44 @@ function animateDemons(onComplete) {
 
         animationId = requestAnimationFrame(render);
     }
-    console.log("Starting animateDemons");
     animationId = requestAnimationFrame(render);
 }
 
 export function casperLesserDemonDeathScreen() {
-    if (eventDemonActive || deathDemonActive) return;
+    if (state.eventDemonActive || state.deathDemonActive) return;
 
-    if (casperTimeoutId) {
-        clearTimeout(casperTimeoutId);
-        casperTimeoutId = null;
-    }
+    if (state.casperTimeoutId) clearTimeout(state.casperTimeoutId);
+    state.casperTimeoutId = null;
 
     let deathDemonStep = 0;
-    let deathStartTime = performance.now();
-    deathDemonActive = true;
+    const deathStartTime = performance.now();
+    state.deathDemonActive = true;
 
     let animationId = null;
     const duration = 10000;
 
     function render(now) {
         const elapsed = now - deathStartTime;
-        if (elapsed >= duration || !deathDemonActive) {
-            deathDemonActive = false;
+        if (elapsed >= duration || !state.deathDemonActive) {
+            state.deathDemonActive = false;
             cancelAnimationFrame(animationId);
             return;
         }
 
-        const totalDemons = numRows * numCols;
-        deathDemonStep = Math.min(totalDemons, Math.floor(elapsed / demonInterval));
+        const totalDemons = state.numRows * state.numCols;
+        deathDemonStep = Math.min(totalDemons, Math.floor(elapsed / state.demonInterval));
 
         renderEngine.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
         renderEngine.fillStyle = "rgba(255, 0, 0, 0.1)";
         renderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-        // Get the demon frame once per render cycle
         const demonFrame = getDemonLaughingCurrentFrame();
 
         for (let i = 0; i < deathDemonStep; i++) {
-            const row = Math.floor(i / numCols);
-            const col = i % numCols;
-            const x = (startX + col * 128) * SCALE_X;
-            const y = (startY + row * 128) * SCALE_Y;
+            const row = Math.floor(i / state.numCols);
+            const col = i % state.numCols;
+            const x = (state.startX + col * 128) * SCALE_X;
+            const y = (state.startY + row * 128) * SCALE_Y;
             const width = 128 * SCALE_X;
             const height = 128 * SCALE_Y;
 
