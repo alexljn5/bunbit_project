@@ -1,35 +1,36 @@
 import { updateGraphicsSettings, numCastRays, maxRayDepth } from "../raycasting.js";
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from "../globals.js";
 import { updateCanvasResolution } from "../globals.js";
+import { drawButton } from "./menusettings.js";
 
 export const graphicsPresets = {
     potato: {
-        numCastRays: 100, // Very few rays for low-end devices
-        maxRayDepth: 20   // Short render distance
+        numCastRays: 100,
+        maxRayDepth: 20
     },
     very_low: {
-        numCastRays: 150, // Slightly more rays for very low-end devices    
-        maxRayDepth: 25   // Slightly longer render distance
+        numCastRays: 150,
+        maxRayDepth: 25
     },
     low: {
-        numCastRays: 200, // Fewer rays for performance
-        maxRayDepth: 30   // Shorter render distance
+        numCastRays: 200,
+        maxRayDepth: 30
     },
     medium: {
-        numCastRays: 300, // Balanced number of rays
-        maxRayDepth: 40   // Moderate render distance
+        numCastRays: 300,
+        maxRayDepth: 40
     },
     high: {
-        numCastRays: 400, // More rays for quality
-        maxRayDepth: 50   // Longer render distance
+        numCastRays: 400,
+        maxRayDepth: 50
     },
     extreme: {
-        numCastRays: 500, // Maximum rays for high-end devices
-        maxRayDepth: 60   // Maximum render distance
+        numCastRays: 500,
+        maxRayDepth: 60
     },
     nasa: {
-        numCastRays: 600, // Insane number of rays for top-tier devices
-        maxRayDepth: 70   // Maximum render distance
+        numCastRays: 600,
+        maxRayDepth: 70
     }
 };
 
@@ -41,13 +42,11 @@ export function applyGraphicsPreset(preset) {
     updateGraphicsSettings(graphicsPresets[preset]);
     const lowResPresets = ["potato", "very_low", "low"];
     const highResPresets = ["medium", "high", "extreme", "nasa"];
-
     if (lowResPresets.includes(preset)) {
-        updateCanvasResolution(false); // 400x400 with scale
+        updateCanvasResolution(false);
     } else if (highResPresets.includes(preset)) {
-        updateCanvasResolution(true); // 800x800 native
+        updateCanvasResolution(true);
     }
-
     return true;
 }
 
@@ -68,7 +67,7 @@ export function drawGraphicsOverlay(renderEngine, SCALE_X, SCALE_Y, showGraphics
     const overlayX = 350 * SCALE_X;
     const overlayY = 120 * SCALE_Y;
     const overlayWidth = 400 * SCALE_X;
-    const overlayHeight = 400 * SCALE_Y; // Increased height to fit all presets
+    const overlayHeight = 400 * SCALE_Y;
     renderEngine.fillStyle = "rgba(20, 20, 20, 0.95)";
     renderEngine.fillRect(overlayX, overlayY, overlayWidth, overlayHeight);
     renderEngine.strokeStyle = "#fff";
@@ -83,7 +82,6 @@ export function drawGraphicsOverlay(renderEngine, SCALE_X, SCALE_Y, showGraphics
     renderEngine.fillText(`Rays: ${currentSettings.numCastRays}`, overlayX + 10 * SCALE_X, overlayY + 100 * SCALE_Y);
     renderEngine.fillText(`Render Distance: ${currentSettings.maxRayDepth}`, overlayX + 10 * SCALE_X, overlayY + 130 * SCALE_Y);
 
-    // Define buttons for all presets
     const presetButtons = Object.keys(graphicsPresets).map((preset, index) => ({
         name: preset.charAt(0).toUpperCase() + preset.slice(1).replace('_', ' '),
         x: overlayX + 20 * SCALE_X,
@@ -94,31 +92,21 @@ export function drawGraphicsOverlay(renderEngine, SCALE_X, SCALE_Y, showGraphics
         hovered: false
     }));
 
-    // Draw preset buttons
     presetButtons.forEach(button => {
-        renderEngine.fillStyle = currentSettings.preset === button.preset ? "#555" : "#222";
-        renderEngine.fillRect(button.x, button.y, button.width, button.height);
-        renderEngine.strokeStyle = "#fff";
-        renderEngine.strokeRect(button.x, button.y, button.width, button.height);
-        renderEngine.fillStyle = "#fff";
-        renderEngine.font = `${18 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
-        renderEngine.fillText(button.name, button.x + 20 * SCALE_X, button.y + 25 * SCALE_Y);
+        drawButton(renderEngine, button, currentSettings.preset === button.preset);
     });
 
-    // Draw Back button
-    const backButtonX = 60 * SCALE_X;
-    const backButtonY = 470 * SCALE_Y;
-    const backButtonWidth = 100 * SCALE_X;
-    const backButtonHeight = 36 * SCALE_Y;
-    renderEngine.fillStyle = showGraphics ? "#555" : "#222";
-    renderEngine.fillRect(backButtonX, backButtonY, backButtonWidth, backButtonHeight);
-    renderEngine.strokeStyle = "#fff";
-    renderEngine.strokeRect(backButtonX, backButtonY, backButtonWidth, backButtonHeight);
-    renderEngine.fillStyle = "#fff";
-    renderEngine.font = `${18 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
-    renderEngine.fillText("Back", backButtonX + 30 * SCALE_X, backButtonY + 25 * SCALE_Y);
+    const backButton = {
+        name: "Back",
+        x: 60 * SCALE_X,
+        y: 470 * SCALE_Y,
+        width: 100 * SCALE_X,
+        height: 36 * SCALE_Y,
+        hovered: false
+    };
+    drawButton(renderEngine, backButton, showGraphics, 30, 25);
 
-    return presetButtons; // Return buttons for click handling
+    return presetButtons;
 }
 
 export function handleGraphicsMenuClick(e, renderEngine, SCALE_X, SCALE_Y, presetButtons, setShowGraphics, setNeedsRedraw) {
@@ -129,10 +117,14 @@ export function handleGraphicsMenuClick(e, renderEngine, SCALE_X, SCALE_Y, prese
     const mouseX = (e.clientX - rect.left) * scaleX;
     const mouseY = (e.clientY - rect.top) * scaleY;
 
-    const backButtonX = 60 * SCALE_X;
-    const backButtonY = 470 * SCALE_Y;
-    const backButtonWidth = 100 * SCALE_X;
-    const backButtonHeight = 36 * SCALE_Y;
+    const backButton = {
+        name: "Back",
+        x: 60 * SCALE_X,
+        y: 470 * SCALE_Y,
+        width: 100 * SCALE_X,
+        height: 36 * SCALE_Y,
+        hovered: false
+    };
 
     if (e.type === 'click') {
         for (const button of presetButtons) {
@@ -146,19 +138,22 @@ export function handleGraphicsMenuClick(e, renderEngine, SCALE_X, SCALE_Y, prese
             }
         }
         if (
-            mouseX >= backButtonX && mouseX <= backButtonX + backButtonWidth &&
-            mouseY >= backButtonY && mouseY <= backButtonY + backButtonHeight
+            mouseX >= backButton.x && mouseX <= backButton.x + backButton.width &&
+            mouseY >= backButton.y && mouseY <= backButton.y + backButton.height
         ) {
             setShowGraphics(false);
             setNeedsRedraw(true);
         }
     }
 
-    // Update hover states
     presetButtons.forEach(button => {
         button.hovered = (
             mouseX >= button.x && mouseX <= button.x + button.width &&
             mouseY >= button.y && mouseY <= button.y + button.height
         );
     });
+    backButton.hovered = (
+        mouseX >= backButton.x && mouseX <= backButton.x + backButton.width &&
+        mouseY >= backButton.y && mouseY <= backButton.y + backButton.height
+    );
 }

@@ -14,10 +14,6 @@ let demon_rumble01 = new Audio("./audio/sounds/demonrumble.mp3");
 let musicVolume = 1.0;
 let soundVolume = 1.0;
 let sliderDragging = null;
-const sliderX = 365 * SCALE_X;
-const sliderY = 190 * SCALE_Y;
-const sliderWidth = 200 * SCALE_X;
-const sliderHeight = 16 * SCALE_Y;
 let currentTrack = null;
 
 export function playMusicGodFunction() {
@@ -108,6 +104,10 @@ export function volumeSlidersGodFunction() {
 }
 
 function musicVolumeSlider() {
+    const sliderX = 365 * SCALE_X;
+    const sliderY = 190 * SCALE_Y;
+    const sliderWidth = 200 * SCALE_X;
+    const sliderHeight = 16 * SCALE_Y;
     renderEngine.fillStyle = 'gray';
     renderEngine.fillRect(sliderX, sliderY, sliderWidth, sliderHeight);
     renderEngine.fillStyle = 'red';
@@ -128,6 +128,10 @@ function musicVolumeSlider() {
 }
 
 function soundVolumeSlider() {
+    const sliderX = 365 * SCALE_X;
+    const sliderY = 190 * SCALE_Y;
+    const sliderWidth = 200 * SCALE_X;
+    const sliderHeight = 16 * SCALE_Y;
     const soundSliderY = sliderY + 40 * SCALE_Y;
     renderEngine.fillStyle = 'gray';
     renderEngine.fillRect(sliderX, soundSliderY, sliderWidth, sliderHeight);
@@ -156,6 +160,10 @@ export function setupAudioSliderHandlers() {
                 const rect = canvas.getBoundingClientRect();
                 const mouseX = (e.clientX - rect.left) * (CANVAS_WIDTH / rect.width);
                 const mouseY = (e.clientY - rect.top) * (CANVAS_HEIGHT / rect.height);
+                const sliderX = 365 * SCALE_X;
+                const sliderY = 190 * SCALE_Y;
+                const sliderWidth = 200 * SCALE_X;
+                const sliderHeight = 16 * SCALE_Y;
                 const soundSliderY = sliderY + 40 * SCALE_Y;
                 if (
                     mouseX >= sliderX && mouseX <= sliderX + sliderWidth &&
@@ -175,6 +183,8 @@ export function setupAudioSliderHandlers() {
                 if (sliderDragging) {
                     const rect = canvas.getBoundingClientRect();
                     const mouseX = (e.clientX - rect.left) * (CANVAS_WIDTH / rect.width);
+                    const sliderX = 365 * SCALE_X;
+                    const sliderWidth = 200 * SCALE_X;
                     if (sliderDragging === 'music') {
                         setMusicVolume((mouseX - sliderX) / sliderWidth);
                     } else if (sliderDragging === 'sound') {

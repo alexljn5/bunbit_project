@@ -24,38 +24,44 @@ let showNoSaveMessage = false;
 let messageTimer = null;
 let presetButtons = []; // Store preset buttons from drawGraphicsOverlay
 
-const settingsButtons = [
-    { name: "Resume", x: 60 * SCALE_X, y: 160 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
-    { name: "Audio", x: 60 * SCALE_X, y: 220 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
-    { name: "Controls", x: 60 * SCALE_X, y: 280 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
-    { name: "Graphics", x: 60 * SCALE_X, y: 340 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
-    { name: "Save Game", x: 60 * SCALE_X, y: 400 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
-    { name: "Load Game", x: 60 * SCALE_X, y: 460 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
-    { name: "Quit", x: 60 * SCALE_X, y: 520 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false }
-];
+// Dynamic settings buttons to ensure proper scaling
+function getSettingsButtons() {
+    return [
+        { name: "Resume", x: 60 * SCALE_X, y: 160 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
+        { name: "Audio", x: 60 * SCALE_X, y: 220 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
+        { name: "Controls", x: 60 * SCALE_X, y: 280 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
+        { name: "Graphics", x: 60 * SCALE_X, y: 340 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
+        { name: "Save Game", x: 60 * SCALE_X, y: 400 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
+        { name: "Load Game", x: 60 * SCALE_X, y: 460 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
+        { name: "Quit", x: 60 * SCALE_X, y: 520 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false }
+    ];
+}
 
-const fileInput = document.createElement('input');
-fileInput.type = 'file';
-fileInput.accept = '.json';
-fileInput.style.display = 'none';
-document.body.appendChild(fileInput);
+// Reusable button-drawing function with hover effect (same as old code)
+export function drawButton(context, button, isSelected = false, textOffsetX = 20, textOffsetY = 25) {
+    context.fillStyle = button.hovered || isSelected ? "#555" : "#222"; // Hover effect: #555 when hovered/selected, #222 when normal
+    context.fillRect(button.x, button.y, button.width, button.height);
+    context.strokeStyle = "#fff";
+    context.strokeRect(button.x, button.y, button.width, button.height);
+    context.fillStyle = "#fff";
+    context.font = `${18 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+    context.fillText(button.name, button.x + textOffsetX * SCALE_X, button.y + textOffsetY * SCALE_Y);
+}
 
 function initOffscreenCanvas() {
     if (!offscreenCanvas) {
         offscreenCanvas = document.createElement('canvas');
         offscreenContext = offscreenCanvas.getContext('2d');
     }
-
-    // 🛠 Match canvas size every time!
     if (
         offscreenCanvas.width !== CANVAS_WIDTH ||
         offscreenCanvas.height !== CANVAS_HEIGHT
     ) {
         offscreenCanvas.width = CANVAS_WIDTH;
         offscreenCanvas.height = CANVAS_HEIGHT;
+        needsRedraw = true; // Force redraw on resize
     }
 }
-
 
 function drawStaticMenu() {
     const testSettingsBackGroundImage = new Image();
@@ -73,22 +79,15 @@ function drawStaticMenu() {
 
 function drawSettingsButtons() {
     if (showControls || showAudio || showGraphics) return;
-    settingsButtons.forEach(button => {
-        renderEngine.fillStyle = button.hovered ? "#555" : "#222";
-        renderEngine.fillRect(button.x, button.y, button.width, button.height);
-        renderEngine.strokeStyle = "#fff";
-        renderEngine.strokeRect(button.x, button.y, button.width, button.height);
-        renderEngine.fillStyle = "#fff";
-        renderEngine.font = `${(18 * CANVAS_WIDTH) / REF_CANVAS_WIDTH}px Arial`;
-        renderEngine.fillText(button.name, button.x + 20 * SCALE_X, button.y + 25 * SCALE_Y);
-    });
+    const settingsButtons = getSettingsButtons();
+    settingsButtons.forEach(button => drawButton(renderEngine, button));
     if (showSaveMessage || showLoadMessage || showNoSaveMessage) {
         renderEngine.fillStyle = "rgba(20, 20, 20, 0.95)";
         renderEngine.fillRect(350 * SCALE_X, 120 * SCALE_Y, 400 * SCALE_X, 100 * SCALE_Y);
         renderEngine.strokeStyle = "#fff";
         renderEngine.strokeRect(350 * SCALE_X, 120 * SCALE_Y, 400 * SCALE_X, 100 * SCALE_Y);
         renderEngine.fillStyle = "#fff";
-        renderEngine.font = `${(20 * CANVAS_WIDTH) / REF_CANVAS_WIDTH}px Arial`;
+        renderEngine.font = `${20 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
         const message = showSaveMessage ? "Game Saved!" : showLoadMessage ? "Game Loaded!" : "No Save Found!";
         renderEngine.fillText(message, 400 * SCALE_X, 170 * SCALE_Y);
     }
@@ -98,7 +97,7 @@ function drawSettingsButtons() {
         renderEngine.strokeStyle = "#fff";
         renderEngine.strokeRect(250 * SCALE_X, 100 * SCALE_Y, 500 * SCALE_X, 150 * SCALE_Y);
         renderEngine.fillStyle = "#fff";
-        renderEngine.font = `${(20 * CANVAS_WIDTH) / REF_CANVAS_WIDTH}px Arial`;
+        renderEngine.font = `${20 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
         renderEngine.fillText("Select save.json from your savesdata folder", 280 * SCALE_X, 150 * SCALE_Y);
         renderEngine.fillText("Click anywhere to continue", 280 * SCALE_X, 180 * SCALE_Y);
     }
@@ -132,17 +131,15 @@ function drawControlsOverlay() {
     controls.forEach((line, i) => {
         renderEngine.fillText(line, overlayX + 10 * SCALE_X, overlayY + 80 * SCALE_Y + i * 30 * SCALE_Y);
     });
-    const backButtonX = 60 * SCALE_X;
-    const backButtonY = 470 * SCALE_Y;
-    const backButtonWidth = 100 * SCALE_X;
-    const backButtonHeight = 36 * SCALE_Y;
-    renderEngine.fillStyle = showControls ? "#555" : "#222";
-    renderEngine.fillRect(backButtonX, backButtonY, backButtonWidth, backButtonHeight);
-    renderEngine.strokeStyle = "#fff";
-    renderEngine.strokeRect(backButtonX, backButtonY, backButtonWidth, backButtonHeight);
-    renderEngine.fillStyle = "#fff";
-    renderEngine.font = `${18 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
-    renderEngine.fillText("Back", backButtonX + 30 * SCALE_X, backButtonY + 25 * SCALE_Y);
+    const backButton = {
+        name: "Back",
+        x: 60 * SCALE_X,
+        y: 470 * SCALE_Y,
+        width: 100 * SCALE_X,
+        height: 36 * SCALE_Y,
+        hovered: false
+    };
+    drawButton(renderEngine, backButton, showControls, 30, 25);
 }
 
 function drawAudioOverlay() {
@@ -159,17 +156,15 @@ function drawAudioOverlay() {
     renderEngine.fillText("Audio Settings", overlayX, overlayY + 40 * SCALE_Y);
     volumeSlidersGodFunction();
     setupAudioSliderHandlers();
-    const backButtonX = 60 * SCALE_X;
-    const backButtonY = 470 * SCALE_Y;
-    const backButtonWidth = 100 * SCALE_X;
-    const backButtonHeight = 36 * SCALE_Y;
-    renderEngine.fillStyle = showAudio ? "#555" : "#222";
-    renderEngine.fillRect(backButtonX, backButtonY, backButtonWidth, backButtonHeight);
-    renderEngine.strokeStyle = "#fff";
-    renderEngine.strokeRect(backButtonX, backButtonY, backButtonWidth, backButtonHeight);
-    renderEngine.fillStyle = "#fff";
-    renderEngine.font = `${18 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
-    renderEngine.fillText("Back", backButtonX + 30 * SCALE_X, backButtonY + 25 * SCALE_Y);
+    const backButton = {
+        name: "Back",
+        x: 60 * SCALE_X,
+        y: 470 * SCALE_Y,
+        width: 100 * SCALE_X,
+        height: 36 * SCALE_Y,
+        hovered: false
+    };
+    drawButton(renderEngine, backButton, showAudio, 30, 25);
 }
 
 async function handleSettingsMenuClick(e) {
@@ -223,35 +218,44 @@ async function handleSettingsMenuClick(e) {
     }
 
     if (showControls) {
-        const backButtonX = 60 * SCALE_X;
-        const backButtonY = 470 * SCALE_Y;
-        const backButtonWidth = 100 * SCALE_X;
-        const backButtonHeight = 36 * SCALE_Y;
-        if (
-            mouseX >= backButtonX && mouseX <= backButtonX + backButtonWidth &&
-            mouseY >= backButtonY && mouseY <= backButtonY + backButtonHeight &&
-            e.type === 'click'
-        ) {
+        const backButton = {
+            name: "Back",
+            x: 60 * SCALE_X,
+            y: 470 * SCALE_Y,
+            width: 100 * SCALE_X,
+            height: 36 * SCALE_Y,
+            hovered: false
+        };
+        backButton.hovered = (
+            mouseX >= backButton.x && mouseX <= backButton.x + backButton.width &&
+            mouseY >= backButton.y && mouseY <= backButton.y + backButton.height
+        );
+        if (backButton.hovered && e.type === 'click') {
             showControls = false;
         }
         return;
     }
 
     if (showAudio) {
-        const backButtonX = 60 * SCALE_X;
-        const backButtonY = 470 * SCALE_Y;
-        const backButtonWidth = 100 * SCALE_X;
-        const backButtonHeight = 36 * SCALE_Y;
-        if (
-            mouseX >= backButtonX && mouseX <= backButtonX + backButtonWidth &&
-            mouseY >= backButtonY && mouseY <= backButtonY + backButtonHeight &&
-            e.type === 'click'
-        ) {
+        const backButton = {
+            name: "Back",
+            x: 60 * SCALE_X,
+            y: 470 * SCALE_Y,
+            width: 100 * SCALE_X,
+            height: 36 * SCALE_Y,
+            hovered: false
+        };
+        backButton.hovered = (
+            mouseX >= backButton.x && mouseX <= backButton.x + backButton.width &&
+            mouseY >= backButton.y && mouseY <= backButton.y + backButton.height
+        );
+        if (backButton.hovered && e.type === 'click') {
             showAudio = false;
         }
         return;
     }
 
+    const settingsButtons = getSettingsButtons();
     settingsButtons.forEach(button => {
         button.hovered = (
             mouseX >= button.x && mouseX <= button.x + button.width &&
@@ -339,6 +343,7 @@ function stopMenuLoop() {
 }
 
 function menuSettingsRender() {
+    renderEngine.setTransform(1, 0, 0, 1, 0, 0); // Reset transformations
     renderEngine.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     if (needsRedraw || !offscreenCanvas) {
         drawStaticMenu();

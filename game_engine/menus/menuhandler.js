@@ -20,3 +20,14 @@ export function basicPickUpMenuStyle() {
     renderEngine.globalAlpha = 1.0;
     renderEngine.restore();
 }
+
+// Reusable button-drawing function
+export function drawButton(context, button, isSelected = false, textOffsetX = 20, textOffsetY = 25) {
+    context.fillStyle = button.hovered || isSelected ? "#555" : "#222";
+    context.fillRect(button.x, button.y, button.width, button.height);
+    context.strokeStyle = "#fff";
+    context.strokeRect(button.x, button.y, button.width, button.height);
+    context.fillStyle = "#fff";
+    context.font = `${18 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+    context.fillText(button.name, button.x + textOffsetX * SCALE_X, button.y + textOffsetY * SCALE_Y);
+}
