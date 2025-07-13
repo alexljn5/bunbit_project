@@ -5,14 +5,16 @@ import { CANVAS_WIDTH } from "./globals.js";
 import { mapHandler } from "./mapdata/maphandler.js";
 
 export let playerFOV = Math.PI / 6; // 60 degrees
-export let numCastRays = 300; // Reduced for performance
+export let numCastRays = 300; // Default value
+export let maxRayDepth = 50; // Default value
+
+// Device-based adjustment for numCastRays
 if (/Mobi|Android/i.test(navigator.userAgent) || navigator.hardwareConcurrency <= 4) {
-    numCastRays = 240; // Further reduce for low-end
+    numCastRays = 240; // Reduce for low-end devices
 }
-export let maxRayDepth = 50;
 
 // --- OPTIMIZED RAYCASTING WORKER MANAGEMENT ---
-const NUM_WORKERS = Math.min(navigator.hardwareConcurrency || 4, 4);
+const NUM_WORKERS = Math.min(navigator.hardwareConcurrency || 2, 2);
 const workers = Array.from({ length: NUM_WORKERS }, () => new Worker("./workers/raycastworker.js", { type: "module" }));
 const workerPendingFrames = new Map();
 let workersInitialized = false;
@@ -39,7 +41,7 @@ workers.forEach((worker, idx) => {
     };
 });
 
-async function initializeWorkers() {
+export async function initializeWorkers() {
     const map_01 = mapTable.get("map_01");
     if (!map_01 || !Array.isArray(map_01) || !map_01[0]) return false;
     const staticData = {
@@ -70,21 +72,17 @@ async function initializeWorkers() {
 }
 
 export function initializeMap() {
-    // No-op or ensure mapHandler has a map loaded, but do not force map_01
-    // Optionally, you can check if a map is loaded and load a default if not
     if (!mapHandler.activeMapKey) {
         mapHandler.loadMap("map_01", playerPosition);
     }
 }
 
 export async function castRays() {
-    // Use the currently active map from the handler
     const currentMap = mapHandler.getFullMap();
     if (!currentMap || !Array.isArray(currentMap) || !currentMap[0]) {
         return lastFrameResults.results || new Array(numCastRays).fill(null);
     }
     if (!workersInitialized) {
-        // Pass the current map to the workers
         for (let w of workers) w.postMessage({
             type: "init",
             tileSectors,
@@ -107,7 +105,6 @@ export async function castRays() {
         playerPosition.z = 5 * tileSectors;
         return lastFrameResults.results || new Array(numCastRays).fill(null);
     }
-    // Split rays into NUM_WORKERS segments (use Math.ceil to cover all rays)
     const seg = Math.ceil(numCastRays / NUM_WORKERS);
     const promises = workers.map((worker, idx) => {
         const start = idx * seg;
@@ -126,7 +123,7 @@ export async function castRays() {
             const key = `${frameId}_${idx}`;
             workerPendingFrames.set(key, (data) => {
                 if (data.error) {
-                    resolve({ startRay: start, rayData: [], frameId: -1 });
+                    resolve({ startRay: 0, rayData: [], frameId: -1 });
                 } else if (data.frameId === frameId) {
                     resolve(data);
                 }
@@ -134,7 +131,6 @@ export async function castRays() {
             worker.postMessage(workerData);
         });
     });
-    // Wait for all workers, with a timeout fallback
     const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve(null), 24));
     const results = await Promise.race([
         Promise.all(promises),
@@ -143,7 +139,6 @@ export async function castRays() {
     if (!results || results.some(r => !r || r.frameId !== frameId)) {
         return lastFrameResults.results || new Array(numCastRays).fill(null);
     }
-    // Merge rayData in order
     const rayData = new Array(numCastRays);
     for (let i = 0; i < NUM_WORKERS; ++i) {
         const { startRay, rayData: segData } = results[i];
@@ -162,6 +157,35 @@ export function cleanupWorkers() {
     console.log("Raycast workers terminated");
 }
 
+export function updateGraphicsSettings({ numCastRays: newRays, maxRayDepth: newDepth }) {
+    numCastRays = newRays || numCastRays;
+    maxRayDepth = newDepth || maxRayDepth;
+    for (let w of workers) {
+        w.postMessage({
+            type: "updateSettings",
+            numCastRays,
+            maxRayDepth
+        });
+    }
+    if (workersInitialized) {
+        const currentMap = mapHandler.getFullMap();
+        if (currentMap && Array.isArray(currentMap) && currentMap[0]) {
+            for (let w of workers) {
+                w.postMessage({
+                    type: "init",
+                    tileSectors,
+                    map_01: currentMap,
+                    textureIdMap: Object.fromEntries(textureIdMap),
+                    floorTextureIdMap: Object.fromEntries(floorTextureIdMap),
+                    CANVAS_WIDTH,
+                    numCastRays,
+                    maxRayDepth
+                });
+            }
+        }
+    }
+}
+
 // --- TEST/DEBUG FUNCTIONS ---
 export function testFuckingAround() {
     castRays().then(rayData => {
@@ -172,6 +196,7 @@ export function testFuckingAround() {
         console.log("First 10 rays:", rayData.slice(0, 10));
     });
 }
+
 // --- FOV Animation (fuckTheScreenUpBaby) ---
 let increasing = true;
 let fovAnimationActive = false;
@@ -180,7 +205,6 @@ let fovResetTimeout = null;
 export function fuckTheScreenUpBaby() {
     if (!fovAnimationActive) {
         fovAnimationActive = true;
-        // Reset FOV and stop animation after 2 seconds
         fovResetTimeout = setTimeout(() => {
             playerFOV = Math.PI / 6;
             fovAnimationActive = false;

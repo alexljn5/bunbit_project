@@ -21,6 +21,13 @@ self.addEventListener("message", (e) => {
 
         if (!staticData) throw new Error("Worker not initialized");
 
+        if (e.data.type === "updateSettings") {
+            staticData.numCastRays = e.data.numCastRays;
+            staticData.maxRayDepth = e.data.maxRayDepth;
+            self.postMessage({ type: "updateSettings", success: true });
+            return;
+        }
+
         const { startRay, endRay, posX, posZ, playerAngle, playerFOV, frameId } = e.data;
         if (frameId < latestFrameId) return; // Drop old frames
         latestFrameId = frameId;
@@ -94,11 +101,8 @@ self.addEventListener("message", (e) => {
             }
 
             if (hit) {
-                // Use fast inverse square root for perspective correction
                 const angleDiff = rayAngle - playerAngle;
-                // cos(angleDiff) ≈ 1 for small angles, but use Q_rsqrt for more general case
-                // For small angleDiff, cos(angleDiff) ≈ 1 - 0.5*angleDiff^2, but Q_rsqrt is a fast approx
-                const cosApprox = Q_rsqrt(1 + angleDiff * angleDiff); // 1/cos for small angles
+                const cosApprox = Q_rsqrt(1 + angleDiff * angleDiff);
                 const correctedDistance = distance * cosApprox;
                 let hitX = rayX + distance * cosAngle;
                 let hitY = rayY + distance * sinAngle;
@@ -147,20 +151,19 @@ for (let i = 0; i < SIN_TABLE_SIZE; i++) {
     sinTable[i] = Math.sin(angle);
     cosTable[i] = Math.cos(angle);
 }
+
 function fastSin(angle) {
-    // angle in radians
     let idx = Math.floor((angle % TWO_PI) / TWO_PI * SIN_TABLE_SIZE);
     if (idx < 0) idx += SIN_TABLE_SIZE;
     return sinTable[idx];
 }
+
 function fastCos(angle) {
-    // angle in radians
     let idx = Math.floor((angle % TWO_PI) / TWO_PI * SIN_TABLE_SIZE);
     if (idx < 0) idx += SIN_TABLE_SIZE;
     return cosTable[idx];
 }
 
-// Fast inverse square root (Quake III style)
 function Q_rsqrt(number) {
     const threehalfs = 1.5;
     const x2 = number * 0.5;
@@ -171,7 +174,6 @@ function Q_rsqrt(number) {
     f[0] = y;
     i[0] = 0x5f3759df - (i[0] >> 1);
     y = f[0];
-    y = y * (threehalfs - (x2 * y * y)); // 1st iteration
-    // y = y * (threehalfs - (x2 * y * y)); // 2nd iteration (optional)
+    y = y * (threehalfs - (x2 * y * y));
     return y;
 }

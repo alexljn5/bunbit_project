@@ -100,6 +100,7 @@ async function gameRenderEngine() {
         friendlyAiGodFunction();
         enemyAiGodFunction();
         playMusicGodFunction();
+        console.log(numCastRays);
     } catch (error) {
         console.error("gameRenderEngine error:", error);
         renderEngine.fillStyle = "gray";

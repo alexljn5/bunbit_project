@@ -4,9 +4,10 @@ import { renderEngine } from "../renderengine.js";
 import { volumeSlidersGodFunction, setupAudioSliderHandlers } from "../audio/audiohandler.js";
 import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT } from "../globals.js";
 import { saveGame, loadGame } from "../savedata/save_load_game.js";
+import { applyGraphicsPreset, getGraphicsSettings, drawGraphicsOverlay, handleGraphicsMenuClick } from "./graphicssettings.js";
 
 export let playerMovementDisabled = false;
-export let menuActive = false; // Controls in-game settings menu
+export let menuActive = false;
 let lastEscapeState = false;
 let showLoadPrompt = false;
 let offscreenCanvas = null;
@@ -14,22 +15,24 @@ let offscreenContext = null;
 let needsRedraw = true;
 let menuRafId = null;
 let menuIsRunning = false;
+let showControls = false;
+let showAudio = false;
+let showGraphics = false;
+let showSaveMessage = false;
+let showLoadMessage = false;
+let showNoSaveMessage = false;
+let messageTimer = null;
+let presetButtons = []; // Store preset buttons from drawGraphicsOverlay
 
 const settingsButtons = [
     { name: "Resume", x: 60 * SCALE_X, y: 160 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
     { name: "Audio", x: 60 * SCALE_X, y: 220 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
     { name: "Controls", x: 60 * SCALE_X, y: 280 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
-    { name: "Save Game", x: 60 * SCALE_X, y: 340 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
-    { name: "Load Game", x: 60 * SCALE_X, y: 400 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
-    { name: "Quit", x: 60 * SCALE_X, y: 460 * SCALE_X, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false }
+    { name: "Graphics", x: 60 * SCALE_X, y: 340 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
+    { name: "Save Game", x: 60 * SCALE_X, y: 400 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
+    { name: "Load Game", x: 60 * SCALE_X, y: 460 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
+    { name: "Quit", x: 60 * SCALE_X, y: 520 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false }
 ];
-
-let showControls = false;
-let showAudio = false;
-let showSaveMessage = false;
-let showLoadMessage = false;
-let showNoSaveMessage = false;
-let messageTimer = null;
 
 const fileInput = document.createElement('input');
 fileInput.type = 'file';
@@ -40,15 +43,23 @@ document.body.appendChild(fileInput);
 function initOffscreenCanvas() {
     if (!offscreenCanvas) {
         offscreenCanvas = document.createElement('canvas');
+        offscreenContext = offscreenCanvas.getContext('2d');
+    }
+
+    // 🛠 Match canvas size every time!
+    if (
+        offscreenCanvas.width !== CANVAS_WIDTH ||
+        offscreenCanvas.height !== CANVAS_HEIGHT
+    ) {
         offscreenCanvas.width = CANVAS_WIDTH;
         offscreenCanvas.height = CANVAS_HEIGHT;
-        offscreenContext = offscreenCanvas.getContext('2d');
     }
 }
 
+
 function drawStaticMenu() {
     const testSettingsBackGroundImage = new Image();
-    testSettingsBackGroundImage.src = "./img/menu/goon.png"; // Placeholder image, replace with actual image path
+    testSettingsBackGroundImage.src = "./img/menu/goon.png";
     initOffscreenCanvas();
     offscreenContext.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     offscreenContext.fillStyle = "rgba(0, 0, 0, 0.8)";
@@ -61,14 +72,14 @@ function drawStaticMenu() {
 }
 
 function drawSettingsButtons() {
-    if (showControls || showAudio) return;
+    if (showControls || showAudio || showGraphics) return;
     settingsButtons.forEach(button => {
         renderEngine.fillStyle = button.hovered ? "#555" : "#222";
         renderEngine.fillRect(button.x, button.y, button.width, button.height);
         renderEngine.strokeStyle = "#fff";
         renderEngine.strokeRect(button.x, button.y, button.width, button.height);
         renderEngine.fillStyle = "#fff";
-        renderEngine.font = `${18 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+        renderEngine.font = `${(18 * CANVAS_WIDTH) / REF_CANVAS_WIDTH}px Arial`;
         renderEngine.fillText(button.name, button.x + 20 * SCALE_X, button.y + 25 * SCALE_Y);
     });
     if (showSaveMessage || showLoadMessage || showNoSaveMessage) {
@@ -77,7 +88,7 @@ function drawSettingsButtons() {
         renderEngine.strokeStyle = "#fff";
         renderEngine.strokeRect(350 * SCALE_X, 120 * SCALE_Y, 400 * SCALE_X, 100 * SCALE_Y);
         renderEngine.fillStyle = "#fff";
-        renderEngine.font = `${20 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+        renderEngine.font = `${(20 * CANVAS_WIDTH) / REF_CANVAS_WIDTH}px Arial`;
         const message = showSaveMessage ? "Game Saved!" : showLoadMessage ? "Game Loaded!" : "No Save Found!";
         renderEngine.fillText(message, 400 * SCALE_X, 170 * SCALE_Y);
     }
@@ -87,7 +98,7 @@ function drawSettingsButtons() {
         renderEngine.strokeStyle = "#fff";
         renderEngine.strokeRect(250 * SCALE_X, 100 * SCALE_Y, 500 * SCALE_X, 150 * SCALE_Y);
         renderEngine.fillStyle = "#fff";
-        renderEngine.font = `${20 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+        renderEngine.font = `${(20 * CANVAS_WIDTH) / REF_CANVAS_WIDTH}px Arial`;
         renderEngine.fillText("Select save.json from your savesdata folder", 280 * SCALE_X, 150 * SCALE_Y);
         renderEngine.fillText("Click anywhere to continue", 280 * SCALE_X, 180 * SCALE_Y);
     }
@@ -206,6 +217,11 @@ async function handleSettingsMenuClick(e) {
         return;
     }
 
+    if (showGraphics) {
+        handleGraphicsMenuClick(e, renderEngine, SCALE_X, SCALE_Y, presetButtons, (value) => { showGraphics = value; }, (value) => { needsRedraw = value; });
+        return;
+    }
+
     if (showControls) {
         const backButtonX = 60 * SCALE_X;
         const backButtonY = 470 * SCALE_Y;
@@ -249,8 +265,14 @@ async function handleSettingsMenuClick(e) {
             } else if (button.name === "Audio") {
                 showAudio = true;
                 showControls = false;
+                showGraphics = false;
             } else if (button.name === "Controls") {
                 showControls = true;
+                showAudio = false;
+                showGraphics = false;
+            } else if (button.name === "Graphics") {
+                showGraphics = true;
+                showControls = false;
                 showAudio = false;
             } else if (button.name === "Save Game") {
                 if (saveGame()) {
@@ -329,6 +351,8 @@ function menuSettingsRender() {
         drawControlsOverlay();
     } else if (showAudio) {
         drawAudioOverlay();
+    } else if (showGraphics) {
+        presetButtons = drawGraphicsOverlay(renderEngine, SCALE_X, SCALE_Y, showGraphics);
     } else {
         drawSettingsButtons();
     }
@@ -352,6 +376,7 @@ function menuSettings() {
             showLoadPrompt = false;
             showControls = false;
             showAudio = false;
+            showGraphics = false;
             detachSettingsMenuHandlers();
         }
     }

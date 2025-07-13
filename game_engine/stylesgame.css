@@ -123,13 +123,6 @@ body {
     /* Fit to canvas size */
 }
 
-canvas#mainGameRender {
-    border: 1px solid black;
-    display: block;
-    transform: scale(2);
-    image-rendering: pixelated;
-}
-
 canvas#staminaBar,
 canvas.minimapCanvas {
     position: absolute;

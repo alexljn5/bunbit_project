@@ -1,10 +1,33 @@
 const domElements = {
     mainGameRender: document.getElementById("mainGameRender"),
+};
+
+export let HIGH_RES_ENABLED = false;
+export let CANVAS_WIDTH;
+export let CANVAS_HEIGHT;
+export let SCALE_X;
+export let SCALE_Y;
+
+export const REF_CANVAS_WIDTH = 800;
+export const REF_CANVAS_HEIGHT = 800;
+
+export function updateCanvasResolution(highResEnabled) {
+    HIGH_RES_ENABLED = highResEnabled;
+
+    const renderResolution = highResEnabled ? 800 : 400;
+    domElements.mainGameRender.width = renderResolution;
+    domElements.mainGameRender.height = renderResolution;
+
+    const scale = highResEnabled ? 1 : 2;
+    domElements.mainGameRender.style.transform = `scale(${scale})`;
+    domElements.mainGameRender.style.transformOrigin = 'center';
+
+    // Update the actual resolution values
+    CANVAS_WIDTH = renderResolution;
+    CANVAS_HEIGHT = renderResolution;
+    SCALE_X = renderResolution / REF_CANVAS_WIDTH;
+    SCALE_Y = renderResolution / REF_CANVAS_HEIGHT;
 }
 
-export const CANVAS_WIDTH = domElements.mainGameRender.width;
-export const CANVAS_HEIGHT = domElements.mainGameRender.height;
-export const REF_CANVAS_WIDTH = 800; // Reference width for scaling
-export const REF_CANVAS_HEIGHT = 800; // Reference height for scaling
-export const SCALE_X = CANVAS_WIDTH / REF_CANVAS_WIDTH; // Scaling factor for X
-export const SCALE_Y = CANVAS_HEIGHT / REF_CANVAS_HEIGHT; // Scaling factor for Y
+// Call once to initialize with default (low-res)
+updateCanvasResolution(false);
