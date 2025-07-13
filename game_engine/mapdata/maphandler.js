@@ -1,35 +1,40 @@
-// maphandler.js (ENTIRE FILE with AI setup loading added)
 import { tileSectors, mapSectorsTable, mapTable } from "./maps.js";
-import { floorConcrete, floorTextureIdMap } from "./maptextures.js";
+import { buildMapGrid } from "./maputils.js";
+import { emptyTile, floorConcrete, floorTextureIdMap } from "./maptextures.js";
 
 export class MapHandler {
     constructor() {
         this.maps = mapSectorsTable;
         this.fullMapCache = new Map();
-        for (const [key, map] of mapTable.entries()) {
-            this.fullMapCache.set(key, map);
-        }
         this.activeMapKey = null;
         this.activeSector = null;
         this.activeSectorId = null;
-        console.log("MapHandler initialized! *twirls* Available maps:", [...this.maps.keys()]);
+        this.buildAllMaps();
+    }
+
+    buildAllMaps() {
+        for (const [key, mapData] of mapTable.entries()) {
+            const sectors = this.maps.get(key);
+            if (!sectors || !sectors.length) {
+                continue;
+            }
+            // Use pre-built grid from mapTable for map_01 and map_02, build map_debug with buildMapGrid
+            const grid = key === "map_debug" ? buildMapGrid(sectors) : mapData.grid;
+            this.fullMapCache.set(key, { ...mapData, grid });
+        }
     }
 
     async loadMap(mapKey, playerPosition) {
         if (!this.maps.has(mapKey)) {
-            console.error(`Map ${mapKey} not found! *pouts*`);
             return false;
         }
 
-        // 🎯 Setup per-map logic such as AI
         try {
             if (mapKey === "map_01") {
                 const { setupMap01 } = await import("../ai/map_01_setup.js");
                 setupMap01();
             }
-            // Add more setup imports as needed per map
         } catch (e) {
-            console.warn(`Couldn't load map setup for ${mapKey} *hides behind Cheese*`, e);
         }
 
         if (mapKey === "map_debug") {
@@ -41,16 +46,15 @@ export class MapHandler {
         this.activeMapKey = mapKey;
         this.updateActiveSector(playerPosition);
         if (!this.activeSector) {
-            console.error(`No valid sector for player at (${playerPosition.x}, ${playerPosition.z})! *hides*`);
             return false;
         }
-        console.log(`Loaded map ${mapKey}, active sector: ${this.activeSectorId} *claps*`);
         return true;
     }
 
     updateActiveSector(playerPosition) {
         if (!this.activeMapKey || !this.maps.has(this.activeMapKey)) {
-            console.error("No active map! *pouts*");
+            this.activeSector = null;
+            this.activeSectorId = null;
             return false;
         }
         const sectors = this.maps.get(this.activeMapKey);
@@ -65,12 +69,10 @@ export class MapHandler {
                 if (this.activeSectorId !== sector.id) {
                     this.activeSector = sector.data;
                     this.activeSectorId = sector.id;
-                    console.log(`Switched to sector ${sector.id} at (${playerPosition.x}, ${playerPosition.z})`);
                 }
                 return true;
             }
         }
-        console.warn(`No sector found for player at (${playerPosition.x}, ${playerPosition.z})! *tilts head*`);
         this.activeSector = null;
         this.activeSectorId = null;
         return false;
@@ -95,13 +97,11 @@ export class MapHandler {
 
     getTile(x, z) {
         if (!this.activeSector || !this.activeMapKey) {
-            console.warn("No active sector! Using fallback tile *pouts*");
             return floorConcrete;
         }
         const sectors = this.maps.get(this.activeMapKey);
         const activeSectorInfo = sectors.find(s => s.id === this.activeSectorId);
         if (!activeSectorInfo) {
-            console.warn("Invalid sector info! *hides*");
             return floorConcrete;
         }
 
@@ -124,7 +124,6 @@ export class MapHandler {
     getFullMap(mapKey = this.activeMapKey) {
         const mapData = this.fullMapCache.get(mapKey);
         if (!mapData || !mapData.grid) {
-            console.warn(`No grid for map ${mapKey}! *pouts*`);
             return null;
         }
         return mapData.grid;
@@ -133,12 +132,9 @@ export class MapHandler {
     getMapFloorTexture(mapKey = this.activeMapKey) {
         const mapData = this.fullMapCache.get(mapKey);
         if (!mapData || !mapData.floorTextureId) {
-            console.warn(`No floorTextureId for map ${mapKey}, defaulting to floor_concrete *pouts*`);
             return "floor_concrete";
         }
-        const textureKey = floorTextureIdMap.get(mapData.floorTextureId) || "floor_concrete";
-        console.log(`Map ${mapKey} using floor texture: ${textureKey} *giggles*`);
-        return textureKey;
+        return floorTextureIdMap.get(mapData.floorTextureId) || "floor_concrete";
     }
 
     getMapDimensions() {

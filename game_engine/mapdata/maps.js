@@ -1,4 +1,4 @@
-import { map_01, map_01_sectors, map_01_data } from "./map_01.js";
+import { map_01_sectors, map_01_data } from "./map_01.js";
 import { map_02, map_02_sectors, map_02_data } from "./map_02.js";
 import { map_debug, map_debug_sectors, map_debug_data } from "./map_debug.js";
 

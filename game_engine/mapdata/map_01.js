@@ -61,24 +61,24 @@ export const map_01_sectors = [
         data: map_01_sector1,
         startX: 0,
         startY: 0,
-        width: map_01_sector1[0].length, // 5 tiles
-        height: map_01_sector1.length // 13 tiles
+        width: map_01_sector1[0].length,
+        height: map_01_sector1.length
     },
     {
         id: "sector2",
         data: map_01_sector2,
         startX: 5,
         startY: 0,
-        width: map_01_sector2[0].length, // 6 tiles
-        height: map_01_sector2.length // 13 tiles
+        width: map_01_sector2[0].length,
+        height: map_01_sector2.length
     },
     {
         id: "sector3",
         data: map_01_sector3,
         startX: 11,
         startY: 0,
-        width: map_01_sector3[0].length, // 5 tiles
-        height: map_01_sector3.length // 13 tiles
+        width: map_01_sector3[0].length,
+        height: map_01_sector3.length
     }
 ];
 
