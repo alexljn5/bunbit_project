@@ -9,10 +9,10 @@ export let numCastRays = 300; // Reduced for performance
 if (/Mobi|Android/i.test(navigator.userAgent) || navigator.hardwareConcurrency <= 4) {
     numCastRays = 240; // Further reduce for low-end
 }
-export let maxRayDepth = 10;
+export let maxRayDepth = 50;
 
 // --- OPTIMIZED RAYCASTING WORKER MANAGEMENT ---
-const NUM_WORKERS = Math.min(navigator.hardwareConcurrency || 2, 2);
+const NUM_WORKERS = Math.min(navigator.hardwareConcurrency || 4, 4);
 const workers = Array.from({ length: NUM_WORKERS }, () => new Worker("./workers/raycastworker.js", { type: "module" }));
 const workerPendingFrames = new Map();
 let workersInitialized = false;
