@@ -41,5 +41,3 @@ export function gameLoop(renderCallback) {
         }
     };
 }
-
-// Cleaned up main game logic for clarity and maintainability
