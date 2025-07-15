@@ -1,4 +1,4 @@
-import { updateGraphicsSettings, numCastRays, maxRayDepth } from "../raycasting.js";
+import { updateGraphicsSettings, numCastRays, maxRayDepth } from "../rendering/raycasting.js";
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from "../globals.js";
 import { updateCanvasResolution } from "../globals.js";
 import { drawButton } from "./menusettings.js";

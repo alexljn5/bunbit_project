@@ -1,5 +1,5 @@
 import { menuSettingsGodFunction } from './menusettings.js';
-import { renderEngine } from '../renderengine.js';
+import { renderEngine } from '../rendering/renderengine.js';
 import { SCALE_X, SCALE_Y, CANVAS_HEIGHT, CANVAS_WIDTH } from '../globals.js';
 
 // Cleaned up menu handler for clarity and maintainability

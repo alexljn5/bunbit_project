@@ -1,5 +1,6 @@
-const domElements = {
-    mainGameRender: document.getElementById("mainGameRender"),
+// game_engine/globals.js
+export const domElements = {
+    mainGameRender: typeof document !== 'undefined' ? document.getElementById("mainGameRender") : null,
 };
 
 export let HIGH_RES_ENABLED = false;
@@ -15,12 +16,16 @@ export function updateCanvasResolution(highResEnabled) {
     HIGH_RES_ENABLED = highResEnabled;
 
     const renderResolution = highResEnabled ? 800 : 400;
-    domElements.mainGameRender.width = renderResolution;
-    domElements.mainGameRender.height = renderResolution;
 
-    const scale = highResEnabled ? 1 : 2;
-    domElements.mainGameRender.style.transform = `scale(${scale})`;
-    domElements.mainGameRender.style.transformOrigin = 'center';
+    // Only update canvas properties if in a browser environment
+    if (typeof document !== 'undefined' && domElements.mainGameRender) {
+        domElements.mainGameRender.width = renderResolution;
+        domElements.mainGameRender.height = renderResolution;
+
+        const scale = highResEnabled ? 1 : 2;
+        domElements.mainGameRender.style.transform = `scale(${scale})`;
+        domElements.mainGameRender.style.transformOrigin = 'center';
+    }
 
     // Update the actual resolution values
     CANVAS_WIDTH = renderResolution;
@@ -29,5 +34,13 @@ export function updateCanvasResolution(highResEnabled) {
     SCALE_Y = renderResolution / REF_CANVAS_HEIGHT;
 }
 
-// Call once to initialize with default (low-res)
-updateCanvasResolution(false);
+// Call once to initialize with default (low-res), but only in browser
+if (typeof document !== 'undefined') {
+    updateCanvasResolution(false);
+} else {
+    // Initialize defaults for Node.js
+    CANVAS_WIDTH = 400;
+    CANVAS_HEIGHT = 400;
+    SCALE_X = 400 / REF_CANVAS_WIDTH;
+    SCALE_Y = 400 / REF_CANVAS_HEIGHT;
+}

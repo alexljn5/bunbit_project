@@ -1,5 +1,5 @@
 import { playerPosition, playerHealth } from "../playerdata/playerlogic.js";
-import { casperLesserDemonSpriteWorldPos } from "../rendersprites.js";
+import { casperLesserDemonSpriteWorldPos } from "../rendering/rendersprites.js";
 import { map_01 } from "../mapdata/map_01.js";
 import { tileSectors } from "../mapdata/maps.js";
 import { isOccludedByWall } from "./aihandler.js";
@@ -140,7 +140,6 @@ export function casperLesserDemon() {
         }
         const elapsedPeekTime = performance.now() - peekStartTime;
         if (elapsedPeekTime < peekDelay) {
-            console.log("Casper is peeking halfway behind a wall!");
             return; // Pause movement while peeking
         } else {
             isPeeking = false;
@@ -152,7 +151,6 @@ export function casperLesserDemon() {
     }
 
     if (targetDistance < 10) {
-        console.log("Casper reached target, pausing");
         return;
     }
 
@@ -221,6 +219,4 @@ export function casperLesserDemon() {
     const maxZBound = mapHeight * tileSectors - enemyRadius;
     casperLesserDemonSpriteWorldPos.x = Math.max(enemyRadius, Math.min(maxXBound, casperLesserDemonSpriteWorldPos.x));
     casperLesserDemonSpriteWorldPos.z = Math.max(enemyRadius, Math.min(maxZBound, casperLesserDemonSpriteWorldPos.z));
-
-    console.log(`Casper moved to: x=${casperLesserDemonSpriteWorldPos.x.toFixed(2)}, z=${casperLesserDemonSpriteWorldPos.z.toFixed(2)}, targetDistance=${targetDistance.toFixed(2)}, canSeePlayer=${canSeePlayer}, isPeeking=${isPeeking}, isHalfwayBehindWall=${isHalfwayBehindWall}`);
 }

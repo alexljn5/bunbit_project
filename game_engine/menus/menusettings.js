@@ -1,6 +1,6 @@
-import { game } from "../renderengine.js";
+import { game } from "../rendering/renderengine.js";
 import { keys } from "../playerdata/playerlogic.js";
-import { renderEngine } from "../renderengine.js";
+import { renderEngine } from "../rendering/renderengine.js";
 import { volumeSlidersGodFunction, setupAudioSliderHandlers } from "../audio/audiohandler.js";
 import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT } from "../globals.js";
 import { saveGame, loadGame } from "../savedata/save_load_game.js";

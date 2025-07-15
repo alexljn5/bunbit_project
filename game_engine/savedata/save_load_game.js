@@ -16,7 +16,7 @@ import {
     setGunPickupTimer, setBoyKisserEnemyHealth
 } from "../ai/friendlycat.js";
 import { genericGunAmmo, setGenericGunAmmo } from "../itemhandler/gunhandler.js";
-import { boyKisserEnemySpriteWorldPos, casperLesserDemonSpriteWorldPos } from "../rendersprites.js";
+import { boyKisserEnemySpriteWorldPos, casperLesserDemonSpriteWorldPos } from "../rendering/rendersprites.js";
 
 export function saveGame() {
     const gameState = {

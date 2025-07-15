@@ -2,9 +2,9 @@
 
 import { playerPosition } from "../playerdata/playerlogic.js";
 import { getDemonLaughingCurrentFrame } from "../mapdata/maptextures.js";
-import { renderEngine } from "../renderengine.js";
+import { renderEngine } from "../rendering/renderengine.js";
 import { CANVAS_HEIGHT, CANVAS_WIDTH, SCALE_X, SCALE_Y } from "../globals.js";
-import { casperLesserDemonSprite } from "../rendersprites.js";
+import { casperLesserDemonSprite } from "../rendering/rendersprites.js";
 import { fuckTheScreenUp } from "../animations/fuckthescreenup.js";
 import { playDemonRumble } from "../audio/audiohandler.js";
 

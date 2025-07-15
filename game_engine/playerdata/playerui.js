@@ -1,8 +1,8 @@
 import { compiledTextStyle } from "../debugtools.js";
-import { renderEngine } from "../renderengine.js";
+import { renderEngine } from "../rendering/renderengine.js";
 import { casperFace1, casperFace2, casperFace3, casperFace4, casperFace5, casperFace1Loaded, casperFace2Loaded, casperFace3Loaded, casperFace4Loaded, casperFace5Loaded } from "./playertextures.js";
 import { playerInventory, inventoryState } from "./playerinventory.js";
-import { metalPipeSprite, genericGunSprite } from "../rendersprites.js";
+import { metalPipeSprite, genericGunSprite } from "../rendering/rendersprites.js";
 import { playerStamina, playerHealthBar, playerHealth } from "./playerlogic.js";
 import { genericGunAmmo } from "../itemhandler/gunhandler.js";
 import { CANVAS_HEIGHT, CANVAS_WIDTH, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT } from "../globals.js";

@@ -1,14 +1,15 @@
 {
   "name": "idle-test-game",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "main": "heavensgate.js",
+  "type": "module",
   "scripts": {
     "start": "electron .",
     "build": "electron-builder"
   },
   "build": {
-    "appId": "com.yourname.myawesomegame",
-    "productName": "My Awesome Game",
+    "appId": "com.alexljn5.idletest",
+    "productName": "Idle Test",
     "win": {
       "target": [
         "nsis"

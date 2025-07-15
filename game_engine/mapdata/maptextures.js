@@ -1,34 +1,44 @@
+// game_engine/mapdata/maptextures.js
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from "../globals.js";
 
+// Check if running in browser (for Image and document)
+const isBrowser = typeof document !== 'undefined' && typeof Image !== 'undefined';
+
+// Texture definitions (without Image in Node.js)
 const tileTextures = {
-    wall_creamlol: new Image(),
-    wall_brick: new Image(),
-    wall_aldi: new Image(),
-    wall_satanic: new Image(),
-    wall_schizoeye: new Image(),
-    door_rusty_01: new Image(),
-    wall_brick_graffiti_01: new Image(),
-    wall_laughing_demon: [],
-    wall_brick_door01_closed: new Image(),
-    wall_brick_door01_open: new Image(),
+    wall_creamlol: isBrowser ? new Image() : { src: "./img/sprites/walls/creamlol.png" },
+    wall_brick: isBrowser ? new Image() : { src: "./img/sprites/walls/wall_brick.png" },
+    wall_aldi: isBrowser ? new Image() : { src: "./img/sprites/test/aldi.png" },
+    wall_satanic: isBrowser ? new Image() : { src: "./img/sprites/walls/wall_satanic_01.png" },
+    wall_schizoeye: isBrowser ? new Image() : { src: "./img/sprites/website/schizoeye.gif" },
+    door_rusty_01: isBrowser ? new Image() : { src: "./img/sprites/doors/door_rusty_01.png" },
+    wall_brick_graffiti_01: isBrowser ? new Image() : { src: "./img/sprites/decoration/wall_brick_graffiti_01.png" },
+    wall_laughing_demon: isBrowser ? [] : [],
+    wall_brick_door01_closed: isBrowser ? new Image() : { src: "./img/sprites/walls/wall_brick_door01_closed.png" },
+    wall_brick_door01_open: isBrowser ? new Image() : { src: "./img/sprites/walls/wall_brick_door01_open.png" },
 };
 
-tileTextures.wall_creamlol.src = "./img/sprites/walls/creamlol.png";
-tileTextures.wall_brick.src = "./img/sprites/walls/wall_brick.png";
-tileTextures.wall_aldi.src = "./img/sprites/test/aldi.png";
-tileTextures.wall_satanic.src = "./img/sprites/walls/wall_satanic_01.png";
-tileTextures.wall_schizoeye.src = "./img/website/schizoeye.gif";
-tileTextures.door_rusty_01.src = "./img/sprites/doors/door_rusty_01.png";
-tileTextures.wall_brick_graffiti_01.src = "./img/sprites/decoration/wall_brick_graffiti_01.png";
-tileTextures.wall_brick_door01_open.src = "./img/sprites/walls/wall_brick_door01_open.png";
-tileTextures.wall_brick_door01_closed.src = "./img/sprites/walls/wall_brick_door01_closed.png";
+// Set image sources in browser
+if (isBrowser) {
+    tileTextures.wall_creamlol.src = "./img/sprites/walls/creamlol.png";
+    tileTextures.wall_brick.src = "./img/sprites/walls/wall_brick.png";
+    tileTextures.wall_aldi.src = "./img/sprites/test/aldi.png";
+    tileTextures.wall_satanic.src = "./img/sprites/walls/wall_satanic_01.png";
+    tileTextures.wall_schizoeye.src = "./img/sprites/test/schizoeye.gif";
+    tileTextures.door_rusty_01.src = "./img/sprites/doors/door_rusty_01.png";
+    tileTextures.wall_brick_graffiti_01.src = "./img/sprites/decoration/wall_brick_graffiti_01.png";
+    tileTextures.wall_brick_door01_open.src = "./img/sprites/walls/wall_brick_door01_open.png";
+    tileTextures.wall_brick_door01_closed.src = "./img/sprites/walls/wall_brick_door01_closed.png";
+}
 
 const demonLaughingFrameCount = 7;
 export let demonLaughingLoaded = false;
-for (let i = 0; i < demonLaughingFrameCount; i++) {
-    const img = new Image();
-    img.src = `./img/sprites/demonlaughing/demonlaughing_frame_${i}.gif`;
-    tileTextures.wall_laughing_demon[i] = img;
+if (isBrowser) {
+    for (let i = 0; i < demonLaughingFrameCount; i++) {
+        const img = new Image();
+        img.src = `./img/sprites/demonlaughing/demonlaughing_frame_${i}.gif`;
+        tileTextures.wall_laughing_demon[i] = img;
+    }
 }
 
 let demonLaughingFrameIndex = 0;
@@ -52,45 +62,49 @@ export const textureIdMap = new Map([
     [10, "wall_brick_door01_closed"],
 ]);
 
-export const fullTile = { type: "wall", textureId: 1, floorHeight: 0, floorTextureId: 50, ceilingTextureId: 1 };
-export const fullTileBrick = { type: "wall", textureId: 2, floorHeight: 0, floorTextureId: 50, ceilingTextureId: 1 };
-export const fullTileAldi = { type: "wall", textureId: 3, floorHeight: 0, floorTextureId: 50, ceilingTextureId: 1 };
-export const fullTileSatanic = { type: "wall", textureId: 4, floorHeight: 0, floorTextureId: 50, ceilingTextureId: 1 };
-export const fullTileSchizoEye = { type: "wall", textureId: 5, floorHeight: 0, floorTextureId: 50, ceilingTextureId: 1 };
-export const fullTileRustyDoor01 = { type: "wall", textureId: 6, floorHeight: 0, floorTextureId: 50, ceilingTextureId: 1 };
-export const fullTileBrickGraffiti01 = { type: "wall", textureId: 7, floorHeight: 0, floorTextureId: 50, ceilingTextureId: 1 };
-export const fullTileLaughingDemon = { type: "wall", textureId: 8, floorHeight: 0, floorTextureId: 50, ceilingTextureId: 1 };
-export const fullTileBrickDoor01Open = { type: "wall", textureId: 9, floorHeight: 0, floorTextureId: 50, ceilingTextureId: 1 };
-export const fullTileBrickDoor01Closed = { type: "wall", textureId: 10, floorHeight: 0, floorTextureId: 50, ceilingTextureId: 1 };
-export const emptyTile = { type: "empty", floorHeight: 0, floorTextureId: 50, ceilingTextureId: 1 };
+export const fullTile = { type: "wall", textureId: 1, texture: "wall_creamlol", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
+export const fullTileBrick = { type: "wall", textureId: 2, texture: "wall_brick", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
+export const fullTileAldi = { type: "wall", textureId: 3, texture: "wall_aldi", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
+export const fullTileSatanic = { type: "wall", textureId: 4, texture: "wall_satanic", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
+export const fullTileSchizoEye = { type: "wall", textureId: 5, texture: "wall_schizoeye", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
+export const fullTileRustyDoor01 = { type: "wall", textureId: 6, texture: "door_rusty_01", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
+export const fullTileBrickGraffiti01 = { type: "wall", textureId: 7, texture: "wall_brick_graffiti_01", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
+export const fullTileLaughingDemon = { type: "wall", textureId: 8, texture: "wall_laughing_demon", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
+export const fullTileBrickDoor01Open = { type: "wall", textureId: 9, texture: "wall_brick_door01_open", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
+export const fullTileBrickDoor01Closed = { type: "wall", textureId: 10, texture: "wall_brick_door01_closed", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
+export const emptyTile = { type: "empty", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
 
 export const tileTexturesMap = new Map();
 
 const roofTextures = {
-    roof_concrete: new Image(),
+    roof_concrete: isBrowser ? new Image() : { src: "./img/sprites/roofs/roof_concrete.png" },
 };
-roofTextures.roof_concrete.src = "./img/sprites/roofs/roof_concrete.png";
+if (isBrowser) {
+    roofTextures.roof_concrete.src = "./img/sprites/roofs/roof_concrete.png";
+}
 
 export const roofTextureIdMap = new Map([
     [1, "roof_concrete"],
 ]);
 
-export const roofConcrete = { type: "roof", textureId: 1, floorHeight: 0 };
+export const roofConcrete = { type: "roof", textureId: 1, texture: "roof_concrete", floorHeight: 0 };
 
 const floorTextures = {
-    floor_concrete: new Image(),
-    floor_test: new Image()
+    floor_concrete: isBrowser ? new Image() : { src: "./img/sprites/roofs/roof_concrete.png" },
+    floor_test: isBrowser ? new Image() : { src: "./img/sprites/walls/creamlol.png" },
 };
-floorTextures.floor_concrete.src = "./img/sprites/roofs/roof_concrete.png";
-floorTextures.floor_test.src = "./img/sprites/walls/creamlol.png";
+if (isBrowser) {
+    floorTextures.floor_concrete.src = "./img/sprites/roofs/roof_concrete.png";
+    floorTextures.floor_test.src = "./img/sprites/walls/creamlol.png";
+}
 
 export const floorTextureIdMap = new Map([
     [50, "floor_concrete"],
     [51, "floor_test"],
 ]);
 
-export const floorConcrete = { type: "floor", textureId: 50, floorHeight: 1 };
-export const floorTest = { type: "floor", textureId: 51, floorHeight: 1 };
+export const floorConcrete = { type: "floor", textureId: 50, texture: "floor_concrete", floorHeight: 1 };
+export const floorTest = { type: "floor", textureId: 51, texture: "floor_test", floorHeight: 1 };
 
 // Initialize tileTexturesMap
 for (const [key, texture] of Object.entries(floorTextures)) {
@@ -103,24 +117,41 @@ for (const [key, texture] of Object.entries(roofTextures)) {
 }
 for (const [key, texture] of Object.entries(tileTextures)) {
     if (key === "wall_laughing_demon") {
-        tileTexturesMap.set(key, tileTextures.wall_laughing_demon[0]);
+        tileTexturesMap.set(key, isBrowser ? tileTextures.wall_laughing_demon[0] : { src: "./img/sprites/demonlaughing/demonlaughing_frame_0.gif" });
     } else {
         tileTexturesMap.set(key, texture);
         console.log(`Loading wall texture: ${key} from ${texture.src} *claps*`);
     }
 }
 
-texturesToLoad += Object.keys(floorTextures).length + Object.keys(roofTextures).length;
-for (const [name, texture] of Object.entries(floorTextures)) {
-    texture.onload = checkTexturesLoaded(name);
-    texture.onerror = handleTextureError(name);
-}
-for (const [name, texture] of Object.entries(roofTextures)) {
-    texture.onload = checkTexturesLoaded(name);
-    texture.onerror = handleTextureError(name);
+// Texture loading handlers (only in browser)
+if (isBrowser) {
+    for (const [name, texture] of Object.entries(floorTextures)) {
+        texture.onload = checkTexturesLoaded(name);
+        texture.onerror = handleTextureError(name);
+    }
+    for (const [name, texture] of Object.entries(roofTextures)) {
+        texture.onload = checkTexturesLoaded(name);
+        texture.onerror = handleTextureError(name);
+    }
+    for (const [name, texture] of Object.entries(tileTextures)) {
+        if (name === "wall_laughing_demon") {
+            texture.forEach((frame, i) => {
+                frame.onload = checkTexturesLoaded(`demonlaughing_frame_${i}`);
+                frame.onerror = handleTextureError(`demonlaughing_frame_${i}`);
+            });
+        } else {
+            texture.onload = checkTexturesLoaded(name);
+            texture.onerror = handleTextureError(name);
+        }
+    }
 }
 
 export function getDemonLaughingCurrentFrame() {
+    if (!isBrowser) {
+        console.warn("Not in browser, returning fallback texture *pouts*");
+        return tileTexturesMap.get("wall_creamlol");
+    }
     if (!demonLaughingLoaded) {
         console.warn("Demon laughing frames not loaded! Using fallback *pouts*");
         return tileTexturesMap.get("wall_creamlol");
@@ -166,18 +197,6 @@ function handleTextureError(textureName) {
             console.log("All textures processed, but some failed! *hides*");
         }
     };
-}
-
-for (const [name, texture] of Object.entries(tileTextures)) {
-    if (name === "wall_laughing_demon") {
-        texture.forEach((frame, i) => {
-            frame.onload = checkTexturesLoaded(`demonlaughing_frame_${i}`);
-            frame.onerror = handleTextureError(`demonlaughing_frame_${i}`);
-        });
-    } else {
-        texture.onload = checkTexturesLoaded(name);
-        texture.onerror = handleTextureError(name);
-    }
 }
 
 export { tileTextures, texturesLoaded };

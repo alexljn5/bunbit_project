@@ -1,9 +1,9 @@
-import { keys, playerMovement, playerPosition, playerVantagePointX, playerVantagePointY, getPlayerBobbingOffset } from "./playerdata/playerlogic.js";
+import { keys, playerMovement, playerPosition, playerVantagePointX, playerVantagePointY, getPlayerBobbingOffset } from "../playerdata/playerlogic.js";
 import { renderEngine } from "./renderengine.js";
-import { tileSectors } from "./mapdata/maps.js";
-import { CANVAS_HEIGHT, CANVAS_WIDTH, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT, SCALE_X, SCALE_Y } from "./globals.js";
+import { tileSectors } from "../mapdata/maps.js";
+import { CANVAS_HEIGHT, CANVAS_WIDTH, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT, SCALE_X, SCALE_Y } from "../globals.js";
 import { castRays, numCastRays, playerFOV } from "./raycasting.js";
-import { playerInventory, inventoryState } from "./playerdata/playerinventory.js";
+import { playerInventory, inventoryState } from "../playerdata/playerinventory.js";
 
 // Define rendering layers
 export const LAYERS = {

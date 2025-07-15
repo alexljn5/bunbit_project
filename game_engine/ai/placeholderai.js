@@ -1,9 +1,9 @@
 import { playerPosition, playerHealth, keys } from "../playerdata/playerlogic.js";
-import { placeholderAISpriteWorldPos, placeholderAiSprite } from "../rendersprites.js";
+import { placeholderAISpriteWorldPos, placeholderAiSprite } from "../rendering/rendersprites.js";
 import { map_01 } from "../mapdata/map_01.js";
 import { tileSectors } from "../mapdata/maps.js";
 import { isOccludedByWall } from "./aihandler.js";
-import { renderEngine } from "../renderengine.js";
+import { renderEngine } from "../rendering/renderengine.js";
 import { playerInventory } from "../playerdata/playerinventory.js";
 import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y } from "../globals.js";
 import { genericGunAmmo } from "../itemhandler/gunhandler.js";
@@ -202,7 +202,6 @@ export function placeholderAI() {
         }
         const elapsedPeekTime = performance.now() - peekStartTime;
         if (elapsedPeekTime < peekDelay) {
-            console.log("Placeholder AI is peeking halfway behind a wall!");
             return;
         } else {
             isPeeking = false;
@@ -214,7 +213,6 @@ export function placeholderAI() {
     }
 
     if (targetDistance < 10) {
-        console.log("Placeholder AI reached target, pausing");
         return;
     }
 

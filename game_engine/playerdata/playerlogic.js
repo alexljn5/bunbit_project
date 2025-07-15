@@ -1,4 +1,4 @@
-import { renderEngine } from "../renderengine.js";
+import { renderEngine } from "../rendering/renderengine.js";
 import { compiledTextStyle } from "../debugtools.js";
 import { staminaBarMeterOnCanvas, healthMeterOnCanvas } from "./playerui.js";
 import { playerMovementDisabled } from "../ai/friendlycat.js";

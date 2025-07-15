@@ -1,8 +1,8 @@
-import { playerPosition } from "./playerdata/playerlogic.js";
-import { tileSectors, mapTable } from "./mapdata/maps.js";
-import { textureIdMap, floorTextureIdMap } from "./mapdata/maptextures.js";
-import { CANVAS_WIDTH } from "./globals.js";
-import { mapHandler } from "./mapdata/maphandler.js";
+import { playerPosition } from "../playerdata/playerlogic.js";
+import { tileSectors, mapTable } from "../mapdata/maps.js";
+import { textureIdMap, floorTextureIdMap } from "../mapdata/maptextures.js";
+import { CANVAS_WIDTH } from "../globals.js";
+import { mapHandler } from "../mapdata/maphandler.js";
 
 export let playerFOV = Math.PI / 6; // 60 degrees
 export let numCastRays = 300; // Default value
@@ -14,7 +14,7 @@ if (/Mobi|Android/i.test(navigator.userAgent) || navigator.hardwareConcurrency <
 }
 
 // --- OPTIMIZED RAYCASTING WORKER MANAGEMENT ---
-const NUM_WORKERS = Math.min(navigator.hardwareConcurrency || 2, 2);
+const NUM_WORKERS = Math.min(navigator.hardwareConcurrency || 4, 4);
 const workers = Array.from({ length: NUM_WORKERS }, () => new Worker("./workers/raycastworker.js", { type: "module" }));
 const workerPendingFrames = new Map();
 let workersInitialized = false;

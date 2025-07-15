@@ -1,5 +1,5 @@
 import { playerPosition, previousPosition } from "../playerdata/playerlogic.js";
-import { spriteState, metalPipeWorldPos, nineMMAmmoSpriteWorldPos, nineMMAmmoSprite } from "../rendersprites.js";
+import { spriteState, metalPipeWorldPos, nineMMAmmoSpriteWorldPos, nineMMAmmoSprite } from "../rendering/rendersprites.js";
 import { playerInventory } from "../playerdata/playerinventory.js";
 import { setGenericGunAmmo, genericGunAmmo } from "../itemhandler/gunhandler.js";
 

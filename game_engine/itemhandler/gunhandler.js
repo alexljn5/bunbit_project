@@ -4,7 +4,7 @@ import { placeholderAIHealth, setPlaceholderAIHealth } from "../ai/placeholderai
 import { map_01 } from "../mapdata/map_01.js";
 import { tileSectors } from "../mapdata/maps.js";
 import { isOccludedByWall } from "../ai/aihandler.js";
-import { placeholderAISpriteWorldPos } from "../rendersprites.js";
+import { placeholderAISpriteWorldPos } from "../rendering/rendersprites.js";
 
 export let genericGunAmmo = 10;
 const gunDamage = 20; // Base damage for gun

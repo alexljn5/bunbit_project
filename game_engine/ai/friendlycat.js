@@ -1,11 +1,11 @@
 import { playerPosition, isInteractionKeyPressed } from "../playerdata/playerlogic.js";
-import { boyKisserEnemySpriteWorldPos } from "../rendersprites.js";
+import { boyKisserEnemySpriteWorldPos } from "../rendering/rendersprites.js";
 import { map_01 } from "../mapdata/map_01.js";
 import { tileSectors } from "../mapdata/maps.js";
-import { renderEngine } from "../renderengine.js";
+import { renderEngine } from "../rendering/renderengine.js";
 import { playerInventory } from "../playerdata/playerinventory.js";
 import { basicPickUpMenuStyle } from "../menus/menuhandler.js";
-import { genericGunSprite } from "../rendersprites.js";
+import { genericGunSprite } from "../rendering/rendersprites.js";
 import { isOccludedByWall } from "./aihandler.js";
 import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT } from "../globals.js";
 
