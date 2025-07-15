@@ -5,11 +5,12 @@ import { map_01 } from "../mapdata/map_01.js";
 import { tileSectors } from "../mapdata/maps.js";
 import { isOccludedByWall } from "../ai/aihandler.js";
 import { placeholderAISpriteWorldPos } from "../rendering/rendersprites.js";
+import { playMetalSwingSound } from "../audio/soundhandler.js";
 
 const meleeDamage = 10; // Base damage for metal pipe
 const meleeRange = 30; // Melee attack range
 let lastAttackTime = 0; // Cooldown tracker
-const attackCooldown = 500; // 0.5 seconds between attacks
+const attackCooldown = 2000; // 2 seconds between attacks
 
 function metalPipeHandler() {
     if (!keys[" "] || playerInventory[inventoryState.selectedInventoryIndex] !== "metal_pipe") {
@@ -20,7 +21,7 @@ function metalPipeHandler() {
     if (now - lastAttackTime < attackCooldown) {
         return;
     }
-
+    playMetalSwingSound();
     // Check for nearby enemies (e.g., placeholderAI)
     const dx = playerPosition.x - placeholderAISpriteWorldPos.x;
     const dz = playerPosition.z - placeholderAISpriteWorldPos.z;
