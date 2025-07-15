@@ -1,5 +1,5 @@
 // game_engine/mapdata/map_test_data.js
-import { fullTile, emptyTile, fullTileSchizoEye } from './maptextures.js';
+import { fullTile, emptyTile, fullTileSchizoEye } from './maptexturesloader.js';
 import { buildMapGrid } from './maputils.js';
 
 // Test map sector (8x8 square room)

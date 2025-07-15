@@ -1,6 +1,6 @@
 import { tileSectors } from "../mapdata/maps.js";
 import { mapHandler } from "../mapdata/maphandler.js";
-import { emptyTile } from "../mapdata/maptextures.js";
+import { emptyTile } from "../mapdata/maptexturesloader.js";
 
 const STAIR_COUNT = 10;
 const STEP_WIDTH = tileSectors / STAIR_COUNT;

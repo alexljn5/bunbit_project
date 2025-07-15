@@ -1,7 +1,7 @@
 import { playerPosition, isInteractionKeyPressed } from "../playerdata/playerlogic.js";
 import { map_01 } from "../mapdata/map_01.js";
 import { tileSectors } from "../mapdata/maps.js";
-import { fullTileBrickDoor01Open, fullTileBrickDoor01Closed } from "../mapdata/maptextures.js";
+import { fullTileBrickDoor01Open, fullTileBrickDoor01Closed } from "../mapdata/maptexturesloader.js";
 import { renderEngine } from "../rendering/renderengine.js";
 import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT } from "../globals.js";
 

@@ -1,4 +1,4 @@
-import { emptyTile } from './maptextures.js';
+import { emptyTile } from './maptexturesloader.js';
 
 export function buildMapGrid(sectors) {
     const mapHeight = Math.max(...sectors.map(s => s.startY + s.height));

@@ -1,10 +1,13 @@
-// rendersprites.js
+// game_engine/rendering/rendersprites.js
+// Manages sprite rendering and loading across multiple maps in the game.
+
 import { keys, playerMovement, playerPosition, playerVantagePointX, playerVantagePointY, getPlayerBobbingOffset } from "../playerdata/playerlogic.js";
 import { renderEngine } from "./renderengine.js";
 import { tileSectors } from "../mapdata/maps.js";
 import { CANVAS_HEIGHT, CANVAS_WIDTH, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT, SCALE_X, SCALE_Y, fastSin, fastCos, Q_rsqrt } from "../globals.js";
 import { castRays, numCastRays, playerFOV } from "./raycasting.js";
 import { playerInventory, inventoryState } from "../playerdata/playerinventory.js";
+import { map_debug } from "../mapdata/map_debug.js";
 
 // Define rendering layers
 export const LAYERS = {
@@ -56,7 +59,7 @@ class Sprite {
     }
 }
 
-// --- SpriteManager to handle per-map sprites ---
+// SpriteManager to handle per-map sprites
 class SpriteManager {
     constructor() {
         this.sprites = new Map();
@@ -119,8 +122,15 @@ class SpriteManager {
 
     getSprite(id) { return this.sprites.get(id); }
 
-    addSpriteForMaps(sprite, mapKeys) {
+    addSpriteForMaps(spriteConfig, mapKeys, mapSpecificProps = {}) {
         for (const mapKey of mapKeys) {
+            // Create a new Sprite instance for each map to allow map-specific properties
+            const sprite = new Sprite({
+                ...spriteConfig,
+                worldPos: mapSpecificProps[mapKey]?.worldPos || spriteConfig.worldPos,
+                scaleFactor: mapSpecificProps[mapKey]?.scaleFactor || spriteConfig.scaleFactor,
+                baseYRatio: mapSpecificProps[mapKey]?.baseYRatio || spriteConfig.baseYRatio
+            });
             this.addSprite(sprite, mapKey);
         }
     }
@@ -174,7 +184,7 @@ export let placeholderAiSpriteLoaded = false;
 export const placeholderAISpriteWorldPos = { x: 2.5 * tileSectors, z: 11.3 * tileSectors };
 export let boyKisserEnemyHealth = 5;
 
-// Register Sprites with SpriteManager FIRST
+// Register Sprites with SpriteManager
 const playerHand = new Sprite({
     id: 'playerHand',
     image: playerHandSprite,
@@ -197,7 +207,11 @@ const playerHand = new Sprite({
         return null; // No depth info needed
     }
 });
-spriteManager.addSprite(playerHand, "map_01");
+spriteManager.addSpriteForMaps(playerHand, ["map_01", "map_02", "map_debug"], {
+    map_01: { worldPos: null }, // No worldPos for FOREGROUND sprites
+    map_02: { worldPos: null },
+    map_debug: { worldPos: null }
+});
 
 const pillar01 = new Sprite({
     id: 'pillar01',
@@ -211,7 +225,10 @@ const pillar01 = new Sprite({
     baseYRatio: 400 / REF_CANVAS_HEIGHT,
     scaleFactor: 0.5
 });
-spriteManager.addSprite(pillar01, "map_01");
+spriteManager.addSpriteForMaps(pillar01, ["map_01", "map_02"], {
+    map_01: { worldPos: { x: 2.5 * tileSectors, z: 6 * tileSectors } },
+    map_02: { worldPos: { x: 3.0 * tileSectors, z: 5.0 * tileSectors } }
+});
 
 const corpse1 = new Sprite({
     id: 'corpse1',
@@ -225,7 +242,10 @@ const corpse1 = new Sprite({
     baseYRatio: 400 / REF_CANVAS_HEIGHT,
     scaleFactor: 0.5
 });
-spriteManager.addSprite(corpse1, "map_01");
+spriteManager.addSpriteForMaps(corpse1, ["map_01", "map_debug"], {
+    map_01: { worldPos: { x: 1.3 * tileSectors, z: 11.7 * tileSectors } },
+    map_debug: { worldPos: { x: 1.3 * tileSectors, z: 11.7 * tileSectors } }
+});
 
 const metalPipe = new Sprite({
     id: 'metalPipe',
@@ -254,7 +274,11 @@ const metalPipe = new Sprite({
         });
     }
 });
-spriteManager.addSprite(metalPipe, "map_01");
+spriteManager.addSpriteForMaps(metalPipe, ["map_01", "map_02", "map_debug"], {
+    map_01: { worldPos: { x: 2.5 * tileSectors, z: 4.5 * tileSectors } },
+    map_02: { worldPos: { x: 2.0 * tileSectors, z: 3.5 * tileSectors } },
+    map_debug: { worldPos: { x: 2.5 * tileSectors, z: 4.5 * tileSectors } }
+});
 
 const nineMMAmmo = new Sprite({
     id: 'nineMMAmmo',
@@ -298,7 +322,10 @@ const nineMMAmmo = new Sprite({
         return result ? { adjustedScreenX, spriteWidth, spriteY: spriteYBottom - spriteHeight, spriteHeight } : null;
     }
 });
-spriteManager.addSprite(nineMMAmmo, "map_01");
+spriteManager.addSpriteForMaps(nineMMAmmo, ["map_01", "map_02"], {
+    map_01: { worldPos: { x: 3.4 * tileSectors, z: 1.2 * tileSectors } },
+    map_02: { worldPos: { x: 4.0 * tileSectors, z: 2.0 * tileSectors } }
+});
 
 const boyKisser = new Sprite({
     id: 'boyKisser',
@@ -349,7 +376,9 @@ const boyKisser = new Sprite({
         return null;
     }
 });
-spriteManager.addSprite(boyKisser, "map_01");
+spriteManager.addSpriteForMaps(boyKisser, ["map_01"], {
+    map_01: { worldPos: { x: 3.4 * tileSectors, z: 1.2 * tileSectors } }
+});
 
 const casperLesserDemon = new Sprite({
     id: 'casperLesserDemon',
@@ -363,7 +392,10 @@ const casperLesserDemon = new Sprite({
     baseYRatio: 400 / REF_CANVAS_HEIGHT,
     scaleFactor: 0.5
 });
-spriteManager.addSprite(casperLesserDemon, "map_01");
+spriteManager.addSpriteForMaps(casperLesserDemon, ["map_01", "map_02"], {
+    map_01: { worldPos: { x: 5.5 * tileSectors, z: 11.3 * tileSectors } },
+    map_02: { worldPos: { x: 6.0 * tileSectors, z: 10.0 * tileSectors } }
+});
 
 const creamSpin = new Sprite({
     id: 'creamSpin',
@@ -405,7 +437,10 @@ const creamSpin = new Sprite({
         return result;
     }
 });
-spriteManager.addSprite(creamSpin, "map_01");
+spriteManager.addSpriteForMaps(creamSpin, ["map_01", "map_02"], {
+    map_01: { worldPos: { x: 3.0 * tileSectors, z: 650 / 50 * tileSectors } },
+    map_02: { worldPos: { x: 3.5 * tileSectors, z: 12.0 * tileSectors } }
+});
 
 const placeholderAI = new Sprite({
     id: 'placeholderAI',
@@ -419,7 +454,9 @@ const placeholderAI = new Sprite({
     baseYRatio: 400 / REF_CANVAS_HEIGHT,
     scaleFactor: 0.5
 });
-spriteManager.addSprite(placeholderAI, "map_01");
+spriteManager.addSpriteForMaps(placeholderAI, ["map_01"], {
+    map_01: { worldPos: { x: 2.5 * tileSectors, z: 11.3 * tileSectors } }
+});
 
 // Set up image loading AFTER sprite registration
 playerHandSprite.src = "./img/sprites/playerhand/playerhand_default.png";

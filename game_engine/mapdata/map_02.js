@@ -1,4 +1,4 @@
-import { fullTileBrick, emptyTile, fullTileBrickDoor01Open } from './maptextures.js';
+import { fullTileBrick, emptyTile, fullTileBrickDoor01Open } from './maptexturesloader.js';
 
 // Example sector for map_02
 export const map_02_sector1 = [

@@ -67,7 +67,7 @@ export function drawGraphicsOverlay(renderEngine, SCALE_X, SCALE_Y, showGraphics
     const overlayX = 350 * SCALE_X;
     const overlayY = 120 * SCALE_Y;
     const overlayWidth = 400 * SCALE_X;
-    const overlayHeight = 400 * SCALE_Y;
+    const overlayHeight = 600 * SCALE_Y;
     renderEngine.fillStyle = "rgba(20, 20, 20, 0.95)";
     renderEngine.fillRect(overlayX, overlayY, overlayWidth, overlayHeight);
     renderEngine.strokeStyle = "#fff";

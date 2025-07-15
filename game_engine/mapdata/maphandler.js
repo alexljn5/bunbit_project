@@ -1,6 +1,7 @@
 import { tileSectors, mapSectorsTable, mapTable } from "./maps.js";
 import { buildMapGrid } from "./maputils.js";
-import { emptyTile, floorConcrete, floorTextureIdMap } from "./maptextures.js";
+import { emptyTile, floorConcrete } from "./maptexturesloader.js";
+import { floorTextureIdMap } from "./maptexturesids.js";
 
 export class MapHandler {
     constructor() {

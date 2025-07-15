@@ -49,19 +49,6 @@ let cachedFrame = null;
 let texturesLoaded = false;
 let texturesToLoad = Object.keys(tileTextures).length + demonLaughingFrameCount - 1;
 
-export const textureIdMap = new Map([
-    [1, "wall_creamlol"],
-    [2, "wall_brick"],
-    [3, "wall_aldi"],
-    [4, "wall_satanic"],
-    [5, "wall_schizoeye"],
-    [6, "door_rusty_01"],
-    [7, "wall_brick_graffiti_01"],
-    [8, "wall_laughing_demon"],
-    [9, "wall_brick_door01_open"],
-    [10, "wall_brick_door01_closed"],
-]);
-
 export const fullTile = { type: "wall", textureId: 1, texture: "wall_creamlol", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
 export const fullTileBrick = { type: "wall", textureId: 2, texture: "wall_brick", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
 export const fullTileAldi = { type: "wall", textureId: 3, texture: "wall_aldi", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
@@ -83,10 +70,6 @@ if (isBrowser) {
     roofTextures.roof_concrete.src = "./img/sprites/roofs/roof_concrete.png";
 }
 
-export const roofTextureIdMap = new Map([
-    [1, "roof_concrete"],
-]);
-
 export const roofConcrete = { type: "roof", textureId: 1, texture: "roof_concrete", floorHeight: 0 };
 
 const floorTextures = {
@@ -97,11 +80,6 @@ if (isBrowser) {
     floorTextures.floor_concrete.src = "./img/sprites/roofs/roof_concrete.png";
     floorTextures.floor_test.src = "./img/sprites/walls/creamlol.png";
 }
-
-export const floorTextureIdMap = new Map([
-    [50, "floor_concrete"],
-    [51, "floor_test"],
-]);
 
 export const floorConcrete = { type: "floor", textureId: 50, texture: "floor_concrete", floorHeight: 1 };
 export const floorTest = { type: "floor", textureId: 51, texture: "floor_test", floorHeight: 1 };

@@ -1,5 +1,5 @@
 import { playerPosition } from "../playerdata/playerlogic.js";
-import { getDemonLaughingCurrentFrame } from "../mapdata/maptextures.js";
+import { getDemonLaughingCurrentFrame } from "../mapdata/maptexturesloader.js";
 import { renderEngine } from "../rendering/renderengine.js";
 import { CANVAS_HEIGHT, CANVAS_WIDTH, SCALE_X, SCALE_Y } from "../globals.js";
 import { casperLesserDemonSprite } from "../rendering/rendersprites.js";

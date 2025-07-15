@@ -2,7 +2,7 @@ import { playerMovement, playerPosition } from "./playerdata/playerlogic.js";
 import { renderEngine } from "./rendering/renderengine.js";
 import { mapHandler } from "./mapdata/maphandler.js";
 import { tileSectors } from "./mapdata/maps.js";
-import { tileTexturesMap } from "./mapdata/maptextures.js";
+import { tileTexturesMap } from "./mapdata/maptexturesloader.js";
 import { spriteManager, getCreamSpinCurrentFrame, spriteState } from "./rendering/rendersprites.js";
 import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y } from "./globals.js";
 

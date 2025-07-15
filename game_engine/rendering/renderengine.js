@@ -7,7 +7,7 @@ import { tileSectors } from "../mapdata/maps.js";
 import { castRays, numCastRays, playerFOV, initializeMap } from "./raycasting.js";
 import { drawSprites } from "./rendersprites.js";
 import { mainGameMenu, setupMenuClickHandler } from "../menus/menu.js";
-import { texturesLoaded, tileTexturesMap, getDemonLaughingCurrentFrame } from "../mapdata/maptextures.js";
+import { texturesLoaded, tileTexturesMap, getDemonLaughingCurrentFrame } from "../mapdata/maptexturesloader.js";
 import { playerUI } from "../playerdata/playerui.js";
 import { collissionGodFunction } from "../collissiondetection/collissionlogichandler.js";
 import { enemyAiGodFunction, friendlyAiGodFunction } from "../ai/aihandler.js";
@@ -22,6 +22,7 @@ import { eventHandler } from "../events/eventhandler.js";
 import { decorationHandlerGodFunction } from "../decorationhandler/decorationhandler.js";
 import { mapHandler } from "../mapdata/maphandler.js";
 import { renderRaycastFloors } from "./renderfloors.js";
+import { consoleHandler } from "../console/consolehandler.js";
 
 // --- DOM Elements ---
 const domElements = {
@@ -102,6 +103,7 @@ async function gameRenderEngine() {
         friendlyAiGodFunction();
         enemyAiGodFunction();
         playMusicGodFunction();
+        consoleHandler();
     } catch (error) {
         console.error("gameRenderEngine error:", error);
         renderEngine.fillStyle = "gray";

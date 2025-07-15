@@ -1,7 +1,7 @@
 import {
     fullTile, emptyTile, fullTileAldi, fullTileBrick, fullTileSatanic, fullTileSchizoEye,
     fullTileBrickGraffiti01, fullTileLaughingDemon, fullTileBrickDoor01Closed, fullTileBrickDoor01Open
-} from './maptextures.js';
+} from './maptexturesloader.js';
 
 // Starting room (10x8)
 export const map_01_sector1 = [

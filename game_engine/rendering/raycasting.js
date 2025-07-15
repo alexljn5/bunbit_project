@@ -1,9 +1,9 @@
 // raycasting.js
 import { playerPosition } from "../playerdata/playerlogic.js";
 import { tileSectors, mapTable } from "../mapdata/maps.js";
-import { textureIdMap, floorTextureIdMap } from "../mapdata/maptextures.js";
 import { CANVAS_WIDTH, fastSin, fastCos, Q_rsqrt } from "../globals.js";
 import { mapHandler } from "../mapdata/maphandler.js";
+import { textureIdMap, floorTextureIdMap, roofTextureIdMap } from "../mapdata/maptexturesids.js";
 
 export let playerFOV = Math.PI / 6; // 60 degrees
 export let numCastRays = 300; // Default value
