@@ -1,9 +1,10 @@
+// renderengine.js
 import { gameLoop } from "../main_game.js";
 import { playerLogic, playerPosition, showDebugTools } from "../playerdata/playerlogic.js";
 import { playerInventoryGodFunction } from "../playerdata/playerinventory.js";
 import { compiledDevTools } from "../debugtools.js";
 import { tileSectors } from "../mapdata/maps.js";
-import { castRays, cleanupWorkers, numCastRays, playerFOV, initializeMap } from "./raycasting.js";
+import { castRays, numCastRays, playerFOV, initializeMap } from "./raycasting.js";
 import { drawSprites } from "./rendersprites.js";
 import { mainGameMenu, setupMenuClickHandler } from "../menus/menu.js";
 import { texturesLoaded, tileTexturesMap, getDemonLaughingCurrentFrame } from "../mapdata/maptextures.js";
@@ -16,7 +17,7 @@ import { menuHandler } from "../menus/menuhandler.js";
 import { animationHandler } from "../animations/animationhandler.js";
 import { introActive, newGameStartAnimation } from "../animations/newgamestartanimation.js";
 import { itemHandlerGodFunction } from "../itemhandler/itemhandler.js";
-import { CANVAS_HEIGHT, CANVAS_WIDTH } from "../globals.js";
+import { CANVAS_HEIGHT, CANVAS_WIDTH, fastSin, fastCos, Q_rsqrt } from "../globals.js";
 import { eventHandler } from "../events/eventhandler.js";
 import { decorationHandlerGodFunction } from "../decorationhandler/decorationhandler.js";
 import { mapHandler } from "../mapdata/maphandler.js";
@@ -155,27 +156,6 @@ function cleanupRenderWorkers() {
     renderWorkersInitialized = false;
 }
 
-// --- Math Tables for Fast Trig ---
-const SIN_TABLE_SIZE = 2048;
-const TWO_PI = Math.PI * 2;
-const sinTable = new Float32Array(SIN_TABLE_SIZE);
-const cosTable = new Float32Array(SIN_TABLE_SIZE);
-for (let i = 0; i < SIN_TABLE_SIZE; i++) {
-    const angle = (i / SIN_TABLE_SIZE) * TWO_PI;
-    sinTable[i] = Math.sin(angle);
-    cosTable[i] = Math.cos(angle);
-}
-export function fastSin(angle) {
-    let idx = Math.floor((angle % TWO_PI) / TWO_PI * SIN_TABLE_SIZE);
-    if (idx < 0) idx += SIN_TABLE_SIZE;
-    return sinTable[idx];
-}
-export function fastCos(angle) {
-    let idx = Math.floor((angle % TWO_PI) / TWO_PI * SIN_TABLE_SIZE);
-    if (idx < 0) idx += SIN_TABLE_SIZE;
-    return cosTable[idx];
-}
-
 // --- Raycast Rendering ---
 function renderRaycastWalls(rayData) {
     if (!texturesLoaded) {
@@ -217,7 +197,4 @@ function renderRaycastWalls(rayData) {
     }
 }
 
-
-
-// Export mainGame
 export { initializeRenderWorkers };

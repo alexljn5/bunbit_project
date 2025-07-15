@@ -1,7 +1,8 @@
+// raycasting.js
 import { playerPosition } from "../playerdata/playerlogic.js";
 import { tileSectors, mapTable } from "../mapdata/maps.js";
 import { textureIdMap, floorTextureIdMap } from "../mapdata/maptextures.js";
-import { CANVAS_WIDTH } from "../globals.js";
+import { CANVAS_WIDTH, fastSin, fastCos, Q_rsqrt } from "../globals.js";
 import { mapHandler } from "../mapdata/maphandler.js";
 
 export let playerFOV = Math.PI / 6; // 60 degrees
@@ -220,15 +221,4 @@ export function fuckTheScreenUpBaby() {
             if (playerFOV <= 6) increasing = true;
         }
     }
-}
-
-// --- Math Tables for Fast Trig ---
-const SIN_TABLE_SIZE = 2048;
-const TWO_PI = Math.PI * 2;
-const sinTable = new Float32Array(SIN_TABLE_SIZE);
-const cosTable = new Float32Array(SIN_TABLE_SIZE);
-for (let i = 0; i < SIN_TABLE_SIZE; i++) {
-    const angle = (i / SIN_TABLE_SIZE) * TWO_PI;
-    sinTable[i] = Math.sin(angle);
-    cosTable[i] = Math.cos(angle);
 }

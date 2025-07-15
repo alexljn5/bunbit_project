@@ -1,49 +1,14 @@
+// renderfloors.js
 import { mapHandler } from "../mapdata/maphandler.js";
 import { tileSectors } from "../mapdata/maps.js";
 import { tileTexturesMap, texturesLoaded } from "../mapdata/maptextures.js";
 import { playerPosition } from "../playerdata/playerlogic.js";
-import { CANVAS_HEIGHT, CANVAS_WIDTH } from "../globals.js";
+import { CANVAS_HEIGHT, CANVAS_WIDTH, fastSin, fastCos } from "../globals.js";
 import { renderEngine } from "./renderengine.js";
 import { numCastRays, playerFOV } from "./raycasting.js";
 
 let lastCanvasWidth = CANVAS_WIDTH;
 let lastCanvasHeight = CANVAS_HEIGHT;
-
-const SIN_TABLE_SIZE = 2048;
-const TWO_PI = Math.PI * 2;
-const sinTable = new Float32Array(SIN_TABLE_SIZE);
-const cosTable = new Float32Array(SIN_TABLE_SIZE);
-for (let i = 0; i < SIN_TABLE_SIZE; i++) {
-    const angle = (i / SIN_TABLE_SIZE) * TWO_PI;
-    sinTable[i] = Math.sin(angle);
-    cosTable[i] = Math.cos(angle);
-}
-
-function fastSin(angle) {
-    let idx = Math.floor((angle % TWO_PI) / TWO_PI * SIN_TABLE_SIZE);
-    if (idx < 0) idx += SIN_TABLE_SIZE;
-    return sinTable[idx];
-}
-
-function fastCos(angle) {
-    let idx = Math.floor((angle % TWO_PI) / TWO_PI * SIN_TABLE_SIZE);
-    if (idx < 0) idx += SIN_TABLE_SIZE;
-    return cosTable[idx];
-}
-
-function Q_rsqrt(number) {
-    const threehalfs = 1.5;
-    const x2 = number * 0.5;
-    let y = number;
-    const buf = new ArrayBuffer(4);
-    const f = new Float32Array(buf);
-    const i = new Uint32Array(buf);
-    f[0] = y;
-    i[0] = 0x5f3759df - (i[0] >> 1);
-    y = f[0];
-    y = y * (threehalfs - (x2 * y * y));
-    return y;
-}
 
 const bufferCanvas = document.createElement("canvas");
 bufferCanvas.width = CANVAS_WIDTH;

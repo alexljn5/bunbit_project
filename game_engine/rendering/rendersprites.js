@@ -1,7 +1,8 @@
+// rendersprites.js
 import { keys, playerMovement, playerPosition, playerVantagePointX, playerVantagePointY, getPlayerBobbingOffset } from "../playerdata/playerlogic.js";
 import { renderEngine } from "./renderengine.js";
 import { tileSectors } from "../mapdata/maps.js";
-import { CANVAS_HEIGHT, CANVAS_WIDTH, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT, SCALE_X, SCALE_Y } from "../globals.js";
+import { CANVAS_HEIGHT, CANVAS_WIDTH, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT, SCALE_X, SCALE_Y, fastSin, fastCos, Q_rsqrt } from "../globals.js";
 import { castRays, numCastRays, playerFOV } from "./raycasting.js";
 import { playerInventory, inventoryState } from "../playerdata/playerinventory.js";
 
