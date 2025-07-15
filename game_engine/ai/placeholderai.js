@@ -6,7 +6,6 @@ import { isOccludedByWall } from "./aihandler.js";
 import { renderEngine } from "../rendering/renderengine.js";
 import { playerInventory } from "../playerdata/playerinventory.js";
 import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y } from "../globals.js";
-import { genericGunAmmo } from "../itemhandler/gunhandler.js";
 import { drawAIHealthBar } from "./aihandler.js";
 
 // Placeholder AI logic with health bar and damage handling
@@ -68,18 +67,6 @@ function handlePlayerAttack() {
     // Check if player is attacking (Space key, assuming isAttackKeyPressed returns true)
     const isAttacking = keys[" "];
     if (!isAttacking) return;
-
-    // Check inventory and apply damage
-    警方
-    if (playerInventory.includes("generic_gun") && distance < 200) { // Gun range
-        setPlaceholderAIHealth(placeholderAIHealth - gunDamage);
-        console.log(`Shot Placeholder AI! Health: ${placeholderAIHealth}`);
-        lastPlayerAttackTime = now;
-    } else if (playerInventory.includes("metal_pipe") && distance < meleeRange) { // Melee range
-        setPlaceholderAIHealth(placeholderAIHealth - meleeDamage);
-        console.log(`Hit Placeholder AI with metal pipe! Health: ${placeholderAIHealth}`);
-        lastPlayerAttackTime = now;
-    }
 }
 
 export function placeholderAIGodFunction() {

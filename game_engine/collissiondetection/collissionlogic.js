@@ -1,7 +1,7 @@
 import { playerPosition, previousPosition } from "../playerdata/playerlogic.js";
 import { spriteState, metalPipeWorldPos, nineMMAmmoSpriteWorldPos, nineMMAmmoSprite } from "../rendering/rendersprites.js";
 import { playerInventory } from "../playerdata/playerinventory.js";
-import { setGenericGunAmmo, genericGunAmmo } from "../itemhandler/gunhandler.js";
+import { setGenericGunAmmo, genericGunAmmo } from "../itemhandler/guns/genericgun.js";
 
 export function simpleCollissionTest() {
     if (spriteState.isMetalPipeCollected) return;

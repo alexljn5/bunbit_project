@@ -4,7 +4,7 @@ import { casperFace1, casperFace2, casperFace3, casperFace4, casperFace5, casper
 import { playerInventory, inventoryState } from "./playerinventory.js";
 import { metalPipeSprite, genericGunSprite } from "../rendering/rendersprites.js";
 import { playerStamina, playerHealthBar, playerHealth } from "./playerlogic.js";
-import { genericGunAmmo } from "../itemhandler/gunhandler.js";
+import { genericGunAmmo } from "../itemhandler/guns/genericgun.js";
 import { CANVAS_HEIGHT, CANVAS_WIDTH, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT } from "../globals.js";
 
 // Array of faces and their load status
