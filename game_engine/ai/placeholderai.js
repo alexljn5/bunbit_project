@@ -1,5 +1,5 @@
 import { playerPosition, playerHealth, keys } from "../playerdata/playerlogic.js";
-import { placeholderAISpriteWorldPos, placeholderAiSprite } from "../rendering/rendersprites.js";
+import { spriteManager, placeholderAISpriteWorldPos, placeholderAiSprite } from "../rendering/rendersprites.js";
 import { map_01 } from "../mapdata/map_01.js";
 import { tileSectors } from "../mapdata/maps.js";
 import { isOccludedByWall } from "./aihandler.js";
@@ -9,7 +9,7 @@ import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y } from "../globals.js";
 import { drawAIHealthBar } from "./aihandler.js";
 
 // Placeholder AI logic with health bar and damage handling
-export let placeholderAIPreviousPos = { x: placeholderAISpriteWorldPos.x, z: placeholderAISpriteWorldPos.z };
+export let placeholderAIPreviousPos = null; // Initialize as null
 export let lastKnownPlayerPos = null;
 export let canSeePlayer = true;
 export let isPeeking = false;
@@ -46,27 +46,48 @@ export function setPlaceholderAIHealth(value) {
 }
 
 function triggerPlaceholderAIDeath() {
-    // Placeholder death event (replace with actual event from map_01_events.js)
+    // Placeholder death event
     renderEngine.fillStyle = "rgba(255, 0, 0, 0.5)";
     renderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     renderEngine.fillStyle = "white";
     renderEngine.font = `${24 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
     renderEngine.fillText("Placeholder AI Defeated!", CANVAS_WIDTH / 2 - 100 * SCALE_X, CANVAS_HEIGHT / 2);
-    // Optionally stop AI updates or remove sprite
-    placeholderAISpriteWorldPos.x = -9999; // Move off-screen (temporary)
+    // Move off-screen (temporary)
+    placeholderAISpriteWorldPos.x = -9999;
+    const placeholderSprite = spriteManager.getSprite("placeholderAI");
+    if (placeholderSprite && placeholderSprite.worldPos) {
+        placeholderSprite.worldPos.x = -9999;
+    }
 }
 
 function handlePlayerAttack() {
     const now = performance.now();
     if (now - lastPlayerAttackTime < attackCooldown) return;
 
+    const placeholderSprite = spriteManager.getSprite("placeholderAI");
+    if (!placeholderSprite || !placeholderSprite.worldPos) {
+        console.log("Oops! PlaceholderAI sprite not found or missing worldPos! *Chao chao*");
+        return;
+    }
+
     const dx = playerPosition.x - placeholderAISpriteWorldPos.x;
     const dz = playerPosition.z - placeholderAISpriteWorldPos.z;
     const distance = Math.sqrt(dx * dx + dz * dz);
 
-    // Check if player is attacking (Space key, assuming isAttackKeyPressed returns true)
+    // Check if player is attacking (Space key)
     const isAttacking = keys[" "];
     if (!isAttacking) return;
+
+    // Apply damage based on equipped weapon
+    if (playerInventory.includes("generic_gun") && distance <= 100) { // Gun range
+        setPlaceholderAIHealth(placeholderAIHealth - gunDamage);
+        console.log(`Player shot Placeholder AI! Health: ${placeholderAIHealth}`);
+        lastPlayerAttackTime = now;
+    } else if (playerInventory.includes("metal_pipe") && distance <= meleeRange) { // Melee range
+        setPlaceholderAIHealth(placeholderAIHealth - meleeDamage);
+        console.log(`Player hit Placeholder AI with metal pipe! Health: ${placeholderAIHealth}`);
+        lastPlayerAttackTime = now;
+    }
 }
 
 export function placeholderAIGodFunction() {
@@ -88,7 +109,7 @@ export function placeholderAIGodFunction() {
                 playerPosition: {
                     x: playerPosition.x,
                     z: playerPosition.z,
-                    angle: playerPosition.angle // Ensure angle is passed
+                    angle: playerPosition.angle
                 },
                 playerFOV: Math.PI / 3,
                 occlusionCheck: () => isOccludedByWall(
@@ -105,8 +126,23 @@ export function placeholderAIGodFunction() {
 }
 
 export function placeholderAI() {
+    const placeholderSprite = spriteManager.getSprite("placeholderAI");
+    if (!placeholderSprite || !placeholderSprite.worldPos) {
+        console.log("Oops! PlaceholderAI sprite not found or missing worldPos! *Chao chao*");
+        return;
+    }
+
+    // Sync placeholderAISpriteWorldPos with SpriteManager's worldPos
+    placeholderAISpriteWorldPos.x = placeholderSprite.worldPos.x;
+    placeholderAISpriteWorldPos.z = placeholderSprite.worldPos.z;
+
     if (!lastKnownPlayerPos) {
         lastKnownPlayerPos = { x: playerPosition.x, z: playerPosition.z };
+    }
+
+    // Initialize placeholderAIPreviousPos if null
+    if (!placeholderAIPreviousPos) {
+        placeholderAIPreviousPos = { x: placeholderSprite.worldPos.x, z: placeholderSprite.worldPos.z };
     }
 
     const enemySpeed = 0.2; // Slower speed for sneaky stalking
@@ -261,6 +297,10 @@ export function placeholderAI() {
         placeholderAISpriteWorldPos.z = newZ;
     }
 
+    // Sync SpriteManager's worldPos with placeholderAISpriteWorldPos
+    placeholderSprite.worldPos.x = placeholderAISpriteWorldPos.x;
+    placeholderSprite.worldPos.z = placeholderAISpriteWorldPos.z;
+
     placeholderAIPreviousPos.x = placeholderAISpriteWorldPos.x;
     placeholderAIPreviousPos.z = placeholderAISpriteWorldPos.z;
 
@@ -268,4 +308,8 @@ export function placeholderAI() {
     const maxZBound = mapHeight * tileSectors - enemyRadius;
     placeholderAISpriteWorldPos.x = Math.max(enemyRadius, Math.min(maxXBound, placeholderAISpriteWorldPos.x));
     placeholderAISpriteWorldPos.z = Math.max(enemyRadius, Math.min(maxZBound, placeholderAISpriteWorldPos.z));
+
+    // Sync SpriteManager's worldPos again after clamping
+    placeholderSprite.worldPos.x = placeholderAISpriteWorldPos.x;
+    placeholderSprite.worldPos.z = placeholderAISpriteWorldPos.z;
 }

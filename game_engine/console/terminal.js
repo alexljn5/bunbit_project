@@ -14,7 +14,7 @@ export function terminalGodFunction(command) {
 
 export function displayTheTerminal() {
     // Toggle terminal with 'T' key
-    if (keys.t && !lastTState) {
+    if (keys.y && !lastTState) {
         showTerminal = !showTerminal;
         if (!showTerminal) {
             inputActive = false;
@@ -22,7 +22,7 @@ export function displayTheTerminal() {
         }
         console.log("Terminal toggled:", showTerminal);
     }
-    lastTState = keys.t;
+    lastTState = keys.y;
 
     if (showTerminal) {
         terminalOverLay();

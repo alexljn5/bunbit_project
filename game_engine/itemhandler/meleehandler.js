@@ -6,6 +6,7 @@ import { tileSectors } from "../mapdata/maps.js";
 import { isOccludedByWall } from "../ai/aihandler.js";
 import { placeholderAISpriteWorldPos } from "../rendering/rendersprites.js";
 import { playMetalSwingSound } from "../audio/soundhandler.js";
+import { spriteManager } from "../rendering/rendersprites.js";
 
 const meleeDamage = 10; // Base damage for metal pipe
 const meleeRange = 30; // Melee attack range

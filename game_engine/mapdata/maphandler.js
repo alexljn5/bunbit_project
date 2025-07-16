@@ -32,7 +32,7 @@ export class MapHandler {
 
         try {
             if (mapKey === "map_01") {
-                const { setupMap01 } = await import("../ai/map_01_setup.js");
+                const { setupMap01 } = await import("../ai/aimapmanager.js");
                 setupMap01();
             }
         } catch (e) {

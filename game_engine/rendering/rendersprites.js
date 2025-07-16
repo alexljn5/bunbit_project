@@ -92,9 +92,14 @@ class SpriteManager {
         this.clearSprites();
         this.currentMapKey = mapKey;
         const sprites = this.mapSprites.get(mapKey) || [];
+        console.log(`Loading sprites for map ${mapKey}:`, sprites.map(s => ({ id: s.id, worldPos: s.worldPos })));
         for (const sprite of sprites) {
             this.sprites.set(sprite.id, sprite);
             this.layers[sprite.layer].push(sprite);
+            // Sync boyKisserEnemySpriteWorldPos with boyKisser sprite's worldPos
+            if (sprite.id === "boyKisser" && sprite.worldPos) {
+                boyKisserEnemySpriteWorldPos = { x: sprite.worldPos.x, z: sprite.worldPos.z };
+            }
         }
     }
 
@@ -175,13 +180,13 @@ export let nineMMAmmoSpriteLoaded = false;
 export const nineMMAmmoSpriteWorldPos = { x: 3.4 * tileSectors, z: 1.2 * tileSectors };
 export const boyKisserEnemySprite = new Image();
 export let boyKisserEnemySpriteLoaded = false;
-export const boyKisserEnemySpriteWorldPos = { x: 3.4 * tileSectors, z: 1.2 * tileSectors };
+export let boyKisserEnemySpriteWorldPos = null;
 export const casperLesserDemonSprite = new Image();
 export let casperLesserDemonSpriteLoaded = false;
-export const casperLesserDemonSpriteWorldPos = { x: 5.5 * tileSectors, z: 11.3 * tileSectors };
+export let casperLesserDemonSpriteWorldPos = { x: 5.5 * tileSectors, z: 11.3 * tileSectors };
 export const placeholderAiSprite = new Image();
 export let placeholderAiSpriteLoaded = false;
-export const placeholderAISpriteWorldPos = { x: 2.5 * tileSectors, z: 11.3 * tileSectors };
+export let placeholderAISpriteWorldPos = { x: 2.5 * tileSectors, z: 11.3 * tileSectors };
 export let boyKisserEnemyHealth = 5;
 
 // Register Sprites with SpriteManager
@@ -376,8 +381,9 @@ const boyKisser = new Sprite({
         return null;
     }
 });
-spriteManager.addSpriteForMaps(boyKisser, ["map_01"], {
-    map_01: { worldPos: { x: 3.4 * tileSectors, z: 1.2 * tileSectors } }
+spriteManager.addSpriteForMaps(boyKisser, ["map_01", "map_debug"], {
+    map_01: { worldPos: { x: 3.4 * tileSectors, z: 1.2 * tileSectors } },
+    map_debug: { worldPos: { x: 10.4 * tileSectors, z: 1.2 * tileSectors } }
 });
 
 const casperLesserDemon = new Sprite({

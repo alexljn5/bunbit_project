@@ -1,11 +1,10 @@
 import { playerPosition, isInteractionKeyPressed } from "../playerdata/playerlogic.js";
-import { boyKisserEnemySpriteWorldPos } from "../rendering/rendersprites.js";
+import { spriteManager, boyKisserEnemySpriteWorldPos, genericGunSprite } from "../rendering/rendersprites.js";
 import { map_01 } from "../mapdata/map_01.js";
 import { tileSectors } from "../mapdata/maps.js";
 import { renderEngine } from "../rendering/renderengine.js";
 import { playerInventory } from "../playerdata/playerinventory.js";
 import { basicPickUpMenuStyle } from "../menus/menuhandler.js";
-import { genericGunSprite } from "../rendering/rendersprites.js";
 import { isOccludedByWall } from "./aihandler.js";
 import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT } from "../globals.js";
 
@@ -18,6 +17,13 @@ export let currentDialogueIndex = 0;
 export let lastInteractionState = false;
 export let playerMovementDisabled = false;
 export let boyKisserEnemyHealth = 100; // Explicitly defined and exported
+export let justReceivedGun = false;
+export let showGunPickupBox = false;
+export let gunPickupTimer = 0;
+export let lastKnownPlayerPos = null;
+export let canSeePlayer = false;
+export let boyKisserPreviousPos = null; // Initialize as null, set in friendlyCatAi
+const GUN_PICKUP_DURATION = 120; // 2 seconds at 60fps
 
 export function setNpcLastTriggered(value) {
     npcLastTriggered = value;
@@ -59,6 +65,10 @@ export function setBoyKisserEnemyHealth(value) {
     boyKisserEnemyHealth = value;
 }
 
+export function setCanSeePlayer(value) {
+    canSeePlayer = value;
+}
+
 window.addEventListener("keydown", (event) => {
     if (dialogueActive && event.key.toLowerCase() === "t") {
         event.preventDefault();
@@ -91,25 +101,29 @@ function advanceNpcDialogue() {
     }
 }
 
-// Track if the player just received the gun in this interaction
-export let justReceivedGun = false;
-
 export function boyKisserNpcAI() {
-    // Get current interaction key state
+    const boyKisserSprite = spriteManager.getSprite("boyKisser");
+    if (!boyKisserSprite || !boyKisserSprite.worldPos) {
+        console.log("Oh no! BoyKisser sprite not found or missing worldPos! *sadiamas!");
+        return;
+    }
+
     const currentInteractionState = isInteractionKeyPressed();
-    // Only trigger if key is pressed AND it wasn't pressed last frame (fresh press)
     if (dialogueActive || npcLastTriggered || !currentInteractionState || lastInteractionState) {
         lastInteractionState = currentInteractionState;
         return;
     }
 
-    const dx = playerPosition.x - boyKisserEnemySpriteWorldPos.x;
-    const dz = playerPosition.z - boyKisserEnemySpriteWorldPos.z;
+    const dx = playerPosition.x - boyKisserSprite.worldPos.x;
+    const dz = playerPosition.z - boyKisserSprite.worldPos.z;
     const distance = Math.sqrt(dx * dx + dz * dz);
     const isOccluded = isOccludedByWall(
-        boyKisserEnemySpriteWorldPos.x, boyKisserEnemySpriteWorldPos.z,
-        playerPosition.x, playerPosition.z,
-        map_01, tileSectors
+        boyKisserSprite.worldPos.x,
+        boyKisserSprite.worldPos.z,
+        playerPosition.x,
+        playerPosition.z,
+        map_01,
+        tileSectors
     );
 
     if (distance < npcTriggerRadius && !isOccluded) {
@@ -139,10 +153,6 @@ export function boyKisserNpcAI() {
 function getCurrentNpcDialogueLine() {
     return dialogueActive ? dialogueLines[currentDialogueIndex] : null;
 }
-
-export let showGunPickupBox = false;
-export let gunPickupTimer = 0;
-const GUN_PICKUP_DURATION = 120; // 2 seconds at 60fps
 
 export function boyKisserNpcAIGodFunction() {
     if (!dialogueActive) boyKisserNpcAI();
@@ -216,21 +226,28 @@ function drawGunPickupBox() {
     renderEngine.restore();
 }
 
-export let lastKnownPlayerPos = null;
-export let canSeePlayer = false;
-
-export function setCanSeePlayer(value) {
-    canSeePlayer = value;
-}
-
-export let boyKisserPreviousPos = { x: boyKisserEnemySpriteWorldPos.x, z: boyKisserEnemySpriteWorldPos.z };
-
 function friendlyCatAi() {
     if (playerInventory.includes("generic_gun")) {
         return; // Stop following if player has the gun
     }
+
+    const boyKisserSprite = spriteManager.getSprite("boyKisser");
+    if (!boyKisserSprite || !boyKisserSprite.worldPos) {
+        console.log("Oops! BoyKisser sprite not found or missing worldPos! *Chao chao*");
+        return;
+    }
+
+    // Sync boyKisserEnemySpriteWorldPos with SpriteManager's worldPos
+    boyKisserEnemySpriteWorldPos.x = boyKisserSprite.worldPos.x;
+    boyKisserEnemySpriteWorldPos.z = boyKisserSprite.worldPos.z;
+
     if (!lastKnownPlayerPos) {
         lastKnownPlayerPos = { x: playerPosition.x, z: playerPosition.z };
+    }
+
+    // Initialize boyKisserPreviousPos if null
+    if (!boyKisserPreviousPos) {
+        boyKisserPreviousPos = { x: boyKisserSprite.worldPos.x, z: boyKisserSprite.worldPos.z };
     }
 
     const enemySpeed = 0.3 * 2;
@@ -245,9 +262,12 @@ function friendlyCatAi() {
 
     // Check for occlusion (BoyKisser)
     const isOccluded = isOccludedByWall(
-        boyKisserEnemySpriteWorldPos.x, boyKisserEnemySpriteWorldPos.z,
-        playerPosition.x, playerPosition.z,
-        map_01, tileSectors
+        boyKisserEnemySpriteWorldPos.x,
+        boyKisserEnemySpriteWorldPos.z,
+        playerPosition.x,
+        playerPosition.z,
+        map_01,
+        tileSectors
     );
 
     if (!isOccluded && distance < visionRange) {
@@ -325,11 +345,21 @@ function friendlyCatAi() {
         boyKisserEnemySpriteWorldPos.z = newZ;
     }
 
+    // Sync SpriteManager's worldPos with boyKisserEnemySpriteWorldPos
+    boyKisserSprite.worldPos.x = boyKisserEnemySpriteWorldPos.x;
+    boyKisserSprite.worldPos.z = boyKisserEnemySpriteWorldPos.z;
+
+    // Update previous position
     boyKisserPreviousPos.x = boyKisserEnemySpriteWorldPos.x;
     boyKisserPreviousPos.z = boyKisserEnemySpriteWorldPos.z;
 
+    // Clamp position to map boundaries
     const maxXBound = mapWidth * tileSectors - enemyRadius;
     const maxZBound = mapHeight * tileSectors - enemyRadius;
     boyKisserEnemySpriteWorldPos.x = Math.max(enemyRadius, Math.min(maxXBound, boyKisserEnemySpriteWorldPos.x));
     boyKisserEnemySpriteWorldPos.z = Math.max(enemyRadius, Math.min(maxZBound, boyKisserEnemySpriteWorldPos.z));
+
+    // Sync SpriteManager's worldPos again after clamping
+    boyKisserSprite.worldPos.x = boyKisserEnemySpriteWorldPos.x;
+    boyKisserSprite.worldPos.z = boyKisserEnemySpriteWorldPos.z;
 }

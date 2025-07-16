@@ -14,7 +14,7 @@ export const keys = Object.fromEntries([
     ["alt", false], ["p", false], ["t", false], ["enter", false],
     ["i", false], ["1", false], ["2", false], ["3", false], ["4", false],
     ["5", false], ["6", false], ["7", false], ["8", false], ["9", false],
-    ["f3", false], ["f4", false], ["escape", false], ["t", false]
+    ["f3", false], ["f4", false], ["escape", false], ["y", false]
 ]);
 
 let playerMovementSpeed = 100;
