@@ -2,6 +2,7 @@ import { renderEngine } from "../renderengine.js";
 import { tileSectors } from "../../mapdata/maps.js";
 import { playerPosition } from "../../playerdata/playerlogic.js";
 import { registerSprites } from "./spriteregistry.js";
+import { dynamicSpriteHandler } from "./dynamicspritehandler.js";
 
 // World position exports
 export const pillar01SpriteWorldPos = { x: 2.5 * tileSectors, z: 6 * tileSectors };
@@ -159,7 +160,22 @@ export function drawSprites(rayData) {
 }
 
 export function initializeSprites() {
-    registerSprites();
+    registerSprites(); // Load static sprites from spriteregistry.js
+    // Example: Spawn dynamic sprites (you can call this elsewhere based on game logic)
+    dynamicSpriteHandler.spawnSprites({
+        spriteType: "dynamicEnemy",
+        image: new Image(), // Replace with actual image or load dynamically
+        positions: [
+            { x: 4.0, z: 5.0 },
+            { x: 5.0, z: 6.0 }
+        ],
+        layer: LAYERS.MIDGROUND,
+        mapKeys: ["map_01", "map_debug"],
+        extraProps: {
+            // Add custom properties, e.g., health for enemies
+            health: 5
+        }
+    });
 }
 
 // Call initializeSprites after module imports
