@@ -100,6 +100,13 @@ class SpriteManager {
             if (sprite.id === "boyKisser" && sprite.worldPos) {
                 boyKisserEnemySpriteWorldPos = { x: sprite.worldPos.x, z: sprite.worldPos.z };
             }
+            // Sync casperLesserDemonSpriteWorldPos with casperLesserDemon sprite's worldPos
+            if (sprite.id === "casperLesserDemon" && sprite.worldPos) {
+                casperLesserDemonSpriteWorldPos = { x: sprite.worldPos.x, z: sprite.worldPos.z };
+            }
+            if (sprite.id === "placeholderAI" && sprite.worldPos) {
+                placeholderAISpriteWorldPos = { x: sprite.worldPos.x, z: sprite.worldPos.z };
+            }
         }
     }
 
@@ -183,10 +190,11 @@ export let boyKisserEnemySpriteLoaded = false;
 export let boyKisserEnemySpriteWorldPos = null;
 export const casperLesserDemonSprite = new Image();
 export let casperLesserDemonSpriteLoaded = false;
-export let casperLesserDemonSpriteWorldPos = { x: 5.5 * tileSectors, z: 11.3 * tileSectors };
+export let casperLesserDemonSpriteWorldPos = null;
 export const placeholderAiSprite = new Image();
 export let placeholderAiSpriteLoaded = false;
-export let placeholderAISpriteWorldPos = { x: 2.5 * tileSectors, z: 11.3 * tileSectors };
+//export let placeholderAISpriteWorldPos = { x: 2.5 * tileSectors, z: 11.3 * tileSectors };
+export let placeholderAISpriteWorldPos = null;
 export let boyKisserEnemyHealth = 5;
 
 // Register Sprites with SpriteManager
@@ -396,11 +404,26 @@ const casperLesserDemon = new Sprite({
     baseHeightRatio: 80 / REF_CANVAS_HEIGHT,
     aspectRatio: 128 / 80,
     baseYRatio: 400 / REF_CANVAS_HEIGHT,
-    scaleFactor: 0.5
+    scaleFactor: 0.5,
+    renderFunction: (rayData, renderEngine) => {
+        if (!casperLesserDemonSpriteLoaded) return null;
+        return renderSprite({
+            sprite: casperLesserDemonSprite,
+            isLoaded: casperLesserDemonSpriteLoaded,
+            worldPos: casperLesserDemonSpriteWorldPos,
+            rayData,
+            baseWidthRatio: 128 / REF_CANVAS_WIDTH,
+            baseHeightRatio: 80 / REF_CANVAS_HEIGHT,
+            aspectRatio: 128 / 80,
+            baseYRatio: 400 / REF_CANVAS_HEIGHT,
+            scaleFactor: 0.5,
+            spriteId: 'casperLesserDemon'
+        });
+    }
 });
-spriteManager.addSpriteForMaps(casperLesserDemon, ["map_01", "map_02"], {
+spriteManager.addSpriteForMaps(casperLesserDemon, ["map_01", "map_debug"], {
     map_01: { worldPos: { x: 5.5 * tileSectors, z: 11.3 * tileSectors } },
-    map_02: { worldPos: { x: 6.0 * tileSectors, z: 10.0 * tileSectors } }
+    map_debug: { worldPos: { x: 10.4 * tileSectors, z: 1.2 * tileSectors } }
 });
 
 const creamSpin = new Sprite({
@@ -458,7 +481,22 @@ const placeholderAI = new Sprite({
     baseHeightRatio: 80 / REF_CANVAS_HEIGHT,
     aspectRatio: 128 / 80,
     baseYRatio: 400 / REF_CANVAS_HEIGHT,
-    scaleFactor: 0.5
+    scaleFactor: 0.5,
+    renderFunction: (rayData, renderEngine) => {
+        if (!placeholderAiSpriteLoaded) return null;
+        return renderSprite({
+            sprite: placeholderAiSprite,
+            isLoaded: placeholderAiSpriteLoaded,
+            worldPos: placeholderAISpriteWorldPos,
+            rayData,
+            baseWidthRatio: 128 / REF_CANVAS_WIDTH,
+            baseHeightRatio: 80 / REF_CANVAS_HEIGHT,
+            aspectRatio: 128 / 80,
+            baseYRatio: 400 / REF_CANVAS_HEIGHT,
+            scaleFactor: 0.5,
+            spriteId: 'placeholderAI'
+        });
+    }
 });
 spriteManager.addSpriteForMaps(placeholderAI, ["map_01"], {
     map_01: { worldPos: { x: 2.5 * tileSectors, z: 11.3 * tileSectors } }
