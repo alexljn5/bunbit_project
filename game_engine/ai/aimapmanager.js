@@ -6,8 +6,8 @@ import { boyKisserNpcAIGodFunction } from "./friendlycat.js";
 
 export function setupMap01() {
     registerEnemyAiFunctionsForMap([
-        casperLesserDemon,
-        placeholderAIGodFunction
+        //casperLesserDemon,
+        //placeholderAIGodFunction
     ]);
 
     registerFriendlyAiFunctionsForMap([

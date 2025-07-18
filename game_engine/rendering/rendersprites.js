@@ -423,7 +423,7 @@ const casperLesserDemon = new Sprite({
 });
 spriteManager.addSpriteForMaps(casperLesserDemon, ["map_01", "map_debug"], {
     map_01: { worldPos: { x: 5.5 * tileSectors, z: 11.3 * tileSectors } },
-    map_debug: { worldPos: { x: 10.4 * tileSectors, z: 1.2 * tileSectors } }
+    map_debug: { worldPos: { x: 10.4 * tileSectors, z: 5.2 * tileSectors } }
 });
 
 const creamSpin = new Sprite({
@@ -498,8 +498,9 @@ const placeholderAI = new Sprite({
         });
     }
 });
-spriteManager.addSpriteForMaps(placeholderAI, ["map_01"], {
-    map_01: { worldPos: { x: 2.5 * tileSectors, z: 11.3 * tileSectors } }
+spriteManager.addSpriteForMaps(placeholderAI, ["map_01", "map_debug"], {
+    map_01: { worldPos: { x: 2.5 * tileSectors, z: 11.3 * tileSectors } },
+    map_debug: { worldPos: { x: 10.4 * tileSectors, z: 5.2 * tileSectors } },
 });
 
 // Set up image loading AFTER sprite registration
