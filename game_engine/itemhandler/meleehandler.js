@@ -1,6 +1,6 @@
 import { playerInventory, inventoryState } from "../playerdata/playerinventory.js";
 import { keys, playerPosition } from "../playerdata/playerlogic.js";
-import { placeholderAIHealth } from "../ai/placeholderai.js";
+import { placeholderAIHealth, setPlaceholderAIHealth } from "../ai/placeholderai.js";
 import { map_01 } from "../mapdata/map_01.js";
 import { tileSectors } from "../mapdata/maps.js";
 import { isOccludedByWall } from "../ai/aihandler.js";
@@ -36,7 +36,7 @@ function metalPipeHandler() {
     );
 
     if (distance < meleeRange && !isOccluded && placeholderAIHealth > 0) {
-        //setPlaceholderAIHealth(placeholderAIHealth - meleeDamage);
+        setPlaceholderAIHealth(placeholderAIHealth - meleeDamage);
         console.log(`Hit Placeholder AI with metal pipe! Health: ${placeholderAIHealth}`);
         lastAttackTime = now;
     }
