@@ -4,9 +4,8 @@ import { placeholderAIHealth } from "../ai/placeholderai.js";
 import { map_01 } from "../mapdata/map_01.js";
 import { tileSectors } from "../mapdata/maps.js";
 import { isOccludedByWall } from "../ai/aihandler.js";
-import { placeholderAISpriteWorldPos } from "../rendering/rendersprites.js";
+import { placeholderAISpriteWorldPos } from "../rendering/sprites/rendersprites.js";
 import { playMetalSwingSound } from "../audio/soundhandler.js";
-import { spriteManager } from "../rendering/rendersprites.js";
 
 const meleeDamage = 10; // Base damage for metal pipe
 const meleeRange = 30; // Melee attack range

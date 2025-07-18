@@ -5,7 +5,7 @@ import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CA
 import { mapTable } from "../mapdata/maps.js";
 import { mapHandler } from "../mapdata/maphandler.js";
 import { playerPosition } from "../playerdata/playerlogic.js";
-import { spriteManager } from "../rendering/rendersprites.js";
+import { spriteManager } from "../rendering/sprites/rendersprites.js";
 
 let buttons = [
     { name: "Play", x: (CANVAS_WIDTH / 2 - 50 * SCALE_X), y: (CANVAS_HEIGHT / 2 - 200 * SCALE_Y), width: 100 * SCALE_X, height: 40 * SCALE_Y, hovered: false },

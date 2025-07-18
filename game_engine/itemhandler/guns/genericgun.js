@@ -3,7 +3,7 @@ import { playerInventory, inventoryState } from "../../playerdata/playerinventor
 import { map_01 } from "../../mapdata/map_01.js";
 import { tileSectors } from "../../mapdata/maps.js";
 import { isOccludedByWall } from "../../ai/aihandler.js";
-import { placeholderAISpriteWorldPos } from "../../rendering/rendersprites.js";
+import { placeholderAISpriteWorldPos } from "../../rendering/sprites/rendersprites.js";
 import { playGenericGunShootSound } from "../../audio/soundhandler.js";
 
 export let genericGunAmmo = 10;

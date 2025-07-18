@@ -1,10 +1,9 @@
 import { playerPosition, playerHealth } from "../playerdata/playerlogic.js";
-import { casperLesserDemonSpriteWorldPos } from "../rendering/rendersprites.js";
+import { casperLesserDemonSpriteWorldPos, spriteManager } from "../rendering/sprites/rendersprites.js";
 import { map_01 } from "../mapdata/map_01.js";
 import { tileSectors } from "../mapdata/maps.js";
 import { isOccludedByWall } from "./aihandler.js";
 import { casperLesserDemonDeathScreen } from "../events/map_01_events.js";
-import { spriteManager } from "../rendering/rendersprites.js";
 
 export let casperLesserDemonPreviousPos = null; // Initialize as null, set in AI
 export let lastKnownPlayerPos = null;

@@ -1,5 +1,5 @@
 import { playerPosition, playerHealth, keys } from "../playerdata/playerlogic.js";
-import { spriteManager, placeholderAISpriteWorldPos, placeholderAiSprite } from "../rendering/rendersprites.js";
+import { spriteManager, placeholderAISpriteWorldPos, placeholderAiSprite } from "../rendering/sprites/rendersprites.js";
 import { map_01 } from "../mapdata/map_01.js";
 import { tileSectors } from "../mapdata/maps.js";
 import { isOccludedByWall } from "./aihandler.js";

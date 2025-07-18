@@ -5,7 +5,7 @@ import { playerInventoryGodFunction } from "../playerdata/playerinventory.js";
 import { compiledDevTools } from "../debugtools.js";
 import { tileSectors } from "../mapdata/maps.js";
 import { castRays, numCastRays, playerFOV, initializeMap } from "./raycasting.js";
-import { drawSprites } from "./rendersprites.js";
+import { drawSprites } from "./sprites/rendersprites.js";
 import { mainGameMenu, setupMenuClickHandler } from "../menus/menu.js";
 import { texturesLoaded, tileTexturesMap, getDemonLaughingCurrentFrame } from "../mapdata/maptexturesloader.js";
 import { playerUI } from "../playerdata/playerui.js";
