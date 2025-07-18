@@ -1,30 +1,88 @@
-// aihandler.js
 import { playerVantagePointX, playerVantagePointY } from "../playerdata/playerlogic.js";
+import { boyKisserNpcAIGodFunction } from "./friendlycat.js";
+import { placeholderAIGodFunction } from "./placeholderai.js";
+import { casperLesserDemon } from "./casperlesserdemon.js";
+import { mapTable, tileSectors } from "../mapdata/maps.js";
 
-// === AI Function Registries ===
-let currentEnemyAiFunctions = [];
-let currentFriendlyAiFunctions = [];
+// AI registries per map
+const enemyAiRegistry = new Map();
+const friendlyAiRegistry = new Map();
+let currentMapKey = "map_01"; // Default map
 
-// === Public Registration Methods ===
-export function registerEnemyAiFunctionsForMap(aiArray) {
-    currentEnemyAiFunctions = aiArray;
+// Initialize AI registries for all maps
+function initializeAiRegistries() {
+    console.log("Initializing AI registries for maps:", Array.from(mapTable.keys()));
+    const maps = ["map_01", "map_02", "map_debug", "map_test"];
+
+    maps.forEach(mapKey => {
+        const enemyFunctions = [];
+        const friendlyFunctions = [];
+
+        if (mapKey === "map_01") {
+            enemyFunctions.push(() => placeholderAIGodFunction(mapKey));
+            enemyFunctions.push(() => casperLesserDemon(mapKey));
+            friendlyFunctions.push(() => boyKisserNpcAIGodFunction(mapKey));
+        } else if (mapKey === "map_02") {
+            enemyFunctions.push(() => placeholderAIGodFunction(mapKey));
+            friendlyFunctions.push(() => boyKisserNpcAIGodFunction(mapKey));
+        } else if (mapKey === "map_debug") {
+            enemyFunctions.push(() => placeholderAIGodFunction(mapKey));
+            enemyFunctions.push(() => casperLesserDemon(mapKey));
+            friendlyFunctions.push(() => boyKisserNpcAIGodFunction(mapKey));
+        } else if (mapKey === "map_test") {
+            enemyFunctions.push(() => placeholderAIGodFunction(mapKey));
+            friendlyFunctions.push(() => boyKisserNpcAIGodFunction(mapKey));
+        }
+
+        enemyAiRegistry.set(mapKey, enemyFunctions);
+        friendlyAiRegistry.set(mapKey, friendlyFunctions);
+        console.log(`Registered AI for ${mapKey}: ${enemyFunctions.length} enemy, ${friendlyFunctions.length} friendly`);
+    });
 }
 
-export function registerFriendlyAiFunctionsForMap(aiArray) {
-    currentFriendlyAiFunctions = aiArray;
+// Call initialization once
+initializeAiRegistries();
+
+// Public method to switch maps
+export function setCurrentMap(mapKey) {
+    if (!mapKey) {
+        console.error("setCurrentMap called with undefined or null key! Falling back to map_01.");
+        mapKey = "map_01";
+    }
+    if (mapTable.has(mapKey)) {
+        currentMapKey = mapKey;
+        console.log(`Switched to map: ${mapKey}`);
+    } else {
+        console.error(`Map ${mapKey} not found in mapTable! Falling back to map_01.`);
+        currentMapKey = "map_01";
+    }
 }
 
-// === God Functions ===
+// God functions to execute AI for the current map
 export function enemyAiGodFunction() {
-    for (const func of currentEnemyAiFunctions) func();
+    if (!mapTable.has(currentMapKey)) {
+        console.error(`Invalid currentMapKey ${currentMapKey || 'undefined'}! Skipping enemy AI.`);
+        return;
+    }
+    const enemyFunctions = enemyAiRegistry.get(currentMapKey) || [];
+    for (const func of enemyFunctions) func();
 }
 
 export function friendlyAiGodFunction() {
-    for (const func of currentFriendlyAiFunctions) func();
+    if (!mapTable.has(currentMapKey)) {
+        console.error(`Invalid currentMapKey ${currentMapKey || 'undefined'}! Skipping friendly AI.`);
+        return;
+    }
+    const friendlyFunctions = friendlyAiRegistry.get(currentMapKey) || [];
+    for (const func of friendlyFunctions) func();
 }
 
-// === Occlusion Checker ===
+// Occlusion checker with map validation
 export function isOccludedByWall(x0, z0, x1, z1, map, tileSectors) {
+    if (!map || !Array.isArray(map) || !map[0] || !Array.isArray(map[0])) {
+        console.error("Invalid map in isOccludedByWall! Skipping occlusion check.");
+        return false;
+    }
     const dx = x1 - x0;
     const dz = z1 - z0;
     const distance = Math.sqrt(dx * dx + dz * dz);
@@ -36,7 +94,7 @@ export function isOccludedByWall(x0, z0, x1, z1, map, tileSectors) {
         const cellX = Math.floor(checkX / tileSectors);
         const cellZ = Math.floor(checkZ / tileSectors);
         if (cellX >= 0 && cellX < map[0].length && cellZ >= 0 && cellZ < map.length) {
-            if (map[cellZ][cellX].type === "wall") return true;
+            if (map[cellZ][cellX] && map[cellZ][cellX].type === "wall") return true;
         } else {
             return false;
         }
@@ -44,7 +102,7 @@ export function isOccludedByWall(x0, z0, x1, z1, map, tileSectors) {
     return false;
 }
 
-// === Draw Healthbar for AIs ===
+// Draw healthbar for AIs
 export function drawAIHealthBar(worldX, worldZ, health, options = {}) {
     const {
         spriteHeight = 128 * (typeof SCALE_Y !== 'undefined' ? SCALE_Y : 1),

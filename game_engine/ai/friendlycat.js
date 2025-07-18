@@ -1,6 +1,7 @@
 import { playerPosition, isInteractionKeyPressed } from "../playerdata/playerlogic.js";
 import { spriteManager, boyKisserEnemySpriteWorldPos, genericGunSprite } from "../rendering/rendersprites.js";
 import { map_01 } from "../mapdata/map_01.js";
+import { mapTable } from "../mapdata/maps.js";
 import { tileSectors } from "../mapdata/maps.js";
 import { renderEngine } from "../rendering/renderengine.js";
 import { playerInventory } from "../playerdata/playerinventory.js";
@@ -24,6 +25,7 @@ export let lastKnownPlayerPos = null;
 export let canSeePlayer = false;
 export let boyKisserPreviousPos = null; // Initialize as null, set in friendlyCatAi
 const GUN_PICKUP_DURATION = 120; // 2 seconds at 60fps
+
 
 export function setNpcLastTriggered(value) {
     npcLastTriggered = value;
