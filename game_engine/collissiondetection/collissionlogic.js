@@ -2,9 +2,10 @@
 // Handles collision checks for item pickups, ensuring they only occur on maps where sprites are loaded.
 
 import { playerPosition, previousPosition } from "../playerdata/playerlogic.js";
-import { spriteState, spriteManager } from "../rendering/sprites/rendersprites.js";
+import { spriteManager } from "../rendering/sprites/rendersprites.js";
 import { playerInventory } from "../playerdata/playerinventory.js";
 import { setGenericGunAmmo, genericGunAmmo } from "../itemhandler/guns/genericgun.js";
+import { spriteState } from "../rendering/sprites/spritetextures.js"
 
 export function simpleCollissionTest() {
     // Check if metalPipe sprite is loaded for the current map

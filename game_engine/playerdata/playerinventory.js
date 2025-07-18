@@ -1,5 +1,5 @@
 import { renderEngine } from "../rendering/renderengine.js";
-import { metalPipeSprite, genericGunSprite } from "../rendering/sprites/rendersprites.js";
+import { metalPipeSprite, genericGunSprite } from "../rendering/sprites/spritetextures.js";
 import { compiledTextStyle } from "../debugtools.js";
 import { keys } from "./playerlogic.js";
 import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT } from "../globals.js";

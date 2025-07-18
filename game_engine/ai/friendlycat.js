@@ -1,5 +1,6 @@
 import { playerPosition, isInteractionKeyPressed } from "../playerdata/playerlogic.js";
-import { spriteManager, boyKisserEnemySpriteWorldPos, genericGunSprite } from "../rendering/sprites/rendersprites.js";
+import { spriteManager, boyKisserEnemySpriteWorldPos } from "../rendering/sprites/rendersprites.js";
+import { genericGunSprite } from "../rendering/sprites/spritetextures.js";
 import { map_01 } from "../mapdata/map_01.js";
 import { mapTable } from "../mapdata/maps.js";
 import { tileSectors } from "../mapdata/maps.js";

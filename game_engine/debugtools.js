@@ -3,8 +3,9 @@ import { renderEngine } from "./rendering/renderengine.js";
 import { mapHandler } from "./mapdata/maphandler.js";
 import { tileSectors } from "./mapdata/maps.js";
 import { tileTexturesMap } from "./mapdata/maptexturesloader.js";
-import { spriteManager, getCreamSpinCurrentFrame, spriteState } from "./rendering/sprites/rendersprites.js";
+import { getCreamSpinCurrentFrame, spriteState } from "./rendering/sprites/spritetextures.js";
 import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y } from "./globals.js";
+import { spriteManager } from "./rendering/sprites/rendersprites.js";
 
 export function compiledDevTools() {
     fpsMeter();
