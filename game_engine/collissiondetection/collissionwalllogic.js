@@ -1,10 +1,29 @@
 import { tileSectors } from "../mapdata/maps.js";
 import { mapHandler } from "../mapdata/maphandler.js";
 import { playerPosition, previousPosition, keys } from "../playerdata/playerlogic.js";
+import { map_01 } from "../mapdata/map_01.js";
 
 export function wallCollision(isSprinting, playerMovementSpeed, deltaTime) {
-    const activeSector = mapHandler.getActiveSector();
-    if (!activeSector) return;
+    // Use mapHandler to get the current map's grid, fallback to map_01 for map_01
+    const mapKey = mapHandler.activeMapKey || "map_01";
+    const activeSector = mapHandler.getFullMap(mapKey) || (mapKey === "map_01" ? map_01 : null);
+
+    // Validate the active sector
+    if (!activeSector || !Array.isArray(activeSector) || !activeSector[0] || !Array.isArray(activeSector[0])) {
+        console.error(`Invalid map data for ${mapKey} in wallCollision! ActiveSector:`, activeSector,
+            `Falling back to map_01 if available.`);
+        if (mapKey === "map_01" && map_01 && Array.isArray(map_01) && map_01[0] && Array.isArray(map_01[0])) {
+            return wallCollisionWithMap(map_01, isSprinting, playerMovementSpeed, deltaTime);
+        }
+        console.error(`No valid map data for ${mapKey}, skipping collision detection. *pouts*`);
+        return;
+    }
+
+    console.log(`wallCollision using grid for ${mapKey}:`, { rows: activeSector.length, cols: activeSector[0].length });
+    return wallCollisionWithMap(activeSector, isSprinting, playerMovementSpeed, deltaTime);
+}
+
+function wallCollisionWithMap(activeSector, isSprinting, playerMovementSpeed, deltaTime) {
     const mapHeight = activeSector.length;
     const mapWidth = activeSector[0].length;
     const playerRadius = 10;
@@ -118,4 +137,11 @@ export function wallCollision(isSprinting, playerMovementSpeed, deltaTime) {
     playerPosition.z = newZ;
     previousPosition.x = newX;
     previousPosition.z = newZ;
+}
+
+export function collissionGodFunction() {
+    const isSprinting = keys["Shift"] || false;
+    const playerMovementSpeed = 50; // Adjust as needed
+    const deltaTime = window.deltaTime || 1 / 60; // Fallback to 60 FPS
+    wallCollision(isSprinting, playerMovementSpeed, deltaTime);
 }

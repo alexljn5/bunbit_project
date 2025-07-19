@@ -23,11 +23,13 @@ import { decorationHandlerGodFunction } from "../decorationhandler/decorationhan
 import { mapHandler } from "../mapdata/maphandler.js";
 import { renderRaycastFloors } from "./renderfloors.js";
 import { consoleHandler } from "../console/consolehandler.js";
+import { flickeringEffect } from "../atmosphere/flickerlogic.js";
 
 // --- DOM Elements ---
 const domElements = {
     mainGameRender: document.getElementById("mainGameRender"),
     playGameButton: document.getElementById("playGameButton"),
+    stopGameButton: document.getElementById("stopGameButton"),
     debugGameButton: document.getElementById("debugGameButton"),
 };
 
@@ -46,6 +48,22 @@ domElements.playGameButton.onclick = function () {
     setupMenuClickHandler();
     if (!game) mainGameRender();
     game.start();
+};
+
+domElements.stopGameButton.onclick = function () {
+    if (game) {
+        game.stop();
+        // Reset game state
+        isRenderingFrame = false;
+        setMenuActive(true); // Show main menu
+        setDialogueActive(false); // Reset BoyKisser dialogue
+        setPlayerMovementDisabled(false); // Re-enable player movement
+        renderEngine.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT); // Clear canvas
+        cleanupRenderWorkers(); // Terminate workers
+        console.log("Game stopped via stop button! *chao chao*");
+    } else {
+        console.warn("No game instance to stop! *tilts head*");
+    }
 };
 
 domElements.debugGameButton && (domElements.debugGameButton.onclick = () => {
@@ -104,6 +122,7 @@ async function gameRenderEngine() {
         enemyAiGodFunction();
         playMusicGodFunction();
         consoleHandler();
+        //flickeringEffect();
     } catch (error) {
         console.error("gameRenderEngine error:", error);
         renderEngine.fillStyle = "gray";

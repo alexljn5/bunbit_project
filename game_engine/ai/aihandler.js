@@ -3,6 +3,8 @@ import { boyKisserNpcAIGodFunction } from "./friendlycat.js";
 import { placeholderAIGodFunction } from "./placeholderai.js";
 import { casperLesserDemon } from "./casperlesserdemon.js";
 import { mapTable, tileSectors } from "../mapdata/maps.js";
+import { mapHandler } from "../mapdata/maphandler.js";
+import { map_01 } from "../mapdata/map_01.js"; // Import legacy map_01 for fallback
 
 // AI registries per map
 const enemyAiRegistry = new Map();
@@ -12,27 +14,78 @@ let currentMapKey = "map_01"; // Default map
 // Initialize AI registries for all maps
 function initializeAiRegistries() {
     console.log("Initializing AI registries for maps:", Array.from(mapTable.keys()));
-    const maps = ["map_01", "map_02", "map_debug", "map_test"];
+    const maps = ["map_01", "map_02", "map_03", "map_04", "map_05", "map_06", "map_07", "map_debug", "map_test"];
+
+    maps.forEach(mapKey => {
+        const mapData = mapTable.get(mapKey);
+        const grid = mapData?.grid || mapHandler.getFullMap(mapKey) || (mapKey === "map_01" ? map_01 : null);
+        console.log(`Map ${mapKey} in mapTable:`, mapData && mapData.grid && Array.isArray(mapData.grid) && mapData.grid[0] && Array.isArray(mapData.grid[0])
+            ? `Valid (rows: ${mapData.grid.length}, cols: ${mapData.grid[0].length})`
+            : `Invalid (mapData: ${JSON.stringify(mapData).slice(0, 50)}...)`);
+        console.log(`Map ${mapKey} in fullMapCache:`, grid && Array.isArray(grid) && grid[0] && Array.isArray(grid[0])
+            ? `Valid (rows: ${grid.length}, cols: ${grid[0].length})`
+            : `Invalid (grid: ${JSON.stringify(grid).slice(0, 50)}...)`);
+    });
 
     maps.forEach(mapKey => {
         const enemyFunctions = [];
         const friendlyFunctions = [];
+        // In initializeAiRegistries, inside maps.forEach(mapKey => {...})
+        // Wrapper for casperLesserDemon
+        const casperWrapper = () => {
+            const grid = mapTable.get(mapKey)?.grid || mapHandler.getFullMap(mapKey) || (mapKey === "map_01" ? map_01 : null);
+            if (!grid || !Array.isArray(grid) || !grid[0] || !Array.isArray(grid[0])) {
+                console.error(`Invalid map for ${mapKey} in casperWrapper! Using map_01 as fallback.`);
+                if (mapKey === "map_01" && map_01 && Array.isArray(map_01) && map_01[0] && Array.isArray(map_01[0])) {
+                    casperLesserDemon();
+                }
+                return;
+            }
+            console.log(`Casper using grid for ${mapKey}:`, { rows: grid.length, cols: grid[0].length });
+            const originalMap01 = map_01;
+            Object.defineProperty({ map_01 }, "map_01", { value: grid, writable: true });
+            casperLesserDemon();
+            Object.defineProperty({ map_01 }, "map_01", { value: originalMap01, writable: true });
+        };
 
-        if (mapKey === "map_01") {
-            enemyFunctions.push(() => placeholderAIGodFunction(mapKey));
-            enemyFunctions.push(() => casperLesserDemon(mapKey));
-            friendlyFunctions.push(() => boyKisserNpcAIGodFunction(mapKey));
-        } else if (mapKey === "map_02") {
-            enemyFunctions.push(() => placeholderAIGodFunction(mapKey));
-            friendlyFunctions.push(() => boyKisserNpcAIGodFunction(mapKey));
-        } else if (mapKey === "map_debug") {
-            enemyFunctions.push(() => placeholderAIGodFunction(mapKey));
-            enemyFunctions.push(() => casperLesserDemon(mapKey));
-            friendlyFunctions.push(() => boyKisserNpcAIGodFunction(mapKey));
-        } else if (mapKey === "map_test") {
-            enemyFunctions.push(() => placeholderAIGodFunction(mapKey));
-            friendlyFunctions.push(() => boyKisserNpcAIGodFunction(mapKey));
-        }
+        // Wrapper for boyKisserNpcAIGodFunction
+        const boyKisserWrapper = () => {
+            const grid = mapTable.get(mapKey)?.grid || mapHandler.getFullMap(mapKey) || (mapKey === "map_01" ? map_01 : null);
+            if (!grid || !Array.isArray(grid) || !grid[0] || !Array.isArray(grid[0])) {
+                console.error(`Invalid map for ${mapKey} in boyKisserWrapper! Using map_01 as fallback.`);
+                if (mapKey === "map_01" && map_01 && Array.isArray(map_01) && map_01[0] && Array.isArray(map_01[0])) {
+                    boyKisserNpcAIGodFunction();
+                }
+                return;
+            }
+            console.log(`BoyKisser using grid for ${mapKey}:`, { rows: grid.length, cols: grid[0].length });
+            const originalMap01 = map_01;
+            Object.defineProperty({ map_01 }, "map_01", { value: grid, writable: true });
+            boyKisserNpcAIGodFunction();
+            Object.defineProperty({ map_01 }, "map_01", { value: originalMap01, writable: true });
+        };
+
+        // Wrapper for placeholderAIGodFunction
+        const placeholderWrapper = () => {
+            const grid = mapTable.get(mapKey)?.grid || mapHandler.getFullMap(mapKey) || (mapKey === "map_01" ? map_01 : null);
+            if (!grid || !Array.isArray(grid) || !grid[0] || !Array.isArray(grid[0])) {
+                console.error(`Invalid map for ${mapKey} in placeholderWrapper! Using map_01 as fallback.`);
+                if (mapKey === "map_01" && map_01 && Array.isArray(map_01) && map_01[0] && Array.isArray(map_01[0])) {
+                    placeholderAIGodFunction();
+                }
+                return;
+            }
+            console.log(`PlaceholderAI using grid for ${mapKey}:`, { rows: grid.length, cols: grid[0].length });
+            const originalMap01 = map_01;
+            Object.defineProperty({ map_01 }, "map_01", { value: grid, writable: true });
+            placeholderAIGodFunction();
+            Object.defineProperty({ map_01 }, "map_01", { value: originalMap01, writable: true });
+        };
+
+        // Register AIs for each map
+        enemyFunctions.push(casperWrapper);
+        enemyFunctions.push(placeholderWrapper);
+        friendlyFunctions.push(boyKisserWrapper);
 
         enemyAiRegistry.set(mapKey, enemyFunctions);
         friendlyAiRegistry.set(mapKey, friendlyFunctions);
@@ -47,13 +100,16 @@ initializeAiRegistries();
 export function setCurrentMap(mapKey) {
     if (!mapKey) {
         console.error("setCurrentMap called with undefined or null key! Falling back to map_01.");
-        mapKey = "map_01";
+        currentMapKey = "map_01";
+        return;
     }
-    if (mapTable.has(mapKey)) {
+    const mapData = mapTable.get(mapKey);
+    const grid = mapData?.grid || mapHandler.getFullMap(mapKey) || (mapKey === "map_01" ? map_01 : null);
+    if (grid && Array.isArray(grid) && grid[0] && Array.isArray(grid[0])) {
         currentMapKey = mapKey;
-        console.log(`Switched to map: ${mapKey}`);
+        console.log(`Switched to map: ${mapKey} (rows: ${grid.length}, cols: ${grid[0].length})`);
     } else {
-        console.error(`Map ${mapKey} not found in mapTable! Falling back to map_01.`);
+        console.error(`Map ${mapKey} is invalid in both mapTable and fullMapCache! Falling back to map_01.`);
         currentMapKey = "map_01";
     }
 }
@@ -62,6 +118,12 @@ export function setCurrentMap(mapKey) {
 export function enemyAiGodFunction() {
     if (!mapTable.has(currentMapKey)) {
         console.error(`Invalid currentMapKey ${currentMapKey || 'undefined'}! Skipping enemy AI.`);
+        return;
+    }
+    const mapData = mapTable.get(currentMapKey);
+    const grid = mapData?.grid || mapHandler.getFullMap(currentMapKey) || (currentMapKey === "map_01" ? map_01 : null);
+    if (!grid || !Array.isArray(grid) || !grid[0] || !Array.isArray(grid[0])) {
+        console.error(`Invalid map data for ${currentMapKey} in enemyAiGodFunction! Grid:`, grid);
         return;
     }
     const enemyFunctions = enemyAiRegistry.get(currentMapKey) || [];
@@ -73,14 +135,25 @@ export function friendlyAiGodFunction() {
         console.error(`Invalid currentMapKey ${currentMapKey || 'undefined'}! Skipping friendly AI.`);
         return;
     }
+    const mapData = mapTable.get(currentMapKey);
+    const grid = mapData?.grid || mapHandler.getFullMap(currentMapKey) || (currentMapKey === "map_01" ? map_01 : null);
+    if (!grid || !Array.isArray(grid) || !grid[0] || !Array.isArray(grid[0])) {
+        console.error(`Invalid map data for ${currentMapKey} in friendlyAiGodFunction! Grid:`, grid);
+        return;
+    }
     const friendlyFunctions = friendlyAiRegistry.get(currentMapKey) || [];
     for (const func of friendlyFunctions) func();
 }
 
 // Occlusion checker with map validation
 export function isOccludedByWall(x0, z0, x1, z1, map, tileSectors) {
-    if (!map || !Array.isArray(map) || !map[0] || !Array.isArray(map[0])) {
-        console.error("Invalid map in isOccludedByWall! Skipping occlusion check.");
+    const effectiveMap = map || mapHandler.getFullMap(mapHandler.activeMapKey || "map_01") || (mapHandler.activeMapKey === "map_01" ? map_01 : null);
+    if (!effectiveMap || !Array.isArray(effectiveMap) || !effectiveMap[0] || !Array.isArray(effectiveMap[0])) {
+        console.error(`Invalid map in isOccludedByWall! Map:`, effectiveMap, `Falling back to map_01.`);
+        if (mapHandler.activeMapKey === "map_01" && map_01 && Array.isArray(map_01) && map_01[0] && Array.isArray(map_01[0])) {
+            return isOccludedByWall(x0, z0, x1, z1, map_01, tileSectors); // Recursive fallback
+        }
+        console.error(`Fallback map_01 also invalid! Skipping occlusion check.`);
         return false;
     }
     const dx = x1 - x0;
@@ -93,8 +166,8 @@ export function isOccludedByWall(x0, z0, x1, z1, map, tileSectors) {
         const checkZ = z0 + t * dz;
         const cellX = Math.floor(checkX / tileSectors);
         const cellZ = Math.floor(checkZ / tileSectors);
-        if (cellX >= 0 && cellX < map[0].length && cellZ >= 0 && cellZ < map.length) {
-            if (map[cellZ][cellX] && map[cellZ][cellX].type === "wall") return true;
+        if (cellX >= 0 && cellX < effectiveMap[0].length && cellZ >= 0 && cellZ < effectiveMap.length) {
+            if (effectiveMap[cellZ][cellX] && effectiveMap[cellZ][cellX].type === "wall") return true;
         } else {
             return false;
         }
