@@ -15,7 +15,6 @@ import {
     boyKisserEnemySprite, boyKisserEnemySpriteLoaded,
     casperLesserDemonSprite, casperLesserDemonSpriteLoaded,
     placeholderAiSprite, placeholderAiSpriteLoaded,
-    boyKisserEnemyHealth,
     getCreamSpinCurrentFrame
 } from "./spritetextures.js";
 import { SCALE_X, SCALE_Y, CANVAS_HEIGHT, CANVAS_WIDTH, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT } from "../../globals.js";
@@ -190,7 +189,7 @@ export function registerSprites() {
         scaleFactor: 0.5,
         renderFunction: (rayData, renderEngine) => {
             if (!boyKisserEnemySpriteLoaded) return null;
-            const result = renderSprite({
+            return renderSprite({
                 sprite: boyKisserEnemySprite,
                 isLoaded: boyKisserEnemySpriteLoaded,
                 worldPos: boyKisserEnemySpriteWorldPos,
@@ -202,28 +201,6 @@ export function registerSprites() {
                 scaleFactor: 0.5,
                 spriteId: 'boyKisser'
             });
-            if (result) {
-                if (typeof window !== 'undefined' && typeof window.boyKisserEnemyHealth === 'number') {
-                    boyKisserEnemyHealth = window.boyKisserEnemyHealth;
-                } else if (typeof globalThis !== 'undefined' && typeof globalThis.boyKisserEnemyHealth === 'number') {
-                    boyKisserEnemyHealth = globalThis.boyKisserEnemyHealth;
-                }
-                const barWidth = 60 * SCALE_X;
-                const barHeight = 8 * SCALE_Y;
-                const maxHealth = 5;
-                const healthPercent = Math.max(0, Math.min(1, boyKisserEnemyHealth / maxHealth));
-                const barX = result.adjustedScreenX - barWidth / 2;
-                const barY = result.spriteY - playerVantagePointY.playerVantagePointY - barHeight - 10 * SCALE_Y;
-                renderEngine.fillStyle = '#222';
-                renderEngine.fillRect(barX, barY, barWidth, barHeight);
-                renderEngine.fillStyle = '#FFD700';
-                renderEngine.fillRect(barX, barY, barWidth * healthPercent, barHeight);
-                renderEngine.strokeStyle = '#000';
-                renderEngine.lineWidth = 2 * Math.min(SCALE_X, SCALE_Y);
-                renderEngine.strokeRect(barX, barY, barWidth, barHeight);
-                return result;
-            }
-            return null;
         }
     });
     spriteManager.addSpriteForMaps(boyKisser, ["map_01", "map_debug"], {

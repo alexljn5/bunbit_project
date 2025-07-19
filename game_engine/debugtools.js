@@ -4,8 +4,9 @@ import { mapHandler } from "./mapdata/maphandler.js";
 import { tileSectors } from "./mapdata/maps.js";
 import { tileTexturesMap } from "./mapdata/maptexturesloader.js";
 import { getCreamSpinCurrentFrame, spriteState } from "./rendering/sprites/spritetextures.js";
-import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y } from "./globals.js";
+import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, HIGH_RES_ENABLED, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT } from "./globals.js";
 import { spriteManager } from "./rendering/sprites/rendersprites.js";
+import { renderSprite } from "./rendering/sprites/spriteutils.js";
 
 export function compiledDevTools() {
     fpsMeter();
@@ -42,49 +43,55 @@ function playerCoordinates() {
     renderEngine.fillText(`X: ${playerX}, Z: ${playerZ}`, 1, 90 * SCALE_Y);
 }
 
-const minimapWidth = 200 * SCALE_X;
-const minimapHeight = 200 * SCALE_Y;
+// Define minimap size relative to reference canvas (800x800)
+const baseMinimapWidth = 200; // Base size in reference resolution
+const baseMinimapHeight = 200;
+const baseMargin = 20; // Base margin in reference resolution
 
 export function drawMinimap() {
-    mapHandler.updateActiveSector(playerPosition);
-    const sector = mapHandler.getActiveSector();
-    if (!sector) {
+    // Get the full map grid for the active map
+    const mapGrid = mapHandler.getFullMap(mapHandler.activeMapKey);
+    if (!mapGrid || !Array.isArray(mapGrid) || !mapGrid[0] || !Array.isArray(mapGrid[0])) {
+        // Fallback: draw a red rectangle if no valid map is found
         renderEngine.fillStyle = "red";
-        renderEngine.fillRect(CANVAS_WIDTH - minimapWidth - 20 * SCALE_X, 20 * SCALE_Y, minimapWidth, minimapHeight);
+        const minimapWidth = baseMinimapWidth * SCALE_X;
+        const minimapHeight = baseMinimapHeight * SCALE_Y;
+        renderEngine.fillRect(
+            CANVAS_WIDTH - minimapWidth - baseMargin * SCALE_X,
+            baseMargin * SCALE_Y,
+            minimapWidth,
+            minimapHeight
+        );
         return;
     }
 
-    const sectors = mapHandler.maps.get(mapHandler.activeMapKey);
-    const sectorInfo = sectors.find(s => s.id === mapHandler.activeSectorId);
-    if (!sectorInfo) {
-        renderEngine.fillStyle = "red";
-        renderEngine.fillRect(CANVAS_WIDTH - minimapWidth - 20 * SCALE_X, 20 * SCALE_Y, minimapWidth, minimapHeight);
-        return;
-    }
-    const { startX, startY, width, height } = sectorInfo;
+    const height = mapGrid.length;
+    const width = mapGrid[0].length;
 
-    if (!Array.isArray(sector) || sector.length !== height || !sector.every(row => Array.isArray(row) && row.length === width)) {
-        renderEngine.fillStyle = "red";
-        renderEngine.fillRect(CANVAS_WIDTH - minimapWidth - 20 * SCALE_X, 20 * SCALE_Y, minimapWidth, minimapHeight);
-        return;
-    }
-
+    // Calculate minimap size and scale, accounting for canvas resolution
+    const minimapWidth = baseMinimapWidth * SCALE_X;
+    const minimapHeight = baseMinimapHeight * SCALE_Y;
     const minimapScale = Math.min(
         minimapWidth / (width * tileSectors),
         minimapHeight / (height * tileSectors)
     );
     const minimapTileSize = tileSectors * minimapScale;
 
-    const minimapX = CANVAS_WIDTH - minimapWidth - 20 * SCALE_X;
-    const minimapY = 20 * SCALE_Y;
+    // Position minimap in top-right corner
+    const transformScale = HIGH_RES_ENABLED ? 1 : 2; // From globals.js: scale(1) for high-res, scale(2) for low-res
+    const minimapX = CANVAS_WIDTH - minimapWidth - baseMargin * SCALE_X;
+    const minimapY = baseMargin * SCALE_Y;
     renderEngine.save();
     renderEngine.translate(minimapX, minimapY);
+
+    // Draw minimap background
     renderEngine.fillStyle = "black";
     renderEngine.fillRect(0, 0, minimapWidth, minimapHeight);
 
+    // Draw map tiles (walls and floors)
     for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
-            const tile = sector[y][x];
+            const tile = mapGrid[y][x];
             if (!tile) continue;
             const pixelX = x * minimapTileSize;
             const pixelY = y * minimapTileSize;
@@ -102,15 +109,16 @@ export function drawMinimap() {
         }
     }
 
+    // Draw borders for empty tiles with wall neighbors
     for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
-            const tile = sector[y][x];
+            const tile = mapGrid[y][x];
             if (!tile || tile.type !== "empty") continue;
             let hasWallNeighbor = false;
-            if (y > 0 && sector[y - 1][x]?.type === "wall") hasWallNeighbor = true;
-            if (y < height - 1 && sector[y + 1][x]?.type === "wall") hasWallNeighbor = true;
-            if (x > 0 && sector[y][x - 1]?.type === "wall") hasWallNeighbor = true;
-            if (x < width - 1 && sector[y][x + 1]?.type === "wall") hasWallNeighbor = true;
+            if (y > 0 && mapGrid[y - 1][x]?.type === "wall") hasWallNeighbor = true;
+            if (y < height - 1 && mapGrid[y + 1][x]?.type === "wall") hasWallNeighbor = true;
+            if (x > 0 && mapGrid[y][x - 1]?.type === "wall") hasWallNeighbor = true;
+            if (x < width - 1 && mapGrid[y][x + 1]?.type === "wall") hasWallNeighbor = true;
             const pixelX = x * minimapTileSize;
             const pixelY = y * minimapTileSize;
             renderEngine.strokeStyle = hasWallNeighbor ? "white" : "#777777";
@@ -119,9 +127,12 @@ export function drawMinimap() {
         }
     }
 
-    const playerPixelX = (playerPosition.x / tileSectors - startX) * minimapTileSize;
-    const playerPixelY = (playerPosition.z / tileSectors - startY) * minimapTileSize;
-    const playerSize = 5 * Math.min(SCALE_X, SCALE_Y);
+    // Draw player position
+    const playerTileX = playerPosition.x / tileSectors;
+    const playerTileY = playerPosition.z / tileSectors;
+    const playerPixelX = playerTileX * minimapTileSize;
+    const playerPixelY = playerTileY * minimapTileSize;
+    const playerSize = 5 * Math.min(SCALE_X, SCALE_Y) * transformScale; // Adjust for canvas scale
     renderEngine.fillStyle = "red";
     renderEngine.fillRect(
         playerPixelX - playerSize / 2,
@@ -130,6 +141,7 @@ export function drawMinimap() {
         playerSize
     );
 
+    // Draw sprites
     const spritesToRender = [
         'creamSpin',
         'boyKisser',
@@ -144,9 +156,10 @@ export function drawMinimap() {
         if (spriteId === 'nineMMAmmo' && spriteState.isNineMmAmmoCollected) continue;
         const spriteTileX = sprite.worldPos.x / tileSectors;
         const spriteTileY = sprite.worldPos.z / tileSectors;
+        // Check if sprite is within map bounds
         if (
-            spriteTileX < startX || spriteTileX >= startX + width ||
-            spriteTileY < startY || spriteTileY >= startY + height
+            spriteTileX < 0 || spriteTileX >= width ||
+            spriteTileY < 0 || spriteTileY >= height
         ) continue;
         let image = sprite.image;
         if (spriteId === 'creamSpin') {
@@ -154,9 +167,9 @@ export function drawMinimap() {
             if (!currentFrame) continue;
             image = currentFrame;
         }
-        const spritePixelX = (spriteTileX - startX) * minimapTileSize;
-        const spritePixelY = (spriteTileY - startY) * minimapTileSize;
-        const spriteSize = minimapTileSize * 0.5;
+        const spritePixelX = spriteTileX * minimapTileSize;
+        const spritePixelY = spriteTileY * minimapTileSize;
+        const spriteSize = minimapTileSize * 0.5 * transformScale; // Adjust for canvas scale
         renderEngine.drawImage(
             image,
             0, 0, image.width, image.height,
@@ -167,8 +180,9 @@ export function drawMinimap() {
         );
     }
 
+    // Draw minimap border
     renderEngine.strokeStyle = "white";
-    renderEngine.lineWidth = 2 * Math.min(SCALE_X, SCALE_Y);
+    renderEngine.lineWidth = 2 * Math.min(SCALE_X, SCALE_Y) * transformScale;
     renderEngine.strokeRect(0, 0, minimapWidth, minimapHeight);
 
     renderEngine.restore();

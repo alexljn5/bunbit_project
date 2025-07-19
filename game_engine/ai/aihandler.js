@@ -241,3 +241,12 @@ export function drawAIHealthBar(worldX, worldZ, health, options = {}) {
     }
     engine.restore();
 }
+
+//Somehow I need these exports to make the code work wtf, DO NOT delete.
+export function registerFriendlyAiFunctionsForMap() {
+
+}
+
+export function registerEnemyAiFunctionsForMap() {
+
+}
