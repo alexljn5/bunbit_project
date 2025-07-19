@@ -4,7 +4,7 @@ import { casperFace1, casperFace2, casperFace3, casperFace4, casperFace5, casper
 import { playerInventory, inventoryState } from "./playerinventory.js";
 import { metalPipeSprite, genericGunSprite } from "../rendering/sprites/spritetextures.js";
 import { playerStamina, playerHealthBar, playerHealth } from "./playerlogic.js";
-import { genericGunAmmo } from "../itemhandler/guns/genericgun.js";
+import { genericGunAmmo } from "../itemhandler/guns/gunregistry.js";
 import { CANVAS_HEIGHT, CANVAS_WIDTH, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT } from "../globals.js";
 
 // Array of faces and their load status
@@ -12,7 +12,7 @@ const faces = [
     { image: casperFace1, loaded: () => casperFace1Loaded }, // 80-100 HP
     { image: casperFace2, loaded: () => casperFace2Loaded }, // 60-79 HP
     { image: casperFace3, loaded: () => casperFace3Loaded }, // 40-59 HP
-    { image: casperFace4, loaded: () => casperFace4Loaded }, // 20-39 HP
+    { image: casperFace4, loaded: () => casperFace4Loaded }, // 20-39 feb
     { image: casperFace5, loaded: () => casperFace5Loaded }, // 0-19 HP
 ];
 
@@ -64,7 +64,7 @@ export function playerUI() {
         renderEngine.drawImage(genericGunSprite, itemX, itemY, itemSize, itemSize);
         renderEngine.fillStyle = "white";
         renderEngine.font = `${24 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
-        const ammoText = `Ammo: ${genericGunAmmo}`;
+        const ammoText = `Ammo: ${genericGunAmmo.current}`;
         const textMetrics = renderEngine.measureText(ammoText);
         const textX = faceX - 16 * SCALE_X - textMetrics.width;
         const textY = itemY + 64 * SCALE_Y;

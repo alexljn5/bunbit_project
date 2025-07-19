@@ -4,8 +4,8 @@
 import { playerPosition, previousPosition } from "../playerdata/playerlogic.js";
 import { spriteManager } from "../rendering/sprites/rendersprites.js";
 import { playerInventory } from "../playerdata/playerinventory.js";
-import { setGenericGunAmmo, genericGunAmmo } from "../itemhandler/guns/genericgun.js";
 import { spriteState } from "../rendering/sprites/spritetextures.js"
+import { genericGunAmmo, setGenericGunAmmo } from "../itemhandler/guns/gunregistry.js";
 
 export function simpleCollissionTest() {
     // Check if metalPipe sprite is loaded for the current map

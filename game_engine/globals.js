@@ -84,3 +84,5 @@ if (domElements.mainGameRender) {
     SCALE_X = 400 / REF_CANVAS_WIDTH;
     SCALE_Y = 400 / REF_CANVAS_HEIGHT;
 }
+
+export const gameVersionNumber = "0.0.4";

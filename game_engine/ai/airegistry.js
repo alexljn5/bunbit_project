@@ -1,0 +1,1 @@
+export let placeholderAIHealth = { value: 100 };

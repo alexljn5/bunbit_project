@@ -1,4 +1,4 @@
-import { terminalGodFunction } from "./terminal.js";
+import { terminalGodFunction } from "./terminal/terminalhandler.js";
 
 export function consoleHandler() {
     terminalGodFunction();

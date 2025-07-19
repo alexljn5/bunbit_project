@@ -7,40 +7,53 @@ import { getCreamSpinCurrentFrame, spriteState } from "./rendering/sprites/sprit
 import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, HIGH_RES_ENABLED, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT } from "./globals.js";
 import { spriteManager } from "./rendering/sprites/rendersprites.js";
 import { renderSprite } from "./rendering/sprites/spriteutils.js";
+import { gameVersionNumber } from "./globals.js";
 
 export function compiledDevTools() {
-    fpsMeter();
-    playerCoordinates();
-    versionTextDisplay();
+    drawDebugOverlay();
     drawMinimap();
 }
 
-export function compiledTextStyle() {
-    renderEngine.fillStyle = "yellow";
-    renderEngine.font = `${30 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
-}
+// Static variable for FPS calculation
+let lastFrameTime = null;
 
-function versionTextDisplay() {
-    compiledTextStyle();
-    renderEngine.fillText("IDLE 2.5D TEST: Alpha 0.0.3", 0, 30 * SCALE_Y);
-}
+function drawDebugOverlay() {
+    // Define debug text panel dimensions
+    const overlayX = 10 * SCALE_X;
+    const overlayY = 10 * SCALE_Y;
+    const overlayWidth = 300 * SCALE_X;
+    const overlayHeight = 100 * SCALE_Y;
 
-function fpsMeter() {
-    if (!fpsMeter.last) fpsMeter.last = performance.now();
+    // Draw semi-transparent background
+    renderEngine.fillStyle = "rgba(20, 20, 20, 0.95)";
+    renderEngine.fillRect(overlayX, overlayY, overlayWidth, overlayHeight);
+
+    // Draw white border
+    renderEngine.strokeStyle = "#fff";
+    renderEngine.lineWidth = 2 * Math.min(SCALE_X, SCALE_Y);
+    renderEngine.strokeRect(overlayX, overlayY, overlayWidth, overlayHeight);
+
+    // Draw version text
+    renderEngine.fillStyle = "#fff";
+    renderEngine.font = `${22 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+    renderEngine.fillText(`IDLE 2.5D TEST: ${gameVersionNumber}`, overlayX + 10 * SCALE_X, overlayY + 30 * SCALE_Y);
+
+    // Draw FPS
+    if (!lastFrameTime) lastFrameTime = performance.now();
     const currentTime = performance.now();
-    const deltaTime = (currentTime - fpsMeter.last) / 1000;
-    fpsMeter.last = currentTime;
+    const deltaTime = (currentTime - lastFrameTime) / 1000;
+    lastFrameTime = currentTime;
     const fps = Math.round(1 / deltaTime);
-    compiledTextStyle();
-    renderEngine.fillText(`FPS: ${fps}`, 0, 60 * SCALE_Y);
-}
-fpsMeter.last = null;
+    renderEngine.fillStyle = "#fff";
+    renderEngine.font = `${16 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+    renderEngine.fillText(`FPS: ${fps}`, overlayX + 10 * SCALE_X, overlayY + 60 * SCALE_Y);
 
-function playerCoordinates() {
+    // Draw player coordinates
     const playerX = Math.round(playerPosition.x);
     const playerZ = Math.round(playerPosition.z);
-    compiledTextStyle();
-    renderEngine.fillText(`X: ${playerX}, Z: ${playerZ}`, 1, 90 * SCALE_Y);
+    renderEngine.fillStyle = "#fff";
+    renderEngine.font = `${16 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+    renderEngine.fillText(`X: ${playerX}, Z: ${playerZ}`, overlayX + 10 * SCALE_X, overlayY + 80 * SCALE_Y);
 }
 
 // Define minimap size relative to reference canvas (800x800)
@@ -49,10 +62,16 @@ const baseMinimapHeight = 200;
 const baseMargin = 20; // Base margin in reference resolution
 
 export function drawMinimap() {
+    // Log the active map key for debugging
+    console.log(`drawMinimap: Active map key is ${mapHandler.activeMapKey}`);
+
+    // Ensure sprites are loaded for the current map
+    spriteManager.loadSpritesForMap(mapHandler.activeMapKey);
+
     // Get the full map grid for the active map
     const mapGrid = mapHandler.getFullMap(mapHandler.activeMapKey);
     if (!mapGrid || !Array.isArray(mapGrid) || !mapGrid[0] || !Array.isArray(mapGrid[0])) {
-        // Fallback: draw a red rectangle if no valid map is found
+        console.warn(`No valid map grid for ${mapHandler.activeMapKey}`);
         renderEngine.fillStyle = "red";
         const minimapWidth = baseMinimapWidth * SCALE_X;
         const minimapHeight = baseMinimapHeight * SCALE_Y;
@@ -85,7 +104,7 @@ export function drawMinimap() {
     renderEngine.translate(minimapX, minimapY);
 
     // Draw minimap background
-    renderEngine.fillStyle = "black";
+    renderEngine.fillStyle = "rgba(20, 20, 20, 0.95)";
     renderEngine.fillRect(0, 0, minimapWidth, minimapHeight);
 
     // Draw map tiles (walls and floors)
@@ -151,20 +170,56 @@ export function drawMinimap() {
     ];
     for (const spriteId of spritesToRender) {
         const sprite = spriteManager.getSprite(spriteId);
-        if (!sprite || !sprite.isLoaded || !sprite.worldPos) continue;
-        if (spriteId === 'metalPipe' && spriteState.isMetalPipeCollected) continue;
-        if (spriteId === 'nineMMAmmo' && spriteState.isNineMmAmmoCollected) continue;
+        if (!sprite) {
+            console.warn(`Sprite ${spriteId} not found in spriteManager`);
+            continue;
+        }
+        if (!sprite.isLoaded) {
+            console.warn(`Sprite ${spriteId} is not loaded`);
+            // Draw a placeholder rectangle
+            renderEngine.fillStyle = spriteId === 'creamSpin' ? 'pink' : 'yellow';
+            const spriteTileX = sprite.worldPos?.x / tileSectors || 0;
+            const spriteTileY = sprite.worldPos?.z / tileSectors || 0;
+            const spritePixelX = spriteTileX * minimapTileSize;
+            const spritePixelY = spriteTileY * minimapTileSize;
+            const spriteSize = minimapTileSize * 0.5;
+            renderEngine.fillRect(
+                spritePixelX - spriteSize / 2,
+                spritePixelY - spriteSize / 2,
+                spriteSize,
+                spriteSize
+            );
+            continue;
+        }
+        if (!sprite.worldPos) {
+            console.warn(`Sprite ${spriteId} has no worldPos`);
+            continue;
+        }
+        if (spriteId === 'metalPipe' && spriteState.isMetalPipeCollected) {
+            console.log(`Skipping ${spriteId}: isMetalPipeCollected is true`);
+            continue;
+        }
+        if (spriteId === 'nineMMAmmo' && spriteState.isNineMmAmmoCollected) {
+            console.log(`Skipping ${spriteId}: isNineMmAmmoCollected is true`);
+            continue;
+        }
         const spriteTileX = sprite.worldPos.x / tileSectors;
         const spriteTileY = sprite.worldPos.z / tileSectors;
         // Check if sprite is within map bounds
         if (
             spriteTileX < 0 || spriteTileX >= width ||
             spriteTileY < 0 || spriteTileY >= height
-        ) continue;
+        ) {
+            console.warn(`Sprite ${spriteId} is out of map bounds: x=${spriteTileX}, y=${spriteTileY}`);
+            continue;
+        }
         let image = sprite.image;
         if (spriteId === 'creamSpin') {
             const currentFrame = getCreamSpinCurrentFrame();
-            if (!currentFrame) continue;
+            if (!currentFrame) {
+                console.warn(`No current frame for creamSpin`);
+                continue;
+            }
             image = currentFrame;
         }
         const spritePixelX = spriteTileX * minimapTileSize;
@@ -181,9 +236,10 @@ export function drawMinimap() {
     }
 
     // Draw minimap border
-    renderEngine.strokeStyle = "white";
+    renderEngine.strokeStyle = "#fff";
     renderEngine.lineWidth = 2 * Math.min(SCALE_X, SCALE_Y) * transformScale;
     renderEngine.strokeRect(0, 0, minimapWidth, minimapHeight);
 
     renderEngine.restore();
 }
+export function compiledTextStyle() { renderEngine.fillStyle = "yellow"; renderEngine.font = `${30 * Math.min(SCALE_X, SCALE_Y)}px Arial`; }

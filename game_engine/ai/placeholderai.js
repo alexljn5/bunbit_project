@@ -59,38 +59,9 @@ function triggerPlaceholderAIDeath() {
     }
 }
 
-function handlePlayerAttack() {
-    const now = performance.now();
-    if (now - lastPlayerAttackTime < attackCooldown) return;
-
-    const placeholderSprite = spriteManager.getSprite("placeholderAI");
-    if (!placeholderSprite || !placeholderSprite.worldPos || !placeholderAISpriteWorldPos) {
-        console.log("PlaceholderAI sprite not found or missing worldPos!");
-        return;
-    }
-
-    const dx = playerPosition.x - placeholderAISpriteWorldPos.x;
-    const dz = playerPosition.z - placeholderAISpriteWorldPos.z;
-    const distance = Math.sqrt(dx * dx + dz * dz);
-
-    const isAttacking = keys[" "];
-    if (!isAttacking) return;
-
-    if (playerInventory.includes("generic_gun") && distance <= 100) {
-        setPlaceholderAIHealth(placeholderAIHealth - gunDamage);
-        console.log(`Player shot Placeholder AI! Health: ${placeholderAIHealth}`);
-        lastPlayerAttackTime = now;
-    } else if (playerInventory.includes("metal_pipe") && distance <= meleeRange) {
-        setPlaceholderAIHealth(placeholderAIHealth - meleeDamage);
-        console.log(`Player hit Placeholder AI with metal pipe! Health: ${placeholderAIHealth}`);
-        lastPlayerAttackTime = now;
-    }
-}
-
 export function placeholderAIGodFunction() {
     if (placeholderAIHealth > 0) {
         placeholderAI();
-        handlePlayerAttack();
     }
 }
 

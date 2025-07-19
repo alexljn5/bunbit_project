@@ -1,16 +1,13 @@
-import { keys } from "../playerdata/playerlogic.js";
-import { SCALE_X, SCALE_Y, CANVAS_WIDTH, CANVAS_HEIGHT } from "../globals.js";
-import { renderEngine } from "../rendering/renderengine.js";
+import { keys } from "../../playerdata/playerlogic.js";
+import { SCALE_X, SCALE_Y, CANVAS_WIDTH, CANVAS_HEIGHT } from "../../globals.js";
+import { renderEngine } from "../../rendering/renderengine.js";
+import { terminalGodFunction } from "./terminalhandler.js";
 
 let showTerminal = false;
 let lastTState = false;
 let currentCommand = "";
 let inputActive = false;
 let lastKeyStates = {};
-
-export function terminalGodFunction(command) {
-    displayTheTerminal();
-}
 
 export function displayTheTerminal() {
     // Toggle terminal with 'T' key

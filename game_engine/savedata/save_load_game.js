@@ -15,8 +15,8 @@ import {
     setPlayerMovementDisabled, setJustReceivedGun, setShowGunPickupBox,
     setGunPickupTimer, setBoyKisserEnemyHealth
 } from "../ai/friendlycat.js";
-import { genericGunAmmo, setGenericGunAmmo } from "../itemhandler/guns/genericgun.js";
 import { boyKisserEnemySpriteWorldPos, casperLesserDemonSpriteWorldPos } from "../rendering/sprites/rendersprites.js";
+import { genericGunAmmo, setGenericGunAmmo } from "../itemhandler/guns/gunregistry.js";
 
 export function saveGame() {
     const gameState = {
@@ -52,7 +52,7 @@ export function saveGame() {
             health: boyKisserEnemyHealth
         },
         weapons: {
-            genericGunAmmo: genericGunAmmo
+            genericGunAmmo: genericGunAmmo.current
         },
         timestamp: new Date().toISOString() // Track when saved
     };
