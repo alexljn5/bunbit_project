@@ -5,7 +5,7 @@ import { tileSectors } from "../mapdata/maps.js";
 import { isOccludedByWall } from "./aihandler.js";
 import { renderEngine } from "../rendering/renderengine.js";
 import { playerInventory } from "../playerdata/playerinventory.js";
-import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y } from "../globals.js";
+import { placeholderAIHealth, placeholderAIHealthBar } from "./airegistry.js";
 
 // Placeholder AI logic with health bar and damage handling
 export let placeholderAIPreviousPos = null;
@@ -13,7 +13,6 @@ export let lastKnownPlayerPos = null;
 export let canSeePlayer = true;
 export let isPeeking = false;
 export let peekStartTime = 0;
-export let placeholderAIHealth = 100;
 const damagePerSecond = 100;
 const hitCooldown = 1000;
 const hitRadius = 20;
@@ -36,31 +35,8 @@ export function setPeekStartTime(value) {
     peekStartTime = value;
 }
 
-export function setPlaceholderAIHealth(value) {
-    placeholderAIHealth = Math.max(0, Math.min(100, value));
-    if (placeholderAIHealth === 0) {
-        console.log("Placeholder AI defeated!");
-        triggerPlaceholderAIDeath();
-    }
-}
-
-function triggerPlaceholderAIDeath() {
-    renderEngine.fillStyle = "rgba(255, 0, 0, 0.5)";
-    renderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-    renderEngine.fillStyle = "white";
-    renderEngine.font = `${24 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
-    renderEngine.fillText("Placeholder AI Defeated!", CANVAS_WIDTH / 2 - 100 * SCALE_X, CANVAS_HEIGHT / 2);
-    if (placeholderAISpriteWorldPos) {
-        placeholderAISpriteWorldPos.x = -9999;
-    }
-    const placeholderSprite = spriteManager.getSprite("placeholderAI");
-    if (placeholderSprite && placeholderSprite.worldPos) {
-        placeholderSprite.worldPos.x = -9999;
-    }
-}
-
 export function placeholderAIGodFunction() {
-    if (placeholderAIHealth > 0) {
+    if (placeholderAIHealth.value > 0) {
         placeholderAI();
     }
 }
@@ -75,7 +51,8 @@ export function placeholderAI() {
     if (placeholderAISpriteWorldPos === null) {
         placeholderAISpriteWorldPos = { x: placeholderSprite.worldPos.x, z: placeholderSprite.worldPos.z };
     }
-
+    // Draw the health bar
+    placeholderAIHealthBar();
     const enemySpeed = 0.2;
     const randomFactor = 0.1;
     const enemyRadius = 10;

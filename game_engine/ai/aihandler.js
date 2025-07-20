@@ -1,3 +1,5 @@
+import { getSpriteScreenParams } from "../rendering/sprites/spriteutils.js";
+import { numCastRays } from "../rendering/raycasting.js";
 import { playerVantagePointX, playerVantagePointY } from "../playerdata/playerlogic.js";
 import { boyKisserNpcAIGodFunction } from "./friendlycat.js";
 import { placeholderAIGodFunction } from "./placeholderai.js";
@@ -178,10 +180,6 @@ export function isOccludedByWall(x0, z0, x1, z1, map, tileSectors) {
 // Draw healthbar for AIs
 export function drawAIHealthBar(worldX, worldZ, health, options = {}) {
     const {
-        spriteHeight = 128 * (typeof SCALE_Y !== 'undefined' ? SCALE_Y : 1),
-        barHeight = 8 * (typeof SCALE_Y !== 'undefined' ? SCALE_Y : 1),
-        color = health > 50 ? 'green' : health > 20 ? 'yellow' : 'red',
-        label = `${Math.floor(health)} HP`,
         occlusionCheck = null,
         renderEngine: engine = typeof renderEngine !== 'undefined' ? renderEngine : null,
         CANVAS_WIDTH: w = typeof CANVAS_WIDTH !== 'undefined' ? CANVAS_WIDTH : 800,
@@ -192,9 +190,12 @@ export function drawAIHealthBar(worldX, worldZ, health, options = {}) {
         playerFOV = Math.PI / 3,
         tileSectors = 50,
         scaleFactor = 0.5,
-        aspectRatio = 128 / 80,
-        baseYRatio = 400 / 600
+        aspectRatio = 128 / 80
     } = options;
+
+    const barHeight = 8 * SCALE_Y;
+    const color = health > 50 ? 'green' : health > 20 ? 'yellow' : 'red';
+    const label = `${Math.floor(health)} HP`;
 
     if (!engine || isNaN(worldX) || isNaN(worldZ) || isNaN(playerPosition.x) || isNaN(playerPosition.z) || isNaN(playerPosition.angle)) return;
     if (typeof occlusionCheck === 'function' && occlusionCheck()) return;
@@ -213,9 +214,13 @@ export function drawAIHealthBar(worldX, worldZ, health, options = {}) {
 
     const projectedSpriteHeight = (h / correctedDistance) * tileSectors * scaleFactor;
     const projectedSpriteWidth = projectedSpriteHeight * aspectRatio;
-    const spriteY = h * baseYRatio;
-    const screenX = (w / 2) + (w / 2) * (relA / halfFOV);
-    const spriteYTop = spriteY - projectedSpriteHeight / 2;
+
+    // Correctly calculate the sprite's top position on the screen using perspective projection
+    const projectionPlaneDist = (w / 2) / Math.tan(playerFOV / 2);
+    const spriteYBottom = (h / 2) + (projectionPlaneDist * (tileSectors / 2)) / correctedDistance;
+    const spriteYTop = spriteYBottom - projectedSpriteHeight;
+
+    const { adjustedScreenX: screenX } = getSpriteScreenParams(relA, projectedSpriteWidth);
 
     const offset = 6 * SCALE_Y;
     const barWidth = Math.max(24 * SCALE_X, Math.min(60 * SCALE_X, projectedSpriteWidth * 0.7));

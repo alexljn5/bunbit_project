@@ -1,11 +1,11 @@
 import { playerInventory, inventoryState } from "../../playerdata/playerinventory.js";
 import { keys, playerPosition } from "../../playerdata/playerlogic.js";
-import { placeholderAIHealth } from "../../ai/placeholderai.js";
 import { map_01 } from "../../mapdata/map_01.js";
 import { tileSectors } from "../../mapdata/maps.js";
 import { isOccludedByWall } from "../../ai/aihandler.js";
 import { placeholderAISpriteWorldPos } from "../../rendering/sprites/rendersprites.js";
 import { playMetalSwingSound } from "../../audio/soundhandler.js";
+import { placeholderAIHealth } from "../../ai/airegistry.js";
 
 let lastAttackTime = 0; // Cooldown tracker
 const attackCooldown = 200; // 2 seconds between attacks

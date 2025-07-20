@@ -7,119 +7,122 @@ import { CANVAS_HEIGHT, CANVAS_WIDTH, fastSin, fastCos } from "../globals.js";
 import { renderEngine } from "./renderengine.js";
 import { numCastRays, playerFOV } from "./raycasting.js";
 
-let lastCanvasWidth = CANVAS_WIDTH;
-let lastCanvasHeight = CANVAS_HEIGHT;
+// --- Pre-initialized variables ---
+let lastCanvasWidth = 0;
+let lastCanvasHeight = 0;
+let floorBuffer;
+let floorBuffer32;
+let textureData;
+let textureWidth = 0;
+let textureHeight = 0;
+let lastTextureKey = "";
 
-const bufferCanvas = document.createElement("canvas");
-bufferCanvas.width = CANVAS_WIDTH;
-bufferCanvas.height = CANVAS_HEIGHT;
-const bufferCtx = bufferCanvas.getContext("2d");
+// --- Texture Buffer Canvas ---
+const textureCanvas = document.createElement("canvas");
+const textureCtx = textureCanvas.getContext("2d", { willReadFrequently: true });
+
+function updateTextureBuffer(texture) {
+    if (texture.width !== textureWidth || texture.height !== textureHeight) {
+        textureWidth = texture.width;
+        textureHeight = texture.height;
+        textureCanvas.width = textureWidth;
+        textureCanvas.height = textureHeight;
+    }
+    textureCtx.drawImage(texture, 0, 0);
+    textureData = textureCtx.getImageData(0, 0, textureWidth, textureHeight).data;
+}
 
 export async function renderRaycastFloors(rayData) {
     const mapKey = mapHandler.activeMapKey || "map_01";
     const floorTextureKey = mapHandler.getMapFloorTexture(mapKey);
     const texture = tileTexturesMap.get(floorTextureKey) || tileTexturesMap.get("floor_concrete");
 
-    // Fallback if textures aren't ready
     if (!texturesLoaded || !texture || !texture.complete) {
         renderEngine.fillStyle = "gray";
         renderEngine.fillRect(0, CANVAS_HEIGHT / 2, CANVAS_WIDTH, CANVAS_HEIGHT / 2);
         return;
     }
 
-    // Update buffer canvas if resolution changed
+    // --- Update buffers if resolution or texture changes ---
     if (CANVAS_WIDTH !== lastCanvasWidth || CANVAS_HEIGHT !== lastCanvasHeight) {
-        bufferCanvas.width = CANVAS_WIDTH;
-        bufferCanvas.height = CANVAS_HEIGHT;
+        floorBuffer = renderEngine.createImageData(CANVAS_WIDTH, CANVAS_HEIGHT);
+        floorBuffer32 = new Uint32Array(floorBuffer.data.buffer);
         lastCanvasWidth = CANVAS_WIDTH;
         lastCanvasHeight = CANVAS_HEIGHT;
     }
 
-    // Clear the buffer
-    bufferCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    if (floorTextureKey !== lastTextureKey || !textureData) {
+        updateTextureBuffer(texture);
+        lastTextureKey = floorTextureKey;
+    }
 
-    // Constants for floor rendering
-    const projectionPlaneDist = (CANVAS_WIDTH * 0.5) / Math.tan(playerFOV * 0.5);
-    const halfCanvasHeight = CANVAS_HEIGHT * 0.5;
-    const halfTile = tileSectors * 0.5;
+    // --- Constants and pre-calculations ---
+    const playerAngle = playerPosition.angle;
+    const playerX = playerPosition.x;
+    const playerZ = playerPosition.z;
+    const playerHeight = 0; // Assuming player is at height 0 for floor rendering
+
+    const fov = playerFOV;
+    const halfFOV = fov * 0.5;
+    const halfHeight = CANVAS_HEIGHT * 0.5;
+    const projectionDist = (CANVAS_WIDTH * 0.5) / Math.tan(halfFOV);
+
+    const sinPlayerAngle = fastSin(playerAngle);
+    const cosPlayerAngle = fastCos(playerAngle);
+
     const invTileSectors = 1 / tileSectors;
 
-    // Optimization: Render in chunks of 4 rays at a time
-    const RAY_CHUNK_SIZE = 4;
-    const colWidth = CANVAS_WIDTH / numCastRays * RAY_CHUNK_SIZE;
+    // --- Main Scanline Rendering Loop ---
+    // Iterate from the horizon down to the bottom of the screen
+    for (let y = Math.floor(halfHeight); y < CANVAS_HEIGHT; y++) {
+        // Calculate the real-world distance to the floor points at this scanline
+        const yCorrected = y - halfHeight;
+        // Avoid division by zero for the horizon line
+        if (yCorrected === 0) continue;
 
-    // Pre-calculate angles
-    const fovStep = playerFOV / numCastRays;
-    let angle = playerPosition.angle - playerFOV / 2;
+        const distance = (projectionDist * tileSectors * 0.5) / yCorrected;
 
-    // Optimization: Pre-calculate row distances
-    const rowDistances = new Float32Array(CANVAS_HEIGHT);
-    for (let y = 0; y < CANVAS_HEIGHT; y++) {
-        rowDistances[y] = halfTile / ((y - halfCanvasHeight) / projectionPlaneDist);
-    }
+        // Calculate the real-world coordinates for the start and end of the scanline
+        const rayAngleLeft = playerAngle - halfFOV;
+        const rayAngleRight = playerAngle + halfFOV;
 
-    // Main rendering loop - process rays in chunks
-    for (let x = 0; x < numCastRays; x += RAY_CHUNK_SIZE) {
-        const cosA = fastCos(angle);
-        const sinA = fastSin(angle);
-        angle += fovStep * RAY_CHUNK_SIZE;
+        const floorX_left = playerX + distance * fastCos(rayAngleLeft);
+        const floorZ_left = playerZ + distance * fastSin(rayAngleLeft);
 
-        // Find the highest wall in this chunk (minimum distance)
-        let minDistance = Infinity;
-        for (let i = 0; i < RAY_CHUNK_SIZE && x + i < numCastRays; i++) {
-            const ray = rayData[x + i];
-            if (ray && ray.distance < minDistance) {
-                minDistance = ray.distance;
-            }
-        }
+        const floorX_right = playerX + distance * fastCos(rayAngleRight);
+        const floorZ_right = playerZ + distance * fastSin(rayAngleRight);
 
-        if (minDistance === Infinity) continue;
+        // Calculate the step to increment floor coordinates for each pixel in the scanline
+        const floorX_step = (floorX_right - floorX_left) / CANVAS_WIDTH;
+        const floorZ_step = (floorZ_right - floorZ_left) / CANVAS_WIDTH;
 
-        // Calculate wall bottom for closest wall in chunk
-        const wallHeight = (CANVAS_HEIGHT / minDistance) * tileSectors;
-        const wallBottom = Math.min((CANVAS_HEIGHT + wallHeight) * 0.5, CANVAS_HEIGHT);
-        const yStart = Math.floor(wallBottom);
-        if (yStart >= CANVAS_HEIGHT) continue;
+        let currentFloorX = floorX_left;
+        let currentFloorZ = floorZ_left;
 
-        // Calculate initial floor position
-        let floorX = playerPosition.x + rowDistances[yStart] * cosA;
-        let floorY = playerPosition.z + rowDistances[yStart] * sinA;
+        const yOffset = y * CANVAS_WIDTH;
 
-        // Optimization: Use larger vertical steps for distant floors
-        let stepSize = 1;
-        if (minDistance > tileSectors * 2) stepSize = 2;
-        if (minDistance > tileSectors * 4) stepSize = 4;
+        // Iterate across the scanline
+        for (let x = 0; x < CANVAS_WIDTH; x++) {
+            // Get texture coordinates by taking the fractional part of the world coordinates
+            let texX = Math.floor((currentFloorX % tileSectors) * invTileSectors * textureWidth) & (textureWidth - 1);
+            let texY = Math.floor((currentFloorZ % tileSectors) * invTileSectors * textureHeight) & (textureHeight - 1);
 
-        // Draw vertical strip from wall bottom to screen bottom
-        for (let y = yStart; y < CANVAS_HEIGHT; y += stepSize) {
-            // Calculate texture coordinates
-            const texX = (floorX % tileSectors) * invTileSectors;
-            const texY = (floorY % tileSectors) * invTileSectors;
-            const finalTexX = texX >= 0 ? texX : texX + 1;
-            const finalTexY = texY >= 0 ? texY : texY + 1;
+            // Get the pixel color from the texture data
+            const texOffset = (texY * textureWidth + texX) * 4;
+            const r = textureData[texOffset];
+            const g = textureData[texOffset + 1];
+            const b = textureData[texOffset + 2];
+            const a = textureData[texOffset + 3];
 
-            // Draw chunk of rays at once
-            bufferCtx.drawImage(
-                texture,
-                Math.floor(finalTexX * texture.width),
-                Math.floor(finalTexY * texture.height),
-                1, // Source width
-                stepSize, // Source height
-                x / numCastRays * CANVAS_WIDTH, // Destination x
-                y, // Destination y
-                colWidth, // Destination width
-                Math.min(stepSize, CANVAS_HEIGHT - y) // Destination height
-            );
+            // Write the pixel to the buffer (ABGR format for Uint32Array)
+            floorBuffer32[yOffset + x] = (a << 24) | (b << 16) | (g << 8) | r;
 
-            // Update floor position for next step
-            if (y + stepSize < CANVAS_HEIGHT) {
-                const dr = rowDistances[y + stepSize] - rowDistances[y];
-                floorX += dr * cosA;
-                floorY += dr * sinA;
-            }
+            // Move to the next point in world space
+            currentFloorX += floorX_step;
+            currentFloorZ += floorZ_step;
         }
     }
 
-    // Draw the entire floor buffer in one operation
-    renderEngine.drawImage(bufferCanvas, 0, 0);
+    // Draw the entire floor buffer to the canvas in one go
+    renderEngine.putImageData(floorBuffer, 0, 0);
 }
