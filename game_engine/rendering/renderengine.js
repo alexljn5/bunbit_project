@@ -11,7 +11,7 @@ import { texturesLoaded, tileTexturesMap, getDemonLaughingCurrentFrame } from ".
 import { playerUI } from "../playerdata/playerui.js";
 import { collissionGodFunction } from "../collissiondetection/collissionlogichandler.js";
 import { enemyAiGodFunction, friendlyAiGodFunction } from "../ai/aihandler.js";
-import { menuActive, setMenuActive } from "../gamestate.js";
+import { menuActive, setMenuActive, isPaused, setPaused } from "../gamestate.js";
 import { playMusicGodFunction } from "../audio/audiohandler.js";
 import { menuHandler } from "../menus/menuhandler.js";
 import { animationHandler } from "../animations/animationhandler.js";
@@ -24,6 +24,8 @@ import { mapHandler } from "../mapdata/maphandler.js";
 import { renderRaycastFloors } from "./renderfloors.js";
 import { consoleHandler } from "../console/consolehandler.js";
 import { flickeringEffect } from "../atmosphere/flickerlogic.js";
+import { keys } from "../playerdata/playerlogic.js";
+import { SCALE_X, SCALE_Y } from "../globals.js";
 
 // --- DOM Elements ---
 const domElements = {
@@ -75,6 +77,28 @@ export function mainGameRender() {
 }
 
 // Main game render loop
+function renderPauseMenu() {
+    renderEngine.save();
+    // Semi-transparent dark overlay
+    renderEngine.fillStyle = "rgba(0, 0, 0, 0.7)";
+    renderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+    // Pause menu text
+    renderEngine.fillStyle = "#fff";
+    renderEngine.font = `${32 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+    renderEngine.textAlign = "center";
+
+    // Title
+    renderEngine.fillText("PAUSED", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 3);
+
+    // Instructions
+    renderEngine.font = `${20 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+    renderEngine.fillText("Press ESC or P to resume", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+    renderEngine.fillText("Press M to return to main menu", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 40);
+
+    renderEngine.restore();
+}
+
 async function gameRenderEngine() {
     if (isRenderingFrame) return;
     isRenderingFrame = true;
@@ -83,6 +107,20 @@ async function gameRenderEngine() {
             mainGameMenu();
             isRenderingFrame = false;
             return;
+        }
+
+        // Handle pause input
+        if (keys["Escape"] || keys["p"]) {
+            setPaused(!isPaused);
+            keys["Escape"] = false;
+            keys["p"] = false;
+        }
+
+        // Handle return to menu from pause
+        if (isPaused && keys["m"]) {
+            setPaused(false);
+            setMenuActive(true);
+            keys["m"] = false;
         }
         /*
         if (introActive) {
@@ -112,15 +150,26 @@ async function gameRenderEngine() {
         drawSprites(rayData);
         eventHandler();
         if (showDebugTools) compiledDevTools();
-        playerLogic();
-        playerInventoryGodFunction();
-        itemHandlerGodFunction();
+
+        // Only update game state if not paused
+        if (!isPaused) {
+            playerLogic();
+            playerInventoryGodFunction();
+            itemHandlerGodFunction();
+            collissionGodFunction();
+            friendlyAiGodFunction();
+            enemyAiGodFunction();
+        }
+
+        // Always render UI and handle console
         playerUI();
-        collissionGodFunction();
-        friendlyAiGodFunction();
-        enemyAiGodFunction();
         playMusicGodFunction();
         consoleHandler();
+
+        // Render pause menu if paused
+        if (isPaused) {
+            renderPauseMenu();
+        }
         //flickeringEffect();
     } catch (error) {
         console.error("gameRenderEngine error:", error);
