@@ -73,6 +73,8 @@ export function renderRaycastFloors() {
     const projectionDist = (CANVAS_WIDTH * 0.5) / Math.tan(halfFOV);
 
     const invTileSectors = 1 / tileSectors;
+    const texScaleX = textureWidth / tileSectors;
+    const texScaleY = textureHeight / tileSectors;
 
     // --- Main Scanline Rendering Loop ---
     // Iterate from the horizon down to the bottom of the screen
@@ -98,19 +100,21 @@ export function renderRaycastFloors() {
         const floorX_step = (floorX_right - floorX_left) / CANVAS_WIDTH;
         const floorZ_step = (floorZ_right - floorZ_left) / CANVAS_WIDTH;
 
-        let currentFloorX = floorX_left;
-        let currentFloorZ = floorZ_left;
+        const texX_step = floorX_step * texScaleX;
+        const texY_step = floorZ_step * texScaleY;
+
+        let texX = (floorX_left % tileSectors) * texScaleX;
+        let texY = (floorZ_left % tileSectors) * texScaleY;
 
         const yOffset = y * CANVAS_WIDTH;
 
         // Iterate across the scanline
         for (let x = 0; x < CANVAS_WIDTH; x++) {
-            // Get texture coordinates by taking the fractional part of the world coordinates
-            let texX = Math.floor((currentFloorX % tileSectors) * invTileSectors * textureWidth) & (textureWidth - 1);
-            let texY = Math.floor((currentFloorZ % tileSectors) * invTileSectors * textureHeight) & (textureHeight - 1);
+            const intTexX = Math.floor(texX) & (textureWidth - 1);
+            const intTexY = Math.floor(texY) & (textureHeight - 1);
 
             // Get the pixel color from the texture data
-            const texOffset = (texY * textureWidth + texX) * 4;
+            const texOffset = (intTexY * textureWidth + intTexX) * 4;
             const r = textureData[texOffset];
             const g = textureData[texOffset + 1];
             const b = textureData[texOffset + 2];
@@ -119,9 +123,9 @@ export function renderRaycastFloors() {
             // Write the pixel to the buffer (ABGR format for Uint32Array)
             floorBuffer32[yOffset + x] = (a << 24) | (b << 16) | (g << 8) | r;
 
-            // Move to the next point in world space
-            currentFloorX += floorX_step;
-            currentFloorZ += floorZ_step;
+            // Move to the next point in texture space
+            texX += texX_step;
+            texY += texY_step;
         }
     }
 
