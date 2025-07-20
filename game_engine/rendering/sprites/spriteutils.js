@@ -5,29 +5,71 @@ import { numCastRays, playerFOV } from "../raycasting.js"
 import { tileSectors } from "../../mapdata/maps.js";
 
 export function isSpriteVisible(rayData, startColumn, endColumn, correctedDistance, spriteName = 'unknown') {
-    startColumn = Math.max(0, Math.min(numCastRays - 1, Math.floor(startColumn)));
-    endColumn = Math.max(0, Math.min(numCastRays - 1, Math.ceil(endColumn)));
-    if (correctedDistance <= 0) return { visible: false, visibleStartCol: startColumn, visibleEndCol: startColumn };
+    // Ensure integer column values and proper bounds
+    startColumn = Math.max(0, Math.min(numCastRays - 1, Math.round(startColumn)));
+    endColumn = Math.max(0, Math.min(numCastRays - 1, Math.round(endColumn)));
+
+    if (correctedDistance <= 0.1) return { visible: false, visibleStartCol: startColumn, visibleEndCol: startColumn };
+
     let visibleStartCol = -1;
     let visibleEndCol = -1;
+    let visibleSegments = [];
+
     for (let col = startColumn; col <= endColumn; col++) {
         const ray = rayData[col];
-        if (!ray || correctedDistance < ray.distance) {
+        // Add small epsilon to handle floating point precision
+        if (!ray || correctedDistance < ray.distance + 0.01) {
             if (visibleStartCol === -1) visibleStartCol = col;
             visibleEndCol = col;
+        } else if (visibleStartCol !== -1) {
+            // Store the visible segment and reset
+            visibleSegments.push({ start: visibleStartCol, end: visibleEndCol });
+            visibleStartCol = -1;
+            visibleEndCol = -1;
         }
     }
-    const visible = visibleStartCol !== -1 && visibleEndCol !== -1;
-    return { visible, visibleStartCol, visibleEndCol };
+    // If we have an active segment at the end, add it
+    if (visibleStartCol !== -1) {
+        visibleSegments.push({ start: visibleStartCol, end: visibleEndCol });
+    }
+
+    // If we have visible segments, use the largest one
+    if (visibleSegments.length > 0) {
+        let largestSegment = visibleSegments[0];
+        for (let i = 1; i < visibleSegments.length; i++) {
+            const segment = visibleSegments[i];
+            if (segment.end - segment.start > largestSegment.end - largestSegment.start) {
+                largestSegment = segment;
+            }
+        }
+        return {
+            visible: true,
+            visibleStartCol: largestSegment.start,
+            visibleEndCol: largestSegment.end
+        };
+    }
+
+    return { visible: false, visibleStartCol: startColumn, visibleEndCol: startColumn };
 }
 
 export function getSpriteScreenParams(relativeAngle, spriteWidth) {
     while (relativeAngle > Math.PI) relativeAngle -= 2 * Math.PI;
     while (relativeAngle < -Math.PI) relativeAngle += 2 * Math.PI;
-    const screenX = (CANVAS_WIDTH / 2) + (CANVAS_WIDTH / 2) * (relativeAngle / (playerFOV / 2));
-    const adjustedScreenX = screenX - playerVantagePointX.playerVantagePointX;
-    const startColumn = (adjustedScreenX - spriteWidth / 2) / (CANVAS_WIDTH / numCastRays);
-    const endColumn = (adjustedScreenX + spriteWidth / 2) / (CANVAS_WIDTH / numCastRays);
+    // Ensure relative angle is normalized
+    while (relativeAngle > Math.PI) relativeAngle -= 2 * Math.PI;
+    while (relativeAngle < -Math.PI) relativeAngle += 2 * Math.PI;
+
+    // Calculate screen position with more precise angle handling
+    const halfFOV = playerFOV / 2;
+    const screenX = (CANVAS_WIDTH / 2) * (1 + relativeAngle / halfFOV);
+    const adjustedScreenX = Math.round(screenX - playerVantagePointX.playerVantagePointX);
+
+    // Calculate columns with proper rounding
+    const colWidth = CANVAS_WIDTH / numCastRays;
+    const halfSpriteWidth = spriteWidth / 2;
+    const startColumn = Math.floor((adjustedScreenX - halfSpriteWidth) / colWidth);
+    const endColumn = Math.ceil((adjustedScreenX + halfSpriteWidth) / colWidth);
+
     return { adjustedScreenX, startColumn, endColumn };
 }
 
