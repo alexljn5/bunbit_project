@@ -57,7 +57,16 @@ export function casperLesserDemon() {
     const distance = Math.sqrt(dx * dx + dz * dz);
 
     const now = performance.now();
-    if (distance < hitRadius && now - lastHitTime > hitCooldown) { /* ...existing code... */ }
+    if (distance < hitRadius && now - lastHitTime > hitCooldown) {
+        // Deal damage to player
+        playerHealth.playerHealth = Math.max(0, playerHealth.playerHealth - damagePerSecond);
+        lastHitTime = now;
+
+        // Check if player died
+        if (playerHealth.playerHealth <= 0) {
+            casperLesserDemonDeathScreen();
+        }
+    }
 
     // Use current map grid from mapHandler
     const currentMap = mapHandler.getFullMap();
