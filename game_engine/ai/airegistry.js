@@ -6,24 +6,30 @@ import { playerPosition } from "../playerdata/playerlogic.js";
 
 
 //airegistry.js
-export let placeholderAIHealth = { value: 100 };
+export const placeholderAIHealths = new Map();
+
+export function initPlaceholderAIHealth(spriteId) {
+    placeholderAIHealths.set(spriteId, { value: 100 });
+}
 
 export function placeholderAIHealthBar() {
-    const sprite = spriteManager.getSprite("placeholderAI");
-    if (!sprite?.worldPos || placeholderAIHealth.value <= 0) return;
-    drawAIHealthBar(
-        sprite.worldPos.x,
-        sprite.worldPos.z,
-        placeholderAIHealth.value,
-        {
-            renderEngine,
-            CANVAS_WIDTH,
-            CANVAS_HEIGHT,
-            SCALE_X,
-            SCALE_Y,
-            playerPosition,
-        }
-    );
+    placeholderAIHealths.forEach((health, spriteId) => {
+        const sprite = spriteManager.getSprite(spriteId);
+        if (!sprite?.worldPos || health.value <= 0) return;
+        drawAIHealthBar(
+            sprite.worldPos.x,
+            sprite.worldPos.z,
+            health.value,
+            {
+                renderEngine,
+                CANVAS_WIDTH,
+                CANVAS_HEIGHT,
+                SCALE_X,
+                SCALE_Y,
+                playerPosition,
+            }
+        );
+    });
 }
 
 export function handleSpriteDeath(spriteId) {

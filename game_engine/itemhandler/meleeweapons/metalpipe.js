@@ -5,7 +5,7 @@ import { tileSectors } from "../../mapdata/maps.js";
 import { isOccludedByWall } from "../../ai/aihandler.js";
 import { spriteManager } from "../../rendering/sprites/rendersprites.js";
 import { playMetalSwingSound } from "../../audio/soundhandler.js";
-import { placeholderAIHealth } from "../../ai/airegistry.js";
+import { placeholderAIHealths } from "../../ai/airegistry.js";
 
 let lastAttackTime = 0; // Cooldown tracker
 const attackCooldown = 200; // 2 seconds between attacks

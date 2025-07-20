@@ -1,6 +1,7 @@
 import { Sprite, LAYERS, spriteManager } from "./rendersprites.js";
 import { playerInventory, inventoryState } from "../../playerdata/playerinventory.js";
 import { map_debug } from "../../mapdata/map_debug.js";
+import { initPlaceholderAIHealth } from "../../ai/airegistry.js";
 import {
     playerHandSprite, handLoaded,
     pillar01Sprite, pillar01Loaded,
@@ -278,34 +279,52 @@ export function registerSprites() {
         map_02: { worldPos: { x: 3.5 * tileSectors, z: 12.0 * tileSectors } }
     });
 
-    const placeholderAI = new Sprite({
-        id: 'placeholderAI',
-        image: placeholderAiSprite,
-        worldPos: null,
-        isLoaded: placeholderAiSpriteLoaded,
-        layer: LAYERS.MIDGROUND,
-        baseWidthRatio: 128 / REF_CANVAS_WIDTH,
-        baseHeightRatio: 80 / REF_CANVAS_HEIGHT,
-        aspectRatio: 128 / 80,
-        baseYRatio: 400 / REF_CANVAS_HEIGHT,
-        scaleFactor: 0.5,
-        renderFunction: (rayData, renderEngine) => {
-            if (!placeholderAiSpriteLoaded) return null;
-            return renderSprite({
-                sprite: placeholderAiSprite,
-                isLoaded: placeholderAiSpriteLoaded,
-                worldPos: spriteManager.getSprite("placeholderAI")?.worldPos,
-                rayData,
-                baseWidthRatio: 128 / REF_CANVAS_WIDTH,
-                baseHeightRatio: 80 / REF_CANVAS_HEIGHT,
-                aspectRatio: 128 / 80,
-                baseYRatio: 400 / REF_CANVAS_HEIGHT,
-                scaleFactor: 0.5,
-                spriteId: 'placeholderAI'
-            });
+    // Create multiple placeholder AIs for the debug map
+    const placeholderAIPositions = [
+        { x: 2.5, z: 2.5 },
+        { x: 13.5, z: 2.5 },
+        { x: 2.5, z: 13.5 }
+    ];
+
+    placeholderAIPositions.forEach((pos, index) => {
+        const placeholderId = `placeholderAI_${index}`;
+        const placeholderAI = new Sprite({
+            id: placeholderId,
+            image: placeholderAiSprite,
+            worldPos: null,
+            isLoaded: placeholderAiSpriteLoaded,
+            layer: LAYERS.MIDGROUND,
+            baseWidthRatio: 128 / REF_CANVAS_WIDTH,
+            baseHeightRatio: 80 / REF_CANVAS_HEIGHT,
+            aspectRatio: 128 / 80,
+            baseYRatio: 400 / REF_CANVAS_HEIGHT,
+            scaleFactor: 0.5,
+            renderFunction: (rayData, renderEngine) => {
+                if (!placeholderAiSpriteLoaded) return null;
+                return renderSprite({
+                    sprite: placeholderAiSprite,
+                    isLoaded: placeholderAiSpriteLoaded,
+                    worldPos: spriteManager.getSprite(placeholderId)?.worldPos,
+                    rayData,
+                    baseWidthRatio: 128 / REF_CANVAS_WIDTH,
+                    baseHeightRatio: 80 / REF_CANVAS_HEIGHT,
+                    aspectRatio: 128 / 80,
+                    baseYRatio: 400 / REF_CANVAS_HEIGHT,
+                    scaleFactor: 0.5,
+                    spriteId: placeholderId
+                });
+            }
+        });
+
+        const worldPos = {
+            map_debug: { worldPos: { x: pos.x * tileSectors, z: pos.z * tileSectors } }
+        };
+
+        if (index === 0) {
+            worldPos.map_01 = { worldPos: { x: 2.5 * tileSectors, z: 11.3 * tileSectors } };
         }
-    });
-    spriteManager.addSpriteForMaps(placeholderAI, ["map_01"], {
-        map_01: { worldPos: { x: 2.5 * tileSectors, z: 11.3 * tileSectors } }
+
+        spriteManager.addSpriteForMaps(placeholderAI, Object.keys(worldPos), worldPos);
+        initPlaceholderAIHealth(placeholderId);
     });
 }

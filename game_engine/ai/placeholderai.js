@@ -4,57 +4,65 @@ import { tileSectors } from "../mapdata/maps.js";
 import { isOccludedByWall } from "./aihandler.js";
 import { renderEngine } from "../rendering/renderengine.js";
 import { playerInventory } from "../playerdata/playerinventory.js";
-import { placeholderAIHealth, placeholderAIHealthBar } from "./airegistry.js";
+import { placeholderAIHealths, placeholderAIHealthBar } from "./airegistry.js";
 import { mapHandler } from "../mapdata/maphandler.js";
 
 // Placeholder AI logic with health bar and damage handling
-export let placeholderAIPreviousPos = null;
-export let lastKnownPlayerPos = null;
-export let canSeePlayer = true;
-export let isPeeking = false;
-export let peekStartTime = 0;
-let placeholderAISpriteWorldPos = null;
+// Store state for each AI instance
+const aiStates = new Map();
+
+function getAIState(spriteId) {
+    if (!aiStates.has(spriteId)) {
+        aiStates.set(spriteId, {
+            previousPos: null,
+            lastKnownPlayerPos: null,
+            canSeePlayer: true,
+            isPeeking: false,
+            peekStartTime: 0,
+            spriteWorldPos: null,
+            lastHitTime: 0,
+            lastPlayerAttackTime: 0
+        });
+    }
+    return aiStates.get(spriteId);
+}
+
+// Constants shared by all AIs
 const damagePerSecond = 100;
 const hitCooldown = 1000;
 const hitRadius = 20;
 const gunDamage = 20;
 const meleeDamage = 10;
 const meleeRange = 30;
-let lastHitTime = 0;
-let lastPlayerAttackTime = 0;
 const attackCooldown = 500;
 
-export function setCanSeePlayer(value) {
-    canSeePlayer = value;
-}
-
-export function setIsPeeking(value) {
-    isPeeking = value;
-}
-
-export function setPeekStartTime(value) {
-    peekStartTime = value;
-}
-
 export function placeholderAIGodFunction() {
-    if (placeholderAIHealth.value > 0) {
-        placeholderAI();
-    }
+    // Handle each AI instance
+    const regex = /^placeholderAI_\d+$/;
+    spriteManager.sprites.forEach((sprite, spriteId) => {
+        if (regex.test(spriteId)) {
+            const health = placeholderAIHealths.get(spriteId);
+            if (health && health.value > 0) {
+                placeholderAI(spriteId);
+            }
+        }
+    });
 }
 
-export function placeholderAI() {
-    const placeholderSprite = spriteManager.getSprite("placeholderAI");
+export function placeholderAI(spriteId) {
+    const placeholderSprite = spriteManager.getSprite(spriteId);
     if (!placeholderSprite) {
-        console.log("Placeholder AI sprite not found!");
+        console.log(`Placeholder AI sprite ${spriteId} not found!`);
         return;
     }
+    const aiState = getAIState(spriteId);
 
     // Always use the sprite's current worldPos for this map
     if (!placeholderSprite.worldPos) {
         console.log("Placeholder AI sprite missing worldPos!");
         return;
     }
-    placeholderAISpriteWorldPos = placeholderSprite.worldPos;
+    aiState.spriteWorldPos = placeholderSprite.worldPos;
 
     // Draw the health bar
     placeholderAIHealthBar();
@@ -66,14 +74,14 @@ export function placeholderAI() {
     const peekDistance = 50;
     const peekDelay = 2000;
 
-    const dx = playerPosition.x - placeholderAISpriteWorldPos.x;
-    const dz = playerPosition.z - placeholderAISpriteWorldPos.z;
+    const dx = playerPosition.x - aiState.spriteWorldPos.x;
+    const dz = playerPosition.z - aiState.spriteWorldPos.z;
     const distance = Math.sqrt(dx * dx + dz * dz);
 
     const now = performance.now();
-    if (distance < hitRadius && now - lastHitTime > hitCooldown) {
+    if (distance < hitRadius && now - aiState.lastHitTime > hitCooldown) {
         playerHealth.playerHealth = Math.max(0, playerHealth.playerHealth - damagePerSecond);
-        lastHitTime = now;
+        aiState.lastHitTime = now;
         console.log(`Placeholder AI hit player! Player Health: ${playerHealth.playerHealth}`);
     }
 
@@ -84,8 +92,8 @@ export function placeholderAI() {
     }
 
     const isOccluded = isOccludedByWall(
-        placeholderAISpriteWorldPos.x,
-        placeholderAISpriteWorldPos.z,
+        aiState.spriteWorldPos.x,
+        aiState.spriteWorldPos.z,
         playerPosition.x,
         playerPosition.z,
         currentMap,
@@ -99,15 +107,15 @@ export function placeholderAI() {
 
     for (let i = 0; i <= steps; i++) {
         const t = i / steps;
-        const checkX = placeholderAISpriteWorldPos.x + t * dx;
-        const checkZ = placeholderAISpriteWorldPos.z + t * dz;
+        const checkX = aiState.spriteWorldPos.x + t * dx;
+        const checkZ = aiState.spriteWorldPos.z + t * dz;
         const cellX = Math.floor(checkX / tileSectors);
         const cellZ = Math.floor(checkZ / tileSectors);
         if (cellX >= 0 && cellX < currentMap[0].length && cellZ >= 0 && cellZ < currentMap.length) {
             if (currentMap[cellZ][cellX].type === "wall") {
                 const wallDist = Math.sqrt(
-                    (checkX - placeholderAISpriteWorldPos.x) ** 2 +
-                    (checkZ - placeholderAISpriteWorldPos.z) ** 2
+                    (checkX - aiState.spriteWorldPos.x) ** 2 +
+                    (checkZ - aiState.spriteWorldPos.z) ** 2
                 );
                 if (wallDist < nearestWallDistance) {
                     nearestWallDistance = wallDist;
@@ -119,33 +127,33 @@ export function placeholderAI() {
     }
 
     if (!isOccluded && distance < visionRange) {
-        lastKnownPlayerPos = { x: playerPosition.x, z: playerPosition.z };
-        canSeePlayer = true;
+        aiState.lastKnownPlayerPos = { x: playerPosition.x, z: playerPosition.z };
+        aiState.canSeePlayer = true;
     } else {
-        canSeePlayer = false;
+        aiState.canSeePlayer = false;
     }
 
-    const targetX = canSeePlayer ? playerPosition.x : (lastKnownPlayerPos?.x || placeholderAISpriteWorldPos.x);
-    const targetZ = canSeePlayer ? playerPosition.z : (lastKnownPlayerPos?.z || placeholderAISpriteWorldPos.z);
-    const targetDx = targetX - placeholderAISpriteWorldPos.x;
-    const targetDz = targetZ - placeholderAISpriteWorldPos.z;
+    const targetX = aiState.canSeePlayer ? playerPosition.x : (aiState.lastKnownPlayerPos?.x || aiState.spriteWorldPos.x);
+    const targetZ = aiState.canSeePlayer ? playerPosition.z : (aiState.lastKnownPlayerPos?.z || aiState.spriteWorldPos.z);
+    const targetDx = targetX - aiState.spriteWorldPos.x;
+    const targetDz = targetZ - aiState.spriteWorldPos.z;
     const targetDistance = Math.sqrt(targetDx * targetDx + targetDz * targetDz);
 
-    if (isHalfwayBehindWall && !canSeePlayer && targetDistance > hitRadius) {
-        if (!isPeeking) {
-            isPeeking = true;
-            peekStartTime = performance.now();
+    if (isHalfwayBehindWall && !aiState.canSeePlayer && targetDistance > hitRadius) {
+        if (!aiState.isPeeking) {
+            aiState.isPeeking = true;
+            aiState.peekStartTime = performance.now();
         }
-        const elapsedPeekTime = performance.now() - peekStartTime;
+        const elapsedPeekTime = performance.now() - aiState.peekStartTime;
         if (elapsedPeekTime < peekDelay) {
             return;
         } else {
-            isPeeking = false;
-            peekStartTime = 0;
+            aiState.isPeeking = false;
+            aiState.peekStartTime = 0;
         }
     } else {
-        isPeeking = false;
-        peekStartTime = 0;
+        aiState.isPeeking = false;
+        aiState.peekStartTime = 0;
     }
 
     if (targetDistance < 10) {
@@ -159,8 +167,8 @@ export function placeholderAI() {
     const randomDirX = Math.cos(randomAngle) * dirX - Math.sin(randomAngle) * dirZ;
     const randomDirZ = Math.sin(randomAngle) * dirX + Math.cos(randomAngle) * dirZ;
 
-    let newX = placeholderAISpriteWorldPos.x + randomDirX * enemySpeed;
-    let newZ = placeholderAISpriteWorldPos.z + randomDirZ * enemySpeed;
+    let newX = aiState.spriteWorldPos.x + randomDirX * enemySpeed;
+    let newZ = aiState.spriteWorldPos.z + randomDirZ * enemySpeed;
 
     const mapWidth = currentMap[0].length;
     const mapHeight = currentMap.length;
@@ -182,18 +190,18 @@ export function placeholderAI() {
                     const tileTop = z * tileSectors;
                     const tileBottom = (z + 1) * tileSectors;
 
-                    if (newX + enemyRadius > tileLeft && (placeholderAIPreviousPos?.x ?? newX) + enemyRadius <= tileLeft) {
+                    if (newX + enemyRadius > tileLeft && (aiState.previousPos?.x ?? newX) + enemyRadius <= tileLeft) {
                         newX = tileLeft - enemyRadius - buffer;
                         collisionX = true;
-                    } else if (newX - enemyRadius < tileRight && (placeholderAIPreviousPos?.x ?? newX) - enemyRadius >= tileRight) {
+                    } else if (newX - enemyRadius < tileRight && (aiState.previousPos?.x ?? newX) - enemyRadius >= tileRight) {
                         newX = tileRight + enemyRadius + buffer;
                         collisionX = true;
                     }
 
-                    if (newZ + enemyRadius > tileTop && (placeholderAIPreviousPos?.z ?? newZ) + enemyRadius <= tileTop) {
+                    if (newZ + enemyRadius > tileTop && (aiState.previousPos?.z ?? newZ) + enemyRadius <= tileTop) {
                         newZ = tileTop - enemyRadius - buffer;
                         collisionZ = true;
-                    } else if (newZ - enemyRadius < tileBottom && (placeholderAIPreviousPos?.z ?? newZ) - enemyRadius >= tileBottom) {
+                    } else if (newZ - enemyRadius < tileBottom && (aiState.previousPos?.z ?? newZ) - enemyRadius >= tileBottom) {
                         newZ = tileBottom + enemyRadius + buffer;
                         collisionZ = true;
                     }
@@ -203,23 +211,23 @@ export function placeholderAI() {
     }
 
     if (!collisionX) {
-        placeholderAISpriteWorldPos.x = newX;
+        aiState.spriteWorldPos.x = newX;
     }
 
     if (!collisionZ) {
-        placeholderAISpriteWorldPos.z = newZ;
+        aiState.spriteWorldPos.z = newZ;
     }
 
-    placeholderSprite.worldPos.x = placeholderAISpriteWorldPos.x;
-    placeholderSprite.worldPos.z = placeholderAISpriteWorldPos.z;
+    placeholderSprite.worldPos.x = aiState.spriteWorldPos.x;
+    placeholderSprite.worldPos.z = aiState.spriteWorldPos.z;
 
-    placeholderAIPreviousPos = { x: placeholderAISpriteWorldPos.x, z: placeholderAISpriteWorldPos.z };
+    aiState.previousPos = { x: aiState.spriteWorldPos.x, z: aiState.spriteWorldPos.z };
 
     const maxXBound = mapWidth * tileSectors - enemyRadius;
     const maxZBound = mapHeight * tileSectors - enemyRadius;
-    placeholderAISpriteWorldPos.x = Math.max(enemyRadius, Math.min(maxXBound, placeholderAISpriteWorldPos.x));
-    placeholderAISpriteWorldPos.z = Math.max(enemyRadius, Math.min(maxZBound, placeholderAISpriteWorldPos.z));
+    aiState.spriteWorldPos.x = Math.max(enemyRadius, Math.min(maxXBound, aiState.spriteWorldPos.x));
+    aiState.spriteWorldPos.z = Math.max(enemyRadius, Math.min(maxZBound, aiState.spriteWorldPos.z));
 
-    placeholderSprite.worldPos.x = placeholderAISpriteWorldPos.x;
-    placeholderSprite.worldPos.z = placeholderAISpriteWorldPos.z;
+    placeholderSprite.worldPos.x = aiState.spriteWorldPos.x;
+    placeholderSprite.worldPos.z = aiState.spriteWorldPos.z;
 }

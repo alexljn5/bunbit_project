@@ -1,7 +1,7 @@
 import { inventoryState, playerInventory } from "../../playerdata/playerinventory.js";
 import { spriteManager } from "../../rendering/sprites/rendersprites.js";
 import { playerPosition } from "../../playerdata/playerlogic.js";
-import { placeholderAIHealth, handleSpriteDeath } from "../../ai/airegistry.js";
+import { placeholderAIHealths, handleSpriteDeath } from "../../ai/airegistry.js";
 import { isOccludedByWall } from "../../ai/aihandler.js";
 import { mapHandler } from "../../mapdata/maphandler.js";
 import { tileSectors } from "../../mapdata/maps.js";
@@ -24,62 +24,93 @@ export function setGenericGunAmmo(value) {
 }
 
 export function checkEnemyHitbox() {
-    // For now, we only have one enemy type to check against: placeholderAI
-    const sprite = spriteManager.getSprite("placeholderAI");
-    if (!sprite?.worldPos) {
+    // Check all placeholder AIs
+    const enemies = [];
+    const regex = /^placeholderAI_\d+$/;
+
+    spriteManager.sprites.forEach((sprite, spriteId) => {
+        if (regex.test(spriteId) && sprite?.worldPos) {
+            const health = placeholderAIHealths.get(spriteId);
+            if (health && health.value > 0) {
+                enemies.push({
+                    id: spriteId,
+                    worldPos: sprite.worldPos,
+                    health: health,
+                    aspectRatio: 128 / 80, // Match sprite properties
+                    scaleFactor: 0.5
+                });
+            }
+        }
+    });
+
+    if (enemies.length === 0) {
         return;
     }
 
-    const enemy = {
-        id: "placeholderAI",
-        worldPos: sprite.worldPos,
-        health: placeholderAIHealth,
-        aspectRatio: 128 / 80, // Match sprite properties
-        scaleFactor: 0.5
-    };
+    // Find the closest enemy in view
+    let closestEnemy = null;
+    let closestDistance = Infinity;
 
-    const dx = enemy.worldPos.x - playerPosition.x;
-    const dz = enemy.worldPos.z - playerPosition.z;
-    const distance = Math.sqrt(dx * dx + dz * dz);
+    for (const enemy of enemies) {
 
-    // 1. Check if the enemy is within the gun's range
-    if (distance > genericGunRange.value) {
-        return;
+        const dx = enemy.worldPos.x - playerPosition.x;
+        const dz = enemy.worldPos.z - playerPosition.z;
+        const distance = Math.sqrt(dx * dx + dz * dz);
+
+        // 1. Check if the enemy is within the gun's range
+        if (distance > genericGunRange.value) {
+            continue;
+        }
+
+        // 2. Perform a more accurate screen-space hitbox check
+        const angleToEnemy = Math.atan2(dz, dx);
+        let relativeAngle = angleToEnemy - playerPosition.angle;
+
+        // Normalize angle to be within player's FOV
+        while (relativeAngle > Math.PI) relativeAngle -= 2 * Math.PI;
+        while (relativeAngle < -Math.PI) relativeAngle += 2 * Math.PI;
+
+        // Quick check to see if the enemy is outside the player's field of view
+        if (Math.abs(relativeAngle) > playerFOV / 2) {
+            continue;
+        }
+
+        const correctedDistance = distance * Math.cos(relativeAngle);
+        if (correctedDistance <= 0.1) continue; // Enemy is behind the player
+
+        // Calculate the sprite's dimensions and position on the screen
+        const spriteHeight = (CANVAS_HEIGHT / correctedDistance) * tileSectors * enemy.scaleFactor;
+        const spriteWidth = spriteHeight * enemy.aspectRatio;
+        const { adjustedScreenX } = getSpriteScreenParams(relativeAngle, spriteWidth);
+
+        // Check if the crosshair (center of the screen) is over the sprite
+        const crosshairX = CANVAS_WIDTH / 2;
+        const spriteLeft = adjustedScreenX - spriteWidth / 2;
+        const spriteRight = adjustedScreenX + spriteWidth / 2;
+
+        if (crosshairX < spriteLeft || crosshairX > spriteRight) {
+            continue;
+        }
+
+        // 3. Check for wall occlusion
+        const map = mapHandler.getFullMap();
+        if (isOccludedByWall(playerPosition.x, playerPosition.z, enemy.worldPos.x, enemy.worldPos.z, map, tileSectors)) {
+            continue;
+        }
+
+        if (distance < closestDistance) {
+            closestDistance = distance;
+            closestEnemy = enemy;
+        }
     }
 
-    // 2. Perform a more accurate screen-space hitbox check
-    const angleToEnemy = Math.atan2(dz, dx);
-    let relativeAngle = angleToEnemy - playerPosition.angle;
+    if (closestEnemy) {
+        closestEnemy.health.value -= genericGunDamage.value;
+        console.log(`Hit ${closestEnemy.id}! Health: ${closestEnemy.health.value}`);
 
-    // Normalize angle to be within player's FOV
-    while (relativeAngle > Math.PI) relativeAngle -= 2 * Math.PI;
-    while (relativeAngle < -Math.PI) relativeAngle += 2 * Math.PI;
-
-    // Quick check to see if the enemy is outside the player's field of view
-    if (Math.abs(relativeAngle) > playerFOV / 2) {
-        return;
-    }
-
-    const correctedDistance = distance * Math.cos(relativeAngle);
-    if (correctedDistance <= 0.1) return; // Enemy is behind the player
-
-    // Calculate the sprite's dimensions and position on the screen
-    const spriteHeight = (CANVAS_HEIGHT / correctedDistance) * tileSectors * enemy.scaleFactor;
-    const spriteWidth = spriteHeight * enemy.aspectRatio;
-    const { adjustedScreenX } = getSpriteScreenParams(relativeAngle, spriteWidth);
-
-    // Check if the crosshair (center of the screen) is over the sprite
-    const crosshairX = CANVAS_WIDTH / 2;
-    const spriteLeft = adjustedScreenX - spriteWidth / 2;
-    const spriteRight = adjustedScreenX + spriteWidth / 2;
-
-    if (crosshairX < spriteLeft || crosshairX > spriteRight) {
-        return; // We are not aiming at the sprite
-    }
-
-    // 3. Check for wall occlusion
-    const map = mapHandler.getFullMap();
-    if (isOccludedByWall(playerPosition.x, playerPosition.z, enemy.worldPos.x, enemy.worldPos.z, map, tileSectors)) {
+        if (closestEnemy.health.value <= 0) {
+            handleSpriteDeath(closestEnemy.id);
+        }
         console.log("Shot occluded by wall.");
         return;
     }
