@@ -59,11 +59,11 @@ function updateTexture(texture) {
 }
 
 export function renderRaycastFloors() {
-    return new Promise(resolve => {
+    return new Promise(async resolve => {
         resolveRenderPromise = resolve;
 
         if (!isInitialized || CANVAS_WIDTH !== lastCanvasWidth || CANVAS_HEIGHT !== lastCanvasHeight) {
-            initializeWorker();
+            await initializeWorker();
         }
 
         const mapKey = mapHandler.activeMapKey || "map_01";
