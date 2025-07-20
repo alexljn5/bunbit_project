@@ -13,6 +13,8 @@ let lastCanvasHeight = 0;
 let floorBuffer;
 let floorBuffer32;
 let textureData;
+let floorCanvas;
+let floorCtx;
 let textureWidth = 0;
 let textureHeight = 0;
 let lastTextureKey = "";
@@ -45,7 +47,11 @@ export function renderRaycastFloors() {
 
     // --- Update buffers if resolution or texture changes ---
     if (CANVAS_WIDTH !== lastCanvasWidth || CANVAS_HEIGHT !== lastCanvasHeight) {
-        floorBuffer = renderEngine.createImageData(CANVAS_WIDTH, CANVAS_HEIGHT);
+        floorCanvas = document.createElement('canvas');
+        floorCanvas.width = CANVAS_WIDTH;
+        floorCanvas.height = CANVAS_HEIGHT;
+        floorCtx = floorCanvas.getContext('2d');
+        floorBuffer = floorCtx.createImageData(CANVAS_WIDTH, CANVAS_HEIGHT);
         floorBuffer32 = new Uint32Array(floorBuffer.data.buffer);
         lastCanvasWidth = CANVAS_WIDTH;
         lastCanvasHeight = CANVAS_HEIGHT;
@@ -120,5 +126,6 @@ export function renderRaycastFloors() {
     }
 
     // Draw the entire floor buffer to the canvas in one go
-    renderEngine.putImageData(floorBuffer, 0, 0);
+    floorCtx.putImageData(floorBuffer, 0, 0);
+    renderEngine.drawImage(floorCanvas, 0, 0);
 }

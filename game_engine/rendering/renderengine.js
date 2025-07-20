@@ -107,8 +107,8 @@ async function gameRenderEngine() {
             return;
         }
         drawBackground();
-        await renderRaycastFloors();
-        await renderRaycastWalls(rayData);
+        renderRaycastFloors();
+        renderRaycastWalls(rayData);
         decorationHandlerGodFunction();
         drawSprites(rayData);
         eventHandler();
