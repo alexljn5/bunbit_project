@@ -1,5 +1,5 @@
 import { inventoryState, playerInventory } from "../../playerdata/playerinventory.js";
-import { placeholderAISpriteWorldPos } from "../../rendering/sprites/rendersprites.js";
+import { spriteManager } from "../../rendering/sprites/rendersprites.js";
 import { playerPosition } from "../../playerdata/playerlogic.js";
 import { placeholderAIHealth, handleSpriteDeath } from "../../ai/airegistry.js";
 import { isOccludedByWall } from "../../ai/aihandler.js";
@@ -25,17 +25,18 @@ export function setGenericGunAmmo(value) {
 
 export function checkEnemyHitbox() {
     // For now, we only have one enemy type to check against: placeholderAI
+    const sprite = spriteManager.getSprite("placeholderAI");
+    if (!sprite?.worldPos) {
+        return;
+    }
+
     const enemy = {
         id: "placeholderAI",
-        worldPos: placeholderAISpriteWorldPos,
+        worldPos: sprite.worldPos,
         health: placeholderAIHealth,
         aspectRatio: 128 / 80, // Match sprite properties
         scaleFactor: 0.5
     };
-
-    if (!enemy.worldPos) {
-        return;
-    }
 
     const dx = enemy.worldPos.x - playerPosition.x;
     const dz = enemy.worldPos.z - playerPosition.z;

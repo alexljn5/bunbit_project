@@ -68,7 +68,7 @@ export function nineMMAmmoCollission() {
 
     if (distance <= pickupDistance) {
         console.log("Picking up 9mm ammo on", spriteManager.currentMapKey);
-        setGenericGunAmmo(genericGunAmmo + 5);
+        setGenericGunAmmo(genericGunAmmo.current + 5);
         spriteState.isNineMmAmmoCollected = true;
     }
 }

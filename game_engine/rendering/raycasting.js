@@ -14,9 +14,11 @@ if (/Mobi|Android/i.test(navigator.userAgent) || navigator.hardwareConcurrency <
     numCastRays = 240; // Reduce for low-end devices
 }
 
+
 // --- OPTIMIZED RAYCASTING WORKER MANAGEMENT ---
 const NUM_WORKERS = Math.min(navigator.hardwareConcurrency || 4, 4);
-const workers = Array.from({ length: NUM_WORKERS }, () => new Worker("/game_engine/rendering/renderworkers/raycastworker.js", { type: "module" }));
+const workerUrl = new URL("./renderworkers/raycastworker.js", import.meta.url);
+const workers = Array.from({ length: NUM_WORKERS }, () => new Worker(workerUrl, { type: "module" }));
 const workerPendingFrames = new Map();
 let workersInitialized = false;
 let currentFrameId = 0;

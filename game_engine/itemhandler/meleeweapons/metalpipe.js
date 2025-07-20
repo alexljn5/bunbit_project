@@ -3,7 +3,7 @@ import { keys, playerPosition } from "../../playerdata/playerlogic.js";
 import { map_01 } from "../../mapdata/map_01.js";
 import { tileSectors } from "../../mapdata/maps.js";
 import { isOccludedByWall } from "../../ai/aihandler.js";
-import { placeholderAISpriteWorldPos } from "../../rendering/sprites/rendersprites.js";
+import { spriteManager } from "../../rendering/sprites/rendersprites.js";
 import { playMetalSwingSound } from "../../audio/soundhandler.js";
 import { placeholderAIHealth } from "../../ai/airegistry.js";
 
@@ -22,9 +22,13 @@ export function metalPipeHandler() {
     playMetalSwingSound();
     lastAttackTime = now;
     // Check for nearby enemies (e.g., placeholderAI)
-    //const dx = playerPosition.x - placeholderAISpriteWorldPos.x;
-    //const dz = playerPosition.z - placeholderAISpriteWorldPos.z;
-    //const distance = Math.sqrt(dx * dx + dz * dz);
+    const sprite = spriteManager.getSprite("placeholderAI");
+    if (sprite?.worldPos) {
+        const dx = playerPosition.x - sprite.worldPos.x;
+        const dz = playerPosition.z - sprite.worldPos.z;
+        const distance = Math.sqrt(dx * dx + dz * dz);
+        // Add melee hit detection logic here
+    }
 
     keys[" "] = false; // Reset space key to prevent continuous firing
 }

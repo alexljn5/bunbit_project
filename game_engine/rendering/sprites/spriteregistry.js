@@ -20,15 +20,6 @@ import {
 import { SCALE_X, SCALE_Y, CANVAS_HEIGHT, CANVAS_WIDTH, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT } from "../../globals.js";
 import { playerPosition, playerVantagePointY, getPlayerBobbingOffset } from "../../playerdata/playerlogic.js";
 import { playerFOV } from "../raycasting.js";
-import {
-    pillar01SpriteWorldPos,
-    corpse1WorldPos,
-    metalPipeWorldPos,
-    nineMMAmmoSpriteWorldPos,
-    boyKisserEnemySpriteWorldPos,
-    casperLesserDemonSpriteWorldPos,
-    placeholderAISpriteWorldPos
-} from "./rendersprites.js";
 import { getSpriteScreenParams } from "./spriteutils.js";
 import { renderSprite } from "./spriteutils.js";
 import { tileSectors } from "../../mapdata/maps.js";
@@ -65,7 +56,7 @@ export function registerSprites() {
     const pillar01 = new Sprite({
         id: 'pillar01',
         image: pillar01Sprite,
-        worldPos: pillar01SpriteWorldPos,
+        worldPos: { x: 2.5 * tileSectors, z: 6 * tileSectors },
         isLoaded: pillar01Loaded,
         layer: LAYERS.BACKGROUND,
         baseWidthRatio: 128 / REF_CANVAS_WIDTH,
@@ -82,7 +73,7 @@ export function registerSprites() {
     const corpse1 = new Sprite({
         id: 'corpse1',
         image: corpse1Sprite,
-        worldPos: corpse1WorldPos,
+        worldPos: { x: 1.3 * tileSectors, z: 11.7 * tileSectors },
         isLoaded: corpse1Loaded,
         layer: LAYERS.BACKGROUND,
         baseWidthRatio: 128 / REF_CANVAS_WIDTH,
@@ -99,7 +90,7 @@ export function registerSprites() {
     const metalPipe = new Sprite({
         id: 'metalPipe',
         image: metalPipeSprite,
-        worldPos: metalPipeWorldPos,
+        worldPos: { x: 2.5 * tileSectors, z: 4.5 * tileSectors },
         isLoaded: metalPipeLoaded,
         layer: LAYERS.MIDGROUND,
         baseWidthRatio: 128 / REF_CANVAS_WIDTH,
@@ -112,7 +103,7 @@ export function registerSprites() {
             return renderSprite({
                 sprite: metalPipeSprite,
                 isLoaded: metalPipeLoaded,
-                worldPos: metalPipeWorldPos,
+                worldPos: spriteManager.getSprite("metalPipe")?.worldPos,
                 rayData,
                 baseWidthRatio: 128 / REF_CANVAS_WIDTH,
                 baseHeightRatio: 80 / REF_CANVAS_HEIGHT,
@@ -132,7 +123,7 @@ export function registerSprites() {
     const nineMMAmmo = new Sprite({
         id: 'nineMMAmmo',
         image: nineMMAmmoSprite,
-        worldPos: nineMMAmmoSpriteWorldPos,
+        worldPos: { x: 3.4 * tileSectors, z: 1.2 * tileSectors },
         isLoaded: nineMMAmmoSpriteLoaded,
         layer: LAYERS.MIDGROUND,
         scaleFactor: 0.5,
@@ -140,8 +131,10 @@ export function registerSprites() {
         baseYRatio: 400 / REF_CANVAS_HEIGHT,
         renderFunction: (rayData, renderEngine) => {
             if (spriteState.isNineMmAmmoCollected) return null;
-            const dx = nineMMAmmoSpriteWorldPos.x - playerPosition.x;
-            const dz = nineMMAmmoSpriteWorldPos.z - playerPosition.z;
+            const worldPos = spriteManager.getSprite("nineMMAmmo")?.worldPos;
+            if (!worldPos) return null;
+            const dx = worldPos.x - playerPosition.x;
+            const dz = worldPos.z - playerPosition.z;
             const distance = Math.sqrt(dx * dx + dz * dz);
             const relativeAngle = Math.atan2(dz, dx) - playerPosition.angle;
             const correctedDistance = distance * Math.cos(relativeAngle);
@@ -157,7 +150,7 @@ export function registerSprites() {
             const result = renderSprite({
                 sprite: nineMMAmmoSprite,
                 isLoaded: nineMMAmmoSpriteLoaded,
-                worldPos: nineMMAmmoSpriteWorldPos,
+                worldPos: worldPos,
                 rayData,
                 spriteWidth,
                 spriteHeight,
@@ -179,7 +172,7 @@ export function registerSprites() {
     const boyKisser = new Sprite({
         id: 'boyKisser',
         image: boyKisserEnemySprite,
-        worldPos: boyKisserEnemySpriteWorldPos,
+        worldPos: null,
         isLoaded: boyKisserEnemySpriteLoaded,
         layer: LAYERS.MIDGROUND,
         baseWidthRatio: 128 / REF_CANVAS_WIDTH,
@@ -192,7 +185,7 @@ export function registerSprites() {
             return renderSprite({
                 sprite: boyKisserEnemySprite,
                 isLoaded: boyKisserEnemySpriteLoaded,
-                worldPos: boyKisserEnemySpriteWorldPos,
+                worldPos: spriteManager.getSprite("boyKisser")?.worldPos,
                 rayData,
                 baseWidthRatio: 128 / REF_CANVAS_WIDTH,
                 baseHeightRatio: 80 / REF_CANVAS_HEIGHT,
@@ -211,7 +204,7 @@ export function registerSprites() {
     const casperLesserDemon = new Sprite({
         id: 'casperLesserDemon',
         image: casperLesserDemonSprite,
-        worldPos: casperLesserDemonSpriteWorldPos,
+        worldPos: null,
         isLoaded: casperLesserDemonSpriteLoaded,
         layer: LAYERS.MIDGROUND,
         baseWidthRatio: 128 / REF_CANVAS_WIDTH,
@@ -224,7 +217,7 @@ export function registerSprites() {
             return renderSprite({
                 sprite: casperLesserDemonSprite,
                 isLoaded: casperLesserDemonSpriteLoaded,
-                worldPos: casperLesserDemonSpriteWorldPos,
+                worldPos: spriteManager.getSprite("casperLesserDemon")?.worldPos,
                 rayData,
                 baseWidthRatio: 128 / REF_CANVAS_WIDTH,
                 baseHeightRatio: 80 / REF_CANVAS_HEIGHT,
@@ -253,8 +246,10 @@ export function registerSprites() {
             if (!creamSpinLoaded) return null;
             const currentFrame = getCreamSpinCurrentFrame();
             if (!currentFrame) return null;
-            const dx = creamSpinWorldPos.x - playerPosition.x;
-            const dz = creamSpinWorldPos.z - playerPosition.z;
+            const worldPos = spriteManager.getSprite("creamSpin")?.worldPos;
+            if (!worldPos) return null;
+            const dx = worldPos.x - playerPosition.x;
+            const dz = worldPos.z - playerPosition.z;
             const distance = Math.sqrt(dx * dx + dz * dz);
             const relativeAngle = Math.atan2(dz, dx) - playerPosition.angle;
             const correctedDistance = distance * Math.cos(relativeAngle);
@@ -266,7 +261,7 @@ export function registerSprites() {
             const result = renderSprite({
                 sprite: currentFrame,
                 isLoaded: creamSpinLoaded,
-                worldPos: creamSpinWorldPos,
+                worldPos: worldPos,
                 rayData,
                 spriteWidth,
                 spriteHeight,
@@ -288,7 +283,7 @@ export function registerSprites() {
     const placeholderAI = new Sprite({
         id: 'placeholderAI',
         image: placeholderAiSprite,
-        worldPos: placeholderAISpriteWorldPos,
+        worldPos: null,
         isLoaded: placeholderAiSpriteLoaded,
         layer: LAYERS.MIDGROUND,
         baseWidthRatio: 128 / REF_CANVAS_WIDTH,
@@ -301,7 +296,7 @@ export function registerSprites() {
             return renderSprite({
                 sprite: placeholderAiSprite,
                 isLoaded: placeholderAiSpriteLoaded,
-                worldPos: placeholderAISpriteWorldPos,
+                worldPos: spriteManager.getSprite("placeholderAI")?.worldPos,
                 rayData,
                 baseWidthRatio: 128 / REF_CANVAS_WIDTH,
                 baseHeightRatio: 80 / REF_CANVAS_HEIGHT,

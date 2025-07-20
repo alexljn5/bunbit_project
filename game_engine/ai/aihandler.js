@@ -33,61 +33,11 @@ function initializeAiRegistries() {
         const enemyFunctions = [];
         const friendlyFunctions = [];
         // In initializeAiRegistries, inside maps.forEach(mapKey => {...})
-        // Wrapper for casperLesserDemon
-        const casperWrapper = () => {
-            const grid = mapTable.get(mapKey)?.grid || mapHandler.getFullMap(mapKey) || (mapKey === "map_01" ? map_01 : null);
-            if (!grid || !Array.isArray(grid) || !grid[0] || !Array.isArray(grid[0])) {
-                console.error(`Invalid map for ${mapKey} in casperWrapper! Using map_01 as fallback.`);
-                if (mapKey === "map_01" && map_01 && Array.isArray(map_01) && map_01[0] && Array.isArray(map_01[0])) {
-                    casperLesserDemon();
-                }
-                return;
-            }
-            console.log(`Casper using grid for ${mapKey}:`, { rows: grid.length, cols: grid[0].length });
-            const originalMap01 = map_01;
-            Object.defineProperty({ map_01 }, "map_01", { value: grid, writable: true });
-            casperLesserDemon();
-            Object.defineProperty({ map_01 }, "map_01", { value: originalMap01, writable: true });
-        };
 
-        // Wrapper for boyKisserNpcAIGodFunction
-        const boyKisserWrapper = () => {
-            const grid = mapTable.get(mapKey)?.grid || mapHandler.getFullMap(mapKey) || (mapKey === "map_01" ? map_01 : null);
-            if (!grid || !Array.isArray(grid) || !grid[0] || !Array.isArray(grid[0])) {
-                console.error(`Invalid map for ${mapKey} in boyKisserWrapper! Using map_01 as fallback.`);
-                if (mapKey === "map_01" && map_01 && Array.isArray(map_01) && map_01[0] && Array.isArray(map_01[0])) {
-                    boyKisserNpcAIGodFunction();
-                }
-                return;
-            }
-            console.log(`BoyKisser using grid for ${mapKey}:`, { rows: grid.length, cols: grid[0].length });
-            const originalMap01 = map_01;
-            Object.defineProperty({ map_01 }, "map_01", { value: grid, writable: true });
-            boyKisserNpcAIGodFunction();
-            Object.defineProperty({ map_01 }, "map_01", { value: originalMap01, writable: true });
-        };
-
-        // Wrapper for placeholderAIGodFunction
-        const placeholderWrapper = () => {
-            const grid = mapTable.get(mapKey)?.grid || mapHandler.getFullMap(mapKey) || (mapKey === "map_01" ? map_01 : null);
-            if (!grid || !Array.isArray(grid) || !grid[0] || !Array.isArray(grid[0])) {
-                console.error(`Invalid map for ${mapKey} in placeholderWrapper! Using map_01 as fallback.`);
-                if (mapKey === "map_01" && map_01 && Array.isArray(map_01) && map_01[0] && Array.isArray(map_01[0])) {
-                    placeholderAIGodFunction();
-                }
-                return;
-            }
-            console.log(`PlaceholderAI using grid for ${mapKey}:`, { rows: grid.length, cols: grid[0].length });
-            const originalMap01 = map_01;
-            Object.defineProperty({ map_01 }, "map_01", { value: grid, writable: true });
-            placeholderAIGodFunction();
-            Object.defineProperty({ map_01 }, "map_01", { value: originalMap01, writable: true });
-        };
-
-        // Register AIs for each map
-        enemyFunctions.push(casperWrapper);
-        enemyFunctions.push(placeholderWrapper);
-        friendlyFunctions.push(boyKisserWrapper);
+        // Register AIs for each map directly (no wrappers, no map_01 swapping)
+        enemyFunctions.push(casperLesserDemon);
+        enemyFunctions.push(placeholderAIGodFunction);
+        friendlyFunctions.push(boyKisserNpcAIGodFunction);
 
         enemyAiRegistry.set(mapKey, enemyFunctions);
         friendlyAiRegistry.set(mapKey, friendlyFunctions);

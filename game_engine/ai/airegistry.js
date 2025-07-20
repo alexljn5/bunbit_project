@@ -1,5 +1,5 @@
 import { drawAIHealthBar } from "./aihandler.js";
-import { placeholderAISpriteWorldPos, spriteManager } from "../rendering/sprites/rendersprites.js";
+import { spriteManager } from "../rendering/sprites/rendersprites.js";
 import { renderEngine } from "../rendering/renderengine.js";
 import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y } from "../globals.js";
 import { playerPosition } from "../playerdata/playerlogic.js";
@@ -9,10 +9,11 @@ import { playerPosition } from "../playerdata/playerlogic.js";
 export let placeholderAIHealth = { value: 100 };
 
 export function placeholderAIHealthBar() {
-    if (!placeholderAISpriteWorldPos || placeholderAIHealth.value <= 0) return;
+    const sprite = spriteManager.getSprite("placeholderAI");
+    if (!sprite?.worldPos || placeholderAIHealth.value <= 0) return;
     drawAIHealthBar(
-        placeholderAISpriteWorldPos.x,
-        placeholderAISpriteWorldPos.z,
+        sprite.worldPos.x,
+        sprite.worldPos.z,
         placeholderAIHealth.value,
         {
             renderEngine,

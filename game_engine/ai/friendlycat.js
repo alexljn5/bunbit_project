@@ -1,5 +1,5 @@
 import { playerPosition, isInteractionKeyPressed } from "../playerdata/playerlogic.js";
-import { spriteManager, boyKisserEnemySpriteWorldPos } from "../rendering/sprites/rendersprites.js";
+import { spriteManager } from "../rendering/sprites/rendersprites.js";
 import { genericGunSprite } from "../rendering/sprites/spritetextures.js";
 import { map_01 } from "../mapdata/map_01.js";
 import { mapTable } from "../mapdata/maps.js";
@@ -240,9 +240,7 @@ function friendlyCatAi() {
         return;
     }
 
-    // Sync boyKisserEnemySpriteWorldPos with SpriteManager's worldPos
-    boyKisserEnemySpriteWorldPos.x = boyKisserSprite.worldPos.x;
-    boyKisserEnemySpriteWorldPos.z = boyKisserSprite.worldPos.z;
+    // No need to sync with old worldPos anymore, using spriteManager directly
 
     if (!lastKnownPlayerPos) {
         lastKnownPlayerPos = { x: playerPosition.x, z: playerPosition.z };
@@ -259,14 +257,14 @@ function friendlyCatAi() {
     const buffer = 0.3;
     const visionRange = 500;
 
-    const dx = playerPosition.x - boyKisserEnemySpriteWorldPos.x;
-    const dz = playerPosition.z - boyKisserEnemySpriteWorldPos.z;
+    const dx = playerPosition.x - boyKisserSprite.worldPos.x;
+    const dz = playerPosition.z - boyKisserSprite.worldPos.z;
     const distance = Math.sqrt(dx * dx + dz * dz);
 
     // Check for occlusion (BoyKisser)
     const isOccluded = isOccludedByWall(
-        boyKisserEnemySpriteWorldPos.x,
-        boyKisserEnemySpriteWorldPos.z,
+        boyKisserSprite.worldPos.x,
+        boyKisserSprite.worldPos.z,
         playerPosition.x,
         playerPosition.z,
         map_01,
@@ -283,8 +281,8 @@ function friendlyCatAi() {
 
     const targetX = canSeePlayer ? playerPosition.x : lastKnownPlayerPos.x;
     const targetZ = canSeePlayer ? playerPosition.z : lastKnownPlayerPos.z;
-    const targetDx = targetX - boyKisserEnemySpriteWorldPos.x;
-    const targetDz = targetZ - boyKisserEnemySpriteWorldPos.z;
+    const targetDx = targetX - boyKisserSprite.worldPos.x;
+    const targetDz = targetZ - boyKisserSprite.worldPos.z;
     const targetDistance = Math.sqrt(targetDx * targetDx + targetDz * targetDz);
 
     if (targetDistance < 50) {
@@ -298,8 +296,8 @@ function friendlyCatAi() {
     const randomDirX = Math.cos(randomAngle) * dirX - Math.sin(randomAngle) * dirZ;
     const randomDirZ = Math.sin(randomAngle) * dirX + Math.cos(randomAngle) * dirZ;
 
-    let newX = boyKisserEnemySpriteWorldPos.x + randomDirX * enemySpeed;
-    let newZ = boyKisserEnemySpriteWorldPos.z + randomDirZ * enemySpeed;
+    let newX = boyKisserSprite.worldPos.x + randomDirX * enemySpeed;
+    let newZ = boyKisserSprite.worldPos.z + randomDirZ * enemySpeed;
 
     const mapWidth = map_01[0].length;
     const mapHeight = map_01.length;
@@ -342,27 +340,19 @@ function friendlyCatAi() {
     }
 
     if (!collisionX) {
-        boyKisserEnemySpriteWorldPos.x = newX;
+        boyKisserSprite.worldPos.x = newX;
     }
     if (!collisionZ) {
-        boyKisserEnemySpriteWorldPos.z = newZ;
+        boyKisserSprite.worldPos.z = newZ;
     }
 
-    // Sync SpriteManager's worldPos with boyKisserEnemySpriteWorldPos
-    boyKisserSprite.worldPos.x = boyKisserEnemySpriteWorldPos.x;
-    boyKisserSprite.worldPos.z = boyKisserEnemySpriteWorldPos.z;
-
     // Update previous position
-    boyKisserPreviousPos.x = boyKisserEnemySpriteWorldPos.x;
-    boyKisserPreviousPos.z = boyKisserEnemySpriteWorldPos.z;
+    boyKisserPreviousPos.x = boyKisserSprite.worldPos.x;
+    boyKisserPreviousPos.z = boyKisserSprite.worldPos.z;
 
     // Clamp position to map boundaries
     const maxXBound = mapWidth * tileSectors - enemyRadius;
     const maxZBound = mapHeight * tileSectors - enemyRadius;
-    boyKisserEnemySpriteWorldPos.x = Math.max(enemyRadius, Math.min(maxXBound, boyKisserEnemySpriteWorldPos.x));
-    boyKisserEnemySpriteWorldPos.z = Math.max(enemyRadius, Math.min(maxZBound, boyKisserEnemySpriteWorldPos.z));
-
-    // Sync SpriteManager's worldPos again after clamping
-    boyKisserSprite.worldPos.x = boyKisserEnemySpriteWorldPos.x;
-    boyKisserSprite.worldPos.z = boyKisserEnemySpriteWorldPos.z;
+    boyKisserSprite.worldPos.x = Math.max(enemyRadius, Math.min(maxXBound, boyKisserSprite.worldPos.x));
+    boyKisserSprite.worldPos.z = Math.max(enemyRadius, Math.min(maxZBound, boyKisserSprite.worldPos.z));
 }

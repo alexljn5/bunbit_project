@@ -15,7 +15,7 @@ import {
     setPlayerMovementDisabled, setJustReceivedGun, setShowGunPickupBox,
     setGunPickupTimer, setBoyKisserEnemyHealth
 } from "../ai/friendlycat.js";
-import { boyKisserEnemySpriteWorldPos, casperLesserDemonSpriteWorldPos } from "../rendering/sprites/rendersprites.js";
+import { spriteManager } from "../rendering/sprites/rendersprites.js";
 import { genericGunAmmo, setGenericGunAmmo } from "../itemhandler/guns/gunregistry.js";
 
 export function saveGame() {
@@ -28,7 +28,8 @@ export function saveGame() {
             selectedInventoryIndex: inventoryState.selectedInventoryIndex
         },
         casperLesserDemon: {
-            position: { x: casperLesserDemonSpriteWorldPos.x, z: casperLesserDemonSpriteWorldPos.z },
+            position: spriteManager.getSprite("casperLesserDemon")?.worldPos ?
+                { ...spriteManager.getSprite("casperLesserDemon").worldPos } : null,
             previousPosition: { ...casperLesserDemonPreviousPos },
             lastKnownPlayerPos: casperLastKnownPlayerPos ? { ...casperLastKnownPlayerPos } : null,
             canSeePlayer: casperCanSeePlayer,
@@ -36,7 +37,8 @@ export function saveGame() {
             peekStartTime: peekStartTime
         },
         boyKisser: {
-            position: { x: boyKisserEnemySpriteWorldPos.x, z: boyKisserEnemySpriteWorldPos.z },
+            position: spriteManager.getSprite("boyKisser")?.worldPos ?
+                { ...spriteManager.getSprite("boyKisser").worldPos } : null,
             previousPosition: { ...boyKisserPreviousPos },
             lastKnownPlayerPos: boyKisserLastKnownPlayerPos ? { ...boyKisserLastKnownPlayerPos } : null,
             canSeePlayer: boyKisserCanSeePlayer,
@@ -92,8 +94,10 @@ export function loadGame(file) {
                 inventoryState.selectedInventoryIndex = gameState.player.selectedInventoryIndex;
 
                 // Restore Casper Lesser Demon
-                casperLesserDemonSpriteWorldPos.x = gameState.casperLesserDemon.position.x;
-                casperLesserDemonSpriteWorldPos.z = gameState.casperLesserDemon.position.z;
+                const casperSprite = spriteManager.getSprite("casperLesserDemon");
+                if (casperSprite && gameState.casperLesserDemon.position) {
+                    casperSprite.worldPos = { ...gameState.casperLesserDemon.position };
+                }
                 casperLesserDemonPreviousPos.x = gameState.casperLesserDemon.previousPosition.x;
                 casperLesserDemonPreviousPos.z = gameState.casperLesserDemon.previousPosition.z;
                 if (gameState.casperLesserDemon.lastKnownPlayerPos) {
@@ -108,8 +112,10 @@ export function loadGame(file) {
                 setPeekStartTime(gameState.casperLesserDemon.peekStartTime);
 
                 // Restore BoyKisser NPC
-                boyKisserEnemySpriteWorldPos.x = gameState.boyKisser.position.x;
-                boyKisserEnemySpriteWorldPos.z = gameState.boyKisser.position.z;
+                const boyKisserSprite = spriteManager.getSprite("boyKisser");
+                if (boyKisserSprite && gameState.boyKisser.position) {
+                    boyKisserSprite.worldPos = { ...gameState.boyKisser.position };
+                }
                 boyKisserPreviousPos.x = gameState.boyKisser.previousPosition.x;
                 boyKisserPreviousPos.z = gameState.boyKisser.previousPosition.z;
                 if (gameState.boyKisser.lastKnownPlayerPos) {
