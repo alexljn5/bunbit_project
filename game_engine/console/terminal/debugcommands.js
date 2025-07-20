@@ -1,10 +1,15 @@
 import { genericGunAmmo, genericGunDamage, genericGunRange } from "../../itemhandler/guns/gunregistry.js";
 import { playerInventory, inventoryState } from "../../playerdata/playerinventory.js";
+import { playerHealth, playerStamina } from "../../playerdata/playerlogic.js";
 
 const AVAILABLE_ITEMS = {
     "metal_pipe": "Metal Pipe",
     "generic_gun": "Generic Gun"
 };
+
+let godMode = false;
+const originalHealth = 100;
+const originalStamina = 100;
 
 export function debugCommandsGodFunction(command) {
     console.log(`Processing command: ${command}`);
@@ -81,8 +86,22 @@ export function debugCommandsGodFunction(command) {
             console.log("Inventory cleared");
             break;
 
+        case "godmode":
+            godMode = !godMode;
+            if (godMode) {
+                console.log("God Mode activated - Infinite health and stamina enabled");
+                playerHealth.playerHealth = 999999;
+                playerStamina.stamina = 999999;
+            } else {
+                console.log("God Mode deactivated - Normal health and stamina restored");
+                playerHealth.playerHealth = originalHealth;
+                playerStamina.stamina = originalStamina;
+            }
+            break;
+
         case "help":
             console.log("Available commands (use / or . prefix):");
+            console.log("godmode - Toggle infinite health and stamina");
             console.log("setammo <amount> - Set generic gun ammo");
             console.log("setdamage <amount> - Set generic gun damage");
             console.log("setrange <amount> - Set generic gun range");
@@ -90,6 +109,7 @@ export function debugCommandsGodFunction(command) {
             console.log("clearinv - Clear inventory");
             console.log("\nAvailable items:", Object.entries(AVAILABLE_ITEMS).map(([id, name]) => `${id} (${name})`).join(", "));
             console.log("\nExamples:");
+            console.log("/godmode - Toggle god mode");
             console.log("/setammo 100 or .setammo 100");
             console.log("/giveitem metal_pipe or .giveitem generic_gun");
             break;

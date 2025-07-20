@@ -49,6 +49,23 @@ function terminalOverLay() {
     renderEngine.font = `${22 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
     renderEngine.fillText("Terminal", overlayX + 20 * SCALE_X, overlayY + 40 * SCALE_Y);
 
+    // Display available commands
+    renderEngine.font = `${16 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+    const commands = [
+        "/godmode - Toggle infinite health and stamina",
+        "/spawnenemy <type> - Spawn enemy (placeholderai, lesserdemon)",
+        "/setammo <amount> - Set gun ammo",
+        "/setdamage <amount> - Set gun damage",
+        "/setrange <amount> - Set gun range",
+        "/giveitem <item_id> - Add item to inventory",
+        "/clearinv - Clear inventory",
+        "/help - Show all commands"
+    ];
+
+    commands.forEach((cmd, i) => {
+        renderEngine.fillText(cmd, overlayX + 20 * SCALE_X, overlayY + (80 + i * 30) * SCALE_Y);
+    });
+
     renderEngine.restore();
 }
 
