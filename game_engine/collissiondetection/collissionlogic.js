@@ -6,8 +6,21 @@ import { spriteManager } from "../rendering/sprites/rendersprites.js";
 import { playerInventory } from "../playerdata/playerinventory.js";
 import { spriteState } from "../rendering/sprites/spritetextures.js"
 import { genericGunAmmo, setGenericGunAmmo } from "../itemhandler/guns/gunregistry.js";
+import { LAYERS } from "../rendering/sprites/rendersprites.js";
 
 export function simpleCollissionTest() {
+    // Detailed sprite debug info
+    console.debug("MetalPipe collision check - Sprite state:", {
+        spriteManager: !!spriteManager,
+        currentMap: spriteManager.currentMapKey,
+        spritesInCurrentMap: spriteManager.sprites.size,
+        layerInfo: {
+            background: spriteManager.layers[LAYERS.BACKGROUND].length,
+            midground: spriteManager.layers[LAYERS.MIDGROUND].length,
+            foreground: spriteManager.layers[LAYERS.FOREGROUND].length
+        }
+    });
+
     // Check if metalPipe sprite is loaded for the current map
     const metalPipeSprite = spriteManager.getSprite("metalPipe");
     const dx = metalPipeSprite ? metalPipeSprite.worldPos.x - playerPosition.x : null;
@@ -24,10 +37,14 @@ export function simpleCollissionTest() {
         distance,
         canPickup: distance !== null && distance <= 100 && !playerInventory.includes("metal_pipe")
     });
-    if (!metalPipeSprite || spriteState.isMetalPipeCollected) {
-        if (metalPipeSprite && !metalPipeSprite.isLoaded) {
-            console.warn("MetalPipe sprite is rendering but isLoaded is false. Check image path or onload handler in rendersprites.js.");
-        }
+    // If the item is already collected, just return without warning
+    if (spriteState.isMetalPipeCollected) {
+        return;
+    }
+
+    // Only check if sprite exists and has position
+    if (!metalPipeSprite || !metalPipeSprite.worldPos) {
+        console.debug("MetalPipe sprite not available in this map");
         return;
     }
 
@@ -41,6 +58,18 @@ export function simpleCollissionTest() {
 }
 
 export function nineMMAmmoCollission() {
+    // Detailed sprite debug info
+    console.debug("9mmAmmo collision check - Sprite state:", {
+        spriteManager: !!spriteManager,
+        currentMap: spriteManager.currentMapKey,
+        spritesInCurrentMap: spriteManager.sprites.size,
+        layerInfo: {
+            background: spriteManager.layers[LAYERS.BACKGROUND].length,
+            midground: spriteManager.layers[LAYERS.MIDGROUND].length,
+            foreground: spriteManager.layers[LAYERS.FOREGROUND].length
+        }
+    });
+
     // Check if nineMMAmmo sprite is loaded for the current map
     const nineMMAmmoSprite = spriteManager.getSprite("nineMMAmmo");
     const dx = nineMMAmmoSprite ? nineMMAmmoSprite.worldPos.x - playerPosition.x : null;
@@ -57,10 +86,14 @@ export function nineMMAmmoCollission() {
         distance,
         canPickup: distance !== null && distance <= 100
     });
-    if (!nineMMAmmoSprite || spriteState.isNineMmAmmoCollected) {
-        if (nineMMAmmoSprite && !nineMMAmmoSprite.isLoaded) {
-            console.warn("NineMMAmmo sprite is rendering but isLoaded is false. Check image path or onload handler in rendersprites.js.");
-        }
+    // If the item is already collected, just return without warning
+    if (spriteState.isNineMmAmmoCollected) {
+        return;
+    }
+
+    // Only check if sprite exists and has position
+    if (!nineMMAmmoSprite || !nineMMAmmoSprite.worldPos) {
+        console.debug("9mm Ammo sprite not available in this map");
         return;
     }
 

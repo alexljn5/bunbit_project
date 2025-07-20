@@ -65,8 +65,11 @@ export function drawMinimap() {
     // Log the active map key for debugging
     console.log(`drawMinimap: Active map key is ${mapHandler.activeMapKey}`);
 
-    // Ensure sprites are loaded for the current map
-    spriteManager.loadSpritesForMap(mapHandler.activeMapKey);
+    // Don't reload sprites here - they should already be loaded by the game engine
+    if (!spriteManager.currentMapKey) {
+        console.warn('No active map in sprite manager');
+        return;
+    }
 
     // Get the full map grid for the active map
     const mapGrid = mapHandler.getFullMap(mapHandler.activeMapKey);
@@ -161,34 +164,35 @@ export function drawMinimap() {
     );
 
     // Draw sprites
-    const spritesToRender = [
-        'creamSpin',
-        'boyKisser',
-        'casperLesserDemon',
-        'metalPipe',
-        'nineMMAmmo'
+    // Get all sprites for the current map from the sprite manager's layers
+    const allSprites = [
+        ...spriteManager.layers[LAYERS.BACKGROUND],
+        ...spriteManager.layers[LAYERS.MIDGROUND],
+        ...spriteManager.layers[LAYERS.FOREGROUND]
     ];
-    for (const spriteId of spritesToRender) {
-        const sprite = spriteManager.getSprite(spriteId);
-        if (!sprite) {
-            console.warn(`Sprite ${spriteId} not found in spriteManager`);
-            continue;
-        }
-        if (!sprite.isLoaded) {
-            console.warn(`Sprite ${spriteId} is not loaded`);
-            // Draw a placeholder rectangle
-            renderEngine.fillStyle = spriteId === 'creamSpin' ? 'pink' : 'yellow';
-            const spriteTileX = sprite.worldPos?.x / tileSectors || 0;
-            const spriteTileY = sprite.worldPos?.z / tileSectors || 0;
-            const spritePixelX = spriteTileX * minimapTileSize;
-            const spritePixelY = spriteTileY * minimapTileSize;
-            const spriteSize = minimapTileSize * 0.5;
-            renderEngine.fillRect(
-                spritePixelX - spriteSize / 2,
-                spritePixelY - spriteSize / 2,
-                spriteSize,
-                spriteSize
-            );
+
+    for (const sprite of allSprites) {
+        // Skip sprites that shouldn't be rendered
+        if (sprite.id === 'metalPipe' && spriteState.isMetalPipeCollected) continue;
+        if (sprite.id === 'nineMMAmmo' && spriteState.isNineMmAmmoCollected) continue;
+        if (sprite.id === 'playerHand') continue; // Skip UI elements
+
+        // Draw placeholder for unloaded sprites
+        if (!sprite.isLoaded || !sprite.image) {
+            if (sprite.worldPos) {
+                renderEngine.fillStyle = sprite.id === 'creamSpin' ? 'pink' : 'yellow';
+                const spriteTileX = sprite.worldPos.x / tileSectors;
+                const spriteTileY = sprite.worldPos.z / tileSectors;
+                const spritePixelX = spriteTileX * minimapTileSize;
+                const spritePixelY = spriteTileY * minimapTileSize;
+                const spriteSize = minimapTileSize * 0.5;
+                renderEngine.fillRect(
+                    spritePixelX - spriteSize / 2,
+                    spritePixelY - spriteSize / 2,
+                    spriteSize,
+                    spriteSize
+                );
+            }
             continue;
         }
         if (!sprite.worldPos) {

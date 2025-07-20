@@ -1,6 +1,7 @@
 import { renderEngine } from "../renderengine.js";
 import { tileSectors } from "../../mapdata/maps.js";
 import { playerPosition } from "../../playerdata/playerlogic.js";
+import { renderSprite } from "./spriteutils.js";  // Move this import to the top
 import { registerSprites } from "./spriteregistry.js";
 import { dynamicSpriteHandler } from "./dynamicspritehandler.js";
 
@@ -45,7 +46,7 @@ export class Sprite {
     }
 
     defaultRender(rayData, renderEngine) {
-        if (!this.isLoaded || !this.image || !this.worldPos) {
+        if (!this.isLoaded || !this.image || !this.worldPos || typeof renderSprite !== 'function') {
             return null;
         }
         return renderSprite({
@@ -178,7 +179,9 @@ export function initializeSprites() {
     });
 }
 
-// Call initializeSprites after module imports
-setTimeout(() => {
+// Initialize sprites when the document is fully loaded
+if (document.readyState === 'complete') {
     initializeSprites();
-}, 0);
+} else {
+    window.addEventListener('load', initializeSprites);
+}
