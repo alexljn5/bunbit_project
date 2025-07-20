@@ -150,7 +150,7 @@ export function registerSprites() {
             const result = renderSprite({
                 sprite: nineMMAmmoSprite,
                 isLoaded: nineMMAmmoSpriteLoaded,
-                worldPos: worldPos,
+                worldPos: worldPos,  // Use the worldPos we already got from spriteManager
                 rayData,
                 spriteWidth,
                 spriteHeight,
@@ -246,10 +246,8 @@ export function registerSprites() {
             if (!creamSpinLoaded) return null;
             const currentFrame = getCreamSpinCurrentFrame();
             if (!currentFrame) return null;
-            const worldPos = spriteManager.getSprite("creamSpin")?.worldPos;
-            if (!worldPos) return null;
-            const dx = worldPos.x - playerPosition.x;
-            const dz = worldPos.z - playerPosition.z;
+            const dx = creamSpinWorldPos.x - playerPosition.x;
+            const dz = creamSpinWorldPos.z - playerPosition.z;
             const distance = Math.sqrt(dx * dx + dz * dz);
             const relativeAngle = Math.atan2(dz, dx) - playerPosition.angle;
             const correctedDistance = distance * Math.cos(relativeAngle);
@@ -261,7 +259,7 @@ export function registerSprites() {
             const result = renderSprite({
                 sprite: currentFrame,
                 isLoaded: creamSpinLoaded,
-                worldPos: worldPos,
+                worldPos: creamSpinWorldPos,
                 rayData,
                 spriteWidth,
                 spriteHeight,

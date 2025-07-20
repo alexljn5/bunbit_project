@@ -4,12 +4,14 @@ import { playerPosition } from "../../playerdata/playerlogic.js";
 import { registerSprites } from "./spriteregistry.js";
 import { dynamicSpriteHandler } from "./dynamicspritehandler.js";
 
-// World position exports for static map objects only
+// World position exports
 export const pillar01SpriteWorldPos = { x: 2.5 * tileSectors, z: 6 * tileSectors };
 export const corpse1WorldPos = { x: 1.3 * tileSectors, z: 11.7 * tileSectors };
 export const metalPipeWorldPos = { x: 2.5 * tileSectors, z: 4.5 * tileSectors };
 export const nineMMAmmoSpriteWorldPos = { x: 3.4 * tileSectors, z: 1.2 * tileSectors };
-// Removed legacy AI sprite worldPos exports. Always use spriteManager.getSprite(id)?.worldPos for AI and dynamic sprites.
+export let boyKisserEnemySpriteWorldPos = null;
+export let casperLesserDemonSpriteWorldPos = null;
+export let placeholderAISpriteWorldPos = null;
 
 // Define rendering layers
 export const LAYERS = {
@@ -98,7 +100,17 @@ export class SpriteManager {
         for (const sprite of sprites) {
             this.sprites.set(sprite.id, sprite);
             this.layers[sprite.layer].push(sprite);
-            // No more syncing worldPos to exported variables. Always access via spriteManager.getSprite(id)?.worldPos
+            // Sync boyKisserEnemySpriteWorldPos with boyKisser sprite's worldPos
+            if (sprite.id === "boyKisser" && sprite.worldPos) {
+                boyKisserEnemySpriteWorldPos = { x: sprite.worldPos.x, z: sprite.worldPos.z };
+            }
+            // Sync casperLesserDemonSpriteWorldPos with casperLesserDemon sprite's worldPos
+            if (sprite.id === "casperLesserDemon" && sprite.worldPos) {
+                casperLesserDemonSpriteWorldPos = { x: sprite.worldPos.x, z: sprite.worldPos.z };
+            }
+            if (sprite.id === "placeholderAI" && sprite.worldPos) {
+                placeholderAISpriteWorldPos = { x: sprite.worldPos.x, z: sprite.worldPos.z };
+            }
         }
     }
 
