@@ -2,8 +2,8 @@ import { genericGunAmmo, genericGunDamage, genericGunRange } from "../../itemhan
 
 export function debugCommandsGodFunction(command) {
     console.log(`Processing command: ${command}`);
-    if (!command.startsWith("/")) {
-        console.log("Command must start with '/'. Type '/help' for available commands.");
+    if (!command.startsWith("/") && !command.startsWith(".")) {
+        console.log("Command must start with '/' or '.'. Type '/help' or '.help' for available commands.");
         return;
     }
 
@@ -52,10 +52,13 @@ export function debugCommandsGodFunction(command) {
             break;
 
         case "help":
-            console.log("Available commands:");
-            console.log("/setammo <amount> - Set generic gun ammo");
-            console.log("/setdamage <amount> - Set generic gun damage");
-            console.log("/setrange <amount> - Set generic gun range");
+            console.log("Available commands (use / or . prefix):");
+            console.log("setammo <amount> - Set generic gun ammo");
+            console.log("setdamage <amount> - Set generic gun damage");
+            console.log("setrange <amount> - Set generic gun range");
+            console.log("\nExamples:");
+            console.log("/setammo 100 or .setammo 100");
+            console.log("/setdamage 50 or .setdamage 50");
             break;
 
         default:
