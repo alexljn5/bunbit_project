@@ -39,8 +39,8 @@ export let game = null;
 let isRenderingFrame = false;
 let renderWorkersInitialized = false;
 
-const renderWorker1 = new Worker("./workers/renderengineworker.js", { type: "module" });
-const renderWorker2 = new Worker("./workers/renderengineworker.js", { type: "module" });
+const renderWorker1 = new Worker("/game_engine/rendering/renderworkers/renderengineworker.js", { type: "module" });
+const renderWorker2 = new Worker("/game_engine/rendering/renderworkers/renderengineworker.js", { type: "module" });
 
 // --- Button Handlers ---
 domElements.playGameButton.onclick = function () {
@@ -106,9 +106,8 @@ async function gameRenderEngine() {
             isRenderingFrame = false;
             return;
         }
-        drawBackground();
         await renderRaycastFloors();
-        await renderRaycastWalls(rayData);
+        renderRaycastWalls(rayData);
         decorationHandlerGodFunction();
         drawSprites(rayData);
         eventHandler();
@@ -133,11 +132,6 @@ async function gameRenderEngine() {
 }
 
 // --- Utility Functions ---
-function drawBackground() {
-    renderEngine.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-    renderEngine.fillStyle = "black";
-    renderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-}
 
 function drawQuad({ topX, topY, leftX, leftY, rightX, rightY, color, texture, textureX }) {
     renderEngine.beginPath();
@@ -179,6 +173,7 @@ function cleanupRenderWorkers() {
 
 // --- Raycast Rendering ---
 function renderRaycastWalls(rayData) {
+
     if (!texturesLoaded) {
         console.warn("Textures not loaded, rendering gray walls *pouts*");
         renderEngine.fillStyle = "gray";
