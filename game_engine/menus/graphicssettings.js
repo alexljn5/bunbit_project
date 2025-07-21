@@ -2,6 +2,7 @@ import { updateGraphicsSettings, numCastRays, maxRayDepth } from "../rendering/r
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from "../globals.js";
 import { updateCanvasResolution } from "../globals.js";
 import { drawButton } from "./menusettings.js";
+import { drawMenuOverlay } from "./menuhandler.js";
 
 export const graphicsPresets = {
     potato: {
@@ -63,13 +64,20 @@ export function initializeGraphicsSettings() {
     applyGraphicsPreset(isLowEnd ? "low" : "high");
 }
 
+
 export function drawGraphicsOverlay(renderEngine, SCALE_X, SCALE_Y, showGraphics) {
     const overlayX = 350 * SCALE_X;
     const overlayY = 120 * SCALE_Y;
     const overlayWidth = 400 * SCALE_X;
     const overlayHeight = 600 * SCALE_Y;
-    renderEngine.fillStyle = "rgba(20, 20, 20, 0.95)";
-    renderEngine.fillRect(overlayX, overlayY, overlayWidth, overlayHeight);
+    // Use reusable overlay function with alpha 0.95 and clip to overlay area
+    renderEngine.save();
+    renderEngine.beginPath();
+    renderEngine.rect(overlayX, overlayY, overlayWidth, overlayHeight);
+    renderEngine.clip();
+    drawMenuOverlay(0.95);
+    renderEngine.restore();
+
     renderEngine.strokeStyle = "#fff";
     renderEngine.strokeRect(overlayX, overlayY, overlayWidth, overlayHeight);
     renderEngine.fillStyle = "#fff";

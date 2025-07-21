@@ -21,6 +21,16 @@ export function basicPickUpMenuStyle() {
     renderEngine.restore();
 }
 
+// Reusable full-screen semi-transparent black overlay
+export function drawMenuOverlay(alpha = 0.8) {
+    renderEngine.save();
+    renderEngine.globalAlpha = alpha;
+    renderEngine.fillStyle = "black";
+    renderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    renderEngine.globalAlpha = 1.0;
+    renderEngine.restore();
+}
+
 // Reusable button-drawing function
 export function drawButton(context, button, isSelected = false, textOffsetX = 20, textOffsetY = 25) {
     context.fillStyle = button.hovered || isSelected ? "#555" : "#222";

@@ -4,6 +4,8 @@ import { volumeSlidersGodFunction, setupAudioSliderHandlers } from "../audio/aud
 import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT } from "../globals.js";
 import { saveGame, loadGame } from "../savedata/save_load_game.js";
 import { applyGraphicsPreset, getGraphicsSettings, drawGraphicsOverlay, handleGraphicsMenuClick } from "./graphicssettings.js";
+import { drawMenuOverlay } from "./menuhandler.js";
+
 
 export let playerMovementDisabled = false;
 export let menuActive = false;
@@ -67,8 +69,8 @@ function drawStaticMenu() {
     testSettingsBackGroundImage.src = "./img/menu/goon.png";
     initOffscreenCanvas();
     offscreenContext.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-    offscreenContext.fillStyle = "rgba(0, 0, 0, 0.8)";
-    offscreenContext.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    // Use reusable overlay function with alpha 0.8
+    drawMenuOverlay(0.8);
     offscreenContext.fillStyle = "white";
     offscreenContext.font = `${20 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
     offscreenContext.fillText("Settings Menu", 60 * SCALE_X, 80 * SCALE_Y);

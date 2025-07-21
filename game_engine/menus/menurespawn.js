@@ -1,14 +1,12 @@
 import { renderEngine } from "../rendering/renderengine.js";
 import { compiledTextStyle } from "../debugtools.js";
 import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y } from "../globals.js";
+import { drawMenuOverlay } from "./menuhandler.js";
 
 export function drawRespawnMenu(canvas, onRespawn) {
-    // Draw death screen
-    renderEngine.save();
-    renderEngine.globalAlpha = 0.8;
-    renderEngine.fillStyle = "black";
-    renderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-    renderEngine.globalAlpha = 1.0;
+    // Draw death screen overlay
+    drawMenuOverlay(0.8);
+
     renderEngine.fillStyle = "#fff";
     compiledTextStyle();
     renderEngine.font = `${32 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
@@ -46,5 +44,4 @@ export function drawRespawnMenu(canvas, onRespawn) {
             onRespawn();
         }
     };
-    renderEngine.restore();
 }
