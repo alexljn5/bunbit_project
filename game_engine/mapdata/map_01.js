@@ -10,7 +10,7 @@ export const map_01_sector1 = [
     [fullTileBrick, emptyTile, fullTileBrick, emptyTile, fullTileBrick, fullTileBrick],
     [fullTileBrick, emptyTile, fullTileBrick, emptyTile, fullTileBrick, fullTileBrick],
     [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick, fullTileBrick],
-    [fullTileBrick, emptyTile, fullTileBrickDoor01Closed, fullTileBrick, fullTileBrick],
+    [fullTileBrick, emptyTile, fullTileBrick, fullTileBrick, fullTileBrick],
     [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
     [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
     [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
@@ -34,7 +34,7 @@ export const map_01_sector2 = [
     [emptyTile, emptyTile, fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
     [emptyTile, emptyTile, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick],
     [emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, fullTileBrick],
-    [fullTileBrick, fullTileBrick, fullTile, fullTileBrick, fullTileBrick, fullTileBrick],
+    [fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick],
 ];
 
 // Test sector (7x4)

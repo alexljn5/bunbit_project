@@ -133,14 +133,14 @@ export function boyKisserNpcAI() {
         let dialogue;
         justReceivedGun = false;
         if (playerInventory.includes("generic_gun")) {
-            dialogue = ["BoyKisser: You already have a gun, no need for another."];
+            dialogue = ["You already have a gun, no need for another."];
         } else {
             dialogue = [
-                "BoyKisser: Hello there, traveler!",
-                "BoyKisser: Press T to continue...",
-                "BoyKisser: Please take this item!",
-                "BoyKisser: It's a special gift for you.",
-                "BoyKisser: Remember, kindness is key!",
+                "Hello there, traveler!",
+                "Press T to continue...",
+                "Please take this item!",
+                "It's a special gift for you.",
+                "Remember, kindness is key!",
             ];
             playerInventory.push("generic_gun");
             justReceivedGun = true;

@@ -12,7 +12,7 @@ import { getSpriteScreenParams } from "../../rendering/sprites/spriteutils.js";
 
 export let genericGunDamage = { value: 50 };
 export let genericGunRange = { value: 200 };
-export let genericGunAmmo = { current: 10 };
+export let genericGunAmmo = { current: 0 };
 
 export function setGenericGunAmmo(value) {
     if (typeof value !== "number" || value <= 0) {

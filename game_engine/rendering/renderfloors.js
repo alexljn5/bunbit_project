@@ -5,7 +5,7 @@ import { tileTexturesMap, texturesLoaded } from "../mapdata/maptexturesloader.js
 import { playerPosition } from "../playerdata/playerlogic.js";
 import { CANVAS_HEIGHT, CANVAS_WIDTH, fastSin, fastCos } from "../globals.js";
 import { renderEngine } from "./renderengine.js";
-import { numCastRays, playerFOV } from "./raycasting.js";
+import { playerFOV } from "./raycasting.js";
 
 const floorWorker = new Worker('/game_engine/rendering/renderworkers/floorrenderworker.js');
 

@@ -8,6 +8,9 @@ import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, HIGH_RES_ENABLED, REF_CA
 import { spriteManager } from "./rendering/sprites/rendersprites.js";
 import { renderSprite } from "./rendering/sprites/spriteutils.js";
 import { gameVersionNumber } from "./globals.js";
+import { LAYERS } from "./rendering/sprites/rendersprites.js";
+
+let spriteId = null;
 
 export function compiledDevTools() {
     drawDebugOverlay();

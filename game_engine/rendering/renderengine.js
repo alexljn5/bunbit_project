@@ -27,6 +27,7 @@ import { consoleHandler } from "../console/consolehandler.js";
 import { flickeringEffect } from "../atmosphere/flickerlogic.js";
 import { keys } from "../playerdata/playerlogic.js";
 import { SCALE_X, SCALE_Y } from "../globals.js";
+import { renderRaycastWalls } from "./renderwalls.js";
 
 // --- DOM Elements ---
 const domElements = {
@@ -131,6 +132,7 @@ async function gameRenderEngine() {
         }
         animationHandler();
         */
+
         menuHandler();
         // Ensure map is initialized
         if (!mapHandler.activeMapKey) {
@@ -187,8 +189,7 @@ async function gameRenderEngine() {
 }
 
 // --- Utility Functions ---
-
-function drawQuad({ topX, topY, leftX, leftY, rightX, rightY, color, texture, textureX }) {
+export function drawQuad({ topX, topY, leftX, leftY, rightX, rightY, color, texture, textureX }) {
     renderEngine.beginPath();
     renderEngine.moveTo(topX, topY);
     renderEngine.lineTo(leftX, leftY);
@@ -224,47 +225,6 @@ function cleanupRenderWorkers() {
     renderWorker1.terminate();
     renderWorker2.terminate();
     renderWorkersInitialized = false;
-}
-
-// --- Raycast Rendering ---
-function renderRaycastWalls(rayData) {
-    if (!texturesLoaded) {
-        console.warn("Textures not loaded, rendering gray walls *pouts*");
-        renderEngine.fillStyle = "gray";
-        renderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-        return;
-    }
-    const colWidth = CANVAS_WIDTH / numCastRays;
-    for (let i = 0; i < rayData.length; i++) {
-        const ray = rayData[i];
-        if (!ray) continue;
-        const wallHeight = (CANVAS_HEIGHT / ray.distance) * tileSectors;
-        const wallTop = (CANVAS_HEIGHT - wallHeight) / 2;
-        const wallBottom = wallTop + wallHeight;
-        let textureX = ray.hitSide === "x"
-            ? (ray.hitX % tileSectors) / tileSectors
-            : (ray.hitY % tileSectors) / tileSectors;
-        textureX = Math.max(0, Math.min(1, textureX));
-        let texture = tileTexturesMap.get(ray.textureKey) || tileTexturesMap.get("wall_creamlol");
-        if (ray.textureKey === "wall_laughing_demon") {
-            texture = getDemonLaughingCurrentFrame() || tileTexturesMap.get("wall_creamlol");
-        }
-        if (!texture) {
-            console.warn(`Missing wall texture: ${ray.textureKey} *tilts head*`);
-            continue;
-        }
-        drawQuad({
-            topX: i * colWidth,
-            topY: wallTop,
-            leftX: i * colWidth,
-            leftY: wallBottom,
-            rightX: (i + 1) * colWidth,
-            rightY: wallBottom,
-            color: "gray",
-            texture,
-            textureX
-        });
-    }
 }
 
 export { initializeRenderWorkers };
