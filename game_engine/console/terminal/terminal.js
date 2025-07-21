@@ -3,7 +3,7 @@ import { SCALE_X, SCALE_Y, CANVAS_WIDTH, CANVAS_HEIGHT } from "../../globals.js"
 import { renderEngine } from "../../rendering/renderengine.js";
 import { terminalGodFunction } from "./terminalhandler.js";
 
-let showTerminal = false;
+export let showTerminal = false;
 let lastTState = false;
 let currentCommand = "";
 let inputActive = false;

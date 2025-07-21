@@ -4,6 +4,7 @@ import { staminaBarMeterOnCanvas, healthMeterOnCanvas } from "./playerui.js";
 import { playerMovementDisabled } from "../ai/friendlycat.js";
 import { wallCollision } from "../collissiondetection/collissionwalllogic.js";
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from "../globals.js";
+import { drawRespawnMenu } from "../menus/menurespawn.js";
 
 export let playerVantagePointX = { playerVantagePointX: 0 };
 export let playerVantagePointY = { playerVantagePointY: 0 };
@@ -27,7 +28,7 @@ let regenRate = 20;
 let maxHealth = 100;
 export let playerHealthBar = 100;
 export const playerHealth = { playerHealth: 100 };
-let gameOver = false;
+export let gameOver = false;
 let showDebugTools = false;
 
 const canvas = document.getElementById('mainGameRender');
@@ -80,9 +81,22 @@ document.addEventListener('pointerlockchange', () => {
     }
 });
 
+// Import showTerminal from terminal.js
+import { showTerminal } from "../console/terminal/terminal.js";
+
+// Define the onRespawn function
+export function onRespawn() {
+    playerHealth.playerHealth = maxHealth; // Reset health
+    playerHealthBar = maxHealth;
+    playerStamina.playerStaminaBar = maxStamina; // Reset stamina
+    playerPosition = { x: 2.5 * 50 / 2, z: 2.5 * 50 / 2, angle: 0 }; // Reset position
+    gameOver = false; // Reset game over state
+    canvas.onclick = null; // Clear click handler to avoid conflicts
+}
+
 export function playerLogic() {
-    if (gameOver) return;
-    if (playerMovementDisabled) return;
+    // Block all movement if game over or terminal is open or movement is disabled
+    if (gameOver || showTerminal || playerMovementDisabled) return;
 
     const now = performance.now();
     const deltaTime = (now - lastTime) / 1000;
@@ -148,11 +162,11 @@ export function playerLogic() {
 
     if (playerHealth.playerHealth <= 0) {
         gameOver = true;
-        compiledTextStyle();
-        renderEngine.fillText("DEAD", 100, 100);
+        // Draw death screen with canvas and onRespawn
+        drawRespawnMenu(canvas, onRespawn);
+        staminaBarMeterOnCanvas();
+        healthMeterOnCanvas();
     }
-    staminaBarMeterOnCanvas();
-    healthMeterOnCanvas();
 }
 
 // --- Bobbing offset getter for use in sprite rendering ---

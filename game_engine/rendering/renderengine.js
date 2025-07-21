@@ -1,6 +1,7 @@
 // renderengine.js
 import { gameLoop } from "../main_game.js";
-import { playerLogic, playerPosition, showDebugTools } from "../playerdata/playerlogic.js";
+import { playerLogic, playerPosition, showDebugTools, gameOver, onRespawn } from "../playerdata/playerlogic.js";
+import { drawRespawnMenu } from "../menus/menurespawn.js";
 import { playerInventoryGodFunction } from "../playerdata/playerinventory.js";
 import { compiledDevTools } from "../debugtools.js";
 import { tileSectors } from "../mapdata/maps.js";
@@ -165,6 +166,11 @@ async function gameRenderEngine() {
         playerUI();
         playMusicGodFunction();
         consoleHandler();
+
+        // Render respawn menu if game over
+        if (gameOver) {
+            drawRespawnMenu(renderEngine.canvas, onRespawn);
+        }
 
         // Render pause menu if paused
         if (isPaused) {
