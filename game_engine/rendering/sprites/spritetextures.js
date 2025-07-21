@@ -119,7 +119,7 @@ nineMMAmmoSprite.onerror = () => {
     console.error("Failed to load 9mm_ammo_box.png");
 };
 
-boyKisserEnemySprite.src = "./img/sprites/enemy/boykisser.png";
+boyKisserEnemySprite.src = "./img/sprites/friendly/friendlycat_1.png";
 boyKisserEnemySprite.onload = () => {
     boyKisserEnemySpriteLoaded = true;
 };
