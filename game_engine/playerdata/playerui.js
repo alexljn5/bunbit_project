@@ -70,6 +70,10 @@ export function playerUI() {
         const textY = itemY + 64 * SCALE_Y;
         renderEngine.fillText(ammoText, textX, textY);
     }
+
+    // Draw health and stamina bars
+    healthMeterOnCanvas();
+    staminaBarMeterOnCanvas();
 }
 
 export function staminaBarMeterOnCanvas() {
