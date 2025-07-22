@@ -4,6 +4,7 @@ import { tileSectors, mapTable } from "../mapdata/maps.js";
 import { CANVAS_WIDTH, fastSin, fastCos, Q_rsqrt } from "../globals.js";
 import { mapHandler } from "../mapdata/maphandler.js";
 import { textureIdMap, floorTextureIdMap, roofTextureIdMap } from "../mapdata/maptexturesids.js";
+import { textureTransparencyMap } from "../mapdata/maptexturesloader.js";
 
 export let playerFOV = Math.PI / 6; // 60 degrees
 export let numCastRays = 300; // Default value
@@ -94,7 +95,8 @@ export async function castRays() {
             floorTextureIdMap: Object.fromEntries(floorTextureIdMap),
             CANVAS_WIDTH,
             numCastRays,
-            maxRayDepth
+            maxRayDepth,
+            textureTransparencyMap: textureTransparencyMap
         });
         workersInitialized = true;
     }

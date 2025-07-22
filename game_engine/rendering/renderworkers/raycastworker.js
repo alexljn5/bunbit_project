@@ -13,7 +13,8 @@ self.addEventListener("message", (e) => {
                 floorTextureIdMap: e.data.floorTextureIdMap,
                 CANVAS_WIDTH: e.data.CANVAS_WIDTH,
                 numCastRays: e.data.numCastRays,
-                maxRayDepth: e.data.maxRayDepth
+                maxRayDepth: e.data.maxRayDepth,
+                textureTransparencyMap: e.data.textureTransparencyMap || {}
             };
             self.postMessage({ type: "init", success: true });
             return;
@@ -86,12 +87,30 @@ self.addEventListener("message", (e) => {
                 const tile = map_01[cellY][cellX];
                 if (!tile || typeof tile !== "object") break;
 
+                // New logic for transparent walls
                 if (tile.type === "wall") {
-                    hit = true;
-                    hitWallType = tile.type;
-                    textureKey = textureIdMap[tile.textureId] || "wall_creamlol";
-                    if (lastFloorTile)
-                        floorTextureKey = floorTextureIdMap[lastFloorTile.floorTextureId] || floorTextureKey;
+                    // Check transparency from passed transparency map
+                    const textureName = textureIdMap[tile.textureId] || "wall_creamlol";
+                    const isTransparent = staticData.textureTransparencyMap && staticData.textureTransparencyMap[textureName];
+                    if (!isTransparent) {
+                        hit = true;
+                        hitWallType = tile.type;
+                        textureKey = textureName;
+                        if (lastFloorTile)
+                            floorTextureKey = floorTextureIdMap[lastFloorTile.floorTextureId] || floorTextureKey;
+                    } else {
+                        // Transparent wall hit, record hit but continue raycasting
+                        if (!rayData[i]) rayData[i] = [];
+                        rayData[i].push({
+                            distance,
+                            hitSide,
+                            textureKey: textureName,
+                            floorTextureKey,
+                            floorX: rayX + distance * cosAngle,
+                            floorY: rayY + distance * sinAngle
+                        });
+                        // Continue without setting hit = true
+                    }
                 } else if (tile.type === "empty") {
                     lastFloorTile = tile;
                     floorTextureKey = floorTextureIdMap[tile.floorTextureId] || floorTextureKey;

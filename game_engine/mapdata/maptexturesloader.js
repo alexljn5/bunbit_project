@@ -103,23 +103,50 @@ for (const [key, texture] of Object.entries(tileTextures)) {
 }
 
 // Texture loading handlers (only in browser)
+export const textureTransparencyMap = {};
 if (isBrowser) {
+    async function checkTextureTransparency(texture) {
+        return new Promise((resolve) => {
+            const canvas = document.createElement("canvas");
+            canvas.width = texture.width;
+            canvas.height = texture.height;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(texture, 0, 0);
+            const imageData = ctx.getImageData(0, 0, texture.width, texture.height);
+            const data = imageData.data;
+            for (let i = 3; i < data.length; i += 4) {
+                if (data[i] < 255) {
+                    resolve(true);
+                    return;
+                }
+            }
+            resolve(false);
+        });
+    }
+
+    async function checkTexturesLoadedWithTransparency(textureName, texture) {
+        await checkTexturesLoaded(textureName)();
+        const hasTransparency = await checkTextureTransparency(texture);
+        textureTransparencyMap[textureName] = hasTransparency;
+        console.log(`Texture ${textureName} transparency: ${hasTransparency}`);
+    }
+
     for (const [name, texture] of Object.entries(floorTextures)) {
-        texture.onload = checkTexturesLoaded(name);
+        texture.onload = () => checkTexturesLoadedWithTransparency(name, texture);
         texture.onerror = handleTextureError(name);
     }
     for (const [name, texture] of Object.entries(roofTextures)) {
-        texture.onload = checkTexturesLoaded(name);
+        texture.onload = () => checkTexturesLoadedWithTransparency(name, texture);
         texture.onerror = handleTextureError(name);
     }
     for (const [name, texture] of Object.entries(tileTextures)) {
         if (name === "wall_laughing_demon") {
             texture.forEach((frame, i) => {
-                frame.onload = checkTexturesLoaded(`demonlaughing_frame_${i}`);
+                frame.onload = () => checkTexturesLoadedWithTransparency(`demonlaughing_frame_${i}`, frame);
                 frame.onerror = handleTextureError(`demonlaughing_frame_${i}`);
             });
         } else {
-            texture.onload = checkTexturesLoaded(name);
+            texture.onload = () => checkTexturesLoadedWithTransparency(name, texture);
             texture.onerror = handleTextureError(name);
         }
     }
@@ -177,4 +204,4 @@ function handleTextureError(textureName) {
     };
 }
 
-export { tileTextures, texturesLoaded };
+export { tileTextures, texturesLoaded, };
