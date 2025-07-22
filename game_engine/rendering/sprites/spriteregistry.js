@@ -120,7 +120,7 @@ export function registerSprites() {
         }
     });
     spriteManager.addSpriteForMaps(metalPipe, ["map_01", "map_02", "map_debug"], {
-        map_01: { worldPos: { x: 2.5 * tileSectors, z: 4.5 * tileSectors } },
+        map_01: { worldPos: { x: 1.5 * tileSectors, z: 6.5 * tileSectors } },
         map_02: { worldPos: { x: 2.0 * tileSectors, z: 3.5 * tileSectors } },
         map_debug: { worldPos: { x: 2.5 * tileSectors, z: 4.5 * tileSectors } }
     });
@@ -278,9 +278,8 @@ export function registerSprites() {
             return result;
         }
     });
-    spriteManager.addSpriteForMaps(creamSpin, ["map_01", "map_02"], {
-        map_01: { worldPos: { x: 3.0 * tileSectors, z: 650 / 50 * tileSectors } },
-        map_02: { worldPos: { x: 3.5 * tileSectors, z: 12.0 * tileSectors } }
+    spriteManager.addSpriteForMaps(creamSpin, ["map_debug"], {
+        map_debug: { worldPos: { x: 3.0 * tileSectors, z: 650 / 50 * tileSectors } },
     });
 
     // Create multiple placeholder AIs for the debug map
@@ -325,7 +324,7 @@ export function registerSprites() {
         };
 
         if (index === 0) {
-            worldPos.map_01 = { worldPos: { x: 2.5 * tileSectors, z: 11.3 * tileSectors } };
+            worldPos.map_01 = { worldPos: { x: 200.5 * tileSectors, z: 11.3 * tileSectors } };
         }
 
         spriteManager.addSpriteForMaps(placeholderAI, Object.keys(worldPos), worldPos);

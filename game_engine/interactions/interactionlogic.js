@@ -15,6 +15,7 @@ export function corpseSpriteRustyKeyInteraction() {
     const dz = playerPosition.z - corpse1WorldPos.z;
     const distance = Math.sqrt(dx * dx + dz * dz);
 
+
     // Toggle pickup box display with 'T' key
     if (keys.t && !lastTState && distance < spriteRadius) {
         showPickupBox = !showPickupBox;
@@ -22,7 +23,7 @@ export function corpseSpriteRustyKeyInteraction() {
             playerInventory.push("rusty_key");
             console.log("You picked up the rusty key!");
         } else if (playerInventory.includes("rusty_key")) {
-            console.log("You already have the rusty key!");
+            showPickupBox = false;
         }
     }
     lastTState = keys.t;

@@ -9,7 +9,7 @@ export const map_01_sector1 = [
     [fullTileBrick, emptyTile, fullTileBrick, emptyTile, fullTileBrick, fullTileBrick],
     [fullTileBrick, emptyTile, fullTileBrick, emptyTile, fullTileBrick, fullTileBrick],
     [fullTileBrick, emptyTile, fullTileBrick, emptyTile, fullTileBrick, fullTileBrick],
-    [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick, fullTileBrick],
+    [fullTileBrick, emptyTile, fullTileBrickDoor01Closed, emptyTile, fullTileBrick, fullTileBrick],
     [fullTileBrick, emptyTile, fullTileBrick, fullTileBrick, fullTileBrick],
     [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
     [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
@@ -17,7 +17,7 @@ export const map_01_sector1 = [
     [fullTileBrick, fullTileBrick, emptyTile, fullTileBrick, fullTileBrick],
     [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
     [fullTileBrick, emptyTile, emptyTile, emptyTile, emptyTile],
-    [fullTileBrick, fullTileBrick, fullTile, fullTileBrick, fullTileBrick, fullTileBrick],
+    [fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick, fullTileBrick],
 ];
 
 // Hallway (8x4)
