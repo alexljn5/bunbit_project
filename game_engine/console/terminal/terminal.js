@@ -4,14 +4,14 @@ import { renderEngine } from "../../rendering/renderengine.js";
 import { terminalGodFunction } from "./terminalhandler.js";
 
 export let showTerminal = false;
-let lastTState = false;
+let lastYState = false;
 let currentCommand = "";
 let inputActive = false;
 let lastKeyStates = {};
 
 export function displayTheTerminal() {
-    // Toggle terminal with 'T' key
-    if (keys.y && !lastTState) {
+    // Toggle terminal with 'Y' key only when input is not active
+    if (keys.y && !lastYState && !inputActive) {
         showTerminal = !showTerminal;
         if (!showTerminal) {
             inputActive = false;
@@ -19,11 +19,15 @@ export function displayTheTerminal() {
         }
         console.log("Terminal toggled:", showTerminal);
     }
-    lastTState = keys.y;
+    lastYState = keys.y;
 
     if (showTerminal) {
         terminalOverLay();
         inputIntoTheTerminal();
+        // Prevent game pause when terminal is active
+        if (showTerminal) {
+            keys["escape"] = false; // Disable pause key
+        }
     }
 }
 
@@ -139,6 +143,7 @@ function setupTerminalKeyHandler() {
                 if (currentCommand) {
                     terminalGodFunction(currentCommand);
                     currentCommand = "";
+                    inputActive = false; // Reset inputActive after submitting command
                 }
             } else if (key === "Escape") {
                 currentCommand = "";

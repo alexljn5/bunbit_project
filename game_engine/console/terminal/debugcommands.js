@@ -4,7 +4,8 @@ import { playerHealth, playerStamina } from "../../playerdata/playerlogic.js";
 
 const AVAILABLE_ITEMS = {
     "metal_pipe": "Metal Pipe",
-    "generic_gun": "Generic Gun"
+    "generic_gun": "Generic Gun",
+    "rusty_key": "Rusty Key"
 };
 
 let godMode = false;

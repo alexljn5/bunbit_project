@@ -1,5 +1,5 @@
 import { renderEngine } from "../rendering/renderengine.js";
-import { metalPipeSprite, genericGunSprite } from "../rendering/sprites/spritetextures.js";
+import { metalPipeSprite, genericGunSprite, rustyKeySprite } from "../rendering/sprites/spritetextures.js";
 import { compiledTextStyle } from "../debugtools.js";
 import { keys } from "./playerlogic.js";
 import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT } from "../globals.js";
@@ -23,7 +23,8 @@ function inventoryUIShit() {
         renderEngine.globalAlpha = 1.0;
         const spriteMap = {
             "metal_pipe": metalPipeSprite,
-            "generic_gun": genericGunSprite
+            "generic_gun": genericGunSprite,
+            "rusty_key": rustyKeySprite
         };
         let x = 10 * SCALE_X;
         const maxSlots = 9;

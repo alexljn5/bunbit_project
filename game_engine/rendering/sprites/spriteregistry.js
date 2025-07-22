@@ -16,7 +16,9 @@ import {
     boyKisserEnemySprite, boyKisserEnemySpriteLoaded,
     casperLesserDemonSprite, casperLesserDemonSpriteLoaded,
     placeholderAiSprite, placeholderAiSpriteLoaded,
-    getCreamSpinCurrentFrame
+    getCreamSpinCurrentFrame, rustyKeySpriteLoaded, rustyKeySprite,
+    rustyKeySpritePlayerHandLoaded,
+    rustyKeySpritePlayerHandSprite
 } from "./spritetextures.js";
 import { SCALE_X, SCALE_Y, CANVAS_HEIGHT, CANVAS_WIDTH, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT } from "../../globals.js";
 import { playerPosition, playerVantagePointY, getPlayerBobbingOffset } from "../../playerdata/playerlogic.js";
@@ -39,6 +41,8 @@ export function registerSprites() {
                 handSprite = metalPipePlayerHandSprite;
             } else if (selectedItem === "generic_gun" && genericGunPlayerHandLoaded) {
                 handSprite = genericGunPlayerHandSprite;
+            } else if (selectedItem === "rusty_key" && rustyKeySpriteLoaded) {
+                handSprite = rustyKeySpritePlayerHandSprite;
             }
             const bobbingY = (400 * SCALE_Y) + getPlayerBobbingOffset();
             const spriteWidth = 256 * SCALE_X;

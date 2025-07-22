@@ -39,6 +39,10 @@ export const casperLesserDemonSprite = new Image();
 export let casperLesserDemonSpriteLoaded = false;
 export const placeholderAiSprite = new Image();
 export let placeholderAiSpriteLoaded = false;
+export let rustyKeySprite = new Image();
+export let rustyKeySpriteLoaded = false;
+export let rustyKeySpritePlayerHandSprite = new Image();
+export let rustyKeySpritePlayerHandLoaded = false;
 
 // Set up image loading
 playerHandSprite.src = "./img/sprites/playerhand/playerhand_default.png";
@@ -141,6 +145,20 @@ placeholderAiSprite.onload = () => {
 };
 placeholderAiSprite.onerror = () => {
     console.error("Failed to load carenemytest.png");
+};
+rustyKeySprite.src = "./img/sprites/items/rusty_key.png";
+rustyKeySprite.onload = () => {
+    rustyKeySpriteLoaded = true;
+};
+rustyKeySprite.onerror = () => {
+    console.error("Failed to load rusty_key.png");
+};
+rustyKeySpritePlayerHandSprite.src = "./img/sprites/playerhand/playerhand_rusty_key.png";
+rustyKeySpritePlayerHandSprite.onload = () => {
+    rustyKeySpritePlayerHandLoaded = true;
+}
+rustyKeySpritePlayerHandSprite.onerror = () => {
+    console.error("Failed to load playerhand_rusty_key.png");
 };
 
 if (typeof window !== 'undefined') window.boyKisserEnemyHealth = boyKisserEnemyHealth;
