@@ -1,7 +1,7 @@
 import { renderEngine } from "../rendering/renderengine.js";
 import { compiledTextStyle } from "../debugtools.js";
 import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y } from "../globals.js";
-import { drawMenuOverlay } from "./menuhandler.js";
+import { drawMenuOverlay } from "./overlays.js";
 
 let gameOverLolImage = new Image();
 gameOverLolImage.src = "./img/gameoverlol.png";

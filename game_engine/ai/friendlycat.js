@@ -6,9 +6,9 @@ import { mapTable } from "../mapdata/maps.js";
 import { tileSectors } from "../mapdata/maps.js";
 import { renderEngine } from "../rendering/renderengine.js";
 import { playerInventory } from "../playerdata/playerinventory.js";
-import { basicPickUpMenuStyle } from "../menus/menuhandler.js";
 import { isOccludedByWall } from "./aihandler.js";
 import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT } from "../globals.js";
+import { drawNpcDialogue, drawGunPickupBox, basicPickUpMenuStyle } from "../menus/overlays.js";
 
 // Cleaned up friendly cat (boykisser) NPC AI logic for clarity and maintainability
 const npcTriggerRadius = 60;
@@ -159,74 +159,13 @@ function getCurrentNpcDialogueLine() {
 
 export function boyKisserNpcAIGodFunction() {
     if (!dialogueActive) boyKisserNpcAI();
-    if (dialogueActive) drawNpcDialogue();
+    if (dialogueActive) drawNpcDialogue(dialogueLines, currentDialogueIndex);
     if (showGunPickupBox && gunPickupTimer > 0) {
         drawGunPickupBox();
         gunPickupTimer--;
         if (gunPickupTimer === 0) showGunPickupBox = false;
     }
     friendlyCatAi();
-}
-
-function drawNpcDialogue() {
-    renderEngine.save();
-    renderEngine.globalAlpha = 0.85;
-    renderEngine.fillStyle = "black";
-    const boxX = 100 * SCALE_X;
-    const boxY = 600 * SCALE_Y;
-    const boxWidth = 600 * SCALE_X;
-    const boxHeight = 150 * SCALE_Y;
-    renderEngine.fillRect(boxX, boxY, boxWidth, boxHeight);
-    renderEngine.globalAlpha = 1.0;
-    renderEngine.fillStyle = "white";
-    renderEngine.font = `${24 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
-    const line = getCurrentNpcDialogueLine();
-    if (line) {
-        // Word wrap: split long lines to fit inside the dialogue box
-        const maxWidth = 560 * SCALE_X; // Scaled text area width
-        const x = 120 * SCALE_X;
-        let y = 650 * SCALE_Y;
-        const lineHeight = 32 * SCALE_Y;
-        const words = line.split(' ');
-        let currentLine = '';
-        for (let i = 0; i < words.length; i++) {
-            const testLine = currentLine + words[i] + ' ';
-            const metrics = renderEngine.measureText(testLine);
-            if (metrics.width > maxWidth && currentLine !== '') {
-                renderEngine.fillText(currentLine, x, y);
-                currentLine = words[i] + ' ';
-                y += lineHeight;
-            } else {
-                currentLine = testLine;
-            }
-        }
-        if (currentLine) {
-            renderEngine.fillText(currentLine, x, y);
-        }
-    }
-    renderEngine.restore();
-}
-
-function drawGunPickupBox() {
-    basicPickUpMenuStyle(); // Already scaled in menuhandler.js
-    renderEngine.save();
-    renderEngine.globalAlpha = 1.0;
-    renderEngine.fillStyle = "white";
-    renderEngine.font = `${24 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
-    const text = "You received a generic gun!";
-    // Center text horizontally in the box (box x=200*SCALE_X, width=400*SCALE_X)
-    const textMetrics = renderEngine.measureText(text);
-    const textX = (CANVAS_WIDTH - textMetrics.width) / 2; // Centered in scaled box
-    const textY = 350 * SCALE_Y;
-    renderEngine.fillText(text, textX, textY);
-    // Draw gun image centered below the text
-    const gunImg = genericGunSprite;
-    const imgWidth = 96 * SCALE_X;
-    const imgHeight = 48 * SCALE_Y;
-    const imgX = (CANVAS_WIDTH - imgWidth) / 2; // Centered in scaled box
-    const imgY = 370 * SCALE_Y;
-    renderEngine.drawImage(gunImg, imgX, imgY, imgWidth, imgHeight);
-    renderEngine.restore();
 }
 
 function friendlyCatAi() {

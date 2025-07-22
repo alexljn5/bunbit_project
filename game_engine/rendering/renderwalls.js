@@ -58,7 +58,7 @@ export function renderRaycastWalls(rayData) {
                 continue;
             }
             drawQuad({
-                topX: i * colWidth,
+                topX: i * colWidth * 100,
                 topY: wallTop,
                 leftX: i * colWidth,
                 leftY: wallBottom,

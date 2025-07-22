@@ -1,8 +1,7 @@
 import { updateGraphicsSettings, numCastRays, maxRayDepth } from "../rendering/raycasting.js";
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from "../globals.js";
 import { updateCanvasResolution } from "../globals.js";
-import { drawButton } from "./menusettings.js";
-import { drawMenuOverlay } from "./menuhandler.js";
+import { drawButton, drawMenuOverlay } from "./overlays.js";
 
 export const graphicsPresets = {
     potato: {
