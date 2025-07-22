@@ -28,6 +28,7 @@ import { flickeringEffect } from "../atmosphere/flickerlogic.js";
 import { keys } from "../playerdata/playerlogic.js";
 import { SCALE_X, SCALE_Y } from "../globals.js";
 import { renderRaycastWalls } from "./renderwalls.js";
+import { interactionHandlerGodFunction } from "../interactions/interactionhandler.js";
 
 // --- DOM Elements ---
 const domElements = {
@@ -162,6 +163,7 @@ async function gameRenderEngine() {
             collissionGodFunction();
             friendlyAiGodFunction();
             enemyAiGodFunction();
+            interactionHandlerGodFunction();
         }
 
         // Always render UI and handle console
