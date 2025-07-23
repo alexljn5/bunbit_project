@@ -50,29 +50,41 @@ self.onmessage = function (e) {
         textureData = new Uint32Array(e.data.textureData);
         textureWidth = e.data.textureWidth;
         textureHeight = e.data.textureHeight;
+        console.log(`Worker received texture: ${textureWidth}x${textureHeight} *chao chao*`);
         return;
     }
 
     if (type === 'render') {
-        const floorBuffer = new ArrayBuffer(CANVAS_WIDTH * CANVAS_HEIGHT * 4);
-        const floorBuffer32 = new Uint32Array(floorBuffer);
-        const { playerPosition } = e.data;
+        const { playerPosition, startY, endY, workerId } = e.data;
         const playerAngle = playerPosition.angle;
         const playerX = playerPosition.x;
         const playerZ = playerPosition.z;
+
+        // Create buffer only for the assigned rows
+        const rowCount = endY - startY;
+        const floorBuffer = new ArrayBuffer(CANVAS_WIDTH * rowCount * 4);
+        floorBuffer32 = new Uint32Array(floorBuffer);
 
         const halfHeight = CANVAS_HEIGHT * 0.5;
         const projectionDist = (CANVAS_WIDTH * 0.5) / Math.tan(playerFOV * 0.5);
 
         const ceilingColor = 0xFF000000; // Opaque black (ABGR)
-        for (let i = 0; i < CANVAS_WIDTH * halfHeight; i++) {
-            floorBuffer32[i] = ceilingColor;
+        // Only fill ceiling pixels for this worker's range
+        if (startY < halfHeight) {
+            const ceilingEndY = Math.min(endY, Math.floor(halfHeight));
+            for (let y = startY; y < ceilingEndY; y++) {
+                const yOffset = (y - startY) * CANVAS_WIDTH;
+                for (let x = 0; x < CANVAS_WIDTH; x++) {
+                    floorBuffer32[yOffset + x] = ceilingColor;
+                }
+            }
         }
 
         const texScaleX = textureWidth / tileSectors;
         const texScaleY = textureHeight / tileSectors;
 
-        for (let y = Math.floor(halfHeight); y < CANVAS_HEIGHT; y++) {
+        // Render floor for the assigned rows
+        for (let y = Math.max(startY, Math.floor(halfHeight)); y < endY; y++) {
             const yCorrected = y - halfHeight;
             if (yCorrected === 0) continue;
 
@@ -94,7 +106,7 @@ self.onmessage = function (e) {
             let texX = (floorX_left % tileSectors) * texScaleX;
             let texY = (floorZ_left % tileSectors) * texScaleY;
 
-            const yOffset = y * CANVAS_WIDTH;
+            const yOffset = (y - startY) * CANVAS_WIDTH;
 
             for (let x = 0; x < CANVAS_WIDTH; x++) {
                 const intTexX = Math.floor(texX) & (textureWidth - 1);
@@ -107,6 +119,17 @@ self.onmessage = function (e) {
                 texY += texY_step;
             }
         }
-        self.postMessage({ type: 'render_done', floorBuffer: floorBuffer32.buffer }, [floorBuffer32.buffer]);
+
+        // Send back the buffer with workerId and row range
+        self.postMessage(
+            {
+                type: 'render_done',
+                floorBuffer: floorBuffer32.buffer,
+                startY,
+                endY,
+                workerId
+            },
+            [floorBuffer32.buffer]
+        );
     }
 };
