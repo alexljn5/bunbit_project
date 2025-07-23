@@ -1,7 +1,8 @@
 import { renderEngine } from "../rendering/renderengine.js";
 import { compiledTextStyle } from "../debugtools.js";
 import { staminaBarMeterOnCanvas, healthMeterOnCanvas } from "./playerui.js";
-import { playerMovementDisabled } from "../ai/friendlycat.js";
+import { playerMovementDisabled as catMovementDisabled } from "../ai/friendlycat.js";
+import { playerMovementDisabled as pickupMovementDisabled } from "../interactions/interactionlogic.js";
 import { wallCollision } from "../collissiondetection/collissionwalllogic.js";
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from "../globals.js";
 import { drawRespawnMenu } from "../menus/menurespawn.js";
@@ -95,8 +96,8 @@ export function onRespawn() {
 }
 
 export function playerLogic() {
-    // Block all movement if game over or terminal is open or movement is disabled
-    if (gameOver || showTerminal || playerMovementDisabled) return;
+    // Block all movement if game over, terminal is open, or movement is disabled by cat or pickup
+    if (gameOver || showTerminal || catMovementDisabled || pickupMovementDisabled) return;
 
     const now = performance.now();
     const deltaTime = (now - lastTime) / 1000;
