@@ -1,6 +1,6 @@
 import { renderEngine } from "../rendering/renderengine.js";
 import { SCALE_X, SCALE_Y, CANVAS_WIDTH, CANVAS_HEIGHT } from "../globals.js";
-import { genericGunSprite, rustyKeySprite } from "../rendering/sprites/spritetextures.js";
+import { genericGunSprite, rustyKeySprite, metalPipeSprite } from "../rendering/sprites/spritetextures.js";
 
 // Style constants
 const COLORS = {
@@ -80,6 +80,20 @@ export function drawNpcDialogue(dialogueLines, currentDialogueIndex) {
     if (line) {
         drawWrappedText(line, box.x + box.paddingX, box.y + box.paddingY, box.maxTextWidth, box.lineHeight);
     }
+    renderEngine.restore();
+}
+
+export function drawMetalPipePickupBox() {
+    basicPickUpMenuStyle();
+    renderEngine.save();
+    renderEngine.globalAlpha = COLORS.boxBackgroundAlphaSolid;
+    renderEngine.fillStyle = COLORS.text;
+    renderEngine.font = FONTS.base;
+    const text = "You found a metal pipe! It looks like it could be useful. Press [Space] to swing.";
+    const box = BOX.pickup;
+    drawWrappedText(text, box.x + box.paddingX, box.y + box.paddingY, box.maxTextWidth, box.lineHeight);
+    const imgX = box.x + (box.width - box.imgWidth) / 2
+    renderEngine.drawImage(metalPipeSprite, imgX, box.y + box.imgY, box.imgWidth, box.imgHeight);
     renderEngine.restore();
 }
 

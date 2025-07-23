@@ -7,7 +7,12 @@ import { playerInventory } from "../playerdata/playerinventory.js";
 import { spriteState } from "../rendering/sprites/spritetextures.js"
 import { genericGunAmmo, setGenericGunAmmo } from "../itemhandler/guns/gunregistry.js";
 import { LAYERS } from "../rendering/sprites/rendersprites.js";
+import { drawMetalPipePickupBox } from "../menus/overlays.js";
+import { keys } from "../playerdata/playerlogic.js";
+import { metalPipeSpriteInteraction } from "../interactions/interactionlogic.js";
 
+/*
+// game_engine/playerdata/collisionlogic.js
 export function simpleCollissionTest() {
     // Detailed sprite debug info
     console.debug("MetalPipe collision check - Sprite state:", {
@@ -26,6 +31,7 @@ export function simpleCollissionTest() {
     const dx = metalPipeSprite ? metalPipeSprite.worldPos.x - playerPosition.x : null;
     const dz = metalPipeSprite ? metalPipeSprite.worldPos.z - playerPosition.z : null;
     const distance = dx && dz ? Math.sqrt(dx * dx + dz * dz) : null;
+
     // Debug log with detailed coordinates
     console.log("MetalPipe Collision Check:", {
         currentMapKey: spriteManager.currentMapKey,
@@ -37,6 +43,7 @@ export function simpleCollissionTest() {
         distance,
         canPickup: distance !== null && distance <= 100 && !playerInventory.includes("metal_pipe")
     });
+
     // If the item is already collected, just return without warning
     if (spriteState.isMetalPipeCollected) {
         return;
@@ -50,11 +57,15 @@ export function simpleCollissionTest() {
 
     const pickupDistance = 100; // Increased to test map_debug
 
+    // Show pickup box if player is close enough and hasn't picked up the item
     if (distance <= pickupDistance && !playerInventory.includes("metal_pipe")) {
-        console.log("Picking up metal_pipe on", spriteManager.currentMapKey);
-        playerInventory.push("metal_pipe");
-        spriteState.isMetalPipeCollected = true;
+        console.log("Player near metal pipe on", spriteManager.currentMapKey);
+        drawMetalPipePickupBox(); // Only draw the box, let interactionlogic.js handle pickup
     }
+}
+    */
+
+export function simpleCollissionTest() {
 }
 
 export function nineMMAmmoCollission() {
