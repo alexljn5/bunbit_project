@@ -9,6 +9,7 @@ export const textureIdMap = new Map([
     [8, "wall_laughing_demon"],
     [9, "wall_brick_door01_open"],
     [10, "wall_brick_door01_closed"],
+    [11, "fence_wall_test"]
 ]);
 
 export const floorTextureIdMap = new Map([

@@ -16,6 +16,7 @@ const tileTextures = {
     wall_laughing_demon: isBrowser ? [] : [],
     wall_brick_door01_closed: isBrowser ? new Image() : { src: "./img/sprites/walls/wall_brick_door01_closed.png" },
     wall_brick_door01_open: isBrowser ? new Image() : { src: "./img/sprites/walls/wall_brick_door01_open.png" },
+    wall_fence_test: isBrowser ? new Image() : { src: "./img/sprites/walls/fence_wall_test.png" },
 };
 
 // Set image sources in browser
@@ -29,6 +30,7 @@ if (isBrowser) {
     tileTextures.wall_brick_graffiti_01.src = "./img/sprites/decoration/wall_brick_graffiti_01.png";
     tileTextures.wall_brick_door01_open.src = "./img/sprites/walls/wall_brick_door01_open.png";
     tileTextures.wall_brick_door01_closed.src = "./img/sprites/walls/wall_brick_door01_closed.png";
+    tileTextures.wall_fence_test.src = "./img/sprites/walls/fence_wall_test.png";
 }
 
 const demonLaughingFrameCount = 7;
@@ -59,6 +61,7 @@ export const fullTileBrickGraffiti01 = { type: "wall", textureId: 7, texture: "w
 export const fullTileLaughingDemon = { type: "wall", textureId: 8, texture: "wall_laughing_demon", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
 export const fullTileBrickDoor01Open = { type: "wall", textureId: 9, texture: "wall_brick_door01_open", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
 export const fullTileBrickDoor01Closed = { type: "wall", textureId: 10, texture: "wall_brick_door01_closed", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
+export const fullTileFenceWallTest = { type: "wall", textureId: 11, texture: "wall_fence_test", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
 export const emptyTile = { type: "empty", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
 
 export const tileTexturesMap = new Map();

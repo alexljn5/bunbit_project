@@ -55,7 +55,7 @@ export function metalPipeSpriteInteraction() {
             playerMovementDisabled = false; // Re-enable movement if already picked up
             console.log("Oh, I already have the metal pipe, Cheese! *smiles* Let’s keep exploring!");
         }
-    }
+    } 
     metalPipeTState = keys.t;
 
     // Draw the pickup box if it should be shown

@@ -1,6 +1,6 @@
 import {
     fullTile, emptyTile, fullTileAldi, fullTileBrick, fullTileSatanic, fullTileSchizoEye,
-    fullTileBrickGraffiti01, fullTileLaughingDemon, fullTileBrickDoor01Closed, fullTileBrickDoor01Open
+    fullTileBrickGraffiti01, fullTileLaughingDemon, fullTileBrickDoor01Closed, fullTileBrickDoor01Open, fullTileFenceWallTest
 } from './maptexturesloader.js';
 
 // Starting room (10x8)
@@ -12,7 +12,7 @@ export const map_01_sector1 = [
     [fullTileBrick, emptyTile, fullTileBrickDoor01Closed, emptyTile, fullTileBrick, fullTileBrick],
     [fullTileBrick, emptyTile, fullTileBrick, fullTileBrick, fullTileBrick],
     [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
-    [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
+    [fullTileBrick, fullTileFenceWallTest, fullTileFenceWallTest, emptyTile, fullTileBrick],
     [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
     [fullTileBrick, fullTileBrick, emptyTile, fullTileBrick, fullTileBrick],
     [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
