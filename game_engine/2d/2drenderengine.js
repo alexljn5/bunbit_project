@@ -1,27 +1,88 @@
 import { gameLoop } from "../main_game.js";
 import { _2DPlayerLogicTest, _2DPlayerLogic } from "./2dplayerdata/2dplayerlogic.js";
 import { creepyShit } from "./creepyeffecttest.js";
+import { CANVAS_WIDTH, CANVAS_HEIGHT, updateCanvasResolution, SCALE_X, SCALE_Y } from "../globals.js";
+import { _2DKeys } from "./2dplayerdata/2dkeys.js";
 
-const domElements = {
-    _2DMainGameRender: document.getElementById("_2DMainGameRender"),
-    _2DPlayGameButton: document.getElementById("_2DPlayGameButton"),
+// --- DOM Elements ---
+const _2DDomElements = {
+    _2DMainGameRender: null,
+    _2DPlayGameButton: null,
 };
 
-export const _2DRenderEngine = domElements._2DMainGameRender.getContext("2d");
+export let _2DRenderEngine = null;
 export let _2DGame = null;
+let isRenderingFrame = false;
 
-domElements._2DPlayGameButton.onclick = function () {
-    if (!_2DGame) _2DMainGameRender();
-    _2DGame.start();
-};
-
-export function _2DMainGameRender() {
-    _2DGame = gameLoop(_2DGameRenderEngine);
+// --- Initialize DOM Elements ---
+function initializeDomElements() {
+    _2DDomElements._2DMainGameRender = document.getElementById("_2DMainGameRender");
+    _2DDomElements._2DPlayGameButton = document.getElementById("_2DPlayGameButton");
+    if (!_2DDomElements._2DMainGameRender || !_2DDomElements._2DPlayGameButton) {
+        console.error("Failed to find 2D canvas or play button! *pouts*");
+        return false;
+    }
+    _2DRenderEngine = _2DDomElements._2DMainGameRender.getContext("2d");
+    if (!_2DRenderEngine) {
+        console.error("Failed to get 2D canvas context! *tilts head*");
+        return false;
+    }
+    return true;
 }
 
-function _2DGameRenderEngine() {
-    _2DPlayerLogic();
-    _2DPlayerLogicTest();
-    creepyShit();
+// --- Button Handlers ---
+function setupButtonHandlers() {
+    if (_2DDomElements._2DPlayGameButton) {
+        _2DDomElements._2DPlayGameButton.addEventListener("click", () => {
+            console.log("Play 2D button clicked! *hops excitedly*");
+            if (!_2DGame) mainGameRender();
+            _2DGame.start();
+        });
+    }
 }
 
+// --- Main Game Render Setup ---
+export function mainGameRender() {
+    console.log("Initializing 2D Game... *twirls*");
+    if (!_2DDomElements._2DMainGameRender) {
+        console.error("Canvas element not found! *chao chao*");
+        return;
+    }
+    updateCanvasResolution(true); // Set to 800x800 (high-res)
+    _2DDomElements._2DMainGameRender.width = CANVAS_WIDTH;
+    _2DDomElements._2DMainGameRender.height = CANVAS_HEIGHT;
+    console.log(`Canvas size set to ${CANVAS_WIDTH}x${CANVAS_HEIGHT}`);
+    _2DGame = gameLoop(gameRenderEngine);
+    console.log("2D Game initialized");
+}
+
+// --- Main Game Render Loop ---
+async function gameRenderEngine() {
+    if (isRenderingFrame) return;
+    isRenderingFrame = true;
+    try {
+        // Clear the canvas
+        _2DRenderEngine.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+        // Run game logic
+        _2DPlayerLogic();
+        _2DPlayerLogicTest();
+        creepyShit();
+        console.log("2D Game Frame Rendered");
+    } catch (error) {
+        console.error("gameRenderEngine error:", error);
+        _2DRenderEngine.fillStyle = "gray";
+        _2DRenderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    } finally {
+        isRenderingFrame = false;
+    }
+}
+
+// --- Initialize on DOM Load ---
+window.addEventListener('DOMContentLoaded', () => {
+    if (initializeDomElements()) {
+        setupButtonHandlers();
+    } else {
+        console.error("Initialization failed! Check DOM elements. *sad chao*");
+    }
+});

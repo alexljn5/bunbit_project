@@ -1,0 +1,11 @@
+._2DGameButtons {
+    position: absolute;
+    left: 30px;
+    top: 120px;
+}
+
+._2DGameRender {
+    display: flex;
+    align-self: flex-start;
+    border: 2px solid white;
+}

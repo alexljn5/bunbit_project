@@ -1,5 +1,6 @@
 export const domElements = {
     mainGameRender: typeof document !== 'undefined' ? document.getElementById("mainGameRender") : null,
+    _2DMainGameRender: typeof document !== 'undefined' ? document.getElementById("_2DMainGameRender") : null,
 };
 
 export let HIGH_RES_ENABLED = false;
