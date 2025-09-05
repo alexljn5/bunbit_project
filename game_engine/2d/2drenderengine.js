@@ -3,6 +3,7 @@ import { _2DPlayerLogicTest, _2DPlayerLogic } from "./2dplayerdata/2dplayerlogic
 import { creepyShit } from "./creepyeffecttest.js";
 import { CANVAS_WIDTH, CANVAS_HEIGHT, updateCanvasResolution, SCALE_X, SCALE_Y } from "../globals.js";
 import { _2DKeys } from "./2dplayerdata/2dkeys.js";
+import { init2DMainMenu, render2DMainMenu } from "./2dmenus/2dmainmenu.js";
 
 // --- DOM Elements ---
 const _2DDomElements = {
@@ -13,6 +14,7 @@ const _2DDomElements = {
 export let _2DRenderEngine = null;
 export let _2DGame = null;
 let isRenderingFrame = false;
+let isInMenu = true; // Track menu state
 
 // --- Initialize DOM Elements ---
 function initializeDomElements() {
@@ -64,11 +66,16 @@ async function gameRenderEngine() {
         // Clear the canvas
         _2DRenderEngine.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-        // Run game logic
-        _2DPlayerLogic();
-        _2DPlayerLogicTest();
-        creepyShit();
-        console.log("2D Game Frame Rendered");
+        if (isInMenu) {
+            // Run menu
+            render2DMainMenu(_2DRenderEngine);  // Pass the rendering context
+        } else {
+            // Run game logic
+            _2DPlayerLogic();
+            _2DPlayerLogicTest();
+            creepyShit();
+            console.log("2D Game Frame Rendered");
+        }
     } catch (error) {
         console.error("gameRenderEngine error:", error);
         _2DRenderEngine.fillStyle = "gray";
