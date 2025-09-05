@@ -1,7 +1,6 @@
 import {
     MENU_COLORS,
     MENU_FONTS,
-    MENU_LAYOUTS,
     drawStandardButton,
     drawText,
     centerText
@@ -12,19 +11,29 @@ let menuButtons = [];
 let selectedButton = null;
 
 export function init2DMainMenu() {
-    // Create menu buttons using the centerColumn layout
-    menuButtons = MENU_LAYOUTS.centerColumn([
+    console.log("Initializing 2D menu... *twirls*");
+    // Fallback centerColumn implementation
+    const buttonWidth = 200;
+    const buttonHeight = 50;
+    const buttonSpacing = 20;
+    const startY = CANVAS_HEIGHT / 2 - 100;
+
+    menuButtons = [
         { name: "Play 2D Game", action: "play" },
         { name: "Settings", action: "settings" },
         { name: "Credits", action: "credits" },
         { name: "Back to 3D", action: "back" }
-    ]);
-
-    // Add hover property to each button
-    menuButtons = menuButtons.map(button => ({
-        ...button,
+    ].map((button, index) => ({
+        name: button.name,
+        action: button.action,
+        x: (CANVAS_WIDTH - buttonWidth) / 2,
+        y: startY + index * (buttonHeight + buttonSpacing),
+        width: buttonWidth,
+        height: buttonHeight,
         hovered: false
     }));
+
+    console.log("Menu buttons created:", menuButtons);
 }
 
 export function render2DMainMenu(context) {
@@ -42,6 +51,7 @@ export function render2DMainMenu(context) {
 
     // Draw buttons
     menuButtons.forEach(button => {
+        console.log(`Drawing button: ${button.name} at ${button.x},${button.y}`);
         drawStandardButton(context, button, button.name, button.hovered);
     });
 }
@@ -53,6 +63,7 @@ export function handle2DMenuClick(x, y) {
             y >= button.y &&
             y <= button.y + button.height) {
             selectedButton = button.action;
+            console.log(`Button clicked: ${button.action} *chao chao*`);
             return button.action;
         }
     }

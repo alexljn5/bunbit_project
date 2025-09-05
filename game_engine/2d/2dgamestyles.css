@@ -1,11 +1,6 @@
 ._2DGameRender {
     display: flex;
-    align-self: flex-start;
-    border: 2px solid white;
-}
-
-._2DGameButtons {
-    display: flex;
-    align-self: flex-start;
+    justify-content: center;
+    align-items: center;
     border: 2px solid white;
 }

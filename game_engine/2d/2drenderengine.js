@@ -3,12 +3,11 @@ import { _2DPlayerLogicTest, _2DPlayerLogic } from "./2dplayerdata/2dplayerlogic
 import { creepyShit } from "./creepyeffecttest.js";
 import { CANVAS_WIDTH, CANVAS_HEIGHT, updateCanvasResolution, SCALE_X, SCALE_Y } from "../globals.js";
 import { _2DKeys } from "./2dplayerdata/2dkeys.js";
-import { init2DMainMenu, render2DMainMenu } from "./2dmenus/2dmainmenu.js";
+import { init2DMainMenu, render2DMainMenu, handle2DMenuClick, handle2DMenuHover } from "./2dmenus/2dmainmenu.js";
 
 // --- DOM Elements ---
 const _2DDomElements = {
     _2DMainGameRender: null,
-    _2DPlayGameButton: null,
 };
 
 export let _2DRenderEngine = null;
@@ -19,9 +18,8 @@ let isInMenu = true; // Track menu state
 // --- Initialize DOM Elements ---
 function initializeDomElements() {
     _2DDomElements._2DMainGameRender = document.getElementById("_2DMainGameRender");
-    _2DDomElements._2DPlayGameButton = document.getElementById("_2DPlayGameButton");
-    if (!_2DDomElements._2DMainGameRender || !_2DDomElements._2DPlayGameButton) {
-        console.error("Failed to find 2D canvas or play button! *pouts*");
+    if (!_2DDomElements._2DMainGameRender) {
+        console.error("Failed to find 2D canvas! *pouts*");
         return false;
     }
     _2DRenderEngine = _2DDomElements._2DMainGameRender.getContext("2d");
@@ -34,11 +32,36 @@ function initializeDomElements() {
 
 // --- Button Handlers ---
 function setupButtonHandlers() {
-    if (_2DDomElements._2DPlayGameButton) {
-        _2DDomElements._2DPlayGameButton.addEventListener("click", () => {
-            console.log("Play 2D button clicked! *hops excitedly*");
-            if (!_2DGame) mainGameRender();
-            _2DGame.start();
+    // Initialize and start the game immediately
+    if (!_2DGame) {
+        mainGameRender();
+        _2DGame.start();
+    }
+
+    // Add canvas click handler for menu interaction
+    if (_2DDomElements._2DMainGameRender) {
+        _2DDomElements._2DMainGameRender.addEventListener("click", (event) => {
+            if (!isInMenu) return;
+
+            const rect = _2DDomElements._2DMainGameRender.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+
+            const action = handle2DMenuClick(x, y);
+            if (action === "play") {
+                console.log("Starting 2D game from menu...");
+                isInMenu = false;
+            }
+        });
+
+        _2DDomElements._2DMainGameRender.addEventListener("mousemove", (event) => {
+            if (!isInMenu) return;
+
+            const rect = _2DDomElements._2DMainGameRender.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+
+            handle2DMenuHover(x, y);
         });
     }
 }
@@ -54,6 +77,10 @@ export function mainGameRender() {
     _2DDomElements._2DMainGameRender.width = CANVAS_WIDTH;
     _2DDomElements._2DMainGameRender.height = CANVAS_HEIGHT;
     console.log(`Canvas size set to ${CANVAS_WIDTH}x${CANVAS_HEIGHT}`);
+
+    // Initialize the menu once
+    init2DMainMenu();
+
     _2DGame = gameLoop(gameRenderEngine);
     console.log("2D Game initialized");
 }

@@ -97,13 +97,30 @@ export const MENU_LAYOUTS = {
 
 // Helper functions for common UI elements
 export function drawStandardButton(context, button, text, isHovered = false) {
+    // Debug log to verify button properties
+    console.log(`Button properties:`, {
+        x: button.x,
+        y: button.y,
+        width: button.width,
+        height: button.height,
+        text: text,
+        isHovered: isHovered
+    });
+
+    // Draw button background
     context.fillStyle = isHovered ? MENU_COLORS.buttons.hover : MENU_COLORS.buttons.normal;
     context.fillRect(button.x, button.y, button.width, button.height);
+
+    // Draw button border
     context.strokeStyle = MENU_COLORS.buttons.border;
     context.strokeRect(button.x, button.y, button.width, button.height);
+
+    // Draw button text
     context.fillStyle = MENU_COLORS.primary.text;
     context.font = MENU_FONTS.button();
-    context.fillText(text, button.x + button.textOffsetX, button.y + button.textOffsetY);
+    const textX = button.x + (button.width * 0.1); // 10% padding from left
+    const textY = button.y + (button.height * 0.6); // 60% down for vertical centering
+    context.fillText(text, textX, textY);
 }
 
 export function drawDialogBox(context, box, alpha = 0.8) {
