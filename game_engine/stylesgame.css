@@ -39,9 +39,26 @@ body {
 }
 
 canvas#mainGameRender {
-    border: 1px solid black;
+    border: 0px solid black;
     display: block;
     /* Prevent flex issues */
+    image-rendering: pixelated;
+    /* CRISP PIXELS - fixes blurry upscale! */
+    image-rendering: -moz-crisp-edges;
+    /* Firefox */
+    image-rendering: crisp-edges;
+    /* Safari/Chrome alternative */
+}
+
+canvas#mainGameRender,
+canvas.ai-overlay {
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    /* Firefox */
+    image-rendering: crisp-edges;
+    /* Safari/other */
+    transform-origin: top left;
+    /* Consistent scaling anchor */
 }
 
 canvas#staminaBar,

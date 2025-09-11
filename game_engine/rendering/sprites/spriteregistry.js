@@ -18,7 +18,8 @@ import {
     placeholderAiSprite, placeholderAiSpriteLoaded,
     getCreamSpinCurrentFrame, rustyKeySpriteLoaded, rustyKeySprite,
     rustyKeySpritePlayerHandLoaded,
-    rustyKeySpritePlayerHandSprite
+    rustyKeySpritePlayerHandSprite,
+    computerAiSprite, computerAiSpriteLoaded
 } from "./spritetextures.js";
 import { SCALE_X, SCALE_Y, CANVAS_HEIGHT, CANVAS_WIDTH, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT } from "../../globals.js";
 import { playerPosition, playerVantagePointY, getPlayerBobbingOffset } from "../../playerdata/playerlogic.js";
@@ -329,5 +330,21 @@ export function registerSprites() {
 
         spriteManager.addSpriteForMaps(placeholderAI, Object.keys(worldPos), worldPos);
         initPlaceholderAIHealth(placeholderId);
+    });
+
+    const computerAi = new Sprite({
+        id: 'computerAi',
+        image: computerAiSprite,
+        worldPos: { x: 4.0 * tileSectors, z: 4.0 * tileSectors },
+        isLoaded: computerAiSpriteLoaded,
+        layer: LAYERS.BACKGROUND,
+        baseWidthRatio: 128 / REF_CANVAS_WIDTH,
+        baseHeightRatio: 128 / REF_CANVAS_HEIGHT,
+        aspectRatio: 1, // Square sprite
+        baseYRatio: 400 / REF_CANVAS_HEIGHT,
+        scaleFactor: 0.5
+    });
+    spriteManager.addSpriteForMaps(computerAi, ["map_03"], {
+        map_01: { worldPos: { x: 4.0 * tileSectors, z: 4.0 * tileSectors } }
     });
 }

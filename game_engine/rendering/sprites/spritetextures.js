@@ -43,6 +43,8 @@ export let rustyKeySprite = new Image();
 export let rustyKeySpriteLoaded = false;
 export let rustyKeySpritePlayerHandSprite = new Image();
 export let rustyKeySpritePlayerHandLoaded = false;
+export let computerAiSprite = new Image();
+export let computerAiSpriteLoaded = false;
 
 // Set up image loading
 playerHandSprite.src = "./img/sprites/playerhand/playerhand_default.png";
@@ -146,6 +148,7 @@ placeholderAiSprite.onload = () => {
 placeholderAiSprite.onerror = () => {
     console.error("Failed to load carenemytest.png");
 };
+
 rustyKeySprite.src = "./img/sprites/items/rusty_key.png";
 rustyKeySprite.onload = () => {
     rustyKeySpriteLoaded = true;
@@ -159,6 +162,14 @@ rustyKeySpritePlayerHandSprite.onload = () => {
 }
 rustyKeySpritePlayerHandSprite.onerror = () => {
     console.error("Failed to load playerhand_rusty_key.png");
+};
+
+computerAiSprite.src = "./img/sprites/computerai/computerai.png";
+computerAiSprite.onload = () => {
+    computerAiSpriteLoaded = true;
+};
+computerAiSprite.onerror = () => {
+    console.error("Failed to load computerai.png");
 };
 
 if (typeof window !== 'undefined') window.boyKisserEnemyHealth = boyKisserEnemyHealth;

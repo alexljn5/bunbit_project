@@ -7,6 +7,7 @@ import { casperLesserDemon } from "./casperlesserdemon.js";
 import { mapTable, tileSectors } from "../mapdata/maps.js";
 import { mapHandler } from "../mapdata/maphandler.js";
 import { map_01 } from "../mapdata/map_01.js"; // Import legacy map_01 for fallback
+import { computerAIGodFunction } from "./computerai/computerai.js";
 
 // AI registries per map
 const enemyAiRegistry = new Map();
@@ -38,6 +39,7 @@ function initializeAiRegistries() {
         enemyFunctions.push(casperLesserDemon);
         enemyFunctions.push(placeholderAIGodFunction);
         friendlyFunctions.push(boyKisserNpcAIGodFunction);
+        friendlyFunctions.push(computerAIGodFunction);
 
         enemyAiRegistry.set(mapKey, enemyFunctions);
         friendlyAiRegistry.set(mapKey, friendlyFunctions);
