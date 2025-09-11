@@ -7,7 +7,7 @@ import { getCreamSpinCurrentFrame, spriteState } from "./rendering/sprites/sprit
 import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, HIGH_RES_ENABLED, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT } from "./globals.js";
 import { spriteManager } from "./rendering/sprites/rendersprites.js";
 import { renderSprite } from "./rendering/sprites/spriteutils.js";
-import { gameVersionNumber } from "./globals.js";
+import { gameVersionNumber, gameName } from "./globals.js";
 import { LAYERS } from "./rendering/sprites/rendersprites.js";
 
 let spriteId = null;
@@ -39,7 +39,7 @@ function drawDebugOverlay() {
     // Draw version text
     renderEngine.fillStyle = "#fff";
     renderEngine.font = `${22 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
-    renderEngine.fillText(`IDLE 2.5D TEST: ${gameVersionNumber}`, overlayX + 10 * SCALE_X, overlayY + 30 * SCALE_Y);
+    renderEngine.fillText(`${gameName}: ${gameVersionNumber}`, overlayX + 10 * SCALE_X, overlayY + 30 * SCALE_Y);
 
     // Draw FPS
     if (!lastFrameTime) lastFrameTime = performance.now();

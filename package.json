@@ -35,7 +35,10 @@
     ]
   },
   "devDependencies": {
-    "electron": "^latest",
-    "electron-builder": "^latest"
+    "electron": "^38.1.0",
+    "electron-builder": "latest"
+  },
+  "dependencies": {
+    "mysql2": "^3.14.5"
   }
 }

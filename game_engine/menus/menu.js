@@ -6,6 +6,7 @@ import { mapTable } from "../mapdata/maps.js";
 import { mapHandler } from "../mapdata/maphandler.js";
 import { playerPosition } from "../playerdata/playerlogic.js";
 import { spriteManager } from "../rendering/sprites/rendersprites.js";
+import { gameVersionNumber, gameName } from "../globals.js";
 
 let buttons = [
     { name: "Play", x: (CANVAS_WIDTH / 2 - 50 * SCALE_X), y: (CANVAS_HEIGHT / 2 - 200 * SCALE_Y), width: 100 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
@@ -47,8 +48,8 @@ function menuBackGround() {
 function menuSimpleText() {
     compiledTextStyle();
     renderEngine.fillStyle = "#fff";
-    renderEngine.fillText("Idle Test 2.5D", CANVAS_WIDTH - 500 * SCALE_X, 100 * SCALE_Y);
-    renderEngine.fillText("Version Alpha 0.0.3", CANVAS_WIDTH - 530 * SCALE_X, 150 * SCALE_Y);
+    renderEngine.fillText(gameName, CANVAS_WIDTH - 500 * SCALE_X, 100 * SCALE_Y);
+    renderEngine.fillText(`Version ${gameVersionNumber}`, CANVAS_WIDTH - 490 * SCALE_X, 150 * SCALE_Y);
 }
 
 function menuButtons() {
