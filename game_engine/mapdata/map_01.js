@@ -9,7 +9,7 @@ export const map_01_sector1 = [
     [fullTileBrick, emptyTile, fullTileBrick, emptyTile, fullTileBrick, fullTileBrick],
     [fullTileBrick, emptyTile, fullTileBrick, emptyTile, fullTileBrick, fullTileBrick],
     [fullTileBrick, emptyTile, fullTileBrick, emptyTile, fullTileBrick, fullTileBrick],
-    [fullTileBrick, emptyTile, fullTileBrickDoor01Closed, emptyTile, fullTileBrick, fullTileBrick],
+    [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick, fullTileBrick],
     [fullTileBrick, emptyTile, fullTileBrick, fullTileBrick, fullTileBrick],
     [fullTileBrick, emptyTile, emptyTile, emptyTile, fullTileBrick],
     [fullTileBrick, fullTileFenceWallTest, fullTileFenceWallTest, emptyTile, fullTileBrick],
