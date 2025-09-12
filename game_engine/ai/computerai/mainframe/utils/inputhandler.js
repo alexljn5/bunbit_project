@@ -1,9 +1,14 @@
 import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y } from "../../../../globals.js";
 import { computerAIRenderEngine } from "../../computerai.js";
 import { CURRENT_COMPUTER_STATE, setComputerState } from "../../computeraiglobals.js";
+import { REF_CANVAS_HEIGHT, REF_CANVAS_WIDTH } from "../../../../globals.js";
 
 // Global state
-let activeElement = null;
+export let activeElement = null; // Make sure it's declared with 'let'
+export function setActiveElement(element) {
+    activeElement = element;
+}
+
 let mouseX = 0;
 let mouseY = 0;
 export let username = "";
@@ -69,7 +74,7 @@ function handleClick(e, canvas) {
         });
     } else if (CURRENT_COMPUTER_STATE === "desktop") {
         import("../ui/desktop/desktopenvironment.js").then(module => {
-            module.testEnvironmentGodFunction();
+            module.desktopEnvironmentGodFunction();
         });
     }
 }
@@ -190,9 +195,6 @@ export async function loadTestEnvironment() {
     }, 1000);
 }
 
-
-// Export state
-export { activeElement };
 
 // Listen for res change
 if (typeof window !== 'undefined') {
