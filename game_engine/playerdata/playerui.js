@@ -33,7 +33,6 @@ export function playerUI() {
     } else {
         playerFaceIndex = 4; // casperface5 (near death)
     }
-    console.log(`Player HP: ${playerHealth.playerHealth}, Face Index: ${playerFaceIndex} *twirls*`);
 
     // Draw semi-transparent background
     renderEngine.fillStyle = "rgba(26, 24, 24, 0.5)";

@@ -39,10 +39,8 @@ export function resetMap01Events() {
 
 export function map01EventsGodFunction(onComplete = () => { }) {
     if (mapHandler.activeMapKey !== "map_01") {
-        console.log("map_01_events.js: map_01 not active, skipping events.");
         return;
     }
-    console.log("map_01_events.js: map_01 active, running events *giggles*");
     if (typeof onComplete !== "function") onComplete = () => { };
     if (!state.eventStartTimeGlobal) state.eventStartTimeGlobal = performance.now();
     map01Event01(onComplete);
