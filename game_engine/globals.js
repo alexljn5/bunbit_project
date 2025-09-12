@@ -6,7 +6,7 @@ export const domElements = {
     _2DMainGameRender: typeof document !== 'undefined' ? document.getElementById("_2DMainGameRender") : null,
 };
 
-export let HIGH_RES_ENABLED = false;
+export let HIGH_RES_ENABLED = true;
 export let CANVAS_WIDTH;
 export let CANVAS_HEIGHT;
 export let SCALE_X;
@@ -14,6 +14,15 @@ export let SCALE_Y;
 
 export const REF_CANVAS_WIDTH = 800;
 export const REF_CANVAS_HEIGHT = 800;
+
+// NEW: Debug toggle via URL param (?debug=true for high-res)
+if (typeof window !== 'undefined') {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('debug') === 'true') {
+        HIGH_RES_ENABLED = true;
+        console.log("Debug mode: High-res enabled! *chao chao*");
+    }
+}
 
 // Math Tables for Fast Trig
 export const SIN_TABLE_SIZE = 1024; // Reduced from 2048 for better cache locality
@@ -81,7 +90,7 @@ export function updateCanvasResolution(highResEnabled) {
 
 // Initialize with default (low-res) in browser or Node.js
 if (domElements.mainGameRender) {
-    updateCanvasResolution(false);
+    updateCanvasResolution(HIGH_RES_ENABLED);  // FIX: Use the debug variable!
 } else {
     CANVAS_WIDTH = 400;
     CANVAS_HEIGHT = 400;

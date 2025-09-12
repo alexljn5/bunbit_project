@@ -38,7 +38,7 @@ export function drawComputerAICanvas() {
         return;  // No drawing when paused—easy peasy!
     }
     //Debug, remove the ! for the interaction key at final product
-    if (isInteractionKeyPressed() && !isAIOverlayActive) {
+    if (!isInteractionKeyPressed() && !isAIOverlayActive) {
         isAIOverlayActive = true;
         setPaused(true);
         renderEngine.save();

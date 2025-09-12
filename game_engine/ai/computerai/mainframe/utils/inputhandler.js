@@ -178,8 +178,8 @@ export async function loadTestEnvironment() {
         try {
             const module = await import("../ui/desktop/desktopenvironment.js");
             setComputerState("desktop");
-            if (module.testEnvironmentGodFunction) {
-                module.testEnvironmentGodFunction();
+            if (module.desktopEnvironmentGodFunction) {
+                module.desktopEnvironmentGodFunction();
             }
             console.log("Test environment loaded successfully!");
         } catch (error) {

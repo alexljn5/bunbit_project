@@ -37,10 +37,10 @@ export function computerAIGodFunction() {
         drawComputerAICanvas();
         computerAiDesktopEnvironmentGodFunction();
         loadAsciiArt();  // Load ASCII art once at start
-    } else if (CURRENT_COMPUTER_STATE === "test") {
+    } else if (CURRENT_COMPUTER_STATE === "desktop") {
         //Fart  
         import("./mainframe/ui/desktop/desktopenvironment.js").then(module => {
-            module.testEnvironmentGodFunction();
+            module.desktopEnvironmentGodFunction();
         });
     }
 }
