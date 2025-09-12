@@ -4,8 +4,9 @@ import { isInteractionKeyPressed } from "../../../playerdata/playerlogic.js";
 import { computerAICanvas, computerAIRenderEngine } from "../computerai.js";
 import { REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT, CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y } from "../../../globals.js";
 import { initInputHandler } from "./utils/inputhandler.js";
+import { spriteManager } from "../../../rendering/sprites/rendersprites.js";
+import { playerPosition } from "../../../playerdata/playerlogic.js";
 
-let isAIOverlayActive = false;  // Track to avoid multiples
 
 // NEW: Function to reposition overlay (call on trigger or res change)
 function repositionOverlay() {
@@ -32,39 +33,50 @@ function repositionOverlay() {
     console.log("Overlay repositioned!");
 }
 
+let isAIOverlayActive = false;
+const interactionRadius = 2.0 * 50; // Adjust radius as needed (2 tiles = 2 * 50 units)
+
 export function drawComputerAICanvas() {
-    // Skip if game is paused!
-    if (isPaused) {
-        return;  // No drawing when paused—easy peasy!
-    }
-    //Debug, remove the ! for the interaction key at final product
-    if (!isInteractionKeyPressed() && !isAIOverlayActive) {
-        isAIOverlayActive = true;
-        setPaused(true);
-        renderEngine.save();
+    if (isPaused || isAIOverlayActive) return;
 
-        // NEW: Update internal res on trigger (matches current graphics)
-        computerAICanvas.width = CANVAS_WIDTH;
-        computerAICanvas.height = CANVAS_HEIGHT;
+    // Check interaction key
+    if (!isInteractionKeyPressed()) return;
 
-        // CSS: Match display size (REF for full coverage)
-        computerAICanvas.style.width = `${REF_CANVAS_WIDTH}px`;
-        computerAICanvas.style.height = `${REF_CANVAS_HEIGHT}px`;
-        computerAICanvas.style.position = "absolute";
-        computerAICanvas.style.top = "0";
-        computerAICanvas.style.left = "0";
-        computerAICanvas.style.zIndex = "1000";
-        computerAICanvas.style.transformOrigin = "0 0";  // Top-left for relative pos
-        computerAICanvas.className = "ai-overlay";
+    // Get the computer sprite world position
+    const computerSprite = spriteManager.getSprite("computerAi");
+    if (!computerSprite?.worldPos) return;
 
-        repositionOverlay();  // Set position
+    const dx = computerSprite.worldPos.x - playerPosition.x;
+    const dz = computerSprite.worldPos.z - playerPosition.z;
+    const distance = Math.sqrt(dx * dx + dz * dz);
 
-        // Draw full black overlay
-        computerAIRenderEngine.fillStyle = "#000";
-        computerAIRenderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    if (distance > interactionRadius) return; // Too far, do nothing
 
-        initInputHandler(computerAICanvas);
-    }
+    isAIOverlayActive = true;
+    setPaused(true);
+    renderEngine.save();
+
+    // Set canvas resolution
+    computerAICanvas.width = CANVAS_WIDTH;
+    computerAICanvas.height = CANVAS_HEIGHT;
+
+    // CSS: Match display size (REF for full coverage)
+    computerAICanvas.style.width = `${REF_CANVAS_WIDTH}px`;
+    computerAICanvas.style.height = `${REF_CANVAS_HEIGHT}px`;
+    computerAICanvas.style.position = "absolute";
+    computerAICanvas.style.top = "0";
+    computerAICanvas.style.left = "0";
+    computerAICanvas.style.zIndex = "1000";
+    computerAICanvas.style.transformOrigin = "0 0";  // Top-left for relative pos
+    computerAICanvas.className = "ai-overlay";
+
+    repositionOverlay();  // Set position
+
+    // Draw full black overlay
+    computerAIRenderEngine.fillStyle = "#000";
+    computerAIRenderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+    initInputHandler(computerAICanvas);
 }
 
 // NEW: Listen for res change to reposition if open
