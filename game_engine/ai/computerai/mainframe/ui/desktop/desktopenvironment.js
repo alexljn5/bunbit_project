@@ -5,21 +5,38 @@ import { drawAsciiArt, loadAsciiArt } from "../loadascii.js";
 import { bunbitOSText } from "../login.js";
 import { inputBox } from "../../utils/inputbox.js";
 import { REF_CANVAS_HEIGHT, REF_CANVAS_WIDTH } from "../../../../../globals.js";
-import { testButton } from "./desktopbuttons.js";
+import { desktopButtonsGodFunction } from "./desktopbuttons.js";
+
+let _animationFrameId = null; // store requestAnimationFrame id
 
 export function desktopEnvironmentGodFunction() {
+    // Only start the loop if it's not running already
+    if (!_animationFrameId) {
+        _animationFrameId = requestAnimationFrame(drawDesktop);
+    }
+}
+
+function drawDesktop() {
+    // Clear the screen
     mainDesktopEnvironmentStuff();
-    desktopenvironmentOsLogo();
+
+    // Footer
     desktopenvironmentFooter();
-    testButton();
+
+    // Buttons (images included)
+    desktopButtonsGodFunction();
+
+    // OS logo text (async)
+    desktopenvironmentOsLogo();
+
+    // Loop
+    _animationFrameId = requestAnimationFrame(drawDesktop);
 }
 
 function mainDesktopEnvironmentStuff() {
-    // Clear the screen
     computerAIRenderEngine.fillStyle = "#1a1a1a";
     computerAIRenderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-    // Draw a simple desktop environment
     computerAIRenderEngine.fillStyle = "#00ff00";
     computerAIRenderEngine.font = `${24 * SCALE_X}px Arial`;
     computerAIRenderEngine.textAlign = "center";
@@ -29,39 +46,18 @@ function mainDesktopEnvironmentStuff() {
     computerAIRenderEngine.fillStyle = "#ffffff";
     computerAIRenderEngine.font = `${16 * SCALE_X}px Arial`;
     computerAIRenderEngine.fillText("This is your desktop after successful login!", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 40);
-
-    // You can add more desktop elements here later!
-    /*
-    computerAIRenderEngine.fillStyle = "#4444ff";
-    computerAIRenderEngine.fillRect(50 * SCALE_X, 50 * SCALE_Y, 100 * SCALE_X, 100 * SCALE_Y);
-    computerAIRenderEngine.fillStyle = "#ffffff";
-    computerAIRenderEngine.fillText("App 1", 100 * SCALE_X, 100 * SCALE_Y);
-    */
 }
-// You can add more functions for your test environment here
+
 async function desktopenvironmentOsLogo() {
-    await bunbitOSText();
+    await bunbitOSText(); // async logo/text rendering
 }
 
 function desktopenvironmentFooter() {
-    // Black footer bar at the bottom
-    computerAIRenderEngine.fillStyle = "#4444ff"; // black
-    const footerHeight = 60 * SCALE_Y; // scaled height
-    computerAIRenderEngine.fillRect(
-        0, // x
-        CANVAS_HEIGHT - footerHeight + 0, // y (bottom)
-        CANVAS_WIDTH, // width spans entire canvas
-        footerHeight // height
-    );
+    const footerHeight = 60 * SCALE_Y;
+    computerAIRenderEngine.fillStyle = "#af0f0fff";
+    computerAIRenderEngine.fillRect(0, CANVAS_HEIGHT - footerHeight, CANVAS_WIDTH, footerHeight);
 
-    // Optional: some text in the footer
-    computerAIRenderEngine.fillStyle = "#0f0"; // green text
-    computerAIRenderEngine.font = `${14 * SCALE_X}px Arial`;
-    computerAIRenderEngine.textAlign = "left";
-    computerAIRenderEngine.textBaseline = "middle";
-    computerAIRenderEngine.fillText(
-        "Bunbit Desktop Footer",
-        10 * SCALE_X,
-        CANVAS_HEIGHT - footerHeight / 2
-    );
+    computerAIRenderEngine.strokeStyle = "#000";
+    computerAIRenderEngine.lineWidth = 4 * SCALE_X;
+    computerAIRenderEngine.strokeRect(0, CANVAS_HEIGHT - footerHeight, CANVAS_WIDTH, footerHeight);
 }
