@@ -1,4 +1,3 @@
-// game_engine/rendering/renderworkers/floorrenderworker.js
 let floorBuffer32;
 let textureData;
 let textureWidth = 0;
@@ -55,7 +54,7 @@ self.onmessage = function (e) {
     }
 
     if (type === 'render') {
-        const { playerPosition, startY, endY, workerId } = e.data;
+        const { playerPosition, startY, endY, workerId, clipYBuffer } = e.data;
         const playerAngle = playerPosition.angle;
         const playerX = playerPosition.x;
         const playerZ = playerPosition.z;
@@ -83,6 +82,9 @@ self.onmessage = function (e) {
         const texScaleX = textureWidth / tileSectors;
         const texScaleY = textureHeight / tileSectors;
 
+        // Receive clipY buffer
+        const workerClipY = new Float32Array(clipYBuffer);
+
         // Render floor for the assigned rows
         for (let y = Math.max(startY, Math.floor(halfHeight)); y < endY; y++) {
             const yCorrected = y - halfHeight;
@@ -109,11 +111,15 @@ self.onmessage = function (e) {
             const yOffset = (y - startY) * CANVAS_WIDTH;
 
             for (let x = 0; x < CANVAS_WIDTH; x++) {
-                const intTexX = Math.floor(texX) & (textureWidth - 1);
-                const intTexY = Math.floor(texY) & (textureHeight - 1);
-                const texOffset = intTexY * textureWidth + intTexX;
-
-                floorBuffer32[yOffset + x] = textureData[texOffset];
+                let pixelColor = ceilingColor; // Default to black (hidden)
+                if (y >= workerClipY[x]) {
+                    // Draw floor texture
+                    const intTexX = Math.floor(texX) & (textureWidth - 1);
+                    const intTexY = Math.floor(texY) & (textureHeight - 1);
+                    const texOffset = intTexY * textureWidth + intTexX;
+                    pixelColor = textureData[texOffset];
+                }
+                floorBuffer32[yOffset + x] = pixelColor;
 
                 texX += texX_step;
                 texY += texY_step;

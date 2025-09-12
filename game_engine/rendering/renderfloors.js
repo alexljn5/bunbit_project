@@ -5,6 +5,7 @@ import { playerPosition } from "../playerdata/playerlogic.js";
 import { CANVAS_HEIGHT, CANVAS_WIDTH, fastSin, fastCos } from "../globals.js";
 import { renderEngine } from "./renderengine.js";
 import { playerFOV } from "./raycasting.js";
+import { numCastRays } from "./raycasting.js";
 
 // Number of workers to use
 const NUM_WORKERS = 4;
@@ -100,7 +101,7 @@ export function cleanupFloorWorkers() {
     console.log("Floor workers terminated *chao chao*");
 }
 
-export function renderRaycastFloors() {
+export function renderRaycastFloors(rayData) {
     return new Promise(async resolve => {
         // Initialize workers if needed
         if (
@@ -128,11 +129,34 @@ export function renderRaycastFloors() {
             lastTextureKey = floorTextureKey;
         }
 
+        // Build per-column clipY buffer: start floor drawing from this y downward (init to full height)
+        const clipYBuffer = new Float32Array(CANVAS_WIDTH).fill(CANVAS_HEIGHT);
+        const halfHeight = CANVAS_HEIGHT / 2;
+        const colWidth = CANVAS_WIDTH / numCastRays;
+        for (let i = 0; i < rayData.length; i++) {
+            const ray = rayData[i];
+            if (ray && !Array.isArray(ray)) {  // Solid wall only (skip transparents for full floor under them)
+                const wallHeight = (CANVAS_HEIGHT / ray.distance) * tileSectors;
+                const wallTop = (CANVAS_HEIGHT - wallHeight) / 2;
+                const wallBottom = wallTop + wallHeight;
+                const startCol = Math.floor(i * colWidth);
+                const endCol = Math.min(Math.floor((i + 1) * colWidth), CANVAS_WIDTH);
+                for (let col = startCol; col < endCol; col++) {
+                    clipYBuffer[col] = Math.min(clipYBuffer[col], wallBottom);
+                }
+            }
+            // For Array.isArray(ray) (only transparents), skip: full floor
+        }
+
         // Split canvas height into NUM_WORKERS parts
         const rowsPerWorker = Math.ceil(CANVAS_HEIGHT / NUM_WORKERS);
         const promises = floorWorkers.map((worker, index) => {
             const startY = index * rowsPerWorker;
             const endY = Math.min(startY + rowsPerWorker, CANVAS_HEIGHT);
+
+            // Create a new ArrayBuffer copy for this worker's clipY
+            const workerClipY = new Float32Array(clipYBuffer.length);
+            workerClipY.set(clipYBuffer); // Copy the full clipY buffer
 
             return new Promise(resolveWorker => {
                 worker.onmessage = function (e) {
@@ -158,8 +182,9 @@ export function renderRaycastFloors() {
                     },
                     startY,
                     endY,
-                    workerId: index
-                });
+                    workerId: index,
+                    clipYBuffer: workerClipY.buffer  // Transfer the copied buffer
+                }, [workerClipY.buffer]);
             });
         });
 

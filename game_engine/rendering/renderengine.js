@@ -148,7 +148,7 @@ async function gameRenderEngine() {
             isRenderingFrame = false;
             return;
         }
-        await renderRaycastFloors();
+        await renderRaycastFloors(rayData);
         renderRaycastWalls(rayData);
         decorationHandlerGodFunction();
         drawSprites(rayData);
@@ -191,7 +191,11 @@ async function gameRenderEngine() {
 }
 
 // --- Utility Functions ---
-export function drawQuad({ topX, topY, leftX, leftY, rightX, rightY, color, texture, textureX }) {
+export function drawQuad({ topX, topY, leftX, leftY, rightX, rightY, color, texture, textureX, alpha = 1.0 }) {
+    renderEngine.save(); // Save state for alpha
+    if (alpha < 1.0) {
+        renderEngine.globalAlpha = alpha; // Set alpha for blending
+    }
     renderEngine.beginPath();
     renderEngine.moveTo(topX, topY);
     renderEngine.lineTo(leftX, leftY);
@@ -208,6 +212,7 @@ export function drawQuad({ topX, topY, leftX, leftY, rightX, rightY, color, text
         renderEngine.fillStyle = color;
         renderEngine.fill();
     }
+    renderEngine.restore(); // Restore state (resets alpha to 1.0)
 }
 
 function initializeRenderWorkers() {
