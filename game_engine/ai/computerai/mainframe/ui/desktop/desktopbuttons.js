@@ -5,6 +5,10 @@ import { REF_CANVAS_HEIGHT } from "../../../../../globals.js";
 let mainOSButton = null;
 
 export function desktopButtonsGodFunction() {
+    mainOSButtonFunction();
+}
+
+function mainOSButtonFunction() {
     if (!mainOSButton) {
         mainOSButton = new inputBox(
             "mainOSButton",
