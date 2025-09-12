@@ -27,8 +27,6 @@ import { keys } from "../playerdata/playerlogic.js";
 import { SCALE_X, SCALE_Y } from "../globals.js";
 import { renderRaycastWalls } from "./renderwalls.js";
 import { interactionHandlerGodFunction } from "../interactions/interactionhandler.js";
-import { renderRaycastFloors } from "./renderfloors.js";
-import { renderRaycastRoofs } from "./renderroofs.js";
 import { renderRaycastHorizons } from "./renderhorizons.js";
 
 // --- DOM Elements ---
