@@ -29,6 +29,7 @@ import { renderRaycastWalls } from "./renderwalls.js";
 import { interactionHandlerGodFunction } from "../interactions/interactionhandler.js";
 import { renderRaycastFloors } from "./renderfloors.js";
 import { renderRaycastRoofs } from "./renderroofs.js";
+import { renderRaycastHorizons } from "./renderhorizons.js";
 
 // --- DOM Elements ---
 const domElements = {
@@ -146,6 +147,7 @@ async function gameRenderEngine(deltaTime) {
         // Lock offscreen buffer for compositing
         offscreenCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
+        /*
         // Draw roofs to upper half
         if (!DEBUG_SKIP_ROOFS) {
             await renderRaycastRoofs(rayData, offscreenCtx);
@@ -161,6 +163,9 @@ async function gameRenderEngine(deltaTime) {
             const floorImageData = offscreenCtx.getImageData(0, CANVAS_HEIGHT / 2, CANVAS_WIDTH, CANVAS_HEIGHT / 2);
             renderEngine.putImageData(floorImageData, 0, CANVAS_HEIGHT / 2);
         }
+            */
+
+        await renderRaycastHorizons(rayData, offscreenCtx);
 
         console.log("Compositing to main canvas...");
         const offscreenImageData = offscreenCtx.getImageData(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
