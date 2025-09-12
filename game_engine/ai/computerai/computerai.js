@@ -5,7 +5,7 @@ import { REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT, SCALE_X, SCALE_Y, CANVAS_HEIGHT, C
 import { keys } from "../../playerdata/playerlogic.js";  // For ESC close
 import { drawComputerAICanvas } from "./mainframe/canvashandler.js";
 import { HIGH_RES_ENABLED } from "../../globals.js";
-import { placeHolderText } from "./mainframe/ui/desktop.js";
+import { computerAiDesktopEnvironmentGodFunction } from "./mainframe/ui/desktop.js";
 
 export const computerAICanvas = document.createElement("canvas");
 export const computerAIRenderEngine = computerAICanvas.getContext("2d");
@@ -19,7 +19,7 @@ let isAIOverlayActive = false;  // Move here if you want global
 
 export function computerAIGodFunction() {
     drawComputerAICanvas();
-    placeHolderText();
+    computerAiDesktopEnvironmentGodFunction();
 }
 
 function closeComputerAIOverlay() {

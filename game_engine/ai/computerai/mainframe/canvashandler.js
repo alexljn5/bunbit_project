@@ -62,17 +62,7 @@ export function drawComputerAICanvas() {
         computerAIRenderEngine.fillStyle = "#000";
         computerAIRenderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-        // Draw AI text (logical center - scales with canvas!)
-        computerAIRenderEngine.fillStyle = "#0f0";
-        computerAIRenderEngine.font = `${20}px Arial`;
-        computerAIRenderEngine.textAlign = "center";
-        computerAIRenderEngine.textBaseline = "middle";
-        const textX = CANVAS_WIDTH / 2;
-        const textY = CANVAS_HEIGHT / 2;
-        computerAIRenderEngine.fillText("Computer AI Interface", textX, textY);
 
-        renderEngine.restore();
-        console.log("Computer AI overlay active! Res:", CANVAS_WIDTH);
     }
 }
 
