@@ -3,6 +3,7 @@ import { renderEngine } from "../../../rendering/renderengine.js";
 import { isInteractionKeyPressed } from "../../../playerdata/playerlogic.js";
 import { computerAICanvas, computerAIRenderEngine } from "../computerai.js";
 import { REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT, CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y } from "../../../globals.js";
+import { initInputHandler } from "./utils/inputhandler.js";
 
 let isAIOverlayActive = false;  // Track to avoid multiples
 
@@ -36,7 +37,7 @@ export function drawComputerAICanvas() {
     if (isPaused) {
         return;  // No drawing when paused—easy peasy!
     }
-
+    //Debug, remove the ! for the interaction key at final product
     if (isInteractionKeyPressed() && !isAIOverlayActive) {
         isAIOverlayActive = true;
         setPaused(true);
@@ -62,7 +63,7 @@ export function drawComputerAICanvas() {
         computerAIRenderEngine.fillStyle = "#000";
         computerAIRenderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-
+        initInputHandler(computerAICanvas);
     }
 }
 

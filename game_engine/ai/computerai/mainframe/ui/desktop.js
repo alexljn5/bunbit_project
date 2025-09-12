@@ -1,8 +1,10 @@
 import { computerAIRenderEngine } from "../../computerai.js";
 import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y } from "../../../../globals.js";
+import { computerAiLoginEnvironmentGodFunction } from "./login.js";
 
 export function computerAiDesktopEnvironmentGodFunction() {
-    placeHolderText();
+    //placeHolderText();
+    computerAiLoginEnvironmentGodFunction();  // Call login screen renderer
 }
 
 function placeHolderText() {
