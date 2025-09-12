@@ -1,5 +1,6 @@
 import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y } from "../../../../globals.js";
 import { computerAIRenderEngine } from "../../computerai.js";
+import { CURRENT_COMPUTER_STATE, setComputerState } from "../../computeraiglobals.js";
 
 // Global state
 let activeElement = null;
@@ -10,6 +11,12 @@ export let password = "";
 const interactiveElements = [];
 let listenersAttached = false;
 
+
+// Hardcoded credentials
+//Super simple currently for debug
+const HARDCODED_USERNAME = "a";
+const HARDCODED_PASSWORD = "1";
+
 // Register an interactive element
 export function registerInteractiveElement(elementId, getBoundsCallback, onClickCallback, onKeyCallback) {
     interactiveElements.push({
@@ -18,6 +25,15 @@ export function registerInteractiveElement(elementId, getBoundsCallback, onClick
         onClick: onClickCallback,
         onKey: onKeyCallback
     });
+}
+
+export function checkLogin() {
+    if (username === HARDCODED_USERNAME && password === HARDCODED_PASSWORD) {
+        loadTestEnvironment();
+        return true;
+    } else {
+        return false;
+    }
 }
 
 // Get mouse position
@@ -30,9 +46,11 @@ function getMousePos(canvas, e) {
 }
 
 // Click handler
+// inputhandler.js
 function handleClick(e, canvas) {
     getMousePos(canvas, e);
     activeElement = null;
+
     for (let element of interactiveElements) {
         const bounds = element.getBounds();
         if (
@@ -44,20 +62,30 @@ function handleClick(e, canvas) {
             break;
         }
     }
-    import("../ui/login.js").then(module => {
-        module.computerAiLoginEnvironmentGodFunction();
-    });
+
+    if (CURRENT_COMPUTER_STATE === "login") {
+        import("../ui/login.js").then(module => {
+            module.computerAiLoginEnvironmentGodFunction();
+        });
+    } else if (CURRENT_COMPUTER_STATE === "desktop") {
+        import("../ui/desktop/desktopenvironment.js").then(module => {
+            module.testEnvironmentGodFunction();
+        });
+    }
 }
 
-// Key handler
 function handleKey(e, canvas) {
     if (!activeElement) return;
     const element = interactiveElements.find(el => el.id === activeElement);
     if (element && element.onKey) element.onKey(e);
-    import("../ui/login.js").then(module => {
-        module.computerAiLoginEnvironmentGodFunction();
-    });
+
+    if (CURRENT_COMPUTER_STATE === "login") {
+        import("../ui/login.js").then(module => {
+            module.computerAiLoginEnvironmentGodFunction();
+        });
+    }
 }
+
 
 // Initialize handlers
 export function initInputHandler(canvas) {
@@ -81,10 +109,10 @@ function handleResolutionChange() {
 // Username box registration
 export function registerUsernameBox() {
     registerInteractiveElement("usernameBox", () => {
-        const width = 100;
-        const height = 20;
+        const width = 100 * SCALE_X;
+        const height = 20 * SCALE_Y;
         const x = (CANVAS_WIDTH - width) / 2;
-        const y = (CANVAS_HEIGHT - height) / 2 - 20;
+        const y = (CANVAS_HEIGHT - height) / 2 - 20 * SCALE_Y;
         return { x, y, width, height };
     }, () => {
         activeElement = "usernameBox";
@@ -94,8 +122,12 @@ export function registerUsernameBox() {
             username += e.key;
         } else if (e.key === "Backspace") {
             username = username.slice(0, -1);
-        } else if (e.key === "Enter" && username && password) {
-            openNewEnvironment();
+        } else if (e.key === "Enter") {
+            // Check login when Enter is pressed
+            const success = checkLogin();
+            if (window.onLoginAttempt) {
+                window.onLoginAttempt(success);
+            }
         }
     });
 }
@@ -103,10 +135,10 @@ export function registerUsernameBox() {
 // Password box registration
 export function registerPasswordBox() {
     registerInteractiveElement("passwordBox", () => {
-        const width = 100;
-        const height = 20;
+        const width = 100 * SCALE_X;
+        const height = 20 * SCALE_Y;
         const x = (CANVAS_WIDTH - width) / 2;
-        const y = (CANVAS_HEIGHT - height) / 2 + 20;
+        const y = (CANVAS_HEIGHT - height) / 2 + 20 * SCALE_Y;
         return { x, y, width, height };
     }, () => {
         activeElement = "passwordBox";
@@ -116,25 +148,48 @@ export function registerPasswordBox() {
             password += e.key;
         } else if (e.key === "Backspace") {
             password = password.slice(0, -1);
-        } else if (e.key === "Enter" && username && password) {
-            openNewEnvironment();
+        } else if (e.key === "Enter") {
+            // Check login when Enter is pressed
+            const success = checkLogin();
+            if (window.onLoginAttempt) {
+                window.onLoginAttempt(success);
+            }
         }
     });
 }
 
 // Placeholder for new environment
-function openNewEnvironment() {
-    import("../ui/login.js").then(module => {
-        const { computerAIRenderEngine } = module;
-        computerAIRenderEngine.fillStyle = "#000";
-        computerAIRenderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-        computerAIRenderEngine.fillStyle = "#0f0";
-        computerAIRenderEngine.font = `${20 * SCALE_X}px Arial`; // FIX: Match your scaling
-        computerAIRenderEngine.textAlign = "center";
-        computerAIRenderEngine.textBaseline = "middle";
-        computerAIRenderEngine.fillText(`Welcome, ${username}!`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
-    });
+export async function loadTestEnvironment() {
+    console.log("Login successful! Loading test environment...");
+
+    // Clear login screen
+    computerAIRenderEngine.fillStyle = "#000";
+    computerAIRenderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+    // Loading message
+    computerAIRenderEngine.fillStyle = "#0f0";
+    computerAIRenderEngine.font = `${20 * SCALE_X}px Arial`;
+    computerAIRenderEngine.textAlign = "center";
+    computerAIRenderEngine.textBaseline = "middle";
+    computerAIRenderEngine.fillText("Loading Desktop Environment...", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+
+    // Wait 1 sec
+    setTimeout(async () => {
+        try {
+            const module = await import("../ui/desktop/desktopenvironment.js");
+            setComputerState("desktop");
+            if (module.testEnvironmentGodFunction) {
+                module.testEnvironmentGodFunction();
+            }
+            console.log("Test environment loaded successfully!");
+        } catch (error) {
+            console.error("Failed to load test environment:", error);
+            computerAIRenderEngine.fillStyle = "#f00";
+            computerAIRenderEngine.fillText("Error loading environment!", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 30);
+        }
+    }, 1000);
 }
+
 
 // Export state
 export { activeElement };

@@ -5,7 +5,9 @@ import { REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT, SCALE_X, SCALE_Y, CANVAS_HEIGHT, C
 import { keys } from "../../playerdata/playerlogic.js";  // For ESC close
 import { drawComputerAICanvas } from "./mainframe/canvashandler.js";
 import { HIGH_RES_ENABLED } from "../../globals.js";
-import { computerAiDesktopEnvironmentGodFunction } from "./mainframe/ui/desktop.js";
+import { computerAiDesktopEnvironmentGodFunction } from "./mainframe/ui/desktop/desktop.js";
+import { loadAsciiArt } from "./mainframe/ui/loadascii.js";
+import { CURRENT_COMPUTER_STATE } from "./computeraiglobals.js";
 
 export const computerAICanvas = document.createElement("canvas");
 export const computerAIRenderEngine = computerAICanvas.getContext("2d");
@@ -31,8 +33,16 @@ if (mainCanvas) {
 let isAIOverlayActive = false;  // Move here if you want global
 
 export function computerAIGodFunction() {
-    drawComputerAICanvas();
-    computerAiDesktopEnvironmentGodFunction();
+    if (CURRENT_COMPUTER_STATE === "login") {
+        drawComputerAICanvas();
+        computerAiDesktopEnvironmentGodFunction();
+        loadAsciiArt();  // Load ASCII art once at start
+    } else if (CURRENT_COMPUTER_STATE === "test") {
+        //Fart  
+        import("./mainframe/ui/desktop/desktopenvironment.js").then(module => {
+            module.testEnvironmentGodFunction();
+        });
+    }
 }
 
 function closeComputerAIOverlay() {
