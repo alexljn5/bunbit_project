@@ -7,7 +7,6 @@ let CANVAS_HEIGHT = 0;
 let tileSectors = 0;
 let playerFOV = 0;
 
-// Fast math functions, because we can't import them in the worker!
 const SIN_TABLE_SIZE = 1024;
 const TWO_PI = Math.PI * 2;
 const TABLE_SCALE = SIN_TABLE_SIZE / TWO_PI;
@@ -59,7 +58,6 @@ self.onmessage = function (e) {
         const playerX = playerPosition.x;
         const playerZ = playerPosition.z;
 
-        // Create buffer only for the assigned rows
         const rowCount = endY - startY;
         const floorBuffer = new ArrayBuffer(CANVAS_WIDTH * rowCount * 4);
         floorBuffer32 = new Uint32Array(floorBuffer);
@@ -67,8 +65,7 @@ self.onmessage = function (e) {
         const halfHeight = CANVAS_HEIGHT * 0.5;
         const projectionDist = (CANVAS_WIDTH * 0.5) / Math.tan(playerFOV * 0.5);
 
-        const ceilingColor = 0xFF000000; // Opaque black (ABGR)
-        // Only fill ceiling pixels for this worker's range
+        const ceilingColor = 0xFF000000;
         if (startY < halfHeight) {
             const ceilingEndY = Math.min(endY, Math.floor(halfHeight));
             for (let y = startY; y < ceilingEndY; y++) {
@@ -82,10 +79,8 @@ self.onmessage = function (e) {
         const texScaleX = textureWidth / tileSectors;
         const texScaleY = textureHeight / tileSectors;
 
-        // Receive clipY buffer
         const workerClipY = new Float32Array(clipYBuffer);
 
-        // Render floor for the assigned rows
         for (let y = Math.max(startY, Math.floor(halfHeight)); y < endY; y++) {
             const yCorrected = y - halfHeight;
             if (yCorrected === 0) continue;
@@ -111,9 +106,8 @@ self.onmessage = function (e) {
             const yOffset = (y - startY) * CANVAS_WIDTH;
 
             for (let x = 0; x < CANVAS_WIDTH; x++) {
-                let pixelColor = ceilingColor; // Default to black (hidden)
+                let pixelColor = ceilingColor;
                 if (y >= workerClipY[x]) {
-                    // Draw floor texture
                     const intTexX = Math.floor(texX) & (textureWidth - 1);
                     const intTexY = Math.floor(texY) & (textureHeight - 1);
                     const texOffset = intTexY * textureWidth + intTexX;
@@ -126,7 +120,6 @@ self.onmessage = function (e) {
             }
         }
 
-        // Send back the buffer with workerId and row range
         self.postMessage(
             {
                 type: 'render_done',
