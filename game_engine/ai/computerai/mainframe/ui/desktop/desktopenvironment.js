@@ -5,6 +5,7 @@ import { drawAsciiArt, loadAsciiArt } from "../loadascii.js";
 import { bunbitOSText } from "../login.js";
 import { inputBox } from "../../utils/inputbox.js";
 import { REF_CANVAS_HEIGHT, REF_CANVAS_WIDTH } from "../../../../../globals.js";
+import { testButton } from "./desktopbuttons.js";
 
 export function desktopEnvironmentGodFunction() {
     mainDesktopEnvironmentStuff();
@@ -63,25 +64,4 @@ function desktopenvironmentFooter() {
         10 * SCALE_X,
         CANVAS_HEIGHT - footerHeight / 2
     );
-}
-let startButton;
-function testButton() {
-    if (!startButton) {
-        startButton = new inputBox(
-            "startButton",
-            10, // xLogical (left footer)
-            REF_CANVAS_HEIGHT - 60, // yLogical (in footer)
-            80, // widthLogical
-            30, // heightLogical
-            "Start App", // label
-            false, // button
-            () => {
-                console.log("Start App clicked! Open menu...");
-                // Your action (e.g., load new screen)
-            }
-        );
-    }
-
-    // Draw button
-    startButton.draw();
 }
