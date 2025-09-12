@@ -39,7 +39,8 @@ function initializeAiRegistries() {
         enemyFunctions.push(casperLesserDemon);
         enemyFunctions.push(placeholderAIGodFunction);
         friendlyFunctions.push(boyKisserNpcAIGodFunction);
-        // Re-Enable when working on it again friendlyFunctions.push(computerAIGodFunction);
+        // Re-Enable when working on it again 
+        friendlyFunctions.push(computerAIGodFunction);
 
         enemyAiRegistry.set(mapKey, enemyFunctions);
         friendlyAiRegistry.set(mapKey, friendlyFunctions);
