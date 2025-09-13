@@ -95,7 +95,12 @@ function drawMapSelectOverlay() {
 
 export function setupMenuClickHandler() {
     const canvas = renderEngine.canvas;
-    if (!canvas) return;
+    if (!canvas) {
+        console.error('Canvas not ready for click handler! Retrying in 100ms... *pouts*');
+        setTimeout(setupMenuClickHandler, 100); // Retry if canvas not ready
+        return;
+    }
+    console.log('Setting up menu click handler! *chao chao*');
     canvas.onmousemove = function (e) {
         const rect = canvas.getBoundingClientRect();
         const scaleX = CANVAS_WIDTH / rect.width;
@@ -119,6 +124,9 @@ export function setupMenuClickHandler() {
         }
     };
     canvas.onclick = function (e) {
+        e.preventDefault(); // Stop browser/Electron from eating clicks
+        e.stopPropagation(); // Prevent bubbling to other elements
+        console.log('Canvas clicked at:', e.clientX, e.clientY); // Debug click coords
         const rect = canvas.getBoundingClientRect();
         const scaleX = CANVAS_WIDTH / rect.width;
         const scaleY = CANVAS_HEIGHT / rect.height;
@@ -130,6 +138,7 @@ export function setupMenuClickHandler() {
                     mouseX >= btn.x && mouseX <= btn.x + btn.width &&
                     mouseY >= btn.y && mouseY <= btn.y + btn.height
                 ) {
+                    console.log('Map button clicked:', btn.name); // Debug
                     selectedMapName = btn.name;
                     if (selectedMapName === "map_debug") {
                         playerPosition.x = 10 * 50;
@@ -144,15 +153,23 @@ export function setupMenuClickHandler() {
                         playerPosition.z = 1.5 * 50;
                         playerPosition.angle = 0;
                     }
-                    if (mapHandler.loadMap(selectedMapName, playerPosition)) {
-                        spriteManager.loadSpritesForMap(selectedMapName); // Load sprites for selected map
-                        setMenuActive(false);
-                        mainGameRender();
-                        initializeRenderWorkers();
-                        showMapSelect = false;
-                    } else {
+                    try {
+                        if (mapHandler.loadMap(selectedMapName, playerPosition)) {
+                            spriteManager.loadSpritesForMap(selectedMapName); // Load sprites
+                            setMenuActive(false);
+                            mainGameRender();
+                            initializeRenderWorkers();
+                            showMapSelect = false;
+                            console.log('Map loaded successfully:', selectedMapName); // Debug
+                        } else {
+                            console.error('Failed to load map:', selectedMapName);
+                            renderEngine.fillStyle = "#f00";
+                            renderEngine.fillText(`Failed to load ${selectedMapName}!`, CANVAS_WIDTH / 2 - 80 * SCALE_X, CANVAS_HEIGHT - 100 * SCALE_Y);
+                        }
+                    } catch (error) {
+                        console.error('Error in map load or render:', error.message); // Catch errors
                         renderEngine.fillStyle = "#f00";
-                        renderEngine.fillText(`Failed to load ${selectedMapName}!`, CANVAS_WIDTH / 2 - 80 * SCALE_X, CANVAS_HEIGHT - 100 * SCALE_Y);
+                        renderEngine.fillText(`Error: ${error.message}`, CANVAS_WIDTH / 2 - 80 * SCALE_X, CANVAS_HEIGHT - 100 * SCALE_Y);
                     }
                     return;
                 }
@@ -164,29 +181,53 @@ export function setupMenuClickHandler() {
                     mouseX >= button.x && mouseX <= button.x + button.width &&
                     mouseY >= button.y && mouseY <= button.y + button.height
                 ) {
+                    console.log('Menu button clicked:', button.name); // Debug
                     if (button.name === "Play") {
                         selectedMapName = "map_01";
                         playerPosition.x = 2.5 * 50 / 2;
                         playerPosition.z = 2.5 * 50 / 2;
                         playerPosition.angle = 0;
-                        if (mapHandler.loadMap(selectedMapName, playerPosition)) {
-                            spriteManager.loadSpritesForMap(selectedMapName); // Load sprites for default map
-                            setMenuActive(false);
-                            mainGameRender();
-                            initializeRenderWorkers();
-                        } else {
+                        try {
+                            if (mapHandler.loadMap(selectedMapName, playerPosition)) {
+                                spriteManager.loadSpritesForMap(selectedMapName); // Load sprites
+                                setMenuActive(false);
+                                mainGameRender();
+                                initializeRenderWorkers();
+                                console.log('Play started, map loaded:', selectedMapName); // Debug
+                            } else {
+                                console.error('Failed to load map_01');
+                                renderEngine.fillStyle = "#f00";
+                                renderEngine.fillText("Failed to load map_01!", CANVAS_WIDTH / 2 - 80 * SCALE_X, CANVAS_HEIGHT - 100 * SCALE_Y);
+                            }
+                        } catch (error) {
+                            console.error('Error in Play button:', error.message); // Catch errors
                             renderEngine.fillStyle = "#f00";
-                            renderEngine.fillText("Failed to load map_01!", CANVAS_WIDTH / 2 - 80 * SCALE_X, CANVAS_HEIGHT - 100 * SCALE_Y);
+                            renderEngine.fillText(`Error: ${error.message}`, CANVAS_WIDTH / 2 - 80 * SCALE_X, CANVAS_HEIGHT - 100 * SCALE_Y);
                         }
                     } else if (button.name === "Maps") {
                         showMapSelect = true;
                         selectedMapName = null;
+                        console.log('Maps button clicked, showing map select'); // Debug
                     }
                 }
             });
         }
     };
 }
+
+// Wait for DOM content loaded to ensure all modules (like renderEngine) are ready
+window.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM loaded, initializing menu handlers... *chao chao*');
+    function initMenuHandlers() {
+        if (!renderEngine || !renderEngine.canvas) {
+            console.warn('renderEngine or canvas not ready, retrying in 100ms... *pouts*');
+            setTimeout(initMenuHandlers, 100);
+            return;
+        }
+        setupMenuClickHandler();
+    }
+    initMenuHandlers();
+});
 
 window.addEventListener('keydown', function (e) {
     if (e.key === 'F11') {

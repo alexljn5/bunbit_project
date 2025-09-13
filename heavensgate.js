@@ -6,6 +6,7 @@ import { mapHandler } from './game_engine/mapdata/maphandler.js';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import mysql from 'mysql2/promise';
+import express from 'express'; // Add this!
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -14,6 +15,7 @@ const __dirname = dirname(__filename);
 dotenv.config();
 
 let dbConnection = null; // Global DB connection
+let server = null; // Our lil' HTTP server
 
 // Connect to MySQL
 async function connectDB() {
@@ -26,33 +28,47 @@ async function connectDB() {
             database: process.env.DB_NAME || 'game_db'
         });
         console.log('Connected to MySQL! *chao chao*');
-
-        // Optional test query to verify connection
-        // const [rows] = await dbConnection.execute('SELECT 1 as ping');
-        // console.log('DB ping:', rows);
-
         return dbConnection;
     } catch (error) {
         console.error('Failed to connect to MySQL:', error.message);
-        // Optionally send error to renderer
-        // mainWindow.webContents.send('db-error', error.message);
         return null;
     }
 }
 
 async function createWindow() {
+    // Disable CORS for file:// (backup, but we'll use http now)
+    app.commandLine.appendSwitch('disable-features', 'OutOfBlinkCors');
+
     const mainWindow = new BrowserWindow({
         width: 800,
         height: 800,
         webPreferences: {
             nodeIntegration: true, // WARNING: Insecure for prod; use preload script later
             contextIsolation: false,
-            enableRemoteModule: true // Deprecated; avoid in prod
+            enableRemoteModule: true, // Deprecated; avoid in prod
+            webSecurity: false // Allow local loads
         }
     });
 
-    await mainWindow.loadFile('index.html');
+    // Spin up a tiny Express server to serve files over HTTP (fixes worker ESM loads!)
+    server = express();
+    server.use(express.static(__dirname)); // Serve all files from app root
+    const PORT = 3000; // Or any free port
+    server.listen(PORT, 'localhost', () => {
+        console.log(`Mini-server running at http://localhost:${PORT} *twirls*`);
+    });
+
+    // Load over HTTP – workers love this!
+    const pageUrl = `http://localhost:${PORT}/index.html`;
+    await mainWindow.loadURL(pageUrl);
+
     mainWindow.webContents.openDevTools(); // For debugging
+
+    // Auto-hide DevTools after 2 seconds to avoid overlaying clicks
+    setTimeout(() => {
+        mainWindow.webContents.closeDevTools();
+        console.log('DevTools auto-closed – reopen with Ctrl+Shift+I if needed!');
+    }, 2000);
 
     mainWindow.webContents.on('did-finish-load', async () => {
         try {
@@ -119,11 +135,14 @@ app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
         app.quit();
     }
-    // Clean up DB connection
+    // Clean up DB and server
     if (dbConnection) {
         dbConnection.end();
         console.log('MySQL connection closed! *waves*');
     }
+    if (server) {
+        server.close(() => console.log('Mini-server stopped *chao chao*'));
+    }
 });
 
-export { dbConnection }; // Export for other modules (e.g., NPC dialogue logic)
+export { dbConnection }; // Export for other modules
