@@ -1,17 +1,17 @@
 // game_engine/mapdata/map_03_data.js
-import { fullTile, emptyTile, fullTileSchizoEye } from './maptexturesloader.js';
+import { fullTile, emptyTile, fullTileSchizoEye, fullTileBrickDoor01Open } from './maptexturesloader.js';
 import { buildMapGrid } from './maputils.js';
 
 // Test map sector (8x8 square room)
 export const map_03_sector1 = [
     [fullTile, fullTile, fullTile, fullTile, fullTile, fullTile, fullTile, fullTile],
     [fullTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, fullTile],
-    [fullTile, emptyTile, emptyTile, fullTileSchizoEye, emptyTile, emptyTile, emptyTile, fullTile],
+    [fullTile, emptyTile, emptyTile, fullTileBrickDoor01Open, emptyTile, emptyTile, emptyTile, fullTile],
     [fullTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, fullTile],
     [fullTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, fullTile],
     [fullTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, fullTile],
     [fullTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, fullTile],
-    [fullTile, fullTile, fullTile, fullTile, fullTile, fullTile, fullTile, fullTile]
+    [fullTile, fullTileSchizoEye, fullTile, fullTileSchizoEye, fullTile, fullTileSchizoEye, fullTile, fullTile]
 ];
 
 // Test map sector metadata
