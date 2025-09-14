@@ -28,6 +28,7 @@ import { SCALE_X, SCALE_Y } from "../globals.js";
 import { renderRaycastWalls } from "./renderwalls.js";
 import { interactionHandlerGodFunction } from "../interactions/interactionhandler.js";
 import { renderRaycastHorizons } from "./renderhorizons.js";
+import { soundHandlerGodFunction } from "../audio/soundhandler.js";
 
 // --- DOM Elements ---
 const domElements = {
@@ -174,6 +175,7 @@ async function gameRenderEngine(deltaTime) {
 
         playerUI();
         playMusicGodFunction();
+        soundHandlerGodFunction();
         consoleHandler();
 
         if (gameOver) {

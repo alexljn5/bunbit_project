@@ -1,3 +1,9 @@
+import { walkingSoundHandlerGodFunction } from "./sounds/walking/walkingsoundhandler.js";
+
+export function soundHandlerGodFunction() {
+    walkingSoundHandlerGodFunction();
+}
+
 export function playGenericGunShootSound() {
     const audio = new Audio("./audio/sounds/guns/genericgun_shoot.mp3");
     audio.play().catch(error => {
