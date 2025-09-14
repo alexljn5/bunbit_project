@@ -44,7 +44,7 @@ function drawNewGameStartAnimation() {
         if (elapsed > 4200 && elapsed < 5200) {
             // Draw a black background to cover the red, then apply the glitch effect
             renderEngine.fillStyle = "black";
-            fuckTheScreenUp();
+            //fuckTheScreenUp();
         }
         // End after 5.5s
         if (elapsed < 6000) {

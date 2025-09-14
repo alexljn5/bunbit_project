@@ -121,9 +121,9 @@ export function renderRaycastHorizons(rayData, targetCtx = renderEngine) {
 
         const mapKey = mapHandler.activeMapKey || "map_01";
         const floorTextureKey = mapHandler.getMapFloorTexture(mapKey);
-        const roofTextureKey = "floor_concrete"; // Adjust as needed for your roof texture
+        const roofTextureKey = "roof_concrete_01"; // Adjust as needed for your roof texture
 
-        const floorTexture = tileTexturesMap.get(floorTextureKey) || tileTexturesMap.get("floor_concrete");
+        const floorTexture = tileTexturesMap.get(floorTextureKey) || tileTexturesMap.get("floor_concrete_01");
         const roofTexture = tileTexturesMap.get(roofTextureKey);
 
         if (!texturesLoaded || !floorTexture || !floorTexture.complete || !roofTexture || !roofTexture.complete) {

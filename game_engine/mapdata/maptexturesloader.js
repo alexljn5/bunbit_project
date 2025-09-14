@@ -17,6 +17,8 @@ const tileTextures = {
     wall_brick_door01_closed: isBrowser ? new Image() : { src: "./img/sprites/walls/wall_brick_door01_closed.png" },
     wall_brick_door01_open: isBrowser ? new Image() : { src: "./img/sprites/walls/wall_brick_door01_open.png" },
     wall_fence_test: isBrowser ? new Image() : { src: "./img/sprites/walls/fence_wall_test.png" },
+    wall_brick_cream: isBrowser ? new Image() : { src: "./img/sprites/walls/wall_brick_cream.png" },
+    wall_brick_eye: isBrowser ? new Image() : { src: "./img/sprites/walls/wall_brick_eye.png" },
 };
 
 // Set image sources in browser
@@ -31,6 +33,8 @@ if (isBrowser) {
     tileTextures.wall_brick_door01_open.src = "./img/sprites/walls/wall_brick_door01_open.png";
     tileTextures.wall_brick_door01_closed.src = "./img/sprites/walls/wall_brick_door01_closed.png";
     tileTextures.wall_fence_test.src = "./img/sprites/walls/fence_wall_test.png";
+    tileTextures.wall_brick_cream.src = "./img/sprites/walls/wall_brick_cream.png";
+    tileTextures.wall_brick_eye.src = "./img/sprites/walls/wall_brick_eye.png";
 }
 
 const demonLaughingFrameCount = 7;
@@ -62,29 +66,31 @@ export const fullTileLaughingDemon = { type: "wall", textureId: 8, texture: "wal
 export const fullTileBrickDoor01Open = { type: "wall", textureId: 9, texture: "wall_brick_door01_open", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
 export const fullTileBrickDoor01Closed = { type: "wall", textureId: 10, texture: "wall_brick_door01_closed", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
 export const fullTileFenceWallTest = { type: "wall", textureId: 11, texture: "wall_fence_test", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
-export const emptyTile = { type: "empty", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
+export const fullTileBrickCream = { type: "wall", textureId: 12, texture: "wall_brick_cream", floorHeight: 0, floorTextureId: 50, floorTexture: "wall_brick_cream", ceilingTextureId: 1 };
+export const fullTileBrickEye = { type: "wall", textureId: 13, texture: "wall_brick_eye", floorHeight: 0, floorTextureId: 50, floorTexture: "wall_brick_eye", ceilingTextureId: 1 };
+export const emptyTile = { type: "empty", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete_01", ceilingTextureId: 1 };
 
 export const tileTexturesMap = new Map();
 
 const roofTextures = {
-    roof_concrete: isBrowser ? new Image() : { src: "./img/sprites/roofs/roof_concrete.png" },
+    roof_concrete_01: isBrowser ? new Image() : { src: "./img/sprites/roofs/roof_concrete_01.png" },
 };
 if (isBrowser) {
-    roofTextures.roof_concrete.src = "./img/sprites/roofs/roof_concrete.png";
+    roofTextures.roof_concrete_01.src = "./img/sprites/roofs/roof_concrete_01.png";
 }
 
-export const roofConcrete = { type: "roof", textureId: 1, texture: "roof_concrete", floorHeight: 0 };
+export const roofConcrete01 = { type: "roof", textureId: 100, texture: "roof_concrete_01", floorHeight: 0 };
 
 const floorTextures = {
-    floor_concrete: isBrowser ? new Image() : { src: "./img/sprites/roofs/roof_concrete.png" },
+    floor_concrete_01: isBrowser ? new Image() : { src: "./img/sprites/floors/floor_concrete_01.png" },
     floor_test: isBrowser ? new Image() : { src: "./img/sprites/walls/creamlol.png" },
 };
 if (isBrowser) {
-    floorTextures.floor_concrete.src = "./img/sprites/roofs/roof_concrete.png";
+    floorTextures.floor_concrete_01.src = "./img/sprites/floors/floor_concrete_01.png";
     floorTextures.floor_test.src = "./img/sprites/walls/creamlol.png";
 }
 
-export const floorConcrete = { type: "floor", textureId: 50, texture: "floor_concrete", floorHeight: 1 };
+export const floorConcrete = { type: "floor", textureId: 50, texture: "floor_concrete_01", floorHeight: 1 };
 export const floorTest = { type: "floor", textureId: 51, texture: "floor_test", floorHeight: 1 };
 
 // Initialize tileTexturesMap

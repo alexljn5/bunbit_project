@@ -1,63 +1,87 @@
-import { computerAICanvas, computerAIRenderEngine } from "../../computerai.js";
-import { REF_CANVAS_HEIGHT, REF_CANVAS_WIDTH, CANVAS_HEIGHT, CANVAS_WIDTH, SCALE_X, SCALE_Y } from "../../../../globals.js";
-
-
-let asciiArtLines = []; // Global to store the lines once loaded
-
-// Load the ASCII art when the login screen initializes (call this in drawComputerAICanvas or initInputHandler)
 // loadascii.js
+import { computerAICanvas, computerAIRenderEngine } from "../../computerai.js";
+import { REF_CANVAS_HEIGHT, REF_CANVAS_WIDTH, SCALE_X, SCALE_Y } from "../../../../globals.js";
+
+let asciiArtLines = [];        // Stores the lines of art
+let asciiOffscreen = null;     // Offscreen canvas for cached ASCII
+let asciiWidth = 0;
+let asciiHeight = 0;
+let asciiX = 0;
+let asciiY = 0;
+let fontSize_logical = 12;
+let loadPromise = null;        // To handle concurrent loads
+
+// Load and preprocess the ASCII art
 export function loadAsciiArt() {
-    return fetch("/game_engine/ai/computerai/mainframe/ui/asciiart/bunbitos.txt")
-        .then(response => {
+    if (loadPromise) return loadPromise;
+
+    loadPromise = new Promise(async (resolve, reject) => {
+        try {
+            const response = await fetch("/game_engine/ai/computerai/mainframe/ui/asciiart/bunbitos.txt");
             if (!response.ok) throw new Error("Couldn't load ASCII art!");
-            return response.text();
-        })
-        .then(text => {
+
+            const text = await response.text();
             asciiArtLines = text.split("\n");
-            console.log("ASCII art loaded!");
-        })
-        .catch(err => {
+
+            // Precompute measurements
+            computerAIRenderEngine.font = `${fontSize_logical * SCALE_X}px Courier`;
+            let maxWidth = 0;
+            let drawCommands = [];
+
+            asciiArtLines.forEach((line, index) => {
+                const width = computerAIRenderEngine.measureText(line).width / SCALE_X;
+                if (width > maxWidth) maxWidth = width;
+
+                drawCommands.push({
+                    text: line,
+                    x: maxWidth / 2,  // Center align relative to maxWidth
+                    y: 10 + index * fontSize_logical * 1.2
+                });
+            });
+
+            // Create offscreen canvas
+            asciiWidth = maxWidth;
+            asciiHeight = asciiArtLines.length * fontSize_logical * 1.2 + 20;
+            asciiOffscreen = document.createElement('canvas');
+            asciiOffscreen.width = asciiWidth * SCALE_X;
+            asciiOffscreen.height = asciiHeight * SCALE_Y;
+            const offCtx = asciiOffscreen.getContext('2d');
+            offCtx.imageSmoothingEnabled = false;
+
+            // Draw to offscreen
+            offCtx.fillStyle = "#FC0000";
+            offCtx.font = `${fontSize_logical * SCALE_X}px Courier`;
+            offCtx.textAlign = "center";
+            offCtx.textBaseline = "top";
+
+            // Debug border
+            offCtx.strokeStyle = "#FC0000";
+            offCtx.strokeRect(0, 0, asciiWidth * SCALE_X, (asciiHeight - 10) * SCALE_Y);
+
+            // Draw texts
+            drawCommands.forEach(cmd => {
+                offCtx.fillText(cmd.text, cmd.x * SCALE_X, (cmd.y - 10) * SCALE_Y);
+            });
+
+            // Position for drawing
+            asciiX = (REF_CANVAS_WIDTH / 2 - asciiWidth / 2) * SCALE_X;
+            asciiY = 0;  // Assuming top of screen; adjust if needed
+
+            console.log("ASCII art loaded and cached to offscreen!");
+            resolve();
+        } catch (err) {
             console.error(err);
             asciiArtLines = ["Error loading art :("];
-        });
+            resolve();  // Resolve anyway
+        }
+    });
+
+    return loadPromise;
 }
 
-
-// New drawing function—call this after bunbitOSText() in your main login render
+// Just draw the offscreen — super fast!
 export function drawAsciiArt() {
-    if (asciiArtLines.length === 0) return;
-
-    const fontSize_logical = 12;  // SMALLER font size! Was 12 - too big!
-    computerAIRenderEngine.fillStyle = "#FC0000";
-    computerAIRenderEngine.font = `${fontSize_logical * SCALE_X}px Courier`;
-    computerAIRenderEngine.textAlign = "center";
-    computerAIRenderEngine.textBaseline = "top";
-
-    // Find the widest line
-    let maxWidth_logical = 0;
-    asciiArtLines.forEach(line => {
-        const width = computerAIRenderEngine.measureText(line).width / SCALE_X;
-        if (width > maxWidth_logical) maxWidth_logical = width;
-    });
-
-    // BETTER POSITIONING - higher up and centered
-    const startX_logical = REF_CANVAS_WIDTH / 2;
-    const startY_logical = 10;  // Much higher up! Was -100 which is off-screen!
-
-    // Draw with debug borders to see where it's going
-    computerAIRenderEngine.strokeStyle = "#FC0000";
-    computerAIRenderEngine.strokeRect(
-        (startX_logical - maxWidth_logical / 2) * SCALE_X,
-        startY_logical * SCALE_Y,
-        maxWidth_logical * SCALE_X,
-        asciiArtLines.length * fontSize_logical * SCALE_Y
-    );
-
-    asciiArtLines.forEach((line, index) => {
-        computerAIRenderEngine.fillText(
-            line,
-            startX_logical * SCALE_X,  // Center X
-            (startY_logical + index * fontSize_logical * 1.2) * SCALE_Y  // Add some line spacing
-        );
-    });
+    if (asciiOffscreen) {
+        computerAIRenderEngine.drawImage(asciiOffscreen, asciiX, asciiY);
+    }
 }

@@ -53,10 +53,6 @@ let renderWorkersInitialized = false;
 const renderWorker1 = new Worker("/game_engine/rendering/renderworkers/renderengineworker.js", { type: "module" });
 const renderWorker2 = new Worker("/game_engine/rendering/renderworkers/renderengineworker.js", { type: "module" });
 
-// --- Debug Toggle for Testing ---
-const DEBUG_SKIP_FLOORS = false; // Set to true to test roofs only
-const DEBUG_SKIP_ROOFS = false;  // Set to true to test floors only
-
 // --- Button Handlers ---
 domElements.playGameButton.onclick = function () {
     setMenuActive(true);
@@ -114,6 +110,13 @@ async function gameRenderEngine(deltaTime) {
             return;
         }
 
+        if (introActive) {
+            newGameStartAnimation();
+            isRenderingFrame = false;
+            console.timeEnd('fullRender');
+            return;
+        }
+
         if (keys["Escape"] || keys["p"]) {
             setPaused(!isPaused);
             keys["Escape"] = false;
@@ -141,27 +144,7 @@ async function gameRenderEngine(deltaTime) {
             console.timeEnd('fullRender');
             return;
         }
-
-        // Lock offscreen buffer for compositing
         offscreenCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
-        /*
-        // Draw roofs to upper half
-        if (!DEBUG_SKIP_ROOFS) {
-            await renderRaycastRoofs(rayData, offscreenCtx);
-            // Get roof image data and draw only to top half
-            const roofImageData = offscreenCtx.getImageData(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT / 2);
-            renderEngine.putImageData(roofImageData, 0, 0);
-        }
-
-        // Draw floors to lower half  
-        if (!DEBUG_SKIP_FLOORS) {
-            await renderRaycastFloors(rayData, offscreenCtx);
-            // Get floor image data and draw only to bottom half
-            const floorImageData = offscreenCtx.getImageData(0, CANVAS_HEIGHT / 2, CANVAS_WIDTH, CANVAS_HEIGHT / 2);
-            renderEngine.putImageData(floorImageData, 0, CANVAS_HEIGHT / 2);
-        }
-            */
 
         await renderRaycastHorizons(rayData, offscreenCtx);
 

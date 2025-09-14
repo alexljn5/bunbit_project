@@ -1,3 +1,4 @@
+// login.js
 import { computerAIRenderEngine } from "../../computerai.js";
 import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_HEIGHT, REF_CANVAS_WIDTH } from "../../../../globals.js";
 import { initInputHandler, registerUsernameBox, registerPasswordBox, username, password, activeElement, checkLogin } from "../utils/inputhandler.js";
@@ -7,22 +8,41 @@ import { loadTestEnvironment } from "../utils/inputhandler.js";
 
 let loginAttempted = false;
 let loginSuccessful = false;
+let asciiArtLoaded = false;
+let loginInitialized = false;
+
+export async function bunbitOSText() {
+    if (!asciiArtLoaded) {
+        await loadAsciiArt();
+        asciiArtLoaded = true;
+    }
+    drawAsciiArt();
+}
 
 export function computerAiLoginEnvironmentGodFunction() {
-    if (CURRENT_COMPUTER_STATE !== "login") return; // <-- skip drawing
+    if (CURRENT_COMPUTER_STATE !== "login") return;
+
+    // Clear canvas each time
+    computerAIRenderEngine.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    computerAIRenderEngine.fillStyle = "#000";
+    computerAIRenderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+    // One-time init
+    if (!loginInitialized) {
+        // Register boxes
+        if (!window.usernameBox) registerUsernameBox();
+        if (!window.passwordBox) registerPasswordBox();
+
+        // Set up login callback
+        window.onLoginAttempt = handleLoginAttempt;
+
+        loginInitialized = true;
+    }
 
     mainComputerAiLoginEnvironmentBoxes();
     loginBox();
     insertUserNameBox();
     insertPasswordBox();
-
-    // Register boxes (once)
-    if (!window.usernameBox) registerUsernameBox();
-    if (!window.passwordBox) registerPasswordBox();
-
-    // Set up login callback
-    window.onLoginAttempt = handleLoginAttempt;
-
     bunbitOSText();
 
     // Show login result if attempted
@@ -30,7 +50,6 @@ export function computerAiLoginEnvironmentGodFunction() {
         showLoginResult(loginSuccessful);
     }
 }
-
 
 function handleLoginAttempt(success) {
     loginAttempted = true;
@@ -43,15 +62,11 @@ function handleLoginAttempt(success) {
     }
 
     // Failed login: redraw login screen with error
-    computerAIRenderEngine.fillStyle = "#000";
-    computerAIRenderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     computerAiLoginEnvironmentGodFunction();
 
     // Auto-clear error after 2 seconds
     setTimeout(() => {
         loginAttempted = false;
-        computerAIRenderEngine.fillStyle = "#000";
-        computerAIRenderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
         computerAiLoginEnvironmentGodFunction();
     }, 2000);
 }
@@ -195,15 +210,4 @@ function insertPasswordBox() {
         (REF_CANVAS_WIDTH / 2) * SCALE_X,
         (passBoxY_logical + passBoxHeight_logical / 2) * SCALE_Y
     );
-}
-
-// login.js
-let asciiArtLoaded = false;
-
-export async function bunbitOSText() {
-    if (!asciiArtLoaded) {
-        await loadAsciiArt(); // Make loadAsciiArt return a Promise
-        asciiArtLoaded = true;
-    }
-    drawAsciiArt(); // Safe to call repeatedly
 }
