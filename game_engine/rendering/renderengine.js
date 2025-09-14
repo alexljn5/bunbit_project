@@ -110,7 +110,7 @@ async function gameRenderEngine(deltaTime) {
             return;
         }
 
-        if (introActive) {
+        if (!introActive) {
             newGameStartAnimation();
             isRenderingFrame = false;
             console.timeEnd('fullRender');

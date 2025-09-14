@@ -15,7 +15,7 @@ export let SCALE_Y;
 export const REF_CANVAS_WIDTH = 800;
 export const REF_CANVAS_HEIGHT = 800;
 
-// NEW: Debug toggle via URL param (?debug=true for high-res)
+// Debug toggle via URL param (?debug=true for high-res)
 if (typeof window !== 'undefined') {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('debug') === 'true') {
@@ -25,30 +25,28 @@ if (typeof window !== 'undefined') {
 }
 
 // Math Tables for Fast Trig
-export const SIN_TABLE_SIZE = 1024; // Reduced from 2048 for better cache locality
-export const TWO_PI = Math.PI * 2;
-const TABLE_SCALE = SIN_TABLE_SIZE / TWO_PI; // Precompute for index calculation
+export const SIN_TABLE_SIZE = 1024; // 2^10 for bitwise masking
+export const FIXED_POINT_SHIFT = 16; // 2^16 = 65536 for fixed-point precision
+export const ANGLE_SCALE = (SIN_TABLE_SIZE << FIXED_POINT_SHIFT) / (Math.PI * 2); // ~1048576 / (2 * π)
 export const sinTable = new Float32Array(SIN_TABLE_SIZE);
 export const cosTable = new Float32Array(SIN_TABLE_SIZE);
 for (let i = 0; i < SIN_TABLE_SIZE; i++) {
-    const angle = i * (TWO_PI / SIN_TABLE_SIZE);
+    const angle = (i * Math.PI * 2) / SIN_TABLE_SIZE;
     sinTable[i] = Math.sin(angle);
     cosTable[i] = Math.cos(angle);
 }
 
 export function fastSin(angle) {
-    // Normalize angle to [0, TWO_PI) using bitwise ops and conditional
-    let normAngle = angle - TWO_PI * Math.floor(angle / TWO_PI);
-    if (normAngle < 0) normAngle += TWO_PI;
-    const idx = (normAngle * TABLE_SCALE) | 0; // Fast integer cast
+    // Convert angle to fixed-point (32-bit int, 16-bit fraction)
+    const fixedAngle = (angle * ANGLE_SCALE) | 0; // Scale to fixed-point
+    const idx = (fixedAngle >>> FIXED_POINT_SHIFT) & (SIN_TABLE_SIZE - 1); // Extract table index
     return sinTable[idx];
 }
 
 export function fastCos(angle) {
-    // Normalize angle to [0, TWO_PI) using bitwise ops and conditional
-    let normAngle = angle - TWO_PI * Math.floor(angle / TWO_PI);
-    if (normAngle < 0) normAngle += TWO_PI;
-    const idx = (normAngle * TABLE_SCALE) | 0; // Fast integer cast
+    // Convert angle to fixed-point (32-bit int, 16-bit fraction)
+    const fixedAngle = (angle * ANGLE_SCALE) | 0;
+    const idx = (fixedAngle >>> FIXED_POINT_SHIFT) & (SIN_TABLE_SIZE - 1);
     return cosTable[idx];
 }
 
@@ -64,7 +62,7 @@ export function Q_rsqrt(number) {
     i[0] = 0x5f3759df - (i[0] >> 1); // Quake III magic number
     y = f[0];
     y = y * (threeHalfs - (x2 * y * y)); // First Newton-Raphson iteration
-    y = y * (threeHalfs - (x2 * y * y)); // Second iteration for better accuracy
+    y = y * (threeHalfs - (x2 * y * y)); // Second iteration
     return y;
 }
 
@@ -90,7 +88,7 @@ export function updateCanvasResolution(highResEnabled) {
 
 // Initialize with default (low-res) in browser or Node.js
 if (domElements.mainGameRender) {
-    updateCanvasResolution(HIGH_RES_ENABLED);  // FIX: Use the debug variable!
+    updateCanvasResolution(HIGH_RES_ENABLED);
 } else {
     CANVAS_WIDTH = 400;
     CANVAS_HEIGHT = 400;
