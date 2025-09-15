@@ -23,7 +23,6 @@ import { eventHandler } from "../events/eventhandler.js";
 import { decorationHandlerGodFunction } from "../decorationhandler/decorationhandler.js";
 import { mapHandler } from "../mapdata/maphandler.js";
 import { consoleHandler } from "../console/consolehandler.js";
-import { flickeringEffect } from "../atmosphere/flickerlogic.js";
 import { keys } from "../playerdata/playerlogic.js";
 import { SCALE_X, SCALE_Y } from "../globals.js";
 import { renderRaycastWalls } from "./renderwalls.js";
