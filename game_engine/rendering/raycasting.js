@@ -1,7 +1,8 @@
 // raycasting.js
 import { playerPosition } from "../playerdata/playerlogic.js";
 import { tileSectors, mapTable } from "../mapdata/maps.js";
-import { CANVAS_WIDTH, fastSin, fastCos, Q_rsqrt } from "../globals.js";
+import { CANVAS_WIDTH } from "../globals.js";
+import { fastSin, fastCos, Q_rsqrt } from "../math/mathtables.js";
 import { mapHandler } from "../mapdata/maphandler.js";
 import { textureIdMap, floorTextureIdMap, roofTextureIdMap } from "../mapdata/maptexturesids.js";
 import { textureTransparencyMap } from "../mapdata/maptexturesloader.js";

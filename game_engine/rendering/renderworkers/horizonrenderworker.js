@@ -10,29 +10,44 @@ let CANVAS_HEIGHT = 0;
 let tileSectors = 0;
 let playerFOV = 0;
 
-const SIN_TABLE_SIZE = 1024;
-const TWO_PI = Math.PI * 2;
-const TABLE_SCALE = SIN_TABLE_SIZE / TWO_PI;
+// --- Ultra-Fast Math Tables for Worker ---
+const SIN_TABLE_BITS = 10;               // 2^10 = 1024 entries
+const SIN_TABLE_SIZE = 1 << SIN_TABLE_BITS;
+const SIN_TABLE_MASK = SIN_TABLE_SIZE - 1;
+const FIXED_POINT_SHIFT = 16;            // 16-bit fractional
+const ANGLE_SCALE = (SIN_TABLE_SIZE << FIXED_POINT_SHIFT) / (Math.PI * 2) | 0;
+
 const sinTable = new Float32Array(SIN_TABLE_SIZE);
 const cosTable = new Float32Array(SIN_TABLE_SIZE);
+
 for (let i = 0; i < SIN_TABLE_SIZE; i++) {
-    const angle = i * (TWO_PI / SIN_TABLE_SIZE);
+    const angle = (i * 2 * Math.PI) / SIN_TABLE_SIZE;
     sinTable[i] = Math.sin(angle);
     cosTable[i] = Math.cos(angle);
 }
 
+// Bitshift-based fastSin / fastCos
 function fastSin(angle) {
-    let normAngle = angle - TWO_PI * Math.floor(angle / TWO_PI);
-    if (normAngle < 0) normAngle += TWO_PI;
-    const idx = (normAngle * TABLE_SCALE) | 0;
+    const idx = ((angle * ANGLE_SCALE) | 0) >>> FIXED_POINT_SHIFT & SIN_TABLE_MASK;
     return sinTable[idx];
 }
 
 function fastCos(angle) {
-    let normAngle = angle - TWO_PI * Math.floor(angle / TWO_PI);
-    if (normAngle < 0) normAngle += TWO_PI;
-    const idx = (normAngle * TABLE_SCALE) | 0;
+    const idx = ((angle * ANGLE_SCALE) | 0) >>> FIXED_POINT_SHIFT & SIN_TABLE_MASK;
     return cosTable[idx];
+}
+
+// Optional: ultra-fast inverse square root
+const buf = new ArrayBuffer(4);
+const f = new Float32Array(buf);
+const i = new Uint32Array(buf);
+
+function Q_rsqrt(number) {
+    const x2 = number * 0.5;
+    f[0] = number;
+    i[0] = 0x5f3759df - (i[0] >> 1);
+    f[0] = f[0] * (1.5 - x2 * f[0] * f[0]);
+    return f[0];
 }
 
 self.onmessage = function (e) {

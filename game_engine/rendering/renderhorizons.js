@@ -2,7 +2,8 @@ import { mapHandler } from "../mapdata/maphandler.js";
 import { tileSectors } from "../mapdata/maps.js";
 import { tileTexturesMap, texturesLoaded } from "../mapdata/maptexturesloader.js";
 import { playerPosition } from "../playerdata/playerlogic.js";
-import { CANVAS_HEIGHT, CANVAS_WIDTH, fastSin, fastCos } from "../globals.js";
+import { CANVAS_HEIGHT, CANVAS_WIDTH } from "../globals.js";
+import { fastCos, fastSin } from "../math/mathtables.js";
 import { renderEngine } from "./renderengine.js";
 import { playerFOV, numCastRays } from "./raycasting.js";
 

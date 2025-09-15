@@ -44,7 +44,7 @@ async function createWindow() {
         height: 800,
         webPreferences: {
             nodeIntegration: true, // WARNING: Insecure for prod; use preload script later
-            contextIsolation: false,
+            contextIsolation: true,
             enableRemoteModule: true, // Deprecated; avoid in prod
             webSecurity: false // Allow local loads
         }

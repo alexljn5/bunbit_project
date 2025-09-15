@@ -67,6 +67,8 @@ export function simpleCollissionTest() {
 
 export function nineMMAmmoCollission() {
     // Detailed sprite debug info
+
+    /*
     console.debug("9mmAmmo collision check - Sprite state:", {
         spriteManager: !!spriteManager,
         instanceId: spriteManager?.instanceId,
@@ -78,6 +80,7 @@ export function nineMMAmmoCollission() {
             foreground: spriteManager.layers[LAYERS.FOREGROUND].length
         }
     });
+    */
 
     // Check if nineMMAmmo sprite is loaded for the current map
     const nineMMAmmoSprite = spriteManager.getSprite("nineMMAmmo");
@@ -85,6 +88,8 @@ export function nineMMAmmoCollission() {
     const dz = nineMMAmmoSprite ? nineMMAmmoSprite.worldPos.z - playerPosition.z : null;
     const distance = dx && dz ? Math.sqrt(dx * dx + dz * dz) : null;
     // Debug log with detailed coordinates
+
+    /*
     console.log("NineMMAmmo Collision Check:", {
         currentMapKey: spriteManager.currentMapKey,
         hasSprite: !!nineMMAmmoSprite,
@@ -95,6 +100,7 @@ export function nineMMAmmoCollission() {
         distance,
         canPickup: distance !== null && distance <= 100
     });
+    */
     // If the item is already collected, just return without warning
     if (spriteState.isNineMmAmmoCollected) {
         return;
@@ -102,14 +108,14 @@ export function nineMMAmmoCollission() {
 
     // Only check if sprite exists and has position
     if (!nineMMAmmoSprite || !nineMMAmmoSprite.worldPos) {
-        console.debug("9mm Ammo sprite not available in this map");
+        //console.debug("9mm Ammo sprite not available in this map");
         return;
     }
 
     const pickupDistance = 100;
 
     if (distance <= pickupDistance) {
-        console.log("Picking up 9mm ammo on", spriteManager.currentMapKey);
+        //console.log("Picking up 9mm ammo on", spriteManager.currentMapKey);
         setGenericGunAmmo(genericGunAmmo.current + 5);
         spriteState.isNineMmAmmoCollected = true;
     }
