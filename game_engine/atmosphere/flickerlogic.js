@@ -1,23 +1,19 @@
-import { renderEngine } from "../rendering/renderengine.js";
-import { CANVAS_HEIGHT, CANVAS_WIDTH } from "../globals.js";
+let flickerTime = 0;
+const FLICKER_SPEED = 5;
+const FLICKER_INTENSITY = 10.4; // Increased for more noticeable flicker
 
-let isFlickerOn = false; // Tracks if the white rectangle is shown
-const flickerInterval = 5000; // Time between flickers in milliseconds (adjust for speed)
-
-export function flickeringEffect() {
-    setInterval(flickeringSetup, flickerInterval);
+export function updateFlicker(deltaTime) {
+    console.debug("updateFlicker called", { deltaTime, flickerTime });
+    flickerTime += deltaTime * FLICKER_SPEED;
+    const flicker = Math.sin(flickerTime) * Math.cos(flickerTime * 1.5) * FLICKER_INTENSITY;
+    const result = 1 - FLICKER_INTENSITY + flicker;
+    console.debug("Flicker value", { flicker, result });
+    return result;
 }
 
-function flickeringSetup() {
-    // Toggle flicker state
-    isFlickerOn = !isFlickerOn;
-
-    if (isFlickerOn) {
-        // Draw white rectangle
-        renderEngine.fillStyle = "black";
-        renderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-    } else {
-        // Clear the canvas (or draw your background)
-        renderEngine.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-    }
+export function getFlickerValue() {
+    const flicker = Math.sin(flickerTime) * Math.cos(flickerTime * 1.5) * FLICKER_INTENSITY;
+    const result = 1 - FLICKER_INTENSITY + flicker;
+    console.debug("getFlickerValue", { flickerTime, flicker, result });
+    return result;
 }
