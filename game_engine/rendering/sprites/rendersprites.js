@@ -1,7 +1,7 @@
 import { renderEngine } from "../renderengine.js";
 import { tileSectors } from "../../mapdata/maps.js";
 import { playerPosition } from "../../playerdata/playerlogic.js";
-import { renderSprite } from "./spriteutils.js";  // Move this import to the top
+import { renderSprite } from "./spriteutils.js";
 import { registerSprites } from "./spriteregistry.js";
 import { dynamicSpriteHandler } from "./dynamicspritehandler.js";
 
@@ -75,6 +75,7 @@ export class SpriteManager {
         };
         this.mapSprites = new Map(); // mapKey -> array of sprite configs
         this.currentMapKey = null;
+        this.instanceId = Math.random().toString(36).substring(2); // Unique ID for debugging
     }
 
     addSprite(sprite, mapKey = null) {
@@ -150,6 +151,20 @@ export class SpriteManager {
             });
             this.addSprite(sprite, mapKey);
         }
+    }
+
+    removeSprite(spriteId) {
+        this.sprites.delete(spriteId);
+        // Remove from layers
+        Object.values(LAYERS).forEach(layer => {
+            this.layers[layer] = this.layers[layer].filter(sprite => sprite.id !== spriteId);
+        });
+        // Remove from mapSprites for the current map
+        if (this.currentMapKey) {
+            const mapSprites = this.mapSprites.get(this.currentMapKey) || [];
+            this.mapSprites.set(this.currentMapKey, mapSprites.filter(sprite => sprite.id !== spriteId));
+        }
+        console.debug(`Removed sprite ${spriteId} from spriteManager`);
     }
 }
 

@@ -29,6 +29,7 @@ import { renderRaycastWalls } from "./renderwalls.js";
 import { interactionHandlerGodFunction } from "../interactions/interactionhandler.js";
 import { renderRaycastHorizons } from "./renderhorizons.js";
 import { soundHandlerGodFunction } from "../audio/soundhandler.js";
+import { showTerminal } from "../console/terminal/terminal.js";
 
 // --- DOM Elements ---
 const domElements = {
@@ -117,8 +118,7 @@ async function gameRenderEngine(deltaTime) {
             console.timeEnd('fullRender');
             return;
         }
-
-        if (keys["Escape"] || keys["p"]) {
+        if (!showTerminal && (keys["Escape"] || keys["p"])) {
             setPaused(!isPaused);
             keys["Escape"] = false;
             keys["p"] = false;

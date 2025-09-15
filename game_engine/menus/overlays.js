@@ -89,7 +89,7 @@ export function drawMetalPipePickupBox() {
     renderEngine.globalAlpha = COLORS.boxBackgroundAlphaSolid;
     renderEngine.fillStyle = COLORS.text;
     renderEngine.font = FONTS.base;
-    const text = "You found a metal pipe! It looks like it could be useful. Press [Space] to swing.";
+    const text = "You found a metal pipe! It looks like it could be useful. Press [Space] to swing and T to exit this box.";
     const box = BOX.pickup;
     drawWrappedText(text, box.x + box.paddingX, box.y + box.paddingY, box.maxTextWidth, box.lineHeight);
     const imgX = box.x + (box.width - box.imgWidth) / 2
