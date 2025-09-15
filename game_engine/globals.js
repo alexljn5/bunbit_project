@@ -1,5 +1,13 @@
-export const gameName = "Bunbit Project";
-export const gameVersionNumber = "0.0.5";
+const gameInfo = {
+    name: "Bunbit",
+    version: "0.0.5"
+};
+
+const isRenderer = typeof window !== "undefined" && typeof document !== "undefined";
+
+// Only do DOM + window stuff in the renderer
+export const gameName = gameInfo.name;
+export const gameVersionNumber = gameInfo.version;
 
 export const domElements = {
     mainGameRender: typeof document !== 'undefined' ? document.getElementById("mainGameRender") : null,
