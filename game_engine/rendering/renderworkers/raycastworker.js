@@ -160,39 +160,42 @@ self.addEventListener("message", (e) => {
     }
 });
 
-// --- Math Tables for Fast Trig ---
-const SIN_TABLE_SIZE = 2048;
-const TWO_PI = Math.PI * 2;
+// --- Math Tables for Ultra-Fast Trig ---
+const SIN_TABLE_BITS = 11;                // 2^11 = 2048 entries
+const SIN_TABLE_SIZE = 1 << SIN_TABLE_BITS;
+const SIN_TABLE_MASK = SIN_TABLE_SIZE - 1;
+const FIXED_POINT_SHIFT = 16;
+const ANGLE_SCALE = (SIN_TABLE_SIZE << FIXED_POINT_SHIFT) / (Math.PI * 2) | 0;
+
 const sinTable = new Float32Array(SIN_TABLE_SIZE);
 const cosTable = new Float32Array(SIN_TABLE_SIZE);
+
 for (let i = 0; i < SIN_TABLE_SIZE; i++) {
-    const angle = (i / SIN_TABLE_SIZE) * TWO_PI;
+    const angle = (i * 2 * Math.PI) / SIN_TABLE_SIZE;
     sinTable[i] = Math.sin(angle);
     cosTable[i] = Math.cos(angle);
 }
 
+// Bitshift-based fastSin / fastCos
 function fastSin(angle) {
-    let idx = Math.floor((angle % TWO_PI) / TWO_PI * SIN_TABLE_SIZE);
-    if (idx < 0) idx += SIN_TABLE_SIZE;
+    const idx = ((angle * ANGLE_SCALE) | 0) >>> FIXED_POINT_SHIFT & SIN_TABLE_MASK;
     return sinTable[idx];
 }
 
 function fastCos(angle) {
-    let idx = Math.floor((angle % TWO_PI) / TWO_PI * SIN_TABLE_SIZE);
-    if (idx < 0) idx += SIN_TABLE_SIZE;
+    const idx = ((angle * ANGLE_SCALE) | 0) >>> FIXED_POINT_SHIFT & SIN_TABLE_MASK;
     return cosTable[idx];
 }
 
+// --- Ultra-fast Inverse Square Root (Q_rsqrt) ---
+const buf = new ArrayBuffer(4);
+const f = new Float32Array(buf);
+const i = new Uint32Array(buf);
+
 function Q_rsqrt(number) {
-    const threehalfs = 1.5;
     const x2 = number * 0.5;
-    let y = number;
-    const buf = new ArrayBuffer(4);
-    const f = new Float32Array(buf);
-    const i = new Uint32Array(buf);
-    f[0] = y;
+    f[0] = number;
     i[0] = 0x5f3759df - (i[0] >> 1);
-    y = f[0];
-    y = y * (threehalfs - (x2 * y * y));
-    return y;
+    f[0] = f[0] * (1.5 - x2 * f[0] * f[0]); // 1 NR iteration
+    return f[0];
 }

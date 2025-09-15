@@ -5,6 +5,7 @@ import { renderEngine } from "./renderengine.js";
 import { numCastRays } from "./raycasting.js";
 import { tileSectors } from "../mapdata/maps.js";
 import { tileTexturesMap } from "../mapdata/maptexturesloader.js";
+import { fastSin, fastCos } from "../math/mathtables.js";
 
 export function renderRaycastWalls(rayData) {
     if (!texturesLoaded) {
@@ -20,6 +21,10 @@ export function renderRaycastWalls(rayData) {
     for (let i = 0; i < rayData.length; i++) {
         const ray = rayData[i];
         if (!ray) continue;
+
+        // Use fastSin / fastCos for wall height calculations if needed
+        // Example: if you had fisheye correction
+        // const correctedDistance = ray.distance * fastCos(ray.rayAngle - playerAngle);
 
         const wallHeight = (CANVAS_HEIGHT / ray.distance) * tileSectors;
         const wallTop = (CANVAS_HEIGHT - wallHeight) / 2;
