@@ -20,19 +20,6 @@ export function simpleCollissionTest() {
     const dz = metalPipeSprite.worldPos.z - playerPosition.z;
     const distance = Math.sqrt(dx * dx + dz * dz);
 
-    // Debug log with detailed coordinates
-    console.log("MetalPipe Collision Check:", {
-        currentMapKey: spriteManager.currentMapKey,
-        hasSprite: !!metalPipeSprite,
-        isLoaded: metalPipeSprite?.isLoaded,
-        isCollected: spriteState.isMetalPipeCollected,
-        spriteWorldPos: metalPipeSprite.worldPos,
-        playerPos: playerPosition,
-        distance,
-        canPickup: distance <= 100 && !playerInventory.includes("metal_pipe"),
-        tKeyPressed: keys.t
-    });
-
     // If the item is already collected, just return
     if (spriteState.isMetalPipeCollected) {
         return;

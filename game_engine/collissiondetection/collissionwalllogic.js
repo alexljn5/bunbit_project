@@ -19,7 +19,6 @@ export function wallCollision(isSprinting, playerMovementSpeed, deltaTime) {
         return;
     }
 
-    console.log(`wallCollision using grid for ${mapKey}:`, { rows: activeSector.length, cols: activeSector[0].length });
     return wallCollisionWithMap(activeSector, isSprinting, playerMovementSpeed, deltaTime);
 }
 
