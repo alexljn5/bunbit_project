@@ -1,0 +1,3 @@
+The Glitch Effects are awesome but needs to be optimized to even run performant as the game is hitting 100%... actually the fact cpu is hitting so hard is concerning.
+Organise all the folders as they are huge too.
+I need sleep now even tho this is fun! 

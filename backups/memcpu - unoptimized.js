@@ -8,8 +8,8 @@ let perfHeader = null;
 let perfResizeHandle = null;
 let isPerfVisible = false;
 
-let PERF_WIDTH = 300;
-let PERF_HEIGHT = 150;
+let PERF_WIDTH = 350; // Increased width for more graphs
+let PERF_HEIGHT = 220; // Increased height for more stats
 
 // Resize and drag state
 let isResizing = false;
@@ -26,37 +26,62 @@ let containerStartY = 0;
 let updateInterval = null;
 let glitchInterval = null;
 
-// Performance monitoring state
+// Enhanced performance monitoring state
 let performanceData = {
     memory: {
         usedJSHeapSize: 0,
         totalJSHeapSize: 0,
-        jsHeapSizeLimit: 0
+        jsHeapSizeLimit: 0,
+        allocationRate: 0,
+        lastUsedSize: 0
     },
     cpu: {
         usage: 0,
         lastTime: 0,
-        lastUsage: 0
+        lastUsage: 0,
+        peakUsage: 0,
+        averageUsage: 0
     },
-    fps: 0,
+    fps: {
+        current: 0,
+        min: 999,
+        max: 0,
+        average: 0
+    },
+    frameTime: {
+        current: 0,
+        min: 999,
+        max: 0,
+        average: 0
+    },
     frameCount: 0,
     lastFpsUpdate: 0,
     history: {
         memory: [],
         cpu: [],
-        fps: []
+        fps: [],
+        frameTime: [],
+        allocationRate: []
+    },
+    stats: {
+        totalFrames: 0,
+        runningTime: 0,
+        startTime: 0,
     }
 };
 
-// Glitch effects state
+// Enhanced glitch effects state
 let glitchEffects = {
-    active: false,
     intensity: 0,
     scanlineOffset: 0,
     textGlitch: false,
     horizontalShift: 0,
+    verticalShift: 0,
     corruption: 0,
-    flicker: 1
+    flicker: 1,
+    staticEffect: 0,
+    shakeIntensity: 0,
+    lastFrame: null
 };
 
 // Check if performance API is available
@@ -64,7 +89,7 @@ const performance = window.performance || window.webkitPerformance || window.msP
 const hasPerformanceAPI = !!performance;
 const hasMemoryAPI = hasPerformanceAPI && performance.memory;
 
-// Extreme evil red & black theme with glitch effects
+// Extreme evil red & black theme with enhanced glitch effects
 const EVIL_THEME = {
     background: '#0a0000', // Almost pure black with hint of red
     headerBg: '#000000',   // Pure black
@@ -77,7 +102,11 @@ const EVIL_THEME = {
     resizeHandle: '#300000', // Deep blood red
     resizeBorder: '#8b0000', // Dark blood red
     scanlines: 'rgba(255, 0, 0, 0.03)', // Blood red scanlines
-    corruption: 'rgba(255, 0, 0, 0.1)'  // Data corruption effect
+    corruption: 'rgba(255, 0, 0, 0.1)',  // Data corruption effect
+    graph1: '#ff0000',     // Bright red for primary graphs
+    graph2: '#8b0000',     // Dark red for secondary graphs
+    graph3: '#300000',     // Very dark red for tertiary graphs
+    graph4: '#450000'      // Medium dark red for additional graphs
 };
 
 // --- Create resize handle ---
@@ -129,8 +158,8 @@ function handleResize(e) {
     const dx = e.clientX - resizeStartX;
     const dy = e.clientY - resizeStartY;
 
-    PERF_WIDTH = Math.max(200, resizeStartWidth + dx);
-    PERF_HEIGHT = Math.max(120, resizeStartHeight + dy);
+    PERF_WIDTH = Math.max(300, resizeStartWidth + dx);
+    PERF_HEIGHT = Math.max(180, resizeStartHeight + dy);
 
     resizePerfMonitor(PERF_WIDTH, PERF_HEIGHT);
 }
@@ -177,37 +206,53 @@ function stopDrag() {
     perfContainer.style.cursor = '';
 }
 
-// --- Glitch effects ---
+// --- Enhanced Glitch effects ---
 function updateGlitchEffects() {
-    // Randomly trigger glitch effects based on performance
-    const performanceStress = (performanceData.cpu.usage / 100) * 0.7 +
-        (performanceData.memory.usedJSHeapSize / performanceData.memory.jsHeapSizeLimit) * 0.3;
+    // Calculate intensity based on performance stress
+    const cpuStress = performanceData.cpu.usage / 100;
+    const memoryStress = performanceData.memory.usedJSHeapSize / performanceData.memory.jsHeapSizeLimit;
+    const performanceStress = (cpuStress * 0.6) + (memoryStress * 0.4);
 
-    glitchEffects.intensity = Math.min(1, performanceStress * 1.5);
+    glitchEffects.intensity = Math.min(1, performanceStress * 1.8);
 
-    // Random glitch events
-    if (Math.random() < 0.1 * glitchEffects.intensity) {
-        glitchEffects.scanlineOffset = (Math.random() - 0.5) * 10;
-    }
-
-    if (Math.random() < 0.05 * glitchEffects.intensity) {
-        glitchEffects.textGlitch = true;
-        setTimeout(() => { glitchEffects.textGlitch = false; }, 100);
+    // Random glitch events with higher probability when intensity is high
+    if (Math.random() < 0.15 * glitchEffects.intensity) {
+        glitchEffects.scanlineOffset = (Math.random() - 0.5) * 12;
     }
 
     if (Math.random() < 0.08 * glitchEffects.intensity) {
-        glitchEffects.horizontalShift = (Math.random() - 0.5) * 20;
-        setTimeout(() => { glitchEffects.horizontalShift = 0; }, 50);
+        glitchEffects.textGlitch = true;
+        setTimeout(() => { glitchEffects.textGlitch = false; }, 120);
     }
 
-    if (Math.random() < 0.03 * glitchEffects.intensity) {
-        glitchEffects.corruption = Math.random() * 0.3;
-        setTimeout(() => { glitchEffects.corruption = 0; }, 200);
+    if (Math.random() < 0.1 * glitchEffects.intensity) {
+        glitchEffects.horizontalShift = (Math.random() - 0.5) * 25;
+        setTimeout(() => { glitchEffects.horizontalShift = 0; }, 70);
     }
 
-    if (Math.random() < 0.05 * glitchEffects.intensity) {
-        glitchEffects.flicker = 0.3 + Math.random() * 0.7;
-        setTimeout(() => { glitchEffects.flicker = 1; }, 100);
+    if (Math.random() < 0.1 * glitchEffects.intensity) {
+        glitchEffects.verticalShift = (Math.random() - 0.5) * 15;
+        setTimeout(() => { glitchEffects.verticalShift = 0; }, 60);
+    }
+
+    if (Math.random() < 0.06 * glitchEffects.intensity) {
+        glitchEffects.corruption = Math.random() * 0.4;
+        setTimeout(() => { glitchEffects.corruption = 0; }, 250);
+    }
+
+    if (Math.random() < 0.09 * glitchEffects.intensity) {
+        glitchEffects.flicker = 0.2 + Math.random() * 0.8;
+        setTimeout(() => { glitchEffects.flicker = 1; }, 130);
+    }
+
+    if (Math.random() < 0.04 * glitchEffects.intensity) {
+        glitchEffects.staticEffect = Math.random() * 0.7;
+        setTimeout(() => { glitchEffects.staticEffect = 0; }, 220);
+    }
+
+    if (Math.random() < 0.07 * glitchEffects.intensity) {
+        glitchEffects.shakeIntensity = Math.random() * 8;
+        setTimeout(() => { glitchEffects.shakeIntensity = 0; }, 350);
     }
 }
 
@@ -246,7 +291,7 @@ export function memCpuGodFunction() {
     perfHeader.addEventListener('mousedown', startDrag);
 
     const title = document.createElement("div");
-    title.textContent = "SYSTEM MONITOR";
+    title.textContent = "SYSTEM MONITOR ++";
     title.style.fontWeight = "bold";
     title.style.color = "#ff0000"; // Bright blood red
     title.style.letterSpacing = "1px";
@@ -297,51 +342,85 @@ export function memCpuGodFunction() {
     // Initialize performance data
     performanceData.cpu.lastTime = performance.now();
     performanceData.lastFpsUpdate = performance.now();
+    performanceData.stats.startTime = performance.now();
+    performanceData.memory.lastUsedSize = performance.memory ? performance.memory.usedJSHeapSize : 0;
 
     // Start updating stats
     updateInterval = setInterval(updatePerformanceData, 1000);
-    glitchInterval = setInterval(updateGlitchEffects, 500);
+    glitchInterval = setInterval(updateGlitchEffects, 450);
     requestAnimationFrame(drawPerfMonitor);
 }
 
-// --- Update performance data ---
+// --- Enhanced performance data update ---
 function updatePerformanceData() {
     if (!isPerfVisible) return;
 
     // Get memory metrics if available
     if (hasMemoryAPI) {
+        const currentUsed = performance.memory.usedJSHeapSize;
+        const allocationRate = (currentUsed - performanceData.memory.lastUsedSize) / 1048576; // MB per second
+
         performanceData.memory = {
-            usedJSHeapSize: performance.memory.usedJSHeapSize / 1048576, // Convert to MB
+            usedJSHeapSize: currentUsed / 1048576, // Convert to MB
             totalJSHeapSize: performance.memory.totalJSHeapSize / 1048576,
-            jsHeapSizeLimit: performance.memory.jsHeapSizeLimit / 1048576
+            jsHeapSizeLimit: performance.memory.jsHeapSizeLimit / 1048576,
+            allocationRate: allocationRate,
+            lastUsedSize: currentUsed
         };
+
+        performanceData.history.allocationRate.push(allocationRate);
+        if (performanceData.history.allocationRate.length > 30) {
+            performanceData.history.allocationRate.shift();
+        }
     }
 
-    // Calculate FPS
+    // Calculate FPS and frame time stats
     const now = performance.now();
     if (now - performanceData.lastFpsUpdate >= 1000) {
-        performanceData.fps = Math.round(
-            (performanceData.frameCount * 1000) / (now - performanceData.lastFpsUpdate)
-        );
+        const elapsedSeconds = (now - performanceData.lastFpsUpdate) / 1000;
+        performanceData.fps.current = Math.round(performanceData.frameCount / elapsedSeconds);
+
+        // Update FPS stats
+        performanceData.fps.min = Math.min(performanceData.fps.min, performanceData.fps.current);
+        performanceData.fps.max = Math.max(performanceData.fps.max, performanceData.fps.current);
+        performanceData.fps.average = (performanceData.fps.average * 0.8) + (performanceData.fps.current * 0.2);
+
+        // Calculate average frame time
+        const frameTime = 1000 / performanceData.fps.current;
+        performanceData.frameTime.current = frameTime;
+        performanceData.frameTime.min = Math.min(performanceData.frameTime.min, frameTime);
+        performanceData.frameTime.max = Math.max(performanceData.frameTime.max, frameTime);
+        performanceData.frameTime.average = (performanceData.frameTime.average * 0.8) + (frameTime * 0.2);
+
         performanceData.frameCount = 0;
         performanceData.lastFpsUpdate = now;
+
+        // Update CPU stats
+        performanceData.cpu.peakUsage = Math.max(performanceData.cpu.peakUsage, performanceData.cpu.usage);
+        performanceData.cpu.averageUsage = (performanceData.cpu.averageUsage * 0.7) + (performanceData.cpu.usage * 0.3);
+
+        // Update running stats
+        performanceData.stats.totalFrames += performanceData.frameCount;
+        performanceData.stats.runningTime = (now - performanceData.stats.startTime) / 1000;
 
         // Add to history
         performanceData.history.memory.push(performanceData.memory.usedJSHeapSize || 0);
         performanceData.history.cpu.push(performanceData.cpu.usage);
-        performanceData.history.fps.push(performanceData.fps);
+        performanceData.history.fps.push(performanceData.fps.current);
+        performanceData.history.frameTime.push(performanceData.frameTime.current);
 
         // Keep history length limited
-        const maxHistory = 30;
+        const maxHistory = 40;
         if (performanceData.history.memory.length > maxHistory) {
             performanceData.history.memory.shift();
             performanceData.history.cpu.shift();
             performanceData.history.fps.shift();
+            performanceData.history.frameTime.shift();
         }
     }
 }
 
-// --- Draw stats ---
+// --- Draw stats with enhanced metrics ---
 function drawPerfMonitor() {
     if (!isPerfVisible || !perfCtx) return;
 
@@ -353,11 +432,8 @@ function drawPerfMonitor() {
 
     if (timeDiff > 100) {
         const usage = Math.min(100, Math.max(0, (timeDiff - 16) / timeDiff * 100));
-        performanceData.cpu = {
-            usage: usage,
-            lastTime: now,
-            lastUsage: performanceData.cpu.usage
-        };
+        performanceData.cpu.usage = usage;
+        performanceData.cpu.lastTime = now;
     }
 
     const width = perfCanvas.width;
@@ -366,9 +442,15 @@ function drawPerfMonitor() {
     // Apply flicker effect
     perfCtx.globalAlpha = glitchEffects.flicker;
 
+    // Apply shake effect
+    const shakeX = glitchEffects.shakeIntensity > 0 ?
+        (Math.random() - 0.5) * glitchEffects.shakeIntensity : 0;
+    const shakeY = glitchEffects.shakeIntensity > 0 ?
+        (Math.random() - 0.5) * glitchEffects.shakeIntensity : 0;
+
     // Draw pure black background with blood red hint
     perfCtx.fillStyle = EVIL_THEME.background;
-    perfCtx.fillRect(0, 0, width, height);
+    perfCtx.fillRect(shakeX, shakeY, width, height);
 
     // Draw corruption effect
     if (glitchEffects.corruption > 0) {
@@ -376,7 +458,7 @@ function drawPerfMonitor() {
         for (let i = 0; i < width; i += 5) {
             if (Math.random() < glitchEffects.corruption) {
                 const h = Math.random() * height;
-                perfCtx.fillRect(i, 0, 3, h);
+                perfCtx.fillRect(i + shakeX, shakeY, 3, h);
             }
         }
     }
@@ -384,67 +466,138 @@ function drawPerfMonitor() {
     // Draw blood red scanlines with offset glitch
     perfCtx.fillStyle = EVIL_THEME.scanlines;
     for (let i = glitchEffects.scanlineOffset; i < height; i += 2) {
-        perfCtx.fillRect(0, i, width, 1);
+        perfCtx.fillRect(shakeX, i + shakeY, width, 1);
     }
 
     // Draw text with glitch effects
-    perfCtx.font = "12px 'Courier New', monospace";
+    perfCtx.font = "11px 'Courier New', monospace";
     perfCtx.textBaseline = "top";
-    let y = 20;
+    let y = 15;
 
-    // Apply horizontal shift if active
-    perfCtx.translate(glitchEffects.horizontalShift, 0);
+    // Apply horizontal and vertical shift if active
+    perfCtx.translate(glitchEffects.horizontalShift + shakeX, glitchEffects.verticalShift + shakeY);
 
-    // FPS - Everything in blood red, different intensities
-    let fpsText = `FPS: ${performanceData.fps}`;
+    // Draw first row of stats
+    const col1 = 10;
+    const col2 = width / 2;
+
+    // FPS stats
+    let fpsText = `FPS: ${performanceData.fps.current} (${performanceData.fps.min}-${performanceData.fps.max})`;
     if (glitchEffects.textGlitch) {
-        fpsText = `FPS: ${Math.floor(Math.random() * 100)}`;
+        fpsText = `FPS: ${Math.floor(Math.random() * 100)} (${Math.floor(Math.random() * 50)}-${Math.floor(Math.random() * 150)})`;
     }
-    perfCtx.fillStyle = performanceData.fps > 50 ? '#ff0000' :
-        performanceData.fps > 30 ? '#8b0000' : '#300000';
-    perfCtx.fillText(fpsText, 10, y);
-    y += 20;
+    perfCtx.fillStyle = performanceData.fps.current > 50 ? EVIL_THEME.graph1 :
+        performanceData.fps.current > 30 ? EVIL_THEME.graph2 : EVIL_THEME.graph3;
+    perfCtx.fillText(fpsText, col1, y);
 
-    // Memory (if available)
+    // Frame time stats
+    let frameTimeText = `FRM: ${performanceData.frameTime.current.toFixed(1)}ms`;
+    if (glitchEffects.textGlitch) {
+        frameTimeText = `FRM: ${(Math.random() * 50).toFixed(1)}ms`;
+    }
+    perfCtx.fillStyle = performanceData.frameTime.current < 20 ? EVIL_THEME.graph1 :
+        performanceData.frameTime.current < 35 ? EVIL_THEME.graph2 : EVIL_THEME.graph3;
+    perfCtx.fillText(frameTimeText, col2, y);
+    y += 16;
+
+    // CPU stats
+    let cpuText = `CPU: ${performanceData.cpu.usage.toFixed(1)}% (Avg: ${performanceData.cpu.averageUsage.toFixed(1)}%)`;
+    if (glitchEffects.textGlitch) {
+        cpuText = `CPU: ${(Math.random() * 100).toFixed(1)}% (Avg: ${(Math.random() * 100).toFixed(1)}%)`;
+    }
+    perfCtx.fillStyle = performanceData.cpu.usage < 70 ? EVIL_THEME.graph1 :
+        performanceData.cpu.usage < 85 ? EVIL_THEME.graph2 : EVIL_THEME.graph3;
+    perfCtx.fillText(cpuText, col1, y);
+
+    // Memory stats (if available)
     if (hasMemoryAPI) {
         const memoryPercent = (performanceData.memory.usedJSHeapSize / performanceData.memory.jsHeapSizeLimit) * 100;
-        let memText = `MEM: ${performanceData.memory.usedJSHeapSize.toFixed(1)}/${performanceData.memory.jsHeapSizeLimit.toFixed(1)}MB`;
+        let memText = `MEM: ${performanceData.memory.usedJSHeapSize.toFixed(1)}MB (${memoryPercent.toFixed(1)}%)`;
         if (glitchEffects.textGlitch) {
-            memText = `MEM: ${(Math.random() * 100).toFixed(1)}/${performanceData.memory.jsHeapSizeLimit.toFixed(1)}MB`;
+            memText = `MEM: ${(Math.random() * 100).toFixed(1)}MB (${(Math.random() * 100).toFixed(1)}%)`;
         }
-        perfCtx.fillStyle = memoryPercent < 70 ? '#ff0000' :
-            memoryPercent < 85 ? '#8b0000' : '#300000';
-        perfCtx.fillText(memText, 10, y);
-        y += 20;
+        perfCtx.fillStyle = memoryPercent < 70 ? EVIL_THEME.graph1 :
+            memoryPercent < 85 ? EVIL_THEME.graph2 : EVIL_THEME.graph3;
+        perfCtx.fillText(memText, col2, y);
     }
+    y += 16;
 
-    // CPU
-    let cpuText = `CPU: ${performanceData.cpu.usage.toFixed(1)}%`;
-    if (glitchEffects.textGlitch) {
-        cpuText = `CPU: ${(Math.random() * 100).toFixed(1)}%`;
+    // Allocation rate and limit stats
+    if (hasMemoryAPI) {
+        let allocText = `ALLOC: ${performanceData.memory.allocationRate.toFixed(2)}MB/s`;
+        if (glitchEffects.textGlitch) {
+            allocText = `ALLOC: ${(Math.random() * 10).toFixed(2)}MB/s`;
+        }
+        perfCtx.fillStyle = Math.abs(performanceData.memory.allocationRate) < 1 ? EVIL_THEME.graph1 :
+            Math.abs(performanceData.memory.allocationRate) < 5 ? EVIL_THEME.graph2 : EVIL_THEME.graph3;
+        perfCtx.fillText(allocText, col1, y);
+
+        let limitText = `LIMIT: ${performanceData.memory.jsHeapSizeLimit.toFixed(1)}MB`;
+        if (glitchEffects.textGlitch) {
+            limitText = `LIMIT: ${(Math.random() * 1000).toFixed(1)}MB`;
+        }
+        perfCtx.fillStyle = EVIL_THEME.graph4;
+        perfCtx.fillText(limitText, col2, y);
     }
-    perfCtx.fillStyle = performanceData.cpu.usage < 70 ? '#300000' :
-        performanceData.cpu.usage < 85 ? '#8b0000' : '#ff0000';
-    perfCtx.fillText(cpuText, 10, y);
+    y += 16;
+
+    // Runtime stats
+    let runtimeText = `TIME: ${Math.floor(performanceData.stats.runningTime)}s`;
+    let framesText = `FRAMES: ${performanceData.stats.totalFrames.toLocaleString()}`;
+    if (glitchEffects.textGlitch) {
+        runtimeText = `TIME: ${Math.floor(Math.random() * 1000)}s`;
+        framesText = `FRAMES: ${Math.floor(Math.random() * 1000000).toLocaleString()}`;
+    }
+    perfCtx.fillStyle = EVIL_THEME.graph1;
+    perfCtx.fillText(runtimeText, col1, y);
+    perfCtx.fillStyle = EVIL_THEME.graph2;
+    perfCtx.fillText(framesText, col2, y);
     y += 20;
 
     // Reset translation
-    perfCtx.translate(-glitchEffects.horizontalShift, 0);
+    perfCtx.translate(-glitchEffects.horizontalShift - shakeX, -glitchEffects.verticalShift - shakeY);
 
-    // Draw graphs if we have history
+    // Draw multiple graphs if we have history
+    const graphHeight = 28;
+    const graphSpacing = 5;
+    const graphsPerRow = 2;
+    const graphWidth = (width - 20 - (graphsPerRow - 1) * graphSpacing) / graphsPerRow;
+
     if (performanceData.history.memory.length > 1) {
-        drawGraph(perfCtx, performanceData.history.memory, 10, y, width - 20, 30, '#ff0000', "MEM");
-        drawGraph(perfCtx, performanceData.history.cpu, 10, y + 40, width - 20, 30, '#8b0000', "CPU");
+        // Row 1: Memory and CPU
+        drawGraph(perfCtx, performanceData.history.memory, 10, y, graphWidth, graphHeight, EVIL_THEME.graph1, "MEM", "MB");
+        drawGraph(perfCtx, performanceData.history.cpu, 15 + graphWidth, y, graphWidth, graphHeight, EVIL_THEME.graph2, "CPU", "%");
+        y += graphHeight + graphSpacing + 5;
+
+        // Row 2: FPS and Frame Time
+        drawGraph(perfCtx, performanceData.history.fps, 10, y, graphWidth, graphHeight, EVIL_THEME.graph3, "FPS", "");
+        drawGraph(perfCtx, performanceData.history.frameTime, 15 + graphWidth, y, graphWidth, graphHeight, EVIL_THEME.graph4, "MS", "ms");
+        y += graphHeight + graphSpacing;
+
+        // Row 3: Allocation Rate (if available)
+        if (hasMemoryAPI && performanceData.history.allocationRate.length > 1) {
+            drawGraph(perfCtx, performanceData.history.allocationRate, 10, y, width - 20, graphHeight, EVIL_THEME.graph1, "ALLOC", "MB/s");
+        }
     }
 
     // Draw evil blood red border with glow
     perfCtx.strokeStyle = EVIL_THEME.border;
     perfCtx.lineWidth = 1;
-    perfCtx.strokeRect(0, 0, width, height);
+    perfCtx.strokeRect(shakeX, shakeY, width, height);
 
     // Draw inner glow
     perfCtx.strokeStyle = 'rgba(255, 0, 0, 0.3)';
-    perfCtx.strokeRect(1, 1, width - 2, height - 2);
+    perfCtx.strokeRect(1 + shakeX, 1 + shakeY, width - 2, height - 2);
+
+    // Draw static effect
+    if (glitchEffects.staticEffect > 0) {
+        perfCtx.fillStyle = `rgba(255, 0, 0, ${glitchEffects.staticEffect * 0.1})`;
+        for (let i = 0; i < width * height * 0.01; i++) {
+            const x = Math.floor(Math.random() * width) + shakeX;
+            const y = Math.floor(Math.random() * height) + shakeY;
+            perfCtx.fillRect(x, y, 1, 1);
+        }
+    }
 
     // Reset alpha
     perfCtx.globalAlpha = 1;
@@ -452,29 +605,42 @@ function drawPerfMonitor() {
     requestAnimationFrame(drawPerfMonitor);
 }
 
-// --- Draw graph ---
-function drawGraph(ctx, values, x, y, width, height, color, label) {
+// --- Enhanced graph drawing function ---
+function drawGraph(ctx, values, x, y, width, height, color, label, unit = "") {
     if (values.length < 2) return;
 
-    // Find max value for scaling
-    const maxValue = Math.max(...values, 1) * 1.1; // Add 10% padding
+    // Find max value for scaling with some padding
+    const maxValue = Math.max(...values, 1) * 1.15;
 
     // Draw graph background
     ctx.fillStyle = EVIL_THEME.graphBg;
     ctx.fillRect(x, y, width, height);
 
+    // Draw grid lines
+    ctx.strokeStyle = 'rgba(139, 0, 0, 0.3)';
+    ctx.lineWidth = 0.5;
+
+    // Horizontal grid lines
+    for (let i = 1; i < 4; i++) {
+        const lineY = y + height - (i / 4) * height;
+        ctx.beginPath();
+        ctx.moveTo(x, lineY);
+        ctx.lineTo(x + width, lineY);
+        ctx.stroke();
+    }
+
     // Draw graph line with glitch effect
     ctx.beginPath();
     ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 1.5;
 
     for (let i = 0; i < values.length; i++) {
         const xPos = x + (i / (values.length - 1)) * width;
 
         // Add slight random glitches to graph values
         let value = values[i];
-        if (Math.random() < glitchEffects.intensity * 0.1) {
-            value = value * (0.9 + Math.random() * 0.2);
+        if (Math.random() < glitchEffects.intensity * 0.15) {
+            value = value * (0.8 + Math.random() * 0.4);
         }
 
         const yPos = y + height - (value / maxValue) * height;
@@ -488,16 +654,34 @@ function drawGraph(ctx, values, x, y, width, height, color, label) {
 
     ctx.stroke();
 
+    // Draw fill under graph
+    ctx.fillStyle = color.replace(')', ', 0.2)').replace('rgb', 'rgba');
+    ctx.beginPath();
+    ctx.moveTo(x, y + height);
+    for (let i = 0; i < values.length; i++) {
+        const xPos = x + (i / (values.length - 1)) * width;
+        const value = values[i];
+        const yPos = y + height - (value / maxValue) * height;
+        ctx.lineTo(xPos, yPos);
+    }
+    ctx.lineTo(x + width, y + height);
+    ctx.closePath();
+    ctx.fill();
+
     // Draw label with blood red glow
-    let labelText = `${label}: ${values[values.length - 1].toFixed(1)}`;
+    const currentValue = values[values.length - 1];
+    let labelText = `${label}: ${currentValue.toFixed(unit === "MB/s" ? 2 : 1)}${unit}`;
+
     if (glitchEffects.textGlitch) {
-        labelText = `${label}: ${(values[values.length - 1] * (0.8 + Math.random() * 0.4)).toFixed(1)}`;
+        const glitchValue = currentValue * (0.7 + Math.random() * 0.6);
+        labelText = `${label}: ${glitchValue.toFixed(unit === "MB/s" ? 2 : 1)}${unit}`;
     }
 
     ctx.fillStyle = color;
     ctx.shadowBlur = 8;
     ctx.shadowColor = '#ff0000';
-    ctx.fillText(labelText, x + 5, y + 12);
+    ctx.font = "9px Courier New";
+    ctx.fillText(labelText, x + 3, y + 10);
     ctx.shadowBlur = 0;
 }
 
@@ -532,13 +716,16 @@ export function stopMemCpuMonitor() {
 
     // Reset glitch effects
     glitchEffects = {
-        active: false,
         intensity: 0,
         scanlineOffset: 0,
         textGlitch: false,
         horizontalShift: 0,
+        verticalShift: 0,
         corruption: 0,
-        flicker: 1
+        flicker: 1,
+        staticEffect: 0,
+        shakeIntensity: 0,
+        lastFrame: null
     };
 }
 
@@ -563,4 +750,4 @@ export function resizePerfMonitor(width, height) {
 
 // --- Expose manual resize globally ---
 window.resizePerfMonitor = resizePerfMonitor;
-window.togglePerfMonitor = togglePerfMonitor; 
+window.togglePerfMonitor = togglePerfMonitor;

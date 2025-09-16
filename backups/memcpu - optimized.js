@@ -563,4 +563,4 @@ export function resizePerfMonitor(width, height) {
 
 // --- Expose manual resize globally ---
 window.resizePerfMonitor = resizePerfMonitor;
-window.togglePerfMonitor = togglePerfMonitor; 
+window.togglePerfMonitor = togglePerfMonitor;

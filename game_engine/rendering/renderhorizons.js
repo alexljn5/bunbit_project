@@ -188,7 +188,7 @@ export function renderRaycastHorizons(rayData, targetCtx = renderEngine) {
                         const startOffset = e.data.startY * CANVAS_WIDTH * 4;
                         try {
                             finalBuffer.set(workerBuffer, startOffset);
-                            console.log(`Horizon worker ${e.data.workerId} done for rows ${e.data.startY}-${e.data.endY}`);
+                            //console.log(`Horizon worker ${e.data.workerId} done for rows ${e.data.startY}-${e.data.endY}`);
                         } catch (error) {
                             console.error(`Error copying horizon worker ${e.data.workerId} buffer: ${error.message}`);
                         }
