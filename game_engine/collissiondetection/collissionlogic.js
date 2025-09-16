@@ -9,25 +9,10 @@ import { keys } from "../playerdata/playerlogic.js";
 import { metalPipeSpriteInteraction } from "../interactions/interactionlogic.js";
 
 export function simpleCollissionTest() {
-    // Detailed sprite debug info
-    console.debug("MetalPipe collision check - Sprite state:", {
-        spriteManager: !!spriteManager,
-        instanceId: spriteManager?.instanceId,
-        currentMap: spriteManager.currentMapKey,
-        spritesInCurrentMap: spriteManager.sprites.size,
-        layerInfo: {
-            background: spriteManager.layers[LAYERS.BACKGROUND].length,
-            midground: spriteManager.layers[LAYERS.MIDGROUND].length,
-            foreground: spriteManager.layers[LAYERS.FOREGROUND].length
-        },
-        metalPipeSpriteDetails: spriteManager.getSprite("metalPipe"),
-        hasRemoveSprite: typeof spriteManager.removeSprite === 'function'
-    });
-
     // Check if metalPipe sprite is loaded for the current map
     const metalPipeSprite = spriteManager.getSprite("metalPipe");
     if (!metalPipeSprite || !metalPipeSprite.worldPos) {
-        console.debug("MetalPipe sprite not available or missing worldPos in map:", spriteManager.currentMapKey);
+        //console.debug("MetalPipe sprite not available or missing worldPos in map:", spriteManager.currentMapKey);
         return;
     }
 

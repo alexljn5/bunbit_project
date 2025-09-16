@@ -39,22 +39,13 @@ export function corpseSpriteRustyKeyInteraction() {
 export function metalPipeSpriteInteraction() {
     const metalPipeSprite = spriteManager.getSprite("metalPipe");
     if (!metalPipeSprite || !metalPipeSprite.worldPos || spriteState.isMetalPipeCollected) {
-        console.debug("MetalPipe sprite not available, missing worldPos, or already collected");
+        //console.debug("MetalPipe sprite not available, missing worldPos, or already collected");
         return false;
     }
 
     const dx = playerPosition.x - metalPipeSprite.worldPos.x;
     const dz = playerPosition.z - metalPipeSprite.worldPos.z;
     const distance = Math.sqrt(dx * dx + dz * dz);
-
-    // Debug spriteManager state
-    console.debug("spriteManager state in metalPipeSpriteInteraction:", {
-        spriteManager: !!spriteManager,
-        instanceId: spriteManager?.instanceId,
-        hasRemoveSprite: typeof spriteManager.removeSprite === 'function',
-        spriteId: "metalPipe",
-        spriteDetails: metalPipeSprite
-    });
 
     // Show pickup box and handle pickup with 'T' key
     if (distance < spriteRadius && !playerInventory.includes("metal_pipe")) {

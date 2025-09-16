@@ -1,13 +1,13 @@
 import { gameLoop } from "../main_game.js";
-import { playerLogic, playerPosition, showDebugTools, gameOver, onRespawn } from "../playerdata/playerlogic.js";
+import { playerLogic, playerPosition, showDebugTools, gameOver, onRespawn, keys } from "../playerdata/playerlogic.js";
 import { drawRespawnMenu } from "../menus/menurespawn.js";
 import { playerInventoryGodFunction } from "../playerdata/playerinventory.js";
 import { compiledDevTools } from "../debugtools.js";
 import { tileSectors } from "../mapdata/maps.js";
-import { castRays, numCastRays, playerFOV, initializeMap } from "./raycasting.js";
+import { castRays } from "./raycasting.js";
 import { drawSprites } from "./sprites/rendersprites.js";
 import { mainGameMenu, setupMenuClickHandler } from "../menus/menu.js";
-import { texturesLoaded, tileTexturesMap, getDemonLaughingCurrentFrame } from "../mapdata/maptexturesloader.js";
+import { texturesLoaded } from "../mapdata/maptexturesloader.js";
 import { playerUI } from "../playerdata/playerui.js";
 import { collissionGodFunction } from "../collissiondetection/collissionlogichandler.js";
 import { enemyAiGodFunction, friendlyAiGodFunction } from "../ai/aihandler.js";
@@ -17,19 +17,17 @@ import { menuHandler } from "../menus/menuhandler.js";
 import { animationHandler } from "../animations/animationhandler.js";
 import { introActive, newGameStartAnimation } from "../animations/newgamestartanimation.js";
 import { itemHandlerGodFunction } from "../itemhandler/itemhandler.js";
-import { CANVAS_HEIGHT, CANVAS_WIDTH } from "../globals.js";
-import { fastSin, fastCos, Q_rsqrt } from "../math/mathtables.js";
+import { CANVAS_HEIGHT, CANVAS_WIDTH, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT } from "../globals.js";
 import { eventHandler } from "../events/eventhandler.js";
 import { decorationHandlerGodFunction } from "../decorationhandler/decorationhandler.js";
 import { mapHandler } from "../mapdata/maphandler.js";
 import { consoleHandler } from "../console/consolehandler.js";
-import { keys } from "../playerdata/playerlogic.js";
-import { SCALE_X, SCALE_Y } from "../globals.js";
 import { renderRaycastWalls } from "./renderwalls.js";
 import { interactionHandlerGodFunction } from "../interactions/interactionhandler.js";
 import { renderRaycastHorizons } from "./renderhorizons.js";
 import { soundHandlerGodFunction } from "../audio/soundhandler.js";
 import { showTerminal } from "../console/terminal/terminal.js";
+import { debugHandlerGodFunction, drawDebugTerminal } from "../debug/debughandler.js";
 
 // --- DOM Elements ---
 const domElements = {
@@ -68,8 +66,6 @@ domElements.stopGameButton.onclick = function () {
         game.stop();
         isRenderingFrame = false;
         setMenuActive(true);
-        setDialogueActive(false);
-        setPlayerMovementDisabled(false);
         renderEngine.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
         cleanupRenderWorkers();
         console.log("Game stopped via stop button! *chao chao*");
@@ -82,6 +78,7 @@ domElements.debugGameButton && (domElements.debugGameButton.onclick = () => {
     showDebugTools = !showDebugTools;
 });
 
+// --- Game Loop Setup ---
 export function mainGameRender() {
     game = gameLoop(gameRenderEngine);
 }
@@ -100,24 +97,25 @@ function renderPauseMenu() {
     renderEngine.restore();
 }
 
+// --- Render Engine ---
 async function gameRenderEngine(deltaTime) {
+    drawDebugTerminal(); // just draw logs, terminal setup already done
+
     if (isRenderingFrame) return;
     isRenderingFrame = true;
-    console.time('fullRender'); // Debug entire frame
+    console.time('fullRender');
+
     try {
         if (menuActive) {
             mainGameMenu();
-            isRenderingFrame = false;
-            console.timeEnd('fullRender');
             return;
         }
 
         if (!introActive) {
             newGameStartAnimation();
-            isRenderingFrame = false;
-            console.timeEnd('fullRender');
             return;
         }
+
         if (!showTerminal && (keys["Escape"] || keys["p"])) {
             setPaused(!isPaused);
             keys["Escape"] = false;
@@ -136,31 +134,26 @@ async function gameRenderEngine(deltaTime) {
             mapHandler.loadMap("map_01", playerPosition);
         }
 
-        let rayData = await castRays();
+        const rayData = await castRays();
         if (!rayData || rayData.every(ray => ray === null)) {
             console.warn(`Invalid rayData: ${JSON.stringify(rayData)} *pouts*`);
             renderEngine.fillStyle = "gray";
             renderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-            isRenderingFrame = false;
-            console.timeEnd('fullRender');
             return;
         }
-        offscreenCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
+        offscreenCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
         await renderRaycastHorizons(rayData, offscreenCtx);
 
-        console.log("Compositing to main canvas...");
+        // Draw offscreen canvas to main
         const offscreenImageData = offscreenCtx.getImageData(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-        console.log("Offscreen ImageData created, size:", offscreenImageData.data.length);
         renderEngine.putImageData(offscreenImageData, 0, 0);
-        console.log("Main canvas updated with offscreen");
 
         renderRaycastWalls(rayData);
-        console.log("Walls rendered");
-
         decorationHandlerGodFunction();
         drawSprites(rayData);
         eventHandler();
+
         if (showDebugTools) compiledDevTools();
 
         if (!isPaused) {
@@ -185,6 +178,7 @@ async function gameRenderEngine(deltaTime) {
         if (isPaused) {
             renderPauseMenu();
         }
+
     } catch (error) {
         console.error("gameRenderEngine error:", error);
         renderEngine.fillStyle = "gray";
@@ -195,6 +189,7 @@ async function gameRenderEngine(deltaTime) {
     }
 }
 
+// --- Draw Quad ---
 export function drawQuad({ topX, topY, leftX, leftY, rightX, rightY, color, texture, textureX, alpha = 1.0 }) {
     renderEngine.save();
     renderEngine.globalAlpha = alpha;
@@ -218,14 +213,10 @@ export function drawQuad({ topX, topY, leftX, leftY, rightX, rightY, color, text
     renderEngine.restore();
 }
 
+// --- Render Workers ---
 function initializeRenderWorkers() {
     if (renderWorkersInitialized) return;
-    const staticData = {
-        type: "init",
-        tileSectors,
-        CANVAS_HEIGHT,
-        CANVAS_WIDTH
-    };
+    const staticData = { type: "init", tileSectors, CANVAS_HEIGHT, CANVAS_WIDTH };
     renderWorker1.postMessage(staticData);
     renderWorker2.postMessage(staticData);
     renderWorkersInitialized = true;
@@ -238,3 +229,6 @@ function cleanupRenderWorkers() {
 }
 
 export { initializeRenderWorkers };
+
+// --- Debug Terminal Setup (called once) ---
+debugHandlerGodFunction(); // <--- only setup once at startup
