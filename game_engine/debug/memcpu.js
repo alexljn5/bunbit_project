@@ -24,6 +24,7 @@ let containerStartX = 0;
 let containerStartY = 0;
 
 let updateInterval = null;
+let glitchInterval = null;
 
 // Performance monitoring state
 let performanceData = {
@@ -47,12 +48,23 @@ let performanceData = {
     }
 };
 
+// Glitch effects state
+let glitchEffects = {
+    active: false,
+    intensity: 0,
+    scanlineOffset: 0,
+    textGlitch: false,
+    horizontalShift: 0,
+    corruption: 0,
+    flicker: 1
+};
+
 // Check if performance API is available
 const performance = window.performance || window.webkitPerformance || window.msPerformance || window.mozPerformance;
 const hasPerformanceAPI = !!performance;
 const hasMemoryAPI = hasPerformanceAPI && performance.memory;
 
-// Extreme evil red & black theme - NO PINK
+// Extreme evil red & black theme with glitch effects
 const EVIL_THEME = {
     background: '#0a0000', // Almost pure black with hint of red
     headerBg: '#000000',   // Pure black
@@ -64,7 +76,8 @@ const EVIL_THEME = {
     graphBg: 'rgba(139, 0, 0, 0.2)', // Dark blood red
     resizeHandle: '#300000', // Deep blood red
     resizeBorder: '#8b0000', // Dark blood red
-    scanlines: 'rgba(255, 0, 0, 0.03)' // Blood red scanlines
+    scanlines: 'rgba(255, 0, 0, 0.03)', // Blood red scanlines
+    corruption: 'rgba(255, 0, 0, 0.1)'  // Data corruption effect
 };
 
 // --- Create resize handle ---
@@ -82,6 +95,14 @@ function createResizeHandle() {
     perfResizeHandle.style.zIndex = '212';
     perfResizeHandle.style.borderTop = `2px solid ${EVIL_THEME.resizeBorder}`;
     perfResizeHandle.style.borderLeft = `2px solid ${EVIL_THEME.resizeBorder}`;
+
+    // Add glitch effect on hover
+    perfResizeHandle.addEventListener('mouseover', () => {
+        perfResizeHandle.style.boxShadow = '0 0 5px #ff0000';
+    });
+    perfResizeHandle.addEventListener('mouseout', () => {
+        perfResizeHandle.style.boxShadow = 'none';
+    });
 
     // Mouse events for resizing
     perfResizeHandle.addEventListener('mousedown', startResize);
@@ -156,6 +177,40 @@ function stopDrag() {
     perfContainer.style.cursor = '';
 }
 
+// --- Glitch effects ---
+function updateGlitchEffects() {
+    // Randomly trigger glitch effects based on performance
+    const performanceStress = (performanceData.cpu.usage / 100) * 0.7 +
+        (performanceData.memory.usedJSHeapSize / performanceData.memory.jsHeapSizeLimit) * 0.3;
+
+    glitchEffects.intensity = Math.min(1, performanceStress * 1.5);
+
+    // Random glitch events
+    if (Math.random() < 0.1 * glitchEffects.intensity) {
+        glitchEffects.scanlineOffset = (Math.random() - 0.5) * 10;
+    }
+
+    if (Math.random() < 0.05 * glitchEffects.intensity) {
+        glitchEffects.textGlitch = true;
+        setTimeout(() => { glitchEffects.textGlitch = false; }, 100);
+    }
+
+    if (Math.random() < 0.08 * glitchEffects.intensity) {
+        glitchEffects.horizontalShift = (Math.random() - 0.5) * 20;
+        setTimeout(() => { glitchEffects.horizontalShift = 0; }, 50);
+    }
+
+    if (Math.random() < 0.03 * glitchEffects.intensity) {
+        glitchEffects.corruption = Math.random() * 0.3;
+        setTimeout(() => { glitchEffects.corruption = 0; }, 200);
+    }
+
+    if (Math.random() < 0.05 * glitchEffects.intensity) {
+        glitchEffects.flicker = 0.3 + Math.random() * 0.7;
+        setTimeout(() => { glitchEffects.flicker = 1; }, 100);
+    }
+}
+
 // --- Main setup ---
 export function memCpuGodFunction() {
     if (isPerfVisible) return; // Already running
@@ -170,6 +225,7 @@ export function memCpuGodFunction() {
     perfContainer.style.border = `2px solid ${EVIL_THEME.border}`;
     perfContainer.style.boxSizing = "border-box";
     perfContainer.style.overflow = "hidden";
+    perfContainer.style.boxShadow = "0 0 15px rgba(255, 0, 0, 0.5)";
     document.body.appendChild(perfContainer);
 
     // Create header with title and close button
@@ -190,9 +246,10 @@ export function memCpuGodFunction() {
     perfHeader.addEventListener('mousedown', startDrag);
 
     const title = document.createElement("div");
-    title.textContent = "Peformance Monitor";
+    title.textContent = "SYSTEM MONITOR";
     title.style.fontWeight = "bold";
     title.style.color = "#ff0000"; // Bright blood red
+    title.style.letterSpacing = "1px";
 
     const closeButton = document.createElement("button");
     closeButton.textContent = "X";
@@ -202,14 +259,17 @@ export function memCpuGodFunction() {
     closeButton.style.cursor = "pointer";
     closeButton.style.padding = "2px 5px";
     closeButton.style.fontWeight = "bold";
+    closeButton.style.fontFamily = "Courier New, monospace";
     closeButton.addEventListener("click", stopMemCpuMonitor);
     closeButton.addEventListener("mouseover", () => {
         closeButton.style.backgroundColor = EVIL_THEME.danger;
         closeButton.style.color = "#000";
+        closeButton.style.boxShadow = "0 0 8px #ff0000";
     });
     closeButton.addEventListener("mouseout", () => {
         closeButton.style.backgroundColor = "transparent";
         closeButton.style.color = EVIL_THEME.danger;
+        closeButton.style.boxShadow = "none";
     });
 
     perfHeader.appendChild(title);
@@ -240,6 +300,7 @@ export function memCpuGodFunction() {
 
     // Start updating stats
     updateInterval = setInterval(updatePerformanceData, 1000);
+    glitchInterval = setInterval(updateGlitchEffects, 500);
     requestAnimationFrame(drawPerfMonitor);
 }
 
@@ -302,41 +363,73 @@ function drawPerfMonitor() {
     const width = perfCanvas.width;
     const height = perfCanvas.height;
 
+    // Apply flicker effect
+    perfCtx.globalAlpha = glitchEffects.flicker;
+
     // Draw pure black background with blood red hint
     perfCtx.fillStyle = EVIL_THEME.background;
     perfCtx.fillRect(0, 0, width, height);
 
-    // Draw blood red scanlines
+    // Draw corruption effect
+    if (glitchEffects.corruption > 0) {
+        perfCtx.fillStyle = EVIL_THEME.corruption;
+        for (let i = 0; i < width; i += 5) {
+            if (Math.random() < glitchEffects.corruption) {
+                const h = Math.random() * height;
+                perfCtx.fillRect(i, 0, 3, h);
+            }
+        }
+    }
+
+    // Draw blood red scanlines with offset glitch
     perfCtx.fillStyle = EVIL_THEME.scanlines;
-    for (let i = 0; i < height; i += 2) {
+    for (let i = glitchEffects.scanlineOffset; i < height; i += 2) {
         perfCtx.fillRect(0, i, width, 1);
     }
 
-    // Draw text
-    perfCtx.font = "12px Courier New";
+    // Draw text with glitch effects
+    perfCtx.font = "12px 'Courier New', monospace";
     perfCtx.textBaseline = "top";
     let y = 20;
 
+    // Apply horizontal shift if active
+    perfCtx.translate(glitchEffects.horizontalShift, 0);
+
     // FPS - Everything in blood red, different intensities
+    let fpsText = `FPS: ${performanceData.fps}`;
+    if (glitchEffects.textGlitch) {
+        fpsText = `FPS: ${Math.floor(Math.random() * 100)}`;
+    }
     perfCtx.fillStyle = performanceData.fps > 50 ? '#ff0000' :
         performanceData.fps > 30 ? '#8b0000' : '#300000';
-    perfCtx.fillText(`FPS: ${performanceData.fps}`, 10, y);
+    perfCtx.fillText(fpsText, 10, y);
     y += 20;
 
     // Memory (if available)
     if (hasMemoryAPI) {
         const memoryPercent = (performanceData.memory.usedJSHeapSize / performanceData.memory.jsHeapSizeLimit) * 100;
+        let memText = `MEM: ${performanceData.memory.usedJSHeapSize.toFixed(1)}/${performanceData.memory.jsHeapSizeLimit.toFixed(1)}MB`;
+        if (glitchEffects.textGlitch) {
+            memText = `MEM: ${(Math.random() * 100).toFixed(1)}/${performanceData.memory.jsHeapSizeLimit.toFixed(1)}MB`;
+        }
         perfCtx.fillStyle = memoryPercent < 70 ? '#ff0000' :
             memoryPercent < 85 ? '#8b0000' : '#300000';
-        perfCtx.fillText(`MEM: ${performanceData.memory.usedJSHeapSize.toFixed(1)}/${performanceData.memory.jsHeapSizeLimit.toFixed(1)}MB`, 10, y);
+        perfCtx.fillText(memText, 10, y);
         y += 20;
     }
 
     // CPU
+    let cpuText = `CPU: ${performanceData.cpu.usage.toFixed(1)}%`;
+    if (glitchEffects.textGlitch) {
+        cpuText = `CPU: ${(Math.random() * 100).toFixed(1)}%`;
+    }
     perfCtx.fillStyle = performanceData.cpu.usage < 70 ? '#300000' :
         performanceData.cpu.usage < 85 ? '#8b0000' : '#ff0000';
-    perfCtx.fillText(`CPU: ${performanceData.cpu.usage.toFixed(1)}%`, 10, y);
+    perfCtx.fillText(cpuText, 10, y);
     y += 20;
+
+    // Reset translation
+    perfCtx.translate(-glitchEffects.horizontalShift, 0);
 
     // Draw graphs if we have history
     if (performanceData.history.memory.length > 1) {
@@ -344,10 +437,17 @@ function drawPerfMonitor() {
         drawGraph(perfCtx, performanceData.history.cpu, 10, y + 40, width - 20, 30, '#8b0000', "CPU");
     }
 
-    // Draw evil blood red border
+    // Draw evil blood red border with glow
     perfCtx.strokeStyle = EVIL_THEME.border;
     perfCtx.lineWidth = 1;
     perfCtx.strokeRect(0, 0, width, height);
+
+    // Draw inner glow
+    perfCtx.strokeStyle = 'rgba(255, 0, 0, 0.3)';
+    perfCtx.strokeRect(1, 1, width - 2, height - 2);
+
+    // Reset alpha
+    perfCtx.globalAlpha = 1;
 
     requestAnimationFrame(drawPerfMonitor);
 }
@@ -363,14 +463,21 @@ function drawGraph(ctx, values, x, y, width, height, color, label) {
     ctx.fillStyle = EVIL_THEME.graphBg;
     ctx.fillRect(x, y, width, height);
 
-    // Draw graph line
+    // Draw graph line with glitch effect
     ctx.beginPath();
     ctx.strokeStyle = color;
     ctx.lineWidth = 2;
 
     for (let i = 0; i < values.length; i++) {
         const xPos = x + (i / (values.length - 1)) * width;
-        const yPos = y + height - (values[i] / maxValue) * height;
+
+        // Add slight random glitches to graph values
+        let value = values[i];
+        if (Math.random() < glitchEffects.intensity * 0.1) {
+            value = value * (0.9 + Math.random() * 0.2);
+        }
+
+        const yPos = y + height - (value / maxValue) * height;
 
         if (i === 0) {
             ctx.moveTo(xPos, yPos);
@@ -382,10 +489,15 @@ function drawGraph(ctx, values, x, y, width, height, color, label) {
     ctx.stroke();
 
     // Draw label with blood red glow
+    let labelText = `${label}: ${values[values.length - 1].toFixed(1)}`;
+    if (glitchEffects.textGlitch) {
+        labelText = `${label}: ${(values[values.length - 1] * (0.8 + Math.random() * 0.4)).toFixed(1)}`;
+    }
+
     ctx.fillStyle = color;
     ctx.shadowBlur = 8;
     ctx.shadowColor = '#ff0000';
-    ctx.fillText(`${label}: ${values[values.length - 1].toFixed(1)}`, x + 5, y + 12);
+    ctx.fillText(labelText, x + 5, y + 12);
     ctx.shadowBlur = 0;
 }
 
@@ -405,6 +517,10 @@ export function stopMemCpuMonitor() {
         clearInterval(updateInterval);
         updateInterval = null;
     }
+    if (glitchInterval) {
+        clearInterval(glitchInterval);
+        glitchInterval = null;
+    }
     if (perfContainer) {
         perfContainer.remove();
         perfContainer = null;
@@ -413,6 +529,17 @@ export function stopMemCpuMonitor() {
     perfCtx = null;
     perfHeader = null;
     perfResizeHandle = null;
+
+    // Reset glitch effects
+    glitchEffects = {
+        active: false,
+        intensity: 0,
+        scanlineOffset: 0,
+        textGlitch: false,
+        horizontalShift: 0,
+        corruption: 0,
+        flicker: 1
+    };
 }
 
 // --- Resize function ---

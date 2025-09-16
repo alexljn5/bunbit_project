@@ -1,4 +1,3 @@
-// --- Debug terminal with scaling + unlimited virtual scroll + manual resize + text limit ---
 import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y } from '../globals.js';
 import { memCpuGodFunction } from './memcpu.js';
 
@@ -30,8 +29,6 @@ let isDebugVisible = false;
 let debugCanvas = null;
 let debugCtx = null;
 let debugContainer = null;
-let buttonContainer = null;
-let resizeHandle = null;
 
 let scrollOffsetX = 0;
 let virtualScrollY = 0;
@@ -46,6 +43,13 @@ let resizeStartX = 0;
 let resizeStartY = 0;
 let resizeStartWidth = 0;
 let resizeStartHeight = 0;
+
+// Drag state
+let isDragging = false;
+let dragStartX = 0;
+let dragStartY = 0;
+let containerStartX = 0;
+let containerStartY = 0;
 
 // Extreme evil red & black theme - NO PINK
 const EVIL_THEME = {
@@ -68,6 +72,12 @@ const ENABLE_DEBUG_TERMINAL = (() => {
     if (debugTerminalParam === 'false') return false;
     return !(window.debugAPI && window.debugAPI.isProduction && window.debugAPI.isProduction());
 })();
+
+const HEADER_HEIGHT = 30 * SCALE_Y;
+
+// Button definitions
+let buttons = [];
+let resizeArea = { x: 0, y: 0, w: 15 * SCALE_X, h: 15 * SCALE_Y, hovered: false };
 
 // --- Update filtered logs ---
 function updateFilteredLogs() {
@@ -112,39 +122,150 @@ function overrideConsole() {
     console.verbose = console.verbose || ((...args) => logHelper('debug', args));
 }
 
-// --- Create resize handle ---
-function createResizeHandle() {
-    if (resizeHandle) resizeHandle.remove();
+// --- Update button positions ---
+function updateButtonPositions() {
+    buttons = [];
+    const paddingX = 4 * SCALE_X;
+    const paddingY = 4 * SCALE_Y;
+    const gap = 2 * SCALE_X;
+    const buttonH = HEADER_HEIGHT - 2 * paddingY;
+    const types = ['perf', 'log', 'error', 'warn', 'info', 'debug', 'clear'];
+    const flexes = { perf: 0.5, clear: 0.5, default: 1 };
+    let totalFlex = types.reduce((sum, t) => sum + (flexes[t] || flexes.default), 0);
+    const availableWidth = DEBUG_WIDTH - 2 * paddingX - (types.length - 1) * gap;
+    const unit = availableWidth / totalFlex;
 
-    resizeHandle = document.createElement('div');
-    resizeHandle.style.position = 'absolute';
-    resizeHandle.style.right = '0';
-    resizeHandle.style.bottom = '0';
-    resizeHandle.style.width = '15px';
-    resizeHandle.style.height = '15px';
-    resizeHandle.style.backgroundColor = EVIL_THEME.resizeHandle;
-    resizeHandle.style.cursor = 'nwse-resize';
-    resizeHandle.style.zIndex = '202';
-    resizeHandle.style.borderTop = `2px solid ${EVIL_THEME.resizeBorder}`;
-    resizeHandle.style.borderLeft = `2px solid ${EVIL_THEME.resizeBorder}`;
-
-    // Mouse events for resizing
-    resizeHandle.addEventListener('mousedown', startResize);
-    debugContainer.appendChild(resizeHandle);
+    let x = paddingX;
+    types.forEach(type => {
+        const flex = flexes[type] || flexes.default;
+        const w = unit * flex;
+        const text = type === 'perf' ? 'CREAM' : type === 'clear' ? 'CLEAR' : type.charAt(0).toUpperCase() + type.slice(1);
+        buttons.push({
+            x, y: paddingY, w, h: buttonH,
+            text, type, hovered: false
+        });
+        x += w + gap;
+    });
 }
 
-function startResize(e) {
+// --- Handle mouse down ---
+function handleMouseDown(e) {
     e.preventDefault();
-    isResizing = true;
-    resizeStartX = e.clientX;
-    resizeStartY = e.clientY;
-    resizeStartWidth = DEBUG_WIDTH;
-    resizeStartHeight = DEBUG_HEIGHT;
+    const rect = debugCanvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
 
-    document.addEventListener('mousemove', handleResize);
-    document.addEventListener('mouseup', stopResize);
+    // Check resize
+    if (mx >= resizeArea.x && mx < resizeArea.x + resizeArea.w && my >= resizeArea.y && my < resizeArea.y + resizeArea.h) {
+        isResizing = true;
+        resizeStartX = e.clientX;
+        resizeStartY = e.clientY;
+        resizeStartWidth = DEBUG_WIDTH;
+        resizeStartHeight = DEBUG_HEIGHT;
+        document.addEventListener('mousemove', handleResize);
+        document.addEventListener('mouseup', stopResize);
+        return;
+    }
+
+    // Check header for drag or button
+    if (my < HEADER_HEIGHT) {
+        const clickedButton = buttons.find(btn => mx >= btn.x && mx < btn.x + btn.w && my >= btn.y && my < btn.y + btn.h);
+        if (clickedButton) {
+            const type = clickedButton.type;
+            if (type === 'perf') {
+                import('./memcpu.js').then(module => {
+                    module.togglePerfMonitor();
+                });
+            } else if (type === 'clear') {
+                logBuffer = [];
+                updateFilteredLogs();
+                scrollOffsetX = 0;
+                virtualScrollY = 0;
+                drawDebugTerminal();
+            } else {
+                logFilters[type] = !logFilters[type];
+                updateFilteredLogs();
+                const lineHeight = 18 * SCALE_Y;
+                const logAreaHeight = debugCanvas.height - HEADER_HEIGHT;
+                const maxScrollY = Math.max(0, filteredLogs.length * lineHeight - logAreaHeight);
+                virtualScrollY = Math.min(virtualScrollY, maxScrollY);
+                drawDebugTerminal();
+            }
+            return;
+        }
+
+        // Start drag if not on button
+        isDragging = true;
+        dragStartX = e.clientX;
+        dragStartY = e.clientY;
+        const contRect = debugContainer.getBoundingClientRect();
+        containerStartX = contRect.left;
+        containerStartY = contRect.top;
+        document.addEventListener('mousemove', handleDrag);
+        document.addEventListener('mouseup', stopDrag);
+    }
 }
 
+// --- Handle mouse move ---
+function handleMouseMove(e) {
+    const rect = debugCanvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+
+    let needsRedraw = false;
+
+    // Update button hovers
+    buttons.forEach(btn => {
+        const isHovered = mx >= btn.x && mx < btn.x + btn.w && my >= btn.y && my < btn.y + btn.h;
+        if (isHovered !== btn.hovered) {
+            btn.hovered = isHovered;
+            needsRedraw = true;
+        }
+    });
+
+    // Update resize hover
+    const isResizeHovered = mx >= resizeArea.x && mx < resizeArea.x + resizeArea.w && my >= resizeArea.y && my < resizeArea.y + resizeArea.h;
+    if (isResizeHovered !== resizeArea.hovered) {
+        resizeArea.hovered = isResizeHovered;
+        needsRedraw = true;
+    }
+
+    if (needsRedraw) {
+        drawDebugTerminal();
+    }
+
+    // Set cursor
+    if (isResizeHovered) {
+        debugCanvas.style.cursor = 'nwse-resize';
+    } else if (buttons.some(btn => btn.hovered)) {
+        debugCanvas.style.cursor = 'pointer';
+    } else if (my < HEADER_HEIGHT) {
+        debugCanvas.style.cursor = 'move';
+    } else {
+        debugCanvas.style.cursor = 'default';
+    }
+}
+
+// --- Handle mouse leave ---
+function handleMouseLeave() {
+    let needsRedraw = false;
+    buttons.forEach(btn => {
+        if (btn.hovered) {
+            btn.hovered = false;
+            needsRedraw = true;
+        }
+    });
+    if (resizeArea.hovered) {
+        resizeArea.hovered = false;
+        needsRedraw = true;
+    }
+    if (needsRedraw) {
+        drawDebugTerminal();
+    }
+    debugCanvas.style.cursor = 'default';
+}
+
+// --- Handle resize ---
 function handleResize(e) {
     if (!isResizing) return;
 
@@ -157,157 +278,14 @@ function handleResize(e) {
     resizeDebugCanvas(DEBUG_WIDTH, DEBUG_HEIGHT);
 }
 
+// --- Stop resize ---
 function stopResize() {
     isResizing = false;
     document.removeEventListener('mousemove', handleResize);
     document.removeEventListener('mouseup', stopResize);
 }
 
-// --- Filter buttons ---
-function createFilterButtons() {
-    if (buttonContainer) buttonContainer.remove();
-
-    buttonContainer = document.createElement('div');
-    buttonContainer.id = 'debugFilterButtons';
-    buttonContainer.style.position = 'absolute';
-    buttonContainer.style.top = '0';
-    buttonContainer.style.left = '0';
-    buttonContainer.style.width = '100%';
-    buttonContainer.style.height = '30px';
-    buttonContainer.style.backgroundColor = EVIL_THEME.headerBg;
-    buttonContainer.style.borderBottom = `1px solid ${EVIL_THEME.border}`;
-    buttonContainer.style.display = 'flex';
-    buttonContainer.style.gap = '2px';
-    buttonContainer.style.padding = '4px';
-    buttonContainer.style.boxSizing = 'border-box';
-    buttonContainer.style.zIndex = '201';
-    debugContainer.appendChild(buttonContainer);
-
-    // Add drag handle for moving the terminal - MOVE THIS TO THE MAIN CONTAINER
-    const dragHandle = document.createElement('div');
-    dragHandle.style.width = '100%';
-    dragHandle.style.height = '100%';
-    dragHandle.style.cursor = 'move';
-    dragHandle.style.position = 'absolute';
-    dragHandle.style.top = '0';
-    dragHandle.style.left = '0';
-    dragHandle.addEventListener('mousedown', startDrag);
-    buttonContainer.appendChild(dragHandle);
-
-    // Add performance monitor button
-    const perfButton = document.createElement('button');
-    perfButton.textContent = 'CREAM';
-    perfButton.style.backgroundColor = EVIL_THEME.buttonBg;
-    perfButton.style.color = EVIL_THEME.danger;
-    perfButton.style.border = `1px solid ${EVIL_THEME.border}`;
-    perfButton.style.padding = '2px 4px';
-    perfButton.style.fontSize = '10px';
-    perfButton.style.cursor = 'pointer';
-    perfButton.style.flex = '0.5';
-    perfButton.style.textAlign = 'center';
-    perfButton.style.position = 'relative';
-    perfButton.style.zIndex = '203';
-    perfButton.addEventListener('click', () => {
-        import('./memcpu.js').then(module => {
-            module.togglePerfMonitor();
-        });
-    });
-    perfButton.addEventListener('mouseover', () => {
-        perfButton.style.backgroundColor = EVIL_THEME.buttonHover;
-    });
-    perfButton.addEventListener('mouseout', () => {
-        perfButton.style.backgroundColor = EVIL_THEME.buttonBg;
-    });
-    buttonContainer.appendChild(perfButton);
-
-    ['log', 'error', 'warn', 'info', 'debug'].forEach(type => {
-        const button = document.createElement('button');
-        button.textContent = type.charAt(0).toUpperCase() + type.slice(1);
-        const updateButtonStyle = () => {
-            button.style.backgroundColor = logFilters[type] ? EVIL_THEME.buttonHover : EVIL_THEME.buttonBg;
-            button.style.color = logFilters[type] ? EVIL_THEME.danger : EVIL_THEME.text;
-            button.style.border = `1px solid ${logFilters[type] ? EVIL_THEME.danger : EVIL_THEME.border}`;
-        };
-        updateButtonStyle();
-        button.style.padding = '2px 4px';
-        button.style.fontSize = '10px';
-        button.style.cursor = 'pointer';
-        button.style.flex = '1';
-        button.style.textAlign = 'center';
-        button.style.position = 'relative';
-        button.style.zIndex = '203';
-        button.addEventListener('click', () => {
-            logFilters[type] = !logFilters[type];
-            updateFilteredLogs();
-
-            const lineHeight = 18 * SCALE_Y;
-            const maxScrollY = Math.max(0, filteredLogs.length * lineHeight - debugCanvas.height);
-            virtualScrollY = Math.min(virtualScrollY, maxScrollY);
-
-            updateButtonStyle();
-            drawDebugTerminal();
-        });
-        button.addEventListener('mouseover', () => {
-            button.style.backgroundColor = EVIL_THEME.buttonHover;
-        });
-        button.addEventListener('mouseout', () => {
-            updateButtonStyle();
-        });
-        buttonContainer.appendChild(button);
-    });
-
-    // Add clear button
-    const clearButton = document.createElement('button');
-    clearButton.textContent = 'CLEAR';
-    clearButton.style.backgroundColor = EVIL_THEME.buttonBg;
-    clearButton.style.color = EVIL_THEME.danger;
-    clearButton.style.border = `1px solid ${EVIL_THEME.border}`;
-    clearButton.style.padding = '2px 4px';
-    clearButton.style.fontSize = '10px';
-    clearButton.style.cursor = 'pointer';
-    clearButton.style.flex = '0.5';
-    clearButton.style.textAlign = 'center';
-    clearButton.style.position = 'relative';
-    clearButton.style.zIndex = '203';
-    clearButton.addEventListener('click', () => {
-        logBuffer = [];
-        updateFilteredLogs();
-        scrollOffsetX = 0;
-        virtualScrollY = 0;
-        drawDebugTerminal();
-    });
-    clearButton.addEventListener('mouseover', () => {
-        clearButton.style.backgroundColor = EVIL_THEME.buttonHover;
-    });
-    clearButton.addEventListener('mouseout', () => {
-        clearButton.style.backgroundColor = EVIL_THEME.buttonBg;
-    });
-    buttonContainer.appendChild(clearButton);
-}
-
-// Drag functionality
-let isDragging = false;
-let dragStartX = 0;
-let dragStartY = 0;
-let containerStartX = 0;
-let containerStartY = 0;
-
-function startDrag(e) {
-    if (e.target.tagName === 'BUTTON') return; // Don't drag if clicking buttons
-
-    isDragging = true;
-    dragStartX = e.clientX;
-    dragStartY = e.clientY;
-
-    const rect = debugContainer.getBoundingClientRect();
-    containerStartX = rect.left;
-    containerStartY = rect.top;
-
-    document.addEventListener('mousemove', handleDrag);
-    document.addEventListener('mouseup', stopDrag);
-    debugContainer.style.cursor = 'grabbing';
-}
-
+// --- Handle drag ---
 function handleDrag(e) {
     if (!isDragging) return;
 
@@ -320,11 +298,11 @@ function handleDrag(e) {
     debugContainer.style.bottom = 'auto';
 }
 
+// --- Stop drag ---
 function stopDrag() {
     isDragging = false;
     document.removeEventListener('mousemove', handleDrag);
     document.removeEventListener('mouseup', stopDrag);
-    debugContainer.style.cursor = '';
 }
 
 // --- Manual resize helper ---
@@ -334,19 +312,15 @@ function resizeDebugCanvas(width, height) {
 
     if (!debugCanvas || !debugContainer) return;
 
+    const totalHeight = DEBUG_HEIGHT + HEADER_HEIGHT;
     debugCanvas.width = DEBUG_WIDTH;
-    debugCanvas.height = DEBUG_HEIGHT;
+    debugCanvas.height = totalHeight;
 
     // Update container size to match canvas
     debugContainer.style.width = `${DEBUG_WIDTH}px`;
-    debugContainer.style.height = `${DEBUG_HEIGHT + 30}px`; // +30 for button bar
+    debugContainer.style.height = `${totalHeight}px`;
 
-    // Also update the resize handle position
-    if (resizeHandle) {
-        resizeHandle.style.right = '0';
-        resizeHandle.style.bottom = '0';
-    }
-
+    updateButtonPositions();
     drawDebugTerminal();
 }
 
@@ -358,30 +332,25 @@ export function debugHandlerGodFunction() {
 
     if (!document.body) return console.warn('document.body not ready, deferring debug canvas creation *pouts*');
 
+    // Remove existing container if it exists to prevent duplicates
+    const existingContainer = document.getElementById('debugTerminalContainer');
+    if (existingContainer) {
+        existingContainer.remove();
+    }
+
     debugContainer = document.createElement('div');
     debugContainer.id = 'debugTerminalContainer';
     debugContainer.style.position = 'absolute';
     debugContainer.style.left = '0';
     debugContainer.style.bottom = '0';
     debugContainer.style.zIndex = '200';
-    debugContainer.style.backgroundColor = EVIL_THEME.background;
-    debugContainer.style.border = `2px solid ${EVIL_THEME.border}`;
+    debugContainer.style.backgroundColor = 'transparent';
+    debugContainer.style.border = 'none';
     debugContainer.style.boxSizing = 'border-box';
     debugContainer.style.overflow = 'hidden';
     debugContainer.style.resize = 'none';
     document.body.appendChild(debugContainer);
 
-    // ADD DRAG HANDLE TO THE ENTIRE CONTAINER, NOT JUST BUTTON AREA
-    debugContainer.style.cursor = 'move';
-    debugContainer.addEventListener('mousedown', function (e) {
-        // Only start drag if not clicking on buttons or resize handle
-        if (!e.target.closest('button') && !e.target.closest('[style*="cursor: nwse-resize"]')) {
-            startDrag(e);
-        }
-    });
-
-    createFilterButtons();
-    createResizeHandle();
     debugCanvas = document.createElement('canvas');
     debugCanvas.id = 'debugTerminal';
     debugCanvas.style.display = 'block';
@@ -395,6 +364,11 @@ export function debugHandlerGodFunction() {
     // Initialize size
     resizeDebugCanvas(DEBUG_WIDTH, DEBUG_HEIGHT);
 
+    // Mouse events
+    debugCanvas.addEventListener('mousedown', handleMouseDown);
+    debugCanvas.addEventListener('mousemove', handleMouseMove);
+    debugCanvas.addEventListener('mouseleave', handleMouseLeave);
+
     // Scroll handling
     debugCanvas.addEventListener('wheel', (e) => {
         e.preventDefault();
@@ -406,7 +380,8 @@ export function debugHandlerGodFunction() {
         } else {
             virtualScrollY += e.deltaY;
             virtualScrollY = Math.max(-10000, virtualScrollY);
-            autoScroll = virtualScrollY >= Math.max(0, filteredLogs.length * lineHeight - debugCanvas.height);
+            const logAreaHeight = debugCanvas.height - HEADER_HEIGHT;
+            autoScroll = virtualScrollY >= Math.max(0, filteredLogs.length * lineHeight - logAreaHeight);
         }
 
         drawDebugTerminal();
@@ -416,7 +391,8 @@ export function debugHandlerGodFunction() {
     debugCanvas.tabIndex = 0;
     debugCanvas.addEventListener('keydown', (e) => {
         const lineHeight = 18 * SCALE_Y;
-        const maxScrollY = Math.max(0, filteredLogs.length * lineHeight - debugCanvas.height);
+        const logAreaHeight = debugCanvas.height - HEADER_HEIGHT;
+        const maxScrollY = Math.max(0, filteredLogs.length * lineHeight - logAreaHeight);
 
         switch (e.key) {
             case 'ArrowUp':
@@ -428,11 +404,11 @@ export function debugHandlerGodFunction() {
                 e.preventDefault();
                 break;
             case 'PageUp':
-                virtualScrollY = Math.max(0, virtualScrollY - debugCanvas.height);
+                virtualScrollY = Math.max(0, virtualScrollY - logAreaHeight);
                 e.preventDefault();
                 break;
             case 'PageDown':
-                virtualScrollY = Math.min(maxScrollY, virtualScrollY + debugCanvas.height);
+                virtualScrollY = Math.min(maxScrollY, virtualScrollY + logAreaHeight);
                 e.preventDefault();
                 break;
             case 'Home':
@@ -473,14 +449,68 @@ export function drawDebugTerminal() {
 
     const termWidth = debugCanvas.width;
     const termHeight = debugCanvas.height;
+    const logAreaHeight = termHeight - HEADER_HEIGHT;
 
     debugCtx.clearRect(0, 0, termWidth, termHeight);
     debugCtx.fillStyle = EVIL_THEME.background;
     debugCtx.fillRect(0, 0, termWidth, termHeight);
 
-    // Draw blood red scanlines
+    // Draw outer border
+    debugCtx.strokeStyle = EVIL_THEME.border;
+    debugCtx.lineWidth = 2;
+    debugCtx.strokeRect(0, 0, termWidth, termHeight);
+
+    // Draw header
+    debugCtx.fillStyle = EVIL_THEME.headerBg;
+    debugCtx.fillRect(0, 0, termWidth, HEADER_HEIGHT);
+    debugCtx.strokeStyle = EVIL_THEME.border;
+    debugCtx.lineWidth = 1;
+    debugCtx.beginPath();
+    debugCtx.moveTo(0, HEADER_HEIGHT - 0.5);
+    debugCtx.lineTo(termWidth, HEADER_HEIGHT - 0.5);
+    debugCtx.stroke();
+
+    // Draw buttons
+    const buttonFontSize = 10 * SCALE_Y;
+    debugCtx.font = `${buttonFontSize}px Courier New`;
+    debugCtx.textAlign = 'center';
+    debugCtx.textBaseline = 'middle';
+    buttons.forEach(btn => {
+        const isFilter = btn.type !== 'perf' && btn.type !== 'clear';
+        const active = isFilter ? logFilters[btn.type] : false;
+        const bg = btn.hovered ? EVIL_THEME.buttonHover : (active ? EVIL_THEME.buttonHover : EVIL_THEME.buttonBg);
+        debugCtx.fillStyle = bg;
+        debugCtx.fillRect(btn.x, btn.y, btn.w, btn.h);
+
+        const borderColor = active ? EVIL_THEME.danger : EVIL_THEME.border;
+        debugCtx.strokeStyle = borderColor;
+        debugCtx.lineWidth = 1;
+        debugCtx.strokeRect(btn.x, btn.y, btn.w, btn.h);
+
+        const textColor = (btn.type === 'perf' || btn.type === 'clear') ? EVIL_THEME.danger : (active ? EVIL_THEME.danger : EVIL_THEME.text);
+        debugCtx.fillStyle = textColor;
+        debugCtx.fillText(btn.text, btn.x + btn.w / 2, btn.y + btn.h / 2);
+    });
+    debugCtx.textAlign = 'left';
+    debugCtx.textBaseline = 'alphabetic';
+
+    // Draw resize handle
+    resizeArea.x = termWidth - resizeArea.w;
+    resizeArea.y = termHeight - resizeArea.h;
+    debugCtx.fillStyle = EVIL_THEME.resizeHandle;
+    debugCtx.fillRect(resizeArea.x, resizeArea.y, resizeArea.w, resizeArea.h);
+    debugCtx.strokeStyle = EVIL_THEME.resizeBorder;
+    debugCtx.lineWidth = 2;
+    debugCtx.beginPath();
+    debugCtx.moveTo(resizeArea.x + 2, resizeArea.y + resizeArea.h - 2);
+    debugCtx.lineTo(resizeArea.x + resizeArea.w - 2, resizeArea.y + resizeArea.h - 2);
+    debugCtx.moveTo(resizeArea.x + 2, resizeArea.y + resizeArea.h - 2);
+    debugCtx.lineTo(resizeArea.x + 2, resizeArea.y + 2);
+    debugCtx.stroke();
+
+    // Draw blood red scanlines in log area
     debugCtx.fillStyle = 'rgba(255, 0, 0, 0.03)';
-    for (let i = 0; i < termHeight; i += 2) {
+    for (let i = HEADER_HEIGHT; i < termHeight; i += 2) {
         debugCtx.fillRect(0, i, termWidth, 1);
     }
 
@@ -490,13 +520,13 @@ export function drawDebugTerminal() {
 
     // Auto-scroll
     if (autoScroll) {
-        const maxScrollY = Math.max(0, filteredLogs.length * lineHeight - termHeight);
+        const maxScrollY = Math.max(0, filteredLogs.length * lineHeight - logAreaHeight);
         virtualScrollY = maxScrollY;
     }
 
     const firstLine = Math.floor(virtualScrollY / lineHeight);
     const yOffset = virtualScrollY % lineHeight;
-    const visibleLines = Math.min(filteredLogs.length - firstLine, Math.ceil(termHeight / lineHeight) + 1);
+    const visibleLines = Math.min(filteredLogs.length - firstLine, Math.ceil(logAreaHeight / lineHeight) + 1);
 
     const charLimit = MAX_CHARS_PER_LINE;
 
@@ -519,23 +549,24 @@ export function drawDebugTerminal() {
         debugCtx.fillText(
             text,
             10 * SCALE_X - scrollOffsetX,
-            (i + 1) * lineHeight - yOffset
+            HEADER_HEIGHT + (i + 1) * lineHeight - yOffset
         );
     }
 
     // Draw scroll indicators in blood red
-    if (filteredLogs.length * lineHeight > termHeight) {
-        const scrollbarHeight = Math.max(20, termHeight * (termHeight / (filteredLogs.length * lineHeight)));
-        const scrollbarPosition = (virtualScrollY / (filteredLogs.length * lineHeight)) * (termHeight - scrollbarHeight);
+    const maxScrollY = Math.max(0, filteredLogs.length * lineHeight - logAreaHeight);
+    if (maxScrollY > 0) {
+        const scrollbarHeight = Math.max(20 * SCALE_Y, logAreaHeight * (logAreaHeight / (filteredLogs.length * lineHeight)));
+        const scrollbarPosition = (virtualScrollY / maxScrollY) * (logAreaHeight - scrollbarHeight);
 
         debugCtx.fillStyle = 'rgba(255, 0, 0, 0.3)';
-        debugCtx.fillRect(termWidth - 8, scrollbarPosition, 6, scrollbarHeight);
+        debugCtx.fillRect(termWidth - 8 * SCALE_X, HEADER_HEIGHT + scrollbarPosition, 6 * SCALE_X, scrollbarHeight);
     }
 
     if (scrollOffsetX > 0) {
         debugCtx.fillStyle = 'rgba(255, 0, 0, 0.5)';
-        debugCtx.fillRect(0, termHeight - 4, termWidth, 2);
-        debugCtx.fillRect(termWidth * (scrollOffsetX / 1000), termHeight - 6, 4, 6);
+        debugCtx.fillRect(0, termHeight - 4 * SCALE_Y, termWidth, 2 * SCALE_Y);
+        debugCtx.fillRect(termWidth * (scrollOffsetX / 1000), termHeight - 6 * SCALE_Y, 4 * SCALE_X, 6 * SCALE_Y);
     }
 }
 
