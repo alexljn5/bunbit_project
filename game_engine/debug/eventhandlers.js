@@ -20,6 +20,7 @@ import {
     HEADER_HEIGHT
 } from './debughandler.js';  // Import shared functions and variables
 import { EvilUIState } from '../themes/eviltheme.js';  // Shared UI state
+import { themeManager } from '../themes/thememanager.js';
 
 // --- Handle mouse down (using EvilUIState) ---
 export function handleMouseDown(e) {
@@ -64,6 +65,8 @@ export function handleMouseDown(e) {
                 scrollOffsetX = 0;
                 virtualScrollY = 0;
                 drawDebugTerminal();
+            } else if (type === 'theme') {
+                themeManager.toggleTheme();
             } else {
                 logFilters[type] = !logFilters[type];
                 updateFilteredLogs();

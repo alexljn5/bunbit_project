@@ -1,6 +1,7 @@
 // File: game_engine/debug/memcpu.js
 
-import { EVIL_THEME, evilGlitchSystem, getPerformanceColor, EvilUIState } from '../themes/eviltheme.js';
+import { evilGlitchSystem, EvilUIState } from '../themes/eviltheme.js';
+import { themeManager } from '../themes/thememanager.js';
 
 let perfCanvas = null;
 let perfCtx = null;
@@ -52,15 +53,15 @@ function createResizeHandle() {
     perfResizeHandle.style.bottom = '0';
     perfResizeHandle.style.width = '15px';
     perfResizeHandle.style.height = '15px';
-    perfResizeHandle.style.backgroundColor = EVIL_THEME.resizeHandle;
+    perfResizeHandle.style.backgroundColor = themeManager.getCurrentTheme().resizeHandle;
     perfResizeHandle.style.cursor = 'nwse-resize';
     perfResizeHandle.style.zIndex = '212';
-    perfResizeHandle.style.borderTop = `2px solid ${EVIL_THEME.resizeBorder}`;
-    perfResizeHandle.style.borderLeft = `2px solid ${EVIL_THEME.resizeBorder}`;
+    perfResizeHandle.style.borderTop = `2px solid ${themeManager.getCurrentTheme().resizeBorder}`;
+    perfResizeHandle.style.borderLeft = `2px solid ${themeManager.getCurrentTheme().resizeBorder}`;
 
     // Add glitch effect on hover
     perfResizeHandle.addEventListener('mouseover', () => {
-        perfResizeHandle.style.boxShadow = '0 peror: 0 0 5px #ff0000';
+        perfResizeHandle.style.boxShadow = `0 0 5px ${themeManager.getCurrentTheme().border}`;
     });
     perfResizeHandle.addEventListener('mouseout', () => {
         perfResizeHandle.style.boxShadow = 'none';
@@ -78,7 +79,7 @@ function startResize(e) {
     EvilUIState.isResizing = true;
     EvilUIState.resizeStartX = e.clientX;
     EvilUIState.resizeStartY = e.clientY;
-    EvilUIState.resizeStartWidth = PERF_WIDTH;  // Use global for now, or pass if needed
+    EvilUIState.resizeStartWidth = PERF_WIDTH;
     EvilUIState.resizeStartHeight = PERF_HEIGHT;
 
     document.addEventListener('mousemove', handleResize);
@@ -112,7 +113,7 @@ function startDrag(e) {
     EvilUIState.dragOffsetY = e.clientY;
 
     const rect = perfContainer.getBoundingClientRect();
-    EvilUIState.containerStartX = rect.left;  // Add this to state if needed, or local
+    EvilUIState.containerStartX = rect.left;
     EvilUIState.containerStartY = rect.top;
 
     document.addEventListener('mousemove', handleDrag);
@@ -158,11 +159,11 @@ export function memCpuGodFunction() {
     perfContainer.style.left = "310px"; // Position next to debug terminal
     perfContainer.style.bottom = "0";
     perfContainer.style.zIndex = "210";
-    perfContainer.style.backgroundColor = EVIL_THEME.background;
-    perfContainer.style.border = `2px solid ${EVIL_THEME.border}`;
+    perfContainer.style.backgroundColor = themeManager.getCurrentTheme().background;
+    perfContainer.style.border = `2px solid ${themeManager.getCurrentTheme().border}`;
     perfContainer.style.boxSizing = "border-box";
     perfContainer.style.overflow = "hidden";
-    perfContainer.style.boxShadow = "0 0 15px rgba(255, 0, 0, 0.5)";
+    perfContainer.style.boxShadow = `0 0 15px ${themeManager.getCurrentTheme().border}`;
     document.body.appendChild(perfContainer);
 
     // Create header with title and close button
@@ -171,13 +172,13 @@ export function memCpuGodFunction() {
     perfHeader.style.justifyContent = "space-between";
     perfHeader.style.alignItems = "center";
     perfHeader.style.padding = "5px 10px";
-    perfHeader.style.backgroundColor = EVIL_THEME.headerBg;
-    perfHeader.style.borderBottom = `1px solid ${EVIL_THEME.border}`;
-    perfHeader.style.color = EVIL_THEME.text;
+    perfHeader.style.backgroundColor = themeManager.getCurrentTheme().headerBg;
+    perfHeader.style.borderBottom = `1px solid ${themeManager.getCurrentTheme().border}`;
+    perfHeader.style.color = themeManager.getCurrentTheme().text;
     perfHeader.style.fontFamily = "Courier New, monospace";
     perfHeader.style.fontSize = "12px";
     perfHeader.style.cursor = "move";
-    perfHeader.style.textShadow = "0 0 8px #ff0000"; // Blood red glow
+    perfHeader.style.textShadow = `0 0 8px ${themeManager.getCurrentTheme().border}`;
 
     // Add drag handle for moving the monitor
     perfHeader.addEventListener('mousedown', startDrag);
@@ -185,27 +186,27 @@ export function memCpuGodFunction() {
     const title = document.createElement("div");
     title.textContent = "SYSTEM MONITOR";
     title.style.fontWeight = "bold";
-    title.style.color = EVIL_THEME.danger; // Use theme
+    title.style.color = themeManager.getCurrentTheme().danger;
     title.style.letterSpacing = "1px";
 
     const closeButton = document.createElement("button");
     closeButton.textContent = "X";
     closeButton.style.background = "none";
-    closeButton.style.border = `1px solid ${EVIL_THEME.danger}`;
-    closeButton.style.color = EVIL_THEME.danger;
+    closeButton.style.border = `1px solid ${themeManager.getCurrentTheme().danger}`;
+    closeButton.style.color = themeManager.getCurrentTheme().danger;
     closeButton.style.cursor = "pointer";
     closeButton.style.padding = "2px 5px";
     closeButton.style.fontWeight = "bold";
     closeButton.style.fontFamily = "Courier New, monospace";
     closeButton.addEventListener("click", stopMemCpuMonitor);
     closeButton.addEventListener("mouseover", () => {
-        closeButton.style.backgroundColor = EVIL_THEME.danger;
+        closeButton.style.backgroundColor = themeManager.getCurrentTheme().danger;
         closeButton.style.color = "#000";
-        closeButton.style.boxShadow = "0 0 8px #ff0000";
+        closeButton.style.boxShadow = `0 0 8px ${themeManager.getCurrentTheme().border}`;
     });
     closeButton.addEventListener("mouseout", () => {
         closeButton.style.backgroundColor = "transparent";
-        closeButton.style.color = EVIL_THEME.danger;
+        closeButton.style.color = themeManager.getCurrentTheme().danger;
         closeButton.style.boxShadow = "none";
     });
 
@@ -239,6 +240,25 @@ export function memCpuGodFunction() {
     updateInterval = setInterval(updatePerformanceData, 1000);
     glitchInterval = setInterval(updateGlitchEffects, 800);  // Slower for perf
     requestAnimationFrame(drawPerfMonitor);
+
+    // Listen for theme changes
+    window.addEventListener('themeChanged', () => {
+        // Update styles for existing elements
+        perfContainer.style.backgroundColor = themeManager.getCurrentTheme().background;
+        perfContainer.style.border = `2px solid ${themeManager.getCurrentTheme().border}`;
+        perfContainer.style.boxShadow = `0 0 15px ${themeManager.getCurrentTheme().border}`;
+        perfHeader.style.backgroundColor = themeManager.getCurrentTheme().headerBg;
+        perfHeader.style.borderBottom = `1px solid ${themeManager.getCurrentTheme().border}`;
+        perfHeader.style.color = themeManager.getCurrentTheme().text;
+        perfHeader.style.textShadow = `0 0 8px ${themeManager.getCurrentTheme().border}`;
+        title.style.color = themeManager.getCurrentTheme().danger;
+        closeButton.style.border = `1px solid ${themeManager.getCurrentTheme().danger}`;
+        closeButton.style.color = themeManager.getCurrentTheme().danger;
+        perfResizeHandle.style.backgroundColor = themeManager.getCurrentTheme().resizeHandle;
+        perfResizeHandle.style.borderTop = `2px solid ${themeManager.getCurrentTheme().resizeBorder}`;
+        perfResizeHandle.style.borderLeft = `2px solid ${themeManager.getCurrentTheme().resizeBorder}`;
+        drawPerfMonitor();
+    });
 }
 
 // --- Update performance data ---
@@ -303,13 +323,13 @@ function drawPerfMonitor() {
     // Apply flicker effect
     perfCtx.globalAlpha = evilGlitchSystem.flicker;
 
-    // Draw pure black background with blood red hint
-    perfCtx.fillStyle = EVIL_THEME.background;
+    // Draw pure black background with hint
+    perfCtx.fillStyle = themeManager.getCurrentTheme().background;
     perfCtx.fillRect(0, 0, width, height);
 
     // Draw corruption effect (optimized)
     if (evilGlitchSystem.corruption > 0) {
-        perfCtx.fillStyle = EVIL_THEME.corruption;
+        perfCtx.fillStyle = themeManager.getCurrentTheme().corruption;
         for (let i = 0; i < width; i += 10) {
             if (Math.random() < evilGlitchSystem.corruption) {
                 const h = Math.random() * height;
@@ -318,8 +338,8 @@ function drawPerfMonitor() {
         }
     }
 
-    // Draw blood red scanlines with offset glitch (optimized)
-    perfCtx.fillStyle = EVIL_THEME.scanlines;
+    // Draw scanlines with offset glitch (optimized)
+    perfCtx.fillStyle = themeManager.getCurrentTheme().scanlines;
     for (let i = evilGlitchSystem.scanlineOffset; i < height; i += 4) {
         perfCtx.fillRect(0, i, width, 1);
     }
@@ -337,7 +357,7 @@ function drawPerfMonitor() {
     if (evilGlitchSystem.textGlitch) {
         fpsText = evilGlitchSystem.applyTextGlitch(fpsText);
     }
-    perfCtx.fillStyle = getPerformanceColor(performanceData.fps, [30, 50]);  // Inverted for FPS (higher better)
+    perfCtx.fillStyle = themeManager.getPerformanceColor(performanceData.fps, [30, 50]);
     perfCtx.fillText(fpsText, 10, y);
     y += 20;
 
@@ -348,7 +368,7 @@ function drawPerfMonitor() {
         if (evilGlitchSystem.textGlitch) {
             memText = evilGlitchSystem.applyTextGlitch(memText);
         }
-        perfCtx.fillStyle = getPerformanceColor(memoryPercent);
+        perfCtx.fillStyle = themeManager.getPerformanceColor(memoryPercent);
         perfCtx.fillText(memText, 10, y);
         y += 20;
     }
@@ -358,7 +378,7 @@ function drawPerfMonitor() {
     if (evilGlitchSystem.textGlitch) {
         cpuText = evilGlitchSystem.applyTextGlitch(cpuText);
     }
-    perfCtx.fillStyle = getPerformanceColor(performanceData.cpu.usage);
+    perfCtx.fillStyle = themeManager.getPerformanceColor(performanceData.cpu.usage);
     perfCtx.fillText(cpuText, 10, y);
     y += 20;
 
@@ -367,17 +387,17 @@ function drawPerfMonitor() {
 
     // Draw graphs if we have history
     if (performanceData.history.memory.length > 1) {
-        drawGraph(perfCtx, performanceData.history.memory, 10, y, width - 20, 30, EVIL_THEME.danger, "MEM");
-        drawGraph(perfCtx, performanceData.history.cpu, 10, y + 40, width - 20, 30, EVIL_THEME.warning, "CPU");
+        drawGraph(perfCtx, performanceData.history.memory, 10, y, width - 20, 30, themeManager.getCurrentTheme().danger, "MEM");
+        drawGraph(perfCtx, performanceData.history.cpu, 10, y + 40, width - 20, 30, themeManager.getCurrentTheme().warning, "CPU");
     }
 
-    // Draw evil blood red border with glow
-    perfCtx.strokeStyle = EVIL_THEME.border;
+    // Draw border with glow
+    perfCtx.strokeStyle = themeManager.getCurrentTheme().border;
     perfCtx.lineWidth = 1;
     perfCtx.strokeRect(0, 0, width, height);
 
     // Draw inner glow
-    perfCtx.strokeStyle = 'rgba(255, 0, 0, 0.3)';
+    perfCtx.strokeStyle = `rgba(${themeManager.getCurrentTheme().border.slice(1, 3)}, ${themeManager.getCurrentTheme().border.slice(3, 5)}, ${themeManager.getCurrentTheme().border.slice(5, 7)}, 0.3)`;
     perfCtx.strokeRect(1, 1, width - 2, height - 2);
 
     // Reset alpha
@@ -394,7 +414,7 @@ function drawGraph(ctx, values, x, y, width, height, color, label) {
     const maxValue = Math.max(...values, 1) * 1.1; // Add 10% padding
 
     // Draw graph background
-    ctx.fillStyle = EVIL_THEME.graphBg;
+    ctx.fillStyle = themeManager.getCurrentTheme().graphBg;
     ctx.fillRect(x, y, width, height);
 
     // Draw graph line with glitch effect
@@ -419,7 +439,7 @@ function drawGraph(ctx, values, x, y, width, height, color, label) {
 
     ctx.stroke();
 
-    // Draw label with blood red glow
+    // Draw label with glow
     let labelText = `${label}: ${values[values.length - 1].toFixed(1)}`;
     if (evilGlitchSystem.textGlitch) {
         labelText = evilGlitchSystem.applyTextGlitch(labelText);
@@ -427,7 +447,7 @@ function drawGraph(ctx, values, x, y, width, height, color, label) {
 
     ctx.fillStyle = color;
     ctx.shadowBlur = 8;
-    ctx.shadowColor = EVIL_THEME.danger;
+    ctx.shadowColor = themeManager.getCurrentTheme().danger;
     ctx.fillText(labelText, x + 5, y + 12);
     ctx.shadowBlur = 0;
 }

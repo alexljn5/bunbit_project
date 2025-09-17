@@ -1,8 +1,9 @@
 // File: game_engine/debug/debughandler.js
 
 import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y } from '../globals.js';
-import { EVIL_THEME, evilGlitchSystem, getLogColor, EvilUIState } from '../themes/eviltheme.js';
-import { togglePerfMonitor, memCpuGodFunction } from './memcpu.js';
+import { evilGlitchSystem, EvilUIState } from '../themes/eviltheme.js';
+import { themeManager } from '../themes/thememanager.js';
+import { memCpuGodFunction, togglePerfMonitor } from './memcpu.js';
 
 const consoleOriginal = {
     debug: console.debug,
@@ -121,8 +122,8 @@ function updateButtonPositions() {
     const paddingY = 4 * SCALE_Y;
     const gap = 2 * SCALE_X;
     const buttonH = HEADER_HEIGHT - 2 * paddingY;
-    const types = ['perf', 'log', 'error', 'warn', 'info', 'debug', 'clear'];
-    const flexes = { perf: 0.5, clear: 0.5, default: 1 };
+    const types = ['perf', 'log', 'error', 'warn', 'info', 'debug', 'clear', 'theme'];
+    const flexes = { perf: 0.5, clear: 0.5, theme: 0.5, default: 1 };
     let totalFlex = types.reduce((sum, t) => sum + (flexes[t] || flexes.default), 0);
     const availableWidth = DEBUG_WIDTH - 2 * paddingX - (types.length - 1) * gap;
     const unit = availableWidth / totalFlex;
@@ -131,7 +132,7 @@ function updateButtonPositions() {
     types.forEach(type => {
         const flex = flexes[type] || flexes.default;
         const w = unit * flex;
-        const text = type === 'perf' ? 'CREAM' : type === 'clear' ? 'CLEAR' : type.charAt(0).toUpperCase() + type.slice(1);
+        const text = type === 'perf' ? 'CREAM' : type === 'clear' ? 'CLEAR' : type === 'theme' ? 'THEME' : type.charAt(0).toUpperCase() + type.slice(1);
         buttons.push({
             x, y: paddingY, w, h: buttonH,
             text, type, hovered: false
@@ -184,7 +185,7 @@ export function debugHandlerGodFunction() {
     debugContainer.style.boxSizing = 'border-box';
     debugContainer.style.overflow = 'hidden';
     debugContainer.style.resize = 'none';
-    debugContainer.style.boxShadow = '0 0 15px rgba(255, 0, 0, 0.5)';
+    debugContainer.style.boxShadow = `0 0 15px ${themeManager.getCurrentTheme().border}`;
     document.body.appendChild(debugContainer);
 
     debugCanvas = document.createElement('canvas');
@@ -261,6 +262,13 @@ export function debugHandlerGodFunction() {
             autoScroll = virtualScrollY >= maxScrollY;
             drawDebugTerminal();
         });
+    }).catch(err => {
+        console.error('Failed to load eventhandlers.js:', err);
+    });
+
+    // Listen for theme changes
+    window.addEventListener('themeChanged', () => {
+        drawDebugTerminal();
     });
 
     if (window.debugAPI && window.debugAPI.requestLogs) {
@@ -282,7 +290,11 @@ export function debugHandlerGodFunction() {
 
     updateFilteredLogs();
     drawDebugTerminal();
-    togglePerfMonitor();  // Auto-toggle perf on start
+    try {
+        togglePerfMonitor(); // Auto-toggle perf on start
+    } catch (err) {
+        console.error('Failed to toggle perf monitor:', err);
+    }
     memCpuGodFunction();
 }
 
@@ -337,12 +349,12 @@ export function drawDebugTerminal() {
     }
 
     // Draw background with shake offset
-    debugCtx.fillStyle = EVIL_THEME.background;
+    debugCtx.fillStyle = themeManager.getCurrentTheme().background;
     debugCtx.fillRect(shakeX, shakeY, termWidth, termHeight);
 
     // Draw corruption effect (optimized)
     if (evilGlitchSystem.corruption > 0) {
-        debugCtx.fillStyle = EVIL_THEME.corruption;
+        debugCtx.fillStyle = themeManager.getCurrentTheme().corruption;
         for (let i = 0; i < termWidth; i += 8) {
             if (Math.random() < evilGlitchSystem.corruption) {
                 const h = Math.random() * termHeight;
@@ -352,16 +364,16 @@ export function drawDebugTerminal() {
     }
 
     // Draw outer border with glow and shake
-    debugCtx.strokeStyle = EVIL_THEME.border;
+    debugCtx.strokeStyle = themeManager.getCurrentTheme().border;
     debugCtx.lineWidth = 2;
     debugCtx.strokeRect(shakeX, shakeY, termWidth, termHeight);
-    debugCtx.strokeStyle = 'rgba(255, 0, 0, 0.3)';
+    debugCtx.strokeStyle = `rgba(${themeManager.getCurrentTheme().border.slice(1, 3)}, ${themeManager.getCurrentTheme().border.slice(3, 5)}, ${themeManager.getCurrentTheme().border.slice(5, 7)}, 0.3)`;
     debugCtx.strokeRect(1 + shakeX, 1 + shakeY, termWidth - 2, termHeight - 2);
 
     // Draw header with shake
-    debugCtx.fillStyle = EVIL_THEME.headerBg;
+    debugCtx.fillStyle = themeManager.getCurrentTheme().headerBg;
     debugCtx.fillRect(shakeX, shakeY, termWidth, HEADER_HEIGHT);
-    debugCtx.strokeStyle = EVIL_THEME.border;
+    debugCtx.strokeStyle = themeManager.getCurrentTheme().border;
     debugCtx.lineWidth = 1;
     debugCtx.beginPath();
     debugCtx.moveTo(shakeX, HEADER_HEIGHT - 0.5 + shakeY);
@@ -374,18 +386,18 @@ export function drawDebugTerminal() {
     debugCtx.textAlign = 'center';
     debugCtx.textBaseline = 'middle';
     buttons.forEach(btn => {
-        const isFilter = btn.type !== 'perf' && btn.type !== 'clear';
+        const isFilter = btn.type !== 'perf' && btn.type !== 'clear' && btn.type !== 'theme';
         const active = isFilter ? logFilters[btn.type] : false;
-        const bg = btn.hovered ? EVIL_THEME.buttonHover : (active ? EVIL_THEME.buttonHover : EVIL_THEME.buttonBg);
+        const bg = btn.hovered ? themeManager.getCurrentTheme().buttonHover : (active ? themeManager.getCurrentTheme().buttonHover : themeManager.getCurrentTheme().buttonBg);
         debugCtx.fillStyle = bg;
         debugCtx.fillRect(btn.x + shakeX, btn.y + shakeY, btn.w, btn.h);
 
-        const borderColor = active ? EVIL_THEME.danger : EVIL_THEME.border;
+        const borderColor = active ? themeManager.getCurrentTheme().danger : themeManager.getCurrentTheme().border;
         debugCtx.strokeStyle = borderColor;
         debugCtx.lineWidth = 1;
         debugCtx.strokeRect(btn.x + shakeX, btn.y + shakeY, btn.w, btn.h);
 
-        const textColor = (btn.type === 'perf' || btn.type === 'clear') ? EVIL_THEME.danger : (active ? EVIL_THEME.danger : EVIL_THEME.text);
+        const textColor = (btn.type === 'perf' || btn.type === 'clear' || btn.type === 'theme') ? themeManager.getCurrentTheme().danger : (active ? themeManager.getCurrentTheme().danger : themeManager.getCurrentTheme().text);
         debugCtx.fillStyle = textColor;
         debugCtx.fillText(btn.text, btn.x + btn.w / 2 + shakeX, btn.y + btn.h / 2 + shakeY);
     });
@@ -395,9 +407,9 @@ export function drawDebugTerminal() {
     // Draw resize handle with shake
     resizeArea.x = termWidth - resizeArea.w;
     resizeArea.y = termHeight - resizeArea.h;
-    debugCtx.fillStyle = EVIL_THEME.resizeHandle;
+    debugCtx.fillStyle = themeManager.getCurrentTheme().resizeHandle;
     debugCtx.fillRect(resizeArea.x + shakeX, resizeArea.y + shakeY, resizeArea.w, resizeArea.h);
-    debugCtx.strokeStyle = EVIL_THEME.resizeBorder;
+    debugCtx.strokeStyle = themeManager.getCurrentTheme().resizeBorder;
     debugCtx.lineWidth = 2;
     debugCtx.beginPath();
     debugCtx.moveTo(resizeArea.x + 2 + shakeX, resizeArea.y + resizeArea.h - 2 + shakeY);
@@ -406,8 +418,8 @@ export function drawDebugTerminal() {
     debugCtx.lineTo(resizeArea.x + 2 + shakeX, resizeArea.y + 2 + shakeY);
     debugCtx.stroke();
 
-    // Draw blood red scanlines in log area with offset glitch and shake (optimized)
-    debugCtx.fillStyle = EVIL_THEME.scanlines;
+    // Draw scanlines in log area with offset glitch and shake (optimized)
+    debugCtx.fillStyle = themeManager.getCurrentTheme().scanlines;
     for (let i = HEADER_HEIGHT + evilGlitchSystem.scanlineOffset; i < termHeight; i += 3) {
         debugCtx.fillRect(shakeX, i + shakeY, termWidth, 1);
     }
@@ -437,7 +449,7 @@ export function drawDebugTerminal() {
         if (!log) continue;
 
         // Use shared log color
-        debugCtx.fillStyle = getLogColor(log.type);
+        debugCtx.fillStyle = themeManager.getLogColor(log.type);
 
         let text = `[${log.timestamp}] ${log.type.toUpperCase()} (${log.source}): ${log.message}`;
         if (text.length > charLimit) text = text.slice(0, charLimit) + '…';
@@ -465,20 +477,20 @@ export function drawDebugTerminal() {
     debugCtx.translate(-evilGlitchSystem.horizontalShift - shakeX,
         -evilGlitchSystem.verticalShift - shakeY);
 
-    // Draw scroll indicators in blood red with shake
+    // Draw scroll indicators with shake
     const maxScrollY = Math.max(0, filteredLogs.length * lineHeight - logAreaHeight);
     if (maxScrollY > 0) {
         const scrollbarHeight = Math.max(20 * SCALE_Y, logAreaHeight * (logAreaHeight / (filteredLogs.length * lineHeight)));
         const scrollbarPosition = (virtualScrollY / maxScrollY) * (logAreaHeight - scrollbarHeight);
 
-        debugCtx.fillStyle = 'rgba(255, 0, 0, 0.3)';
+        debugCtx.fillStyle = `rgba(${themeManager.getCurrentTheme().border.slice(1, 3)}, ${themeManager.getCurrentTheme().border.slice(3, 5)}, ${themeManager.getCurrentTheme().border.slice(5, 7)}, 0.3)`;
         debugCtx.fillRect(termWidth - 8 * SCALE_X + shakeX,
             HEADER_HEIGHT + scrollbarPosition + shakeY,
             6 * SCALE_X, scrollbarHeight);
     }
 
     if (scrollOffsetX > 0) {
-        debugCtx.fillStyle = 'rgba(255, 0, 0, 0.5)';
+        debugCtx.fillStyle = `rgba(${themeManager.getCurrentTheme().border.slice(1, 3)}, ${themeManager.getCurrentTheme().border.slice(3, 5)}, ${themeManager.getCurrentTheme().border.slice(5, 7)}, 0.5)`;
         debugCtx.fillRect(shakeX, termHeight - 4 * SCALE_Y + shakeY, termWidth, 2 * SCALE_Y);
         debugCtx.fillRect(termWidth * (scrollOffsetX / 1000) + shakeX,
             termHeight - 6 * SCALE_Y + shakeY,
@@ -487,7 +499,7 @@ export function drawDebugTerminal() {
 
     // Draw static effect with shake (optimized)
     if (evilGlitchSystem.staticEffect > 0) {
-        debugCtx.fillStyle = `rgba(255, 0, 0, ${evilGlitchSystem.staticEffect * 0.1})`;
+        debugCtx.fillStyle = `rgba(${themeManager.getCurrentTheme().border.slice(1, 3)}, ${themeManager.getCurrentTheme().border.slice(3, 5)}, ${themeManager.getCurrentTheme().border.slice(5, 7)}, ${evilGlitchSystem.staticEffect * 0.1})`;
         const particleCount = termWidth * termHeight * 0.01;
         for (let i = 0; i < particleCount; i++) {
             const x = Math.floor(Math.random() * termWidth) + shakeX;
