@@ -1,6 +1,4 @@
-// File: game_engine/debug/eventhandlers.js
-
-import { SCALE_Y, SCALE_X } from '../globals.js';  // Adjust path if needed
+import { SCALE_Y, SCALE_X } from '../globals.js';
 import { togglePerfMonitor } from './memcpu.js';
 import {
     updateFilteredLogs,
@@ -18,29 +16,31 @@ import {
     MIN_WIDTH,
     MIN_HEIGHT,
     HEADER_HEIGHT
-} from './debughandler.js';  // Import shared functions and variables
-import { EvilUIState } from '../themes/eviltheme.js';  // Shared UI state
+} from './debughandler.js';
+import { EvilUIState } from '../themes/eviltheme.js';
 import { themeManager } from '../themes/thememanager.js';
+import { fullscreenHandler } from './fullscreenhandler.js';
 
-// --- Handle mouse down (using EvilUIState) ---
+// Handle mouse down
 export function handleMouseDown(e) {
     e.preventDefault();
-    console.log('Mouse down on debug canvas:', e.clientX, e.clientY); // Debug log
+    console.log('Mouse down on debug canvas:', e.clientX, e.clientY);
     const rect = debugCanvas.getBoundingClientRect();
-    const mx = e.clientX - rect.left;
-    const my = e.clientY - rect.top;
+    const scaleFactor = fullscreenHandler.getScaleFactor();
+    const mx = (e.clientX - rect.left) / scaleFactor;
+    const my = (e.clientY - rect.top) / scaleFactor;
 
     // Check resize
     if (mx >= resizeArea.x && mx < resizeArea.x + resizeArea.w &&
         my >= resizeArea.y && my < resizeArea.y + resizeArea.h) {
-        console.log('Starting resize'); // Debug log
+        console.log('Starting resize');
         EvilUIState.isResizing = true;
-        EvilUIState.resizeStartX = e.clientX;
-        EvilUIState.resizeStartY = e.clientY;
+        EvilUIState.resizeStartX = e.clientX / scaleFactor;
+        EvilUIState.resizeStartY = e.clientY / scaleFactor;
         EvilUIState.resizeStartWidth = DEBUG_WIDTH;
         EvilUIState.resizeStartHeight = DEBUG_HEIGHT;
-        document.addEventListener('mousemove', handleResize);
-        document.addEventListener('mouseup', stopResize);
+        document.addEventListener('mousemove', handleResize, { capture: true });
+        document.addEventListener('mouseup', stopResize, { capture: true });
         return;
     }
 
@@ -51,7 +51,7 @@ export function handleMouseDown(e) {
         );
 
         if (clickedButton) {
-            console.log('Button clicked:', clickedButton.type); // Debug log
+            console.log('Button clicked:', clickedButton.type);
             const type = clickedButton.type;
             if (type === 'perf') {
                 try {
@@ -60,7 +60,7 @@ export function handleMouseDown(e) {
                     console.error('Failed to toggle perf monitor:', err);
                 }
             } else if (type === 'clear') {
-                logBuffer.length = 0;  // Clear the array in-place
+                logBuffer.length = 0;
                 updateFilteredLogs();
                 scrollOffsetX = 0;
                 virtualScrollY = 0;
@@ -80,24 +80,25 @@ export function handleMouseDown(e) {
         }
 
         // Start drag if not on button
-        console.log('Starting drag'); // Debug log
+        console.log('Starting drag');
         EvilUIState.isDragging = true;
-        EvilUIState.dragOffsetX = e.clientX;
-        EvilUIState.dragOffsetY = e.clientY;
+        EvilUIState.dragOffsetX = e.clientX / scaleFactor;
+        EvilUIState.dragOffsetY = e.clientY / scaleFactor;
 
         const contRect = debugContainer.getBoundingClientRect();
-        EvilUIState.containerStartX = contRect.left;
-        EvilUIState.containerStartY = contRect.top;
-        document.addEventListener('mousemove', handleDrag);
-        document.addEventListener('mouseup', stopDrag);
+        EvilUIState.containerStartX = contRect.left / scaleFactor;
+        EvilUIState.containerStartY = contRect.top / scaleFactor;
+        document.addEventListener('mousemove', handleDrag, { capture: true });
+        document.addEventListener('mouseup', stopDrag, { capture: true });
     }
 }
 
-// --- Handle mouse move (using EvilUIState) ---
+// Handle mouse move
 export function handleMouseMove(e) {
     const rect = debugCanvas.getBoundingClientRect();
-    const mx = e.clientX - rect.left;
-    const my = e.clientY - rect.top;
+    const scaleFactor = fullscreenHandler.getScaleFactor();
+    const mx = (e.clientX - rect.left) / scaleFactor;
+    const my = (e.clientY - rect.top) / scaleFactor;
 
     let needsRedraw = false;
 
@@ -134,7 +135,7 @@ export function handleMouseMove(e) {
     }
 }
 
-// --- Handle mouse leave ---
+// Handle mouse leave
 export function handleMouseLeave() {
     let needsRedraw = false;
     buttons.forEach(btn => {
@@ -153,13 +154,14 @@ export function handleMouseLeave() {
     debugCanvas.style.cursor = 'default';
 }
 
-// --- Handle resize (using EvilUIState) ---
+// Handle resize
 export function handleResize(e) {
     if (!EvilUIState.isResizing) return;
 
-    console.log('Resizing:', e.clientX, e.clientY); // Debug log
-    const dx = e.clientX - EvilUIState.resizeStartX;
-    const dy = e.clientY - EvilUIState.resizeStartY;
+    console.log('Resizing:', e.clientX, e.clientY);
+    const scaleFactor = fullscreenHandler.getScaleFactor();
+    const dx = (e.clientX / scaleFactor) - EvilUIState.resizeStartX;
+    const dy = (e.clientY / scaleFactor) - EvilUIState.resizeStartY;
 
     const newWidth = Math.max(MIN_WIDTH, EvilUIState.resizeStartWidth + dx);
     const newHeight = Math.max(MIN_HEIGHT, EvilUIState.resizeStartHeight + dy);
@@ -167,21 +169,22 @@ export function handleResize(e) {
     resizeDebugCanvas(newWidth, newHeight);
 }
 
-// --- Stop resize ---
+// Stop resize
 export function stopResize() {
-    console.log('Stopping resize'); // Debug log
+    console.log('Stopping resize');
     EvilUIState.isResizing = false;
-    document.removeEventListener('mousemove', handleResize);
-    document.removeEventListener('mouseup', stopResize);
+    document.removeEventListener('mousemove', handleResize, { capture: true });
+    document.removeEventListener('mouseup', stopResize, { capture: true });
 }
 
-// --- Handle drag (using EvilUIState) ---
+// Handle drag
 export function handleDrag(e) {
     if (!EvilUIState.isDragging) return;
 
-    console.log('Dragging:', e.clientX, e.clientY); // Debug log
-    const dx = e.clientX - EvilUIState.dragOffsetX;
-    const dy = e.clientY - EvilUIState.dragOffsetY;
+    console.log('Dragging:', e.clientX, e.clientY);
+    const scaleFactor = fullscreenHandler.getScaleFactor();
+    const dx = (e.clientX / scaleFactor) - EvilUIState.dragOffsetX;
+    const dy = (e.clientY / scaleFactor) - EvilUIState.dragOffsetY;
 
     debugContainer.style.left = `${EvilUIState.containerStartX + dx}px`;
     debugContainer.style.top = `${EvilUIState.containerStartY + dy}px`;
@@ -189,10 +192,10 @@ export function handleDrag(e) {
     debugContainer.style.bottom = 'auto';
 }
 
-// --- Stop drag ---
+// Stop drag
 export function stopDrag() {
-    console.log('Stopping drag'); // Debug log
+    console.log('Stopping drag');
     EvilUIState.isDragging = false;
-    document.removeEventListener('mousemove', handleDrag);
-    document.removeEventListener('mouseup', stopDrag);
+    document.removeEventListener('mousemove', handleDrag, { capture: true });
+    document.removeEventListener('mouseup', stopDrag, { capture: true });
 }

@@ -39,9 +39,19 @@ async function createWindow() {
     // Disable CORS for file:// (backup, but we use HTTP)
     app.commandLine.appendSwitch('disable-features', 'OutOfBlinkCors');
 
+    // Resolve icon path
+    const iconPath = join(__dirname, 'game_engine', 'img', 'logo', 'favicon.ico');
+    try {
+        await fs.access(iconPath);
+        console.log(`Icon found at: ${iconPath} *giggles*`);
+    } catch (error) {
+        console.warn(`Icon not found at: ${iconPath}, proceeding without icon *pouts*`);
+    }
+
     const mainWindow = new BrowserWindow({
         width: 800,
         height: 800,
+        icon: iconPath, // Set window icon
         webPreferences: {
             nodeIntegration: true, // WARNING: Insecure for prod; use preload script later
             contextIsolation: true,
