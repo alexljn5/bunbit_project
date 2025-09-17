@@ -46,7 +46,8 @@ async function createWindow() {
             nodeIntegration: true, // WARNING: Insecure for prod; use preload script later
             contextIsolation: true,
             enableRemoteModule: true, // Deprecated; avoid in prod
-            webSecurity: false // Allow local loads
+            webSecurity: false, // Allow local loads
+            devTools: false
         }
     });
 
