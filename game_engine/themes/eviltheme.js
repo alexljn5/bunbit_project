@@ -67,76 +67,76 @@ export class EvilGlitchSystem {
     updateGlitchEffects(activityLevel = 0) {
         this.intensity = activityLevel;
 
-        if (Math.random() < 0.15 * this.intensity) {
+        if (Math.random() < 0.075 * this.intensity) {  // Optimized lower prob
             this.scanlineOffset = (Math.random() - 0.5) * 15;
         }
 
-        if (Math.random() < 0.08 * this.intensity) {
+        if (Math.random() < 0.04 * this.intensity) {
             this.textGlitch = true;
-            setTimeout(() => { this.textGlitch = false; }, 150);
-        }
-
-        if (Math.random() < 0.1 * this.intensity) {
-            this.horizontalShift = (Math.random() - 0.5) * 30;
-            setTimeout(() => { this.horizontalShift = 0; }, 80);
-        }
-
-        if (Math.random() < 0.1 * this.intensity) {
-            this.verticalShift = (Math.random() - 0.5) * 20;
-            setTimeout(() => { this.verticalShift = 0; }, 60);
+            setTimeout(() => { this.textGlitch = false; }, 300);
         }
 
         if (Math.random() < 0.05 * this.intensity) {
-            this.corruption = Math.random() * 0.4;
-            setTimeout(() => { this.corruption = 0; }, 250);
+            this.horizontalShift = (Math.random() - 0.5) * 30;
+            setTimeout(() => { this.horizontalShift = 0; }, 160);
         }
 
-        if (Math.random() < 0.07 * this.intensity) {
+        if (Math.random() < 0.05 * this.intensity) {
+            this.verticalShift = (Math.random() - 0.5) * 20;
+            setTimeout(() => { this.verticalShift = 0; }, 120);
+        }
+
+        if (Math.random() < 0.025 * this.intensity) {
+            this.corruption = Math.random() * 0.4;
+            setTimeout(() => { this.corruption = 0; }, 500);
+        }
+
+        if (Math.random() < 0.035 * this.intensity) {
             this.flicker = 0.2 + Math.random() * 0.8;
-            setTimeout(() => { this.flicker = 1; }, 120);
+            setTimeout(() => { this.flicker = 1; }, 240);
+        }
+
+        if (Math.random() < 0.015 * this.intensity) {
+            this.staticEffect = Math.random() * 0.6;
+            setTimeout(() => { this.staticEffect = 0; }, 400);
         }
 
         if (Math.random() < 0.03 * this.intensity) {
-            this.staticEffect = Math.random() * 0.6;
-            setTimeout(() => { this.staticEffect = 0; }, 200);
-        }
-
-        if (Math.random() < 0.06 * this.intensity) {
             this.shakeIntensity = Math.random() * 10;
-            setTimeout(() => { this.shakeIntensity = 0; }, 300);
+            setTimeout(() => { this.shakeIntensity = 0; }, 600);
         }
 
-        if (Math.random() < 0.04 * this.intensity) {
+        if (Math.random() < 0.02 * this.intensity) {
             this.smearEffect = 0.3 + Math.random() * 0.7;
-            setTimeout(() => { this.smearEffect = 0; }, 400);
+            setTimeout(() => { this.smearEffect = 0; }, 800);
         }
     }
 
     updatePerformanceGlitchEffects(performanceStress) {
         this.intensity = Math.min(1, performanceStress * 1.5);
 
-        if (Math.random() < 0.1 * this.intensity) {
+        if (Math.random() < 0.05 * this.intensity) {
             this.scanlineOffset = (Math.random() - 0.5) * 10;
         }
 
-        if (Math.random() < 0.05 * this.intensity) {
+        if (Math.random() < 0.025 * this.intensity) {
             this.textGlitch = true;
-            setTimeout(() => { this.textGlitch = false; }, 100);
+            setTimeout(() => { this.textGlitch = false; }, 200);
         }
 
-        if (Math.random() < 0.08 * this.intensity) {
+        if (Math.random() < 0.04 * this.intensity) {
             this.horizontalShift = (Math.random() - 0.5) * 20;
-            setTimeout(() => { this.horizontalShift = 0; }, 50);
+            setTimeout(() => { this.horizontalShift = 0; }, 100);
         }
 
-        if (Math.random() < 0.03 * this.intensity) {
+        if (Math.random() < 0.015 * this.intensity) {
             this.corruption = Math.random() * 0.3;
-            setTimeout(() => { this.corruption = 0; }, 200);
+            setTimeout(() => { this.corruption = 0; }, 400);
         }
 
-        if (Math.random() < 0.05 * this.intensity) {
+        if (Math.random() < 0.025 * this.intensity) {
             this.flicker = 0.3 + Math.random() * 0.7;
-            setTimeout(() => { this.flicker = 1; }, 100);
+            setTimeout(() => { this.flicker = 1; }, 200);
         }
     }
 

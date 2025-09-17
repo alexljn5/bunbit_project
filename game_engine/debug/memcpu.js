@@ -1,6 +1,7 @@
-// File: /debug/memcpu.js
+// File: game_engine/debug/memcpu.js
 
-// --- CONFIG ---
+import { EVIL_THEME, evilGlitchSystem, getPerformanceColor, EvilUIState } from '../themes/eviltheme.js';
+
 let perfCanvas = null;
 let perfCtx = null;
 let perfContainer = null;
@@ -10,18 +11,6 @@ let isPerfVisible = false;
 
 let PERF_WIDTH = 300;
 let PERF_HEIGHT = 150;
-
-// Resize and drag state
-let isResizing = false;
-let isDragging = false;
-let resizeStartX = 0;
-let resizeStartY = 0;
-let resizeStartWidth = 0;
-let resizeStartHeight = 0;
-let dragStartX = 0;
-let dragStartY = 0;
-let containerStartX = 0;
-let containerStartY = 0;
 
 let updateInterval = null;
 let glitchInterval = null;
@@ -48,37 +37,10 @@ let performanceData = {
     }
 };
 
-// Glitch effects state
-let glitchEffects = {
-    active: false,
-    intensity: 0,
-    scanlineOffset: 0,
-    textGlitch: false,
-    horizontalShift: 0,
-    corruption: 0,
-    flicker: 1
-};
-
 // Check if performance API is available
 const performance = window.performance || window.webkitPerformance || window.msPerformance || window.mozPerformance;
 const hasPerformanceAPI = !!performance;
 const hasMemoryAPI = hasPerformanceAPI && performance.memory;
-
-// Extreme evil red & black theme with glitch effects
-const EVIL_THEME = {
-    background: '#0a0000', // Almost pure black with hint of red
-    headerBg: '#000000',   // Pure black
-    border: '#8b0000',     // Dark blood red
-    text: '#ff0000',       // Bright blood red
-    danger: '#ff0000',     // Bright blood red
-    warning: '#8b0000',    // Dark blood red  
-    good: '#8b0000',       // Dark blood red (everything is evil)
-    graphBg: 'rgba(139, 0, 0, 0.2)', // Dark blood red
-    resizeHandle: '#300000', // Deep blood red
-    resizeBorder: '#8b0000', // Dark blood red
-    scanlines: 'rgba(255, 0, 0, 0.03)', // Blood red scanlines
-    corruption: 'rgba(255, 0, 0, 0.1)'  // Data corruption effect
-};
 
 // --- Create resize handle ---
 function createResizeHandle() {
@@ -98,7 +60,7 @@ function createResizeHandle() {
 
     // Add glitch effect on hover
     perfResizeHandle.addEventListener('mouseover', () => {
-        perfResizeHandle.style.boxShadow = '0 0 5px #ff0000';
+        perfResizeHandle.style.boxShadow = '0 peror: 0 0 5px #ff0000';
     });
     perfResizeHandle.addEventListener('mouseout', () => {
         perfResizeHandle.style.boxShadow = 'none';
@@ -109,49 +71,49 @@ function createResizeHandle() {
     perfContainer.appendChild(perfResizeHandle);
 }
 
-// --- Resize functions ---
+// --- Resize functions (using EvilUIState) ---
 function startResize(e) {
     e.preventDefault();
     e.stopPropagation();
-    isResizing = true;
-    resizeStartX = e.clientX;
-    resizeStartY = e.clientY;
-    resizeStartWidth = PERF_WIDTH;
-    resizeStartHeight = PERF_HEIGHT;
+    EvilUIState.isResizing = true;
+    EvilUIState.resizeStartX = e.clientX;
+    EvilUIState.resizeStartY = e.clientY;
+    EvilUIState.resizeStartWidth = PERF_WIDTH;  // Use global for now, or pass if needed
+    EvilUIState.resizeStartHeight = PERF_HEIGHT;
 
     document.addEventListener('mousemove', handleResize);
     document.addEventListener('mouseup', stopResize);
 }
 
 function handleResize(e) {
-    if (!isResizing) return;
+    if (!EvilUIState.isResizing) return;
 
-    const dx = e.clientX - resizeStartX;
-    const dy = e.clientY - resizeStartY;
+    const dx = e.clientX - EvilUIState.resizeStartX;
+    const dy = e.clientY - EvilUIState.resizeStartY;
 
-    PERF_WIDTH = Math.max(200, resizeStartWidth + dx);
-    PERF_HEIGHT = Math.max(120, resizeStartHeight + dy);
+    PERF_WIDTH = Math.max(200, EvilUIState.resizeStartWidth + dx);
+    PERF_HEIGHT = Math.max(120, EvilUIState.resizeStartHeight + dy);
 
     resizePerfMonitor(PERF_WIDTH, PERF_HEIGHT);
 }
 
 function stopResize() {
-    isResizing = false;
+    EvilUIState.isResizing = false;
     document.removeEventListener('mousemove', handleResize);
     document.removeEventListener('mouseup', stopResize);
 }
 
-// --- Drag functions ---
+// --- Drag functions (using EvilUIState) ---
 function startDrag(e) {
     if (e.target.tagName === 'BUTTON') return; // Don't drag if clicking buttons
 
-    isDragging = true;
-    dragStartX = e.clientX;
-    dragStartY = e.clientY;
+    EvilUIState.isDragging = true;
+    EvilUIState.dragOffsetX = e.clientX;
+    EvilUIState.dragOffsetY = e.clientY;
 
     const rect = perfContainer.getBoundingClientRect();
-    containerStartX = rect.left;
-    containerStartY = rect.top;
+    EvilUIState.containerStartX = rect.left;  // Add this to state if needed, or local
+    EvilUIState.containerStartY = rect.top;
 
     document.addEventListener('mousemove', handleDrag);
     document.addEventListener('mouseup', stopDrag);
@@ -159,56 +121,31 @@ function startDrag(e) {
 }
 
 function handleDrag(e) {
-    if (!isDragging) return;
+    if (!EvilUIState.isDragging) return;
 
-    const dx = e.clientX - dragStartX;
-    const dy = e.clientY - dragStartY;
+    const dx = e.clientX - EvilUIState.dragOffsetX;
+    const dy = e.clientY - EvilUIState.dragOffsetY;
 
-    perfContainer.style.left = `${containerStartX + dx}px`;
-    perfContainer.style.top = `${containerStartY + dy}px`;
+    perfContainer.style.left = `${EvilUIState.containerStartX + dx}px`;
+    perfContainer.style.top = `${EvilUIState.containerStartY + dy}px`;
     perfContainer.style.right = 'auto';
     perfContainer.style.bottom = 'auto';
 }
 
 function stopDrag() {
-    isDragging = false;
+    EvilUIState.isDragging = false;
     document.removeEventListener('mousemove', handleDrag);
     document.removeEventListener('mouseup', stopDrag);
     perfContainer.style.cursor = '';
 }
 
-// --- Glitch effects ---
+// --- Glitch effects (using shared system) ---
 function updateGlitchEffects() {
     // Randomly trigger glitch effects based on performance
     const performanceStress = (performanceData.cpu.usage / 100) * 0.7 +
         (performanceData.memory.usedJSHeapSize / performanceData.memory.jsHeapSizeLimit) * 0.3;
 
-    glitchEffects.intensity = Math.min(1, performanceStress * 1.5);
-
-    // Random glitch events
-    if (Math.random() < 0.1 * glitchEffects.intensity) {
-        glitchEffects.scanlineOffset = (Math.random() - 0.5) * 10;
-    }
-
-    if (Math.random() < 0.05 * glitchEffects.intensity) {
-        glitchEffects.textGlitch = true;
-        setTimeout(() => { glitchEffects.textGlitch = false; }, 100);
-    }
-
-    if (Math.random() < 0.08 * glitchEffects.intensity) {
-        glitchEffects.horizontalShift = (Math.random() - 0.5) * 20;
-        setTimeout(() => { glitchEffects.horizontalShift = 0; }, 50);
-    }
-
-    if (Math.random() < 0.03 * glitchEffects.intensity) {
-        glitchEffects.corruption = Math.random() * 0.3;
-        setTimeout(() => { glitchEffects.corruption = 0; }, 200);
-    }
-
-    if (Math.random() < 0.05 * glitchEffects.intensity) {
-        glitchEffects.flicker = 0.3 + Math.random() * 0.7;
-        setTimeout(() => { glitchEffects.flicker = 1; }, 100);
-    }
+    evilGlitchSystem.updatePerformanceGlitchEffects(performanceStress);
 }
 
 // --- Main setup ---
@@ -248,7 +185,7 @@ export function memCpuGodFunction() {
     const title = document.createElement("div");
     title.textContent = "SYSTEM MONITOR";
     title.style.fontWeight = "bold";
-    title.style.color = "#ff0000"; // Bright blood red
+    title.style.color = EVIL_THEME.danger; // Use theme
     title.style.letterSpacing = "1px";
 
     const closeButton = document.createElement("button");
@@ -300,7 +237,7 @@ export function memCpuGodFunction() {
 
     // Start updating stats
     updateInterval = setInterval(updatePerformanceData, 1000);
-    glitchInterval = setInterval(updateGlitchEffects, 500);
+    glitchInterval = setInterval(updateGlitchEffects, 800);  // Slower for perf
     requestAnimationFrame(drawPerfMonitor);
 }
 
@@ -341,7 +278,7 @@ function updatePerformanceData() {
     }
 }
 
-// --- Draw stats ---
+// --- Draw stats (using shared glitch system and colors) ---
 function drawPerfMonitor() {
     if (!isPerfVisible || !perfCtx) return;
 
@@ -364,26 +301,26 @@ function drawPerfMonitor() {
     const height = perfCanvas.height;
 
     // Apply flicker effect
-    perfCtx.globalAlpha = glitchEffects.flicker;
+    perfCtx.globalAlpha = evilGlitchSystem.flicker;
 
     // Draw pure black background with blood red hint
     perfCtx.fillStyle = EVIL_THEME.background;
     perfCtx.fillRect(0, 0, width, height);
 
-    // Draw corruption effect
-    if (glitchEffects.corruption > 0) {
+    // Draw corruption effect (optimized)
+    if (evilGlitchSystem.corruption > 0) {
         perfCtx.fillStyle = EVIL_THEME.corruption;
-        for (let i = 0; i < width; i += 5) {
-            if (Math.random() < glitchEffects.corruption) {
+        for (let i = 0; i < width; i += 10) {
+            if (Math.random() < evilGlitchSystem.corruption) {
                 const h = Math.random() * height;
                 perfCtx.fillRect(i, 0, 3, h);
             }
         }
     }
 
-    // Draw blood red scanlines with offset glitch
+    // Draw blood red scanlines with offset glitch (optimized)
     perfCtx.fillStyle = EVIL_THEME.scanlines;
-    for (let i = glitchEffects.scanlineOffset; i < height; i += 2) {
+    for (let i = evilGlitchSystem.scanlineOffset; i < height; i += 4) {
         perfCtx.fillRect(0, i, width, 1);
     }
 
@@ -393,15 +330,14 @@ function drawPerfMonitor() {
     let y = 20;
 
     // Apply horizontal shift if active
-    perfCtx.translate(glitchEffects.horizontalShift, 0);
+    perfCtx.translate(evilGlitchSystem.horizontalShift, 0);
 
-    // FPS - Everything in blood red, different intensities
+    // FPS
     let fpsText = `FPS: ${performanceData.fps}`;
-    if (glitchEffects.textGlitch) {
-        fpsText = `FPS: ${Math.floor(Math.random() * 100)}`;
+    if (evilGlitchSystem.textGlitch) {
+        fpsText = evilGlitchSystem.applyTextGlitch(fpsText);
     }
-    perfCtx.fillStyle = performanceData.fps > 50 ? '#ff0000' :
-        performanceData.fps > 30 ? '#8b0000' : '#300000';
+    perfCtx.fillStyle = getPerformanceColor(performanceData.fps, [30, 50]);  // Inverted for FPS (higher better)
     perfCtx.fillText(fpsText, 10, y);
     y += 20;
 
@@ -409,32 +345,30 @@ function drawPerfMonitor() {
     if (hasMemoryAPI) {
         const memoryPercent = (performanceData.memory.usedJSHeapSize / performanceData.memory.jsHeapSizeLimit) * 100;
         let memText = `MEM: ${performanceData.memory.usedJSHeapSize.toFixed(1)}/${performanceData.memory.jsHeapSizeLimit.toFixed(1)}MB`;
-        if (glitchEffects.textGlitch) {
-            memText = `MEM: ${(Math.random() * 100).toFixed(1)}/${performanceData.memory.jsHeapSizeLimit.toFixed(1)}MB`;
+        if (evilGlitchSystem.textGlitch) {
+            memText = evilGlitchSystem.applyTextGlitch(memText);
         }
-        perfCtx.fillStyle = memoryPercent < 70 ? '#ff0000' :
-            memoryPercent < 85 ? '#8b0000' : '#300000';
+        perfCtx.fillStyle = getPerformanceColor(memoryPercent);
         perfCtx.fillText(memText, 10, y);
         y += 20;
     }
 
     // CPU
     let cpuText = `CPU: ${performanceData.cpu.usage.toFixed(1)}%`;
-    if (glitchEffects.textGlitch) {
-        cpuText = `CPU: ${(Math.random() * 100).toFixed(1)}%`;
+    if (evilGlitchSystem.textGlitch) {
+        cpuText = evilGlitchSystem.applyTextGlitch(cpuText);
     }
-    perfCtx.fillStyle = performanceData.cpu.usage < 70 ? '#300000' :
-        performanceData.cpu.usage < 85 ? '#8b0000' : '#ff0000';
+    perfCtx.fillStyle = getPerformanceColor(performanceData.cpu.usage);
     perfCtx.fillText(cpuText, 10, y);
     y += 20;
 
     // Reset translation
-    perfCtx.translate(-glitchEffects.horizontalShift, 0);
+    perfCtx.translate(-evilGlitchSystem.horizontalShift, 0);
 
     // Draw graphs if we have history
     if (performanceData.history.memory.length > 1) {
-        drawGraph(perfCtx, performanceData.history.memory, 10, y, width - 20, 30, '#ff0000', "MEM");
-        drawGraph(perfCtx, performanceData.history.cpu, 10, y + 40, width - 20, 30, '#8b0000', "CPU");
+        drawGraph(perfCtx, performanceData.history.memory, 10, y, width - 20, 30, EVIL_THEME.danger, "MEM");
+        drawGraph(perfCtx, performanceData.history.cpu, 10, y + 40, width - 20, 30, EVIL_THEME.warning, "CPU");
     }
 
     // Draw evil blood red border with glow
@@ -452,7 +386,7 @@ function drawPerfMonitor() {
     requestAnimationFrame(drawPerfMonitor);
 }
 
-// --- Draw graph ---
+// --- Draw graph (using shared glitch) ---
 function drawGraph(ctx, values, x, y, width, height, color, label) {
     if (values.length < 2) return;
 
@@ -472,10 +406,7 @@ function drawGraph(ctx, values, x, y, width, height, color, label) {
         const xPos = x + (i / (values.length - 1)) * width;
 
         // Add slight random glitches to graph values
-        let value = values[i];
-        if (Math.random() < glitchEffects.intensity * 0.1) {
-            value = value * (0.9 + Math.random() * 0.2);
-        }
+        let value = evilGlitchSystem.applyGraphGlitch(values[i]);
 
         const yPos = y + height - (value / maxValue) * height;
 
@@ -490,13 +421,13 @@ function drawGraph(ctx, values, x, y, width, height, color, label) {
 
     // Draw label with blood red glow
     let labelText = `${label}: ${values[values.length - 1].toFixed(1)}`;
-    if (glitchEffects.textGlitch) {
-        labelText = `${label}: ${(values[values.length - 1] * (0.8 + Math.random() * 0.4)).toFixed(1)}`;
+    if (evilGlitchSystem.textGlitch) {
+        labelText = evilGlitchSystem.applyTextGlitch(labelText);
     }
 
     ctx.fillStyle = color;
     ctx.shadowBlur = 8;
-    ctx.shadowColor = '#ff0000';
+    ctx.shadowColor = EVIL_THEME.danger;
     ctx.fillText(labelText, x + 5, y + 12);
     ctx.shadowBlur = 0;
 }
@@ -530,16 +461,9 @@ export function stopMemCpuMonitor() {
     perfHeader = null;
     perfResizeHandle = null;
 
-    // Reset glitch effects
-    glitchEffects = {
-        active: false,
-        intensity: 0,
-        scanlineOffset: 0,
-        textGlitch: false,
-        horizontalShift: 0,
-        corruption: 0,
-        flicker: 1
-    };
+    // Reset shared glitch system
+    evilGlitchSystem.reset();
+    EvilUIState.reset();
 }
 
 // --- Resize function ---
@@ -563,4 +487,4 @@ export function resizePerfMonitor(width, height) {
 
 // --- Expose manual resize globally ---
 window.resizePerfMonitor = resizePerfMonitor;
-window.togglePerfMonitor = togglePerfMonitor; 
+window.togglePerfMonitor = togglePerfMonitor;

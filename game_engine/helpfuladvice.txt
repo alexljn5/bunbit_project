@@ -1,3 +1,8 @@
 The main thing to consider when designing pretty much any system like this is the separation of data from logic. In this case, you'll want to store your dialog text in a data structure like a tree or a graph and serialize that to either a database or a file in a format like JSON. Then all the dialog system needs to do is a basic search on that tree to find the next line to display or play audio for.
 So when the player approaches an NPC, rather than running through 1000s of lines of a switch-case, you do a search on the dialog tree (which in general is an O(log n) operation). The children of the returned node would represent player responses, and then you can go from there.
 In general, spending a bit of effort to setup a system will save a lot of effort when it comes to adding content, as you can just add to the data with minimal code changes. It also helps a lot with localization as to switch languages, all you have to do is load a different data set.
+
+//From Mario (not mario bros)
+if you are at a door (specific), it opens a terminal with the evil red, and you have to find
+through the fake logs a pincode combination, but if you end up inputting the wrong pincode it goes
+haywire. 
