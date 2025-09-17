@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, Menu } from 'electron';
 import { join, dirname } from 'path';
 import { exec } from 'child_process';
 import { promises as fs } from 'fs';
@@ -6,7 +6,7 @@ import { mapHandler } from './game_engine/mapdata/maphandler.js';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import mysql from 'mysql2/promise';
-import express from 'express'; // Add this!
+import express from 'express';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -36,7 +36,7 @@ async function connectDB() {
 }
 
 async function createWindow() {
-    // Disable CORS for file:// (backup, but we'll use http now)
+    // Disable CORS for file:// (backup, but we use HTTP)
     app.commandLine.appendSwitch('disable-features', 'OutOfBlinkCors');
 
     const mainWindow = new BrowserWindow({
@@ -47,8 +47,32 @@ async function createWindow() {
             contextIsolation: true,
             enableRemoteModule: true, // Deprecated; avoid in prod
             webSecurity: false, // Allow local loads
-            devTools: true
+            devTools: false // Disable DevTools completely
+        },
+        autoHideMenuBar: true, // Hide menu bar (File, Edit, View, etc.)
+        menuBarVisible: false // Ensure menu bar is not visible
+    });
+
+    // Explicitly remove the menu bar
+    Menu.setApplicationMenu(null);
+    console.log('Application menu bar disabled! *twirls*');
+
+    // Block DevTools shortcuts (Ctrl+Shift+I, F12, Cmd+Opt+I)
+    mainWindow.webContents.on('before-input-event', (event, input) => {
+        if (input.type === 'keyDown') {
+            if ((input.control && input.shift && input.key.toLowerCase() === 'i') ||
+                input.key === 'F12' ||
+                (input.meta && input.alt && input.key.toLowerCase() === 'i')) {
+                console.log('Blocked DevTools shortcut attempt! *chao chao*');
+                event.preventDefault();
+            }
         }
+    });
+
+    // Additional check to ensure DevTools is disabled
+    mainWindow.webContents.on('devtools-opened', () => {
+        console.warn('DevTools opened unexpectedly, closing! *pouts*');
+        mainWindow.webContents.closeDevTools();
     });
 
     // Spin up a tiny Express server to serve files over HTTP (fixes worker ESM loads!)
@@ -61,15 +85,12 @@ async function createWindow() {
 
     // Load over HTTP – workers love this!
     const pageUrl = `http://localhost:${PORT}/index.html`;
-    await mainWindow.loadURL(pageUrl);
-
-    mainWindow.webContents.openDevTools(); // For debugging
-
-    // Auto-hide DevTools after 2 seconds to avoid overlaying clicks
-    setTimeout(() => {
-        mainWindow.webContents.closeDevTools();
-        console.log('DevTools auto-closed – reopen with Ctrl+Shift+I if needed!');
-    }, 2000);
+    try {
+        await mainWindow.loadURL(pageUrl);
+        console.log(`Loaded page: ${pageUrl} *giggles*`);
+    } catch (error) {
+        console.error('Failed to load page:', error);
+    }
 
     mainWindow.webContents.on('did-finish-load', async () => {
         try {
