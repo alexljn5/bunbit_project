@@ -28,6 +28,7 @@ import { renderRaycastHorizons } from "./renderhorizons.js";
 import { soundHandlerGodFunction } from "../audio/soundhandler.js";
 import { showTerminal } from "../console/terminal/terminal.js";
 import { debugHandlerGodFunction, drawDebugTerminal } from "../debug/debughandler.js";
+import { titleHandlerGodFunction } from "../ui/titlehandler.js";
 
 // --- DOM Elements ---
 const domElements = {
@@ -71,6 +72,7 @@ function renderPauseMenu() {
 
 // --- Render Engine ---
 export async function gameRenderEngine(deltaTime) {
+    titleHandlerGodFunction();
     drawDebugTerminal(); // just draw logs, terminal setup already done
 
     if (isRenderingFrame) return;
