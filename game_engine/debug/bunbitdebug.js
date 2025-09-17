@@ -1,7 +1,7 @@
-// File: game_engine/debug/bunbitdebug.js
-
 import { themeManager } from '../themes/thememanager.js';
 import { SCALE_X, SCALE_Y } from '../globals.js';
+import { mainGameRender } from '../rendering/renderengine.js';
+import { setMenuActive } from '../gamestate.js';
 
 // Drag state
 let isDragging = false;
@@ -53,7 +53,7 @@ export function initBunbitDebug() {
     header.style.left = '0';
     header.style.cursor = 'move';
 
-    // Create reload button using your existing button system
+    // Create reload button
     const reloadButton = document.createElement('button');
     reloadButton.id = 'bunbit-reload-button';
     reloadButton.textContent = '🔄 Reload';
@@ -65,9 +65,35 @@ export function initBunbitDebug() {
     reloadButton.style.fontWeight = 'bold';
     reloadButton.style.marginTop = `${10 * SCALE_Y}px`; // Add margin to account for header
 
+    // Create play button
+    const playButton = document.createElement('button');
+    playButton.id = 'bunbit-play-button';
+    playButton.textContent = '▶ Play';
+    playButton.style.padding = `${8 * SCALE_Y}px ${12 * SCALE_X}px`;
+    playButton.style.cursor = 'pointer';
+    playButton.style.border = `${1 * SCALE_X}px solid`;
+    playButton.style.borderRadius = `${4 * SCALE_X}px`;
+    playButton.style.fontSize = `${12 * SCALE_Y}px`;
+    playButton.style.fontWeight = 'bold';
+    playButton.style.marginTop = `${5 * SCALE_Y}px`;
+
+    // Create stop button
+    const stopButton = document.createElement('button');
+    stopButton.id = 'bunbit-stop-button';
+    stopButton.textContent = '⏹ Stop';
+    stopButton.style.padding = `${8 * SCALE_Y}px ${12 * SCALE_X}px`;
+    stopButton.style.cursor = 'pointer';
+    stopButton.style.border = `${1 * SCALE_X}px solid`;
+    stopButton.style.borderRadius = `${4 * SCALE_X}px`;
+    stopButton.style.fontSize = `${12 * SCALE_Y}px`;
+    stopButton.style.fontWeight = 'bold';
+    stopButton.style.marginTop = `${5 * SCALE_Y}px`;
+
     // Append elements to panel
     debugPanel.appendChild(header);
     debugPanel.appendChild(reloadButton);
+    debugPanel.appendChild(playButton);
+    debugPanel.appendChild(stopButton);
     document.body.appendChild(debugPanel);
 
     // Drag functionality - only on header
@@ -127,13 +153,24 @@ export function initBunbitDebug() {
         reloadButton.style.color = theme.text;
         reloadButton.style.borderColor = theme.border;
 
-        // Hover effects
-        reloadButton.onmouseover = () => {
-            reloadButton.style.backgroundColor = theme.buttonHover || '#300000';
-        };
-        reloadButton.onmouseout = () => {
-            reloadButton.style.backgroundColor = theme.buttonBg || theme.background;
-        };
+        playButton.style.backgroundColor = theme.buttonBg || theme.background;
+        playButton.style.color = theme.text;
+        playButton.style.borderColor = theme.border;
+
+        stopButton.style.backgroundColor = theme.buttonBg || theme.background;
+        stopButton.style.color = theme.text;
+        stopButton.style.borderColor = theme.border;
+
+        // Hover effects for all buttons
+        const buttons = [reloadButton, playButton, stopButton];
+        buttons.forEach(button => {
+            button.onmouseover = () => {
+                button.style.backgroundColor = theme.buttonHover || '#300000';
+            };
+            button.onmouseout = () => {
+                button.style.backgroundColor = theme.buttonBg || theme.background;
+            };
+        });
     }
     applyTheme();
 
@@ -143,28 +180,22 @@ export function initBunbitDebug() {
         applyTheme();
     });
 
-    // Add reload functionality directly to the button
+    // Add reload functionality
     reloadButton.addEventListener('click', () => {
         console.log('*twirls* Reloading the Chao garden!');
 
-        // Enhanced reload functionality
         if (typeof window.__electron_bridge !== 'undefined' && window.__electron_bridge.reload) {
-            // Electron environment
             window.__electron_bridge.reload();
         } else if (window.electronAPI && typeof window.electronAPI.send === 'function') {
-            // Alternative Electron API
             window.electronAPI.send('reload-window');
         } else if (window.require) {
-            // Node.js/Electron require
             try {
                 const { ipcRenderer } = window.require('electron');
                 ipcRenderer.send('reload-window');
             } catch (e) {
-                // Fallback to browser reload
                 window.location.reload();
             }
         } else if (window.location && typeof window.location.reload === 'function') {
-            // Standard browser reload
             window.location.reload();
         } else {
             console.error('*pouts* Could not find a way to reload the page');
@@ -172,10 +203,34 @@ export function initBunbitDebug() {
         }
     });
 
-    console.log('BunbitDebug ready! Simple reload button only *twirls*');
+    // Add play functionality
+    playButton.addEventListener('click', () => {
+        console.log('*giggles* Starting the Chao adventure!');
+        setMenuActive(true);
+        if (!window.game) {
+            mainGameRender();
+        }
+        window.game.start();
+    });
 
-    // Return the button element so it can be used with your existing event handlers
-    return reloadButton;
+    // Add stop functionality
+    stopButton.addEventListener('click', () => {
+        console.log('*waves* Stopping the Chao adventure!');
+        if (window.game) {
+            window.game.stop();
+            setMenuActive(true);
+            const renderEngine = document.getElementById("mainGameRender").getContext("2d");
+            renderEngine.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            console.log("Game stopped via debug panel! *chao chao*");
+        } else {
+            console.warn("No game instance to stop! *tilts head*");
+        }
+    });
+
+    console.log('BunbitDebug ready with reload, play, and stop buttons! *twirls*');
+
+    // Return the debug panel element
+    return debugPanel;
 }
 
 // Export cleanup function
@@ -185,7 +240,6 @@ export function cleanupBunbitDebug() {
         // Remove event listeners
         document.removeEventListener('mousemove', handleDrag);
         document.removeEventListener('mouseup', stopDrag);
-
         debugPanel.remove();
     }
     isDragging = false;
