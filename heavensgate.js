@@ -47,7 +47,7 @@ async function createWindow() {
             contextIsolation: true,
             enableRemoteModule: true, // Deprecated; avoid in prod
             webSecurity: false, // Allow local loads
-            devTools: false
+            devTools: true
         }
     });
 

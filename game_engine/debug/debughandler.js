@@ -3,8 +3,8 @@
 import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y } from '../globals.js';
 import { evilGlitchSystem, EvilUIState } from '../themes/eviltheme.js';
 import { themeManager } from '../themes/thememanager.js';
-import { memCpuGodFunction, togglePerfMonitor } from './memcpu.js';
 import { initBunbitDebug } from './bunbitdebug.js';
+import { memCpuGodFunction, togglePerfMonitor } from './memcpu.js';
 
 const consoleOriginal = {
     debug: console.debug,
@@ -297,7 +297,7 @@ export function debugHandlerGodFunction() {
         console.error('Failed to toggle perf monitor:', err);
     }
     memCpuGodFunction();
-    initBunbitDebug()
+    //initBunbitDebug();
 }
 
 // --- Draw debug logs with enhanced effects (using shared system) ---

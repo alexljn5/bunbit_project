@@ -32,9 +32,6 @@ import { debugHandlerGodFunction, drawDebugTerminal } from "../debug/debughandle
 // --- DOM Elements ---
 const domElements = {
     mainGameRender: document.getElementById("mainGameRender"),
-    playGameButton: document.getElementById("playGameButton"),
-    stopGameButton: document.getElementById("stopGameButton"),
-    debugGameButton: document.getElementById("debugGameButton"),
 };
 
 export const renderEngine = domElements.mainGameRender.getContext("2d");
@@ -52,31 +49,6 @@ let renderWorkersInitialized = false;
 
 const renderWorker1 = new Worker("/game_engine/rendering/renderworkers/renderengineworker.js", { type: "module" });
 const renderWorker2 = new Worker("/game_engine/rendering/renderworkers/renderengineworker.js", { type: "module" });
-
-// --- Button Handlers ---
-domElements.playGameButton.onclick = function () {
-    setMenuActive(true);
-    setupMenuClickHandler();
-    if (!game) mainGameRender();
-    game.start();
-};
-
-domElements.stopGameButton.onclick = function () {
-    if (game) {
-        game.stop();
-        isRenderingFrame = false;
-        setMenuActive(true);
-        renderEngine.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-        cleanupRenderWorkers();
-        console.log("Game stopped via stop button! *chao chao*");
-    } else {
-        console.warn("No game instance to stop! *tilts head*");
-    }
-};
-
-domElements.debugGameButton && (domElements.debugGameButton.onclick = () => {
-    showDebugTools = !showDebugTools;
-});
 
 // --- Game Loop Setup ---
 export function mainGameRender() {
@@ -98,7 +70,7 @@ function renderPauseMenu() {
 }
 
 // --- Render Engine ---
-async function gameRenderEngine(deltaTime) {
+export async function gameRenderEngine(deltaTime) {
     drawDebugTerminal(); // just draw logs, terminal setup already done
 
     if (isRenderingFrame) return;
@@ -222,7 +194,7 @@ function initializeRenderWorkers() {
     renderWorkersInitialized = true;
 }
 
-function cleanupRenderWorkers() {
+export function cleanupRenderWorkers() {
     renderWorker1.terminate();
     renderWorker2.terminate();
     renderWorkersInitialized = false;

@@ -1,7 +1,9 @@
 import { themeManager } from '../themes/thememanager.js';
-import { SCALE_X, SCALE_Y } from '../globals.js';
-import { mainGameRender } from '../rendering/renderengine.js';
-import { setMenuActive } from '../gamestate.js';
+import { SCALE_X, SCALE_Y, CANVAS_WIDTH, CANVAS_HEIGHT } from '../globals.js';
+import { setMenuActive, menuActive } from '../gamestate.js';
+import { gameLoop } from '../main_game.js';
+import { setupMenuClickHandler } from '../menus/menu.js';
+import { gameRenderEngine, initializeRenderWorkers, cleanupRenderWorkers } from '../rendering/renderengine.js';
 
 // Drag state
 let isDragging = false;
@@ -9,14 +11,16 @@ let dragStartX = 0;
 let dragStartY = 0;
 let panelStartX = 0;
 let panelStartY = 0;
+let initialized = false;
 
 // Initialize BunbitDebug panel
 export function initBunbitDebug() {
-    if (!document.body) {
-        console.warn('document.body not ready, deferring BunbitDebug creation *pouts*');
+    if (!document.body || initialized) {
+        if (!initialized) console.warn('document.body not ready or already initialized, deferring BunbitDebug creation *pouts*');
         return;
     }
 
+    initialized = true;
     console.log("BunbitDebug initializing! *chao chao* Let's help our Chao friends!");
 
     // Remove existing panel if it exists
@@ -203,28 +207,89 @@ export function initBunbitDebug() {
         }
     });
 
-    // Add play functionality
-    playButton.addEventListener('click', () => {
-        console.log('*giggles* Starting the Chao adventure!');
-        setMenuActive(true);
-        if (!window.game) {
-            mainGameRender();
+    // Add play functionality with retry mechanism
+    async function tryPlayGame(maxRetries = 10, delayMs = 100) {
+        let retries = 0;
+        while (retries < maxRetries) {
+            if (typeof setMenuActive === 'function' &&
+                typeof gameLoop === 'function' &&
+                typeof setupMenuClickHandler === 'function' &&
+                typeof gameRenderEngine === 'function' &&
+                typeof initializeRenderWorkers === 'function') {
+                console.log('*giggles* Starting the Chao adventure!');
+                try {
+                    setMenuActive(true);
+                    setupMenuClickHandler();
+                    if (!window.game) {
+                        // Initialize canvas
+                        const canvas = document.getElementById('mainGameRender');
+                        if (canvas && (canvas.width === 0 || canvas.height === 0)) {
+                            canvas.width = CANVAS_WIDTH;
+                            canvas.height = CANVAS_HEIGHT;
+                        }
+                        // Create game instance with gameRenderEngine
+                        window.game = gameLoop(gameRenderEngine);
+                        initializeRenderWorkers();
+                    }
+                    if (window.game && typeof window.game.start === 'function') {
+                        window.game.start();
+                        console.log('Game started successfully! *chao chao*');
+                        return true;
+                    } else {
+                        console.warn('Game instance not ready yet, retrying... *tilts head*');
+                    }
+                } catch (e) {
+                    console.error('Play button error:', e);
+                }
+            } else {
+                console.warn('Dependencies not ready (setMenuActive, gameLoop, setupMenuClickHandler, gameRenderEngine, or initializeRenderWorkers), retrying... *pouts*');
+            }
+            retries++;
+            await new Promise(resolve => setTimeout(resolve, delayMs));
         }
-        window.game.start();
+        console.error('Failed to start game after retries! *sad chao*');
+        alert('Could not start game: dependencies not loaded. Please try again.');
+        return false;
+    }
+
+    playButton.addEventListener('click', () => {
+        tryPlayGame();
     });
 
-    // Add stop functionality
-    stopButton.addEventListener('click', () => {
+    // Add stop functionality with safety checks
+    function tryStopGame() {
         console.log('*waves* Stopping the Chao adventure!');
-        if (window.game) {
-            window.game.stop();
-            setMenuActive(true);
-            const renderEngine = document.getElementById("mainGameRender").getContext("2d");
-            renderEngine.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-            console.log("Game stopped via debug panel! *chao chao*");
-        } else {
-            console.warn("No game instance to stop! *tilts head*");
+        try {
+            if (window.game && typeof window.game.stop === 'function') {
+                window.game.stop();
+                setMenuActive(true);
+                const canvas = document.getElementById('mainGameRender');
+                if (canvas && canvas.getContext) {
+                    if (canvas.width === 0 || canvas.height === 0) {
+                        canvas.width = CANVAS_WIDTH;
+                        canvas.height = CANVAS_HEIGHT;
+                    }
+                    const renderEngine = canvas.getContext('2d');
+                    if (renderEngine) {
+                        renderEngine.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+                    } else {
+                        console.warn('Canvas context not available! *tilts head*');
+                    }
+                } else {
+                    console.warn('Canvas element not found or invalid! *pouts*');
+                }
+                cleanupRenderWorkers();
+                console.log('Game stopped via debug panel! *chao chao*');
+            } else {
+                console.warn('No game instance to stop or stop method missing! *tilts head*');
+            }
+        } catch (e) {
+            console.error('Stop button error:', e);
         }
+    }
+
+    stopButton.addEventListener('click', () => {
+        tryStopGame();
     });
 
     console.log('BunbitDebug ready with reload, play, and stop buttons! *twirls*');
@@ -243,6 +308,7 @@ export function cleanupBunbitDebug() {
         debugPanel.remove();
     }
     isDragging = false;
+    initialized = false;
 }
 
 // Handle drag functions (need to be defined at module level)
@@ -270,5 +336,16 @@ function stopDrag() {
         if (header) {
             header.style.cursor = 'move';
         }
+    }
+}
+
+// Initialize debug panel on page load
+if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(initBunbitDebug, 100);
+        });
+    } else {
+        setTimeout(initBunbitDebug, 100);
     }
 }
