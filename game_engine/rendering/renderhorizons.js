@@ -8,7 +8,7 @@ import { renderEngine } from "./renderengine.js";
 import { playerFOV, numCastRays } from "./raycasting.js";
 
 // Number of workers to use
-const NUM_WORKERS = Math.min(navigator.hardwareConcurrency || 4, 4);
+const NUM_WORKERS = 8;
 
 // Array to hold workers
 const horizonWorkers = Array.from({ length: NUM_WORKERS }, () =>

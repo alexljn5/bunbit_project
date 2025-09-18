@@ -16,10 +16,6 @@ self.addEventListener("message", (e) => {
                 maxRayDepth: e.data.maxRayDepth,
                 textureTransparencyMap: e.data.textureTransparencyMap || {}
             };
-            // Validate map data during init
-            if (!staticData.map_01 || !Array.isArray(staticData.map_01) || !staticData.map_01[0]) {
-                throw new Error("Invalid map data");
-            }
             self.postMessage({ type: "init", success: true });
             return;
         }
@@ -43,7 +39,7 @@ self.addEventListener("message", (e) => {
         } = staticData;
 
         const rayCount = endRay - startRay;
-        const rayData = new Array(rayCount).fill(null); // Pre-fill to avoid dynamic resizing
+        const rayData = new Array(rayCount);
 
         for (let i = 0; i < rayCount; i++) {
             const x = startRay + i;
@@ -69,7 +65,6 @@ self.addEventListener("message", (e) => {
             let floorTextureKey = "floor_concrete";
             let floorX = 0, floorY = 0;
             let lastFloorTile = null;
-            const hits = []; // Reuse array for transparent walls
 
             while (steps++ < maxRayDepth * 2 && !hit && distance < maxRayDepth * tileSectors) {
                 if (distToNextX < distToNextY) {
@@ -92,7 +87,9 @@ self.addEventListener("message", (e) => {
                 const tile = map_01[cellY][cellX];
                 if (!tile || typeof tile !== "object") break;
 
+                // New logic for transparent walls
                 if (tile.type === "wall") {
+                    // Check transparency from passed transparency map
                     const textureName = textureIdMap[tile.textureId] || "wall_creamlol";
                     const isTransparent = staticData.textureTransparencyMap && staticData.textureTransparencyMap[textureName];
                     if (!isTransparent) {
@@ -102,7 +99,9 @@ self.addEventListener("message", (e) => {
                         if (lastFloorTile)
                             floorTextureKey = floorTextureIdMap[lastFloorTile.floorTextureId] || floorTextureKey;
                     } else {
-                        hits.push({
+                        // Transparent wall hit, record hit but continue raycasting
+                        if (!rayData[i]) rayData[i] = [];
+                        rayData[i].push({
                             distance,
                             hitSide,
                             textureKey: textureName,
@@ -110,6 +109,7 @@ self.addEventListener("message", (e) => {
                             floorX: rayX + distance * cosAngle,
                             floorY: rayY + distance * sinAngle
                         });
+                        // Continue without setting hit = true
                     }
                 } else if (tile.type === "empty") {
                     lastFloorTile = tile;
@@ -128,16 +128,7 @@ self.addEventListener("message", (e) => {
                 if (hitSide === "y") hitX = (cosAngle > 0 ? cellX : cellX + 1) * tileSectors;
                 if (hitSide === "x") hitY = (sinAngle > 0 ? cellY : cellY + 1) * tileSectors;
 
-                rayData[i] = hits.length > 0 ? hits.concat([{
-                    column: x,
-                    distance: correctedDistance,
-                    wallType: hitWallType,
-                    hitX, hitY,
-                    hitSide,
-                    textureKey,
-                    floorTextureKey,
-                    floorX, floorY
-                }]) : {
+                rayData[i] = {
                     column: x,
                     distance: correctedDistance,
                     wallType: hitWallType,
@@ -147,6 +138,8 @@ self.addEventListener("message", (e) => {
                     floorTextureKey,
                     floorX, floorY
                 };
+            } else {
+                rayData[i] = null;
             }
         }
 

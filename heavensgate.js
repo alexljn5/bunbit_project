@@ -7,7 +7,6 @@ import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import mysql from 'mysql2/promise';
 import express from 'express';
-import http from 'http';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -15,54 +14,10 @@ const __dirname = dirname(__filename);
 // Load environment variables
 dotenv.config();
 
-let dbConnection = null;
-let httpServer = null;
+let dbConnection = null; // Global DB connection
+let server = null; // Our lil' HTTP server
 
-// Crash log directory
-const logDir = join(__dirname, 'crash_logs');
-
-// Ensure crash_logs directory exists
-async function ensureLogDir() {
-    try {
-        await fs.mkdir(logDir, { recursive: true });
-    } catch (err) {
-        console.error('Failed to create crash_logs directory:', err.message);
-    }
-}
-
-// Write crash log to file
-async function writeCrashLog(error, context = 'General') {
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const logFile = join(logDir, `crash_log_${timestamp}.txt`);
-    const logContent = `Crash Report - ${context}
-Timestamp: ${new Date().toISOString()}
-Error: ${error.message || 'Unknown error'}
-Stack: ${error.stack || 'No stack trace available'}
-Platform: ${process.platform}
-Node Version: ${process.version}
-Electron Version: ${process.versions.electron}
-----------------------------------------\n`;
-
-    try {
-        await fs.appendFile(logFile, logContent);
-        console.log(`Crash log saved to ${logFile} *chao chao*`);
-    } catch (err) {
-        console.error('Failed to write crash log:', err.message);
-    }
-}
-
-// Global error handlers
-process.on('uncaughtException', async (error) => {
-    console.error('Uncaught Exception:', error);
-    await writeCrashLog(error, 'Uncaught Exception');
-    app.quit();
-});
-
-process.on('unhandledRejection', async (reason, promise) => {
-    console.error('Unhandled Rejection at:', promise, 'Reason:', reason);
-    await writeCrashLog(reason instanceof Error ? reason : new Error(String(reason)), 'Unhandled Rejection');
-});
-
+// Connect to MySQL
 async function connectDB() {
     try {
         dbConnection = await mysql.createConnection({
@@ -76,18 +31,13 @@ async function connectDB() {
         return dbConnection;
     } catch (error) {
         console.error('Failed to connect to MySQL:', error.message);
-        await writeCrashLog(error, 'MySQL Connection');
         return null;
     }
 }
 
 async function createWindow() {
-    // Disable Chromium features
-    app.commandLine.appendSwitch('no-sandbox'); // As requested
-    app.commandLine.appendSwitch('disable-gpu');
-    app.commandLine.appendSwitch('disable-features', 'Spellcheck,WebRTC,WebGL,Autofill,FontsNetwork,MediaSession,Geolocation,WebSQL,WebAudio');
-    app.commandLine.appendSwitch('disable-background-timer-throttling');
-    app.commandLine.appendSwitch('disable-renderer-backgrounding');
+    // Disable CORS for file:// (backup, but we use HTTP)
+    app.commandLine.appendSwitch('disable-features', 'OutOfBlinkCors');
 
     // Resolve icon path
     const iconPath = join(__dirname, 'game_engine', 'img', 'logo', 'favicon.ico');
@@ -101,38 +51,55 @@ async function createWindow() {
     const mainWindow = new BrowserWindow({
         width: 800,
         height: 800,
-        icon: iconPath,
+        icon: iconPath, // Set window icon
         webPreferences: {
             nodeIntegration: true,
-            contextIsolation: false,
+            contextIsolation: true,
             sandbox: false, // Explicitly disabled as requested
             devTools: false,
+            preload: join(__dirname, 'preload.js') // Secure preload script
         },
-        autoHideMenuBar: true,
-        menuBarVisible: false
+        autoHideMenuBar: true, // Hide menu bar (File, Edit, View, etc.)
+        menuBarVisible: false // Ensure menu bar is not visible
     });
 
-    // Remove menu bar
+    // Explicitly remove the menu bar
     Menu.setApplicationMenu(null);
     console.log('Application menu bar disabled! *twirls*');
 
-    // Start Express server
-    const server = express();
-    server.use(express.static(__dirname));
-    const PORT = 3000;
-    httpServer = http.createServer(server);
-    httpServer.listen(PORT, 'localhost', () => {
+    // Block DevTools shortcuts (Ctrl+Shift+I, F12, Cmd+Opt+I)
+    mainWindow.webContents.on('before-input-event', (event, input) => {
+        if (input.type === 'keyDown') {
+            if ((input.control && input.shift && input.key.toLowerCase() === 'i') ||
+                input.key === 'F12' ||
+                (input.meta && input.alt && input.key.toLowerCase() === 'i')) {
+                console.log('Blocked DevTools shortcut attempt! *chao chao*');
+                event.preventDefault();
+            }
+        }
+    });
+
+    // Additional check to ensure DevTools is disabled
+    mainWindow.webContents.on('devtools-opened', () => {
+        console.warn('DevTools opened unexpectedly, closing! *pouts*');
+        mainWindow.webContents.closeDevTools();
+    });
+
+    // Spin up a tiny Express server to serve files over HTTP (fixes worker ESM loads!)
+    server = express();
+    server.use(express.static(__dirname)); // Serve all files from app root
+    const PORT = 3000; // Or any free port
+    server.listen(PORT, 'localhost', () => {
         console.log(`Mini-server running at http://localhost:${PORT} *twirls*`);
     });
 
-    // Load index.html
+    // Load over HTTP – workers love this!
     const pageUrl = `http://localhost:${PORT}/index.html`;
     try {
         await mainWindow.loadURL(pageUrl);
         console.log(`Loaded page: ${pageUrl} *giggles*`);
     } catch (error) {
         console.error('Failed to load page:', error);
-        await writeCrashLog(error, 'Page Load');
     }
 
     mainWindow.webContents.on('did-finish-load', async () => {
@@ -141,15 +108,16 @@ async function createWindow() {
             const classFile = join(javaDir, 'Raycaster.class');
             const jsonFile = join(__dirname, 'game_engine', 'mapdata', 'mapjson', 'test_map.json');
 
+            // Check if Java class exists
             const classExists = await fs.access(classFile).then(() => true).catch(() => false);
             if (!classExists) {
                 const msg = `CLASS NOT FOUND at: ${classFile}`;
                 console.error(msg);
                 mainWindow.webContents.send('java-output', msg);
-                await writeCrashLog(new Error(msg), 'Java Class Check');
                 return;
             }
 
+            // Check if JSON map exists
             const jsonExists = await fs.access(jsonFile).then(() => true).catch(() => false);
             if (!jsonExists) {
                 try {
@@ -165,11 +133,11 @@ async function createWindow() {
                 } catch (mapError) {
                     console.error('Error generating map JSON:', mapError);
                     mainWindow.webContents.send('java-output', `Error generating map JSON: ${mapError.message}`);
-                    await writeCrashLog(mapError, 'Map JSON Generation');
                     return;
                 }
             }
 
+            // Cross-platform Java execution
             const command = `java -cp "${javaDir}" Raycaster < "${jsonFile}"`;
             console.log(`Running Java: ${command}`);
             exec(command, (error, stdout, stderr) => {
@@ -179,7 +147,6 @@ async function createWindow() {
                 if (error) {
                     console.error('ERROR:', error);
                     mainWindow.webContents.send('java-output', `Error running Java: ${error.message}`);
-                    writeCrashLog(error, 'Java Execution');
                     return;
                 }
                 mainWindow.webContents.send('java-output', stdout || stderr);
@@ -187,22 +154,12 @@ async function createWindow() {
         } catch (error) {
             console.error('Unexpected error in did-finish-load:', error);
             mainWindow.webContents.send('java-output', `Unexpected error: ${error.message}`);
-            await writeCrashLog(error, 'Did Finish Load');
         }
-    });
-
-    // Handle renderer process crashes
-    mainWindow.webContents.on('render-process-gone', async (event, details) => {
-        const error = new Error(`Renderer process crashed: ${details.reason}`);
-        console.error(error.message);
-        await writeCrashLog(error, 'Renderer Process Crash');
-        app.quit();
     });
 }
 
 app.whenReady().then(async () => {
-    await ensureLogDir();
-    await connectDB();
+    await connectDB(); // Initialize DB connection
     await createWindow();
 });
 
@@ -210,13 +167,14 @@ app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
         app.quit();
     }
+    // Clean up DB and server
     if (dbConnection) {
         dbConnection.end();
         console.log('MySQL connection closed! *waves*');
     }
-    if (httpServer) {
-        httpServer.close(() => console.log('Mini-server stopped *chao chao*'));
+    if (server) {
+        server.close(() => console.log('Mini-server stopped *chao chao*'));
     }
 });
 
-export { dbConnection };
+export { dbConnection }; // Export for other modules

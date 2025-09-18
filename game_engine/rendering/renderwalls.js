@@ -22,94 +22,90 @@ export function renderRaycastWalls(rayData) {
 
     const colWidth = CANVAS_WIDTH / numCastRays;
     const defaultTexture = tileTexturesMap.get("wall_creamlol");
-    const textureCache = new Map();
 
-    let currentTexture = null;
-    let startColX = 0;
-    let startWallTop = 0;
-    let startWallBottom = 0;
-    let startTextureX = 0;
-    let batchCount = 0;
-
-    const flushBatch = () => {
-        if (batchCount > 0) {
-            drawQuad({
-                topX: startColX,
-                topY: startWallTop,
-                leftX: startColX,
-                leftY: startWallBottom,
-                rightX: startColX + batchCount * colWidth,
-                rightY: startWallBottom,
-                color: "gray",
-                texture: currentTexture,
-                textureX: startTextureX,
-                alpha: 1
-            });
-            batchCount = 0;
-        }
-    };
+    // Cache frequently used variables
+    const tileSectorsInv = 1 / tileSectors;
 
     for (let i = 0, len = rayData.length; i < len; i++) {
         const ray = rayData[i];
         if (!ray) continue;
 
+        // Precompute wall height and top/bottom
         const wallHeight = (CANVAS_HEIGHT / ray.distance) * tileSectors;
         const wallTop = (CANVAS_HEIGHT - wallHeight) * 0.5;
         const wallBottom = wallTop + wallHeight;
 
+        // Precompute textureX
         let textureX;
         if (Array.isArray(ray)) {
+            // Multi-hit wall: take first hit for tex coord
             const firstHit = ray[ray.length - 1];
             const texHit = firstHit.hitSide === "x" ? firstHit.hitX : firstHit.hitY;
-            textureX = (texHit % tileSectors) / tileSectors;
-            textureX = Math.max(0, Math.min(1, textureX));
+            textureX = texHit - Math.floor(texHit / tileSectors) * tileSectors;
+            textureX *= tileSectorsInv;
+        } else {
+            const texHit = ray.hitSide === "x" ? ray.hitX : ray.hitY;
+            textureX = texHit - Math.floor(texHit / tileSectors) * tileSectors;
+            textureX *= tileSectorsInv;
+        }
 
+        // Clamp textureX once
+        if (textureX < 0) textureX = 0;
+        else if (textureX > 1) textureX = 1;
+
+        const colX = i * colWidth;
+        const nextColX = colX + colWidth;
+
+        if (Array.isArray(ray)) {
+            // Multi-hit transparent walls
             let accumulatedAlpha = 0;
             for (let j = ray.length - 1; j >= 0; j--) {
                 const hit = ray[j];
-                let texture = textureCache.get(hit.textureKey) || tileTexturesMap.get(hit.textureKey) || defaultTexture;
-                textureCache.set(hit.textureKey, texture);
+                const tex = tileTexturesMap.get(hit.textureKey) || defaultTexture;
                 const alpha = 0.5 * (1 - accumulatedAlpha);
 
                 drawQuad({
-                    topX: i * colWidth,
+                    topX: colX,
                     topY: wallTop,
-                    leftX: i * colWidth,
+                    leftX: colX,
                     leftY: wallBottom,
-                    rightX: (i + 1) * colWidth,
+                    rightX: nextColX,
                     rightY: wallBottom,
                     color: "gray",
-                    texture,
+                    texture: tex,
                     textureX,
                     alpha
                 });
 
                 accumulatedAlpha += alpha;
-                if (accumulatedAlpha >= 1) break;
+                if (accumulatedAlpha >= 1) break; // stop early
             }
         } else {
-            let texture = ray.textureKey === "wall_laughing_demon" ?
-                (getDemonLaughingCurrentFrame() || defaultTexture) :
-                (textureCache.get(ray.textureKey) || tileTexturesMap.get(ray.textureKey) || defaultTexture);
-            textureCache.set(ray.textureKey, texture);
-
-            const texHit = ray.hitSide === "x" ? ray.hitX : ray.hitY;
-            textureX = (texHit % tileSectors) / tileSectors;
-            textureX = Math.max(0, Math.min(1, textureX));
-
-            if (texture === currentTexture && wallTop === startWallTop && wallBottom === startWallBottom && Math.abs(textureX - startTextureX) < 0.01) {
-                batchCount++;
+            // Single-hit wall
+            let texture;
+            if (ray.textureKey === "wall_laughing_demon") {
+                texture = getDemonLaughingCurrentFrame() || defaultTexture;
             } else {
-                flushBatch();
-                currentTexture = texture;
-                startColX = i * colWidth;
-                startWallTop = wallTop;
-                startWallBottom = wallBottom;
-                startTextureX = textureX;
-                batchCount = 1;
+                texture = tileTexturesMap.get(ray.textureKey) || defaultTexture;
             }
+
+            if (!texture) {
+                console.warn(`Missing wall texture: ${ray.textureKey} *tilts head*`);
+                continue;
+            }
+
+            drawQuad({
+                topX: colX,
+                topY: wallTop,
+                leftX: colX,
+                leftY: wallBottom,
+                rightX: nextColX,
+                rightY: wallBottom,
+                color: "gray",
+                texture,
+                textureX,
+                alpha: 1
+            });
         }
     }
-
-    flushBatch();
 }
