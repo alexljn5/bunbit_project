@@ -19,27 +19,25 @@ let glitchInterval = null;
 
 // Performance monitoring state - Enhanced with game process data
 let performanceData = {
-    // Keep JS heap for game-specific accuracy
     jsHeap: {
         used: 0,
         total: 0,
         limit: 0
     },
-    // System-wide memory from os module (unchanged, for overall view)
     systemMemory: {
         used: 0,
         total: 0,
         percent: 0
     },
     cpu: {
-        usage: 0, // Now game/Electron process-specific from process.cpuUsage()
+        usage: 0, // Game/Electron process-specific from process.cpuUsage()
         cores: os.cpus().length,
-        lastCpuUsage: null // To calculate delta
+        lastCpuUsage: null
     },
     fps: 0,
     frameTime: 0,
-    renderWorkerLoad: 0,
-    networkLatency: 0, // Simulated, since no network fetch
+    renderWorkerLoad: 0, // Now tracks actual worker CPU usage
+    networkLatency: 0, // Simulated
     gpuMemory: 0,
     frameCount: 0,
     lastFpsUpdate: 0,
@@ -68,6 +66,14 @@ const hasGpuMemoryAPI = gl && gl.getExtension('WEBGL_debug_renderer_info');
 // Target frame rate (sync with game loop)
 const TARGET_FRAME_TIME = 1000 / 60; // 16.67ms for 60 FPS
 
+// Worker CPU tracking
+let workerCpuUsages = [];
+window.addEventListener('message', (e) => {
+    if (e.data.type === 'worker_cpu') {
+        workerCpuUsages = e.data.usages; // Array of { id, usage } from main process
+    }
+});
+
 // --- Create resize handle ---
 function createResizeHandle() {
     if (perfResizeHandle) perfResizeHandle.remove();
@@ -84,7 +90,6 @@ function createResizeHandle() {
     perfResizeHandle.style.borderTop = `2px solid ${themeManager.getCurrentTheme().resizeBorder}`;
     perfResizeHandle.style.borderLeft = `2px solid ${themeManager.getCurrentTheme().resizeBorder}`;
 
-    // Add glitch effect on hover
     perfResizeHandle.addEventListener('mouseover', () => {
         perfResizeHandle.style.boxShadow = `0 0 5px ${themeManager.getCurrentTheme().border}`;
     });
@@ -92,12 +97,11 @@ function createResizeHandle() {
         perfResizeHandle.style.boxShadow = 'none';
     });
 
-    // Mouse events for resizing
     perfResizeHandle.addEventListener('mousedown', startResize);
     perfContainer.appendChild(perfResizeHandle);
 }
 
-// --- Resize functions (using EvilUIState) ---
+// --- Resize functions ---
 function startResize(e) {
     e.preventDefault();
     e.stopPropagation();
@@ -129,7 +133,7 @@ function stopResize() {
     document.removeEventListener('mouseup', stopResize);
 }
 
-// --- Drag functions (using EvilUIState) ---
+// --- Drag functions ---
 function startDrag(e) {
     if (e.target.tagName === 'BUTTON') return;
 
@@ -165,7 +169,7 @@ function stopDrag() {
     perfContainer.style.cursor = '';
 }
 
-// --- Glitch effects (using shared system) ---
+// --- Glitch effects ---
 function updateGlitchEffects() {
     const performanceStress = (performanceData.cpu.usage / 100) * 0.4 +
         (performanceData.systemMemory.percent / 100) * 0.3 +
@@ -208,7 +212,7 @@ export function memCpuGodFunction() {
     perfHeader.addEventListener('mousedown', startDrag);
 
     const title = document.createElement("div");
-    title.textContent = `${gameName} Engine Version ${gameVersionNumber} System and Performance Monitor (Game CPU Enhanced!)`;
+    title.textContent = `${gameName} Engine Version ${gameVersionNumber} System and Performance Monitor (Worker CPU Enhanced!)`;
     title.style.fontWeight = "bold";
     title.style.color = themeManager.getCurrentTheme().danger;
     title.style.letterSpacing = "1px";
@@ -254,9 +258,7 @@ export function memCpuGodFunction() {
 
     isPerfVisible = true;
 
-    // Initialize CPU baseline
     performanceData.cpu.lastCpuUsage = process.cpuUsage();
-
     performanceData.lastFpsUpdate = performance.now();
     performanceData.lastFrameTime = performance.now();
 
@@ -286,7 +288,7 @@ export function memCpuGodFunction() {
 function updatePerformanceData() {
     if (!isPerfVisible) return;
 
-    // System Memory (from os module, unchanged)
+    // System Memory (from os module)
     const totalMem = os.totalmem();
     const freeMem = os.freemem();
     const usedMem = totalMem - freeMem;
@@ -296,14 +298,22 @@ function updatePerformanceData() {
         percent: Math.round((usedMem / totalMem) * 100 * 10) / 10
     };
 
-    // Game/Electron Process CPU (from process.cpuUsage())
+    // Game/Electron Process CPU
     const currentCpuUsage = process.cpuUsage(performanceData.cpu.lastCpuUsage);
     const totalCpuTime = currentCpuUsage.user + currentCpuUsage.system;
-    // Approximate % over ~1000ms interval (adjust if needed for accuracy)
-    performanceData.cpu.usage = Math.round((totalCpuTime / 10000) * 10) / 10; // totalCpuTime / 10000 ≈ % over 1s
+    performanceData.cpu.usage = Math.round((totalCpuTime / 10000) * 10) / 10;
     performanceData.cpu.lastCpuUsage = process.cpuUsage();
 
-    // JS Heap (client-side, game-specific)
+    // Worker CPU Load (aggregate from worker messages)
+    let totalWorkerUsage = 0;
+    if (workerCpuUsages.length > 0) {
+        totalWorkerUsage = workerCpuUsages.reduce((sum, w) => sum + w.usage, 0);
+        performanceData.renderWorkerLoad = Math.round(totalWorkerUsage * 10) / 10;
+    } else {
+        performanceData.renderWorkerLoad = 0; // Fallback if no data
+    }
+
+    // JS Heap
     if (hasMemoryAPI) {
         const mem = performance.memory;
         performanceData.jsHeap = {
@@ -313,13 +323,13 @@ function updatePerformanceData() {
         };
     }
 
-    // GPU (unchanged, still approximated)
+    // GPU (approximated)
     if (hasGpuMemoryAPI) {
         const memoryInfo = gl.getParameter(gl.getExtension('WEBGL_debug_renderer_info')?.UNMASKED_RENDERER_WEBGL);
         performanceData.gpuMemory = memoryInfo ? (memoryInfo.includes('NVIDIA') ? Math.random() * 1000 : Math.random() * 500) : 0;
     }
 
-    // FPS/Frame Time (client-side, accurate)
+    // FPS/Frame Time
     const now = performance.now();
     if (now - performanceData.lastFpsUpdate >= 1000) {
         performanceData.fps = Math.min(60, Math.round(
@@ -329,10 +339,7 @@ function updatePerformanceData() {
         performanceData.frameCount = 0;
         performanceData.lastFpsUpdate = now;
 
-        // Render worker load: based on frame time only (no CPU add, to avoid double-count)
-        performanceData.renderWorkerLoad = Math.min(100, performanceData.frameTime > 16.67 ? 70 : 30);
-
-        // Network latency (simulated, since no fetch)
+        // Network latency (simulated)
         performanceData.networkLatency = Math.random() * 100;
 
         // History updates
@@ -354,7 +361,7 @@ function updatePerformanceData() {
     }
 }
 
-// --- Draw stats (using shared glitch system and colors) ---
+// --- Draw stats ---
 function drawPerfMonitor(time) {
     if (!isPerfVisible || !perfCtx) return;
 
@@ -410,7 +417,6 @@ function drawPerfMonitor(time) {
     perfCtx.fillText(frameTimeText, 10, y);
     y += 15;
 
-    // JS Heap (game-specific)
     if (hasMemoryAPI) {
         const heapPercent = (performanceData.jsHeap.used / performanceData.jsHeap.limit) * 100;
         let heapText = `JS Heap: ${performanceData.jsHeap.used.toFixed(1)}/${performanceData.jsHeap.limit.toFixed(1)}MB`;
@@ -422,7 +428,6 @@ function drawPerfMonitor(time) {
         y += 15;
     }
 
-    // System Memory (accurate from os)
     let sysMemText = `SYS MEM: ${performanceData.systemMemory.used}/${performanceData.systemMemory.total}MB (${performanceData.systemMemory.percent}%)`;
     if (evilGlitchSystem.textGlitch) {
         sysMemText = evilGlitchSystem.applyTextGlitch(sysMemText);
@@ -431,12 +436,11 @@ function drawPerfMonitor(time) {
     perfCtx.fillText(sysMemText, 10, y);
     y += 15;
 
-    // Game CPU (now process-specific)
     let cpuText = `Game CPU: ${performanceData.cpu.usage.toFixed(1)}% (${performanceData.cpu.cores} cores)`;
     if (evilGlitchSystem.textGlitch) {
         cpuText = evilGlitchSystem.applyTextGlitch(cpuText);
     }
-    perfCtx.fillStyle = themeManager.getPerformanceColor(performanceData.cpu.usage, [100, 50]); // Can be >100, so adjust thresholds if needed
+    perfCtx.fillStyle = themeManager.getPerformanceColor(performanceData.cpu.usage, [100, 50]);
     perfCtx.fillText(cpuText, 10, y);
     y += 15;
 
@@ -444,7 +448,7 @@ function drawPerfMonitor(time) {
     if (evilGlitchSystem.textGlitch) {
         workerText = evilGlitchSystem.applyTextGlitch(workerText);
     }
-    perfCtx.fillStyle = themeManager.getPerformanceColor(performanceData.renderWorkerLoad);
+    perfCtx.fillStyle = themeManager.getPerformanceColor(performanceData.renderWorkerLoad, [100, 50]);
     perfCtx.fillText(workerText, 10, y);
     y += 15;
 
@@ -503,7 +507,7 @@ function drawPerfMonitor(time) {
     requestAnimationFrame(drawPerfMonitor);
 }
 
-// --- Draw graph (using shared glitch) ---
+// --- Draw graph ---
 function drawGraph(ctx, values, x, y, width, height, color, label) {
     if (values.length < 2) return;
 
