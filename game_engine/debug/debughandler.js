@@ -471,8 +471,9 @@ export function drawDebugTerminal() {
         debugCtx.fillText(
             text,
             10 * SCALE_X - scrollOffsetX,
-            HEADER_HEIGHT + (i + 1) * lineHeight - yOffset
+            HEADER_HEIGHT + buttons[0].h + 4 * SCALE_Y + (i + 1) * lineHeight - yOffset
         );
+
     }
 
     // Reset translation
