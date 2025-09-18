@@ -106,7 +106,7 @@ async function createWindow() {
             nodeIntegration: true,
             contextIsolation: false,
             sandbox: false, // Explicitly disabled as requested
-            devTools: true,
+            devTools: false,
         },
         autoHideMenuBar: true,
         menuBarVisible: false
