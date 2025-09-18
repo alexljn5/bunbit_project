@@ -184,7 +184,7 @@ export function getLogColor(type) {
 }
 
 export function getPerformanceColor(value, thresholds = [70, 85]) {
-    if (value < thresholds[0]) return '#ff0000';
-    if (value < thresholds[1]) return '#8b0000';
+    if (value < thresholds[0]) return '#8b0000';
+    if (value < thresholds[1]) return '#ff0000';
     return '#300000';
 }
