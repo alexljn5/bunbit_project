@@ -17,7 +17,7 @@ export function loadAsciiArt() {
 
     loadPromise = new Promise(async (resolve, reject) => {
         try {
-            const response = await fetch("/game_engine/ai/computerai/mainframe/ui/asciiart/bunbitos.txt");
+            const response = await fetch("/src/ai/computerai/mainframe/ui/asciiart/bunbitos.txt");
             if (!response.ok) throw new Error("Couldn't load ASCII art!");
 
             const text = await response.text();

@@ -48,8 +48,8 @@ export let game = null;
 let isRenderingFrame = false;
 let renderWorkersInitialized = false;
 
-const renderWorker1 = new Worker("/game_engine/rendering/renderworkers/renderengineworker.js", { type: "module" });
-const renderWorker2 = new Worker("/game_engine/rendering/renderworkers/renderengineworker.js", { type: "module" });
+const renderWorker1 = new Worker("/src/rendering/renderworkers/renderengineworker.js", { type: "module" });
+const renderWorker2 = new Worker("/src/rendering/renderworkers/renderengineworker.js", { type: "module" });
 
 // --- Game Loop Setup ---
 export function mainGameRender() {

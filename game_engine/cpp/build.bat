@@ -1,1 +1,0 @@
-  emcc raycastworker.cpp -o ../workers/raycastworker.js -s MODULARIZE=1 -s EXPORT_NAME="RaycastWorkerModule" -s ENVIRONMENT=worker -s EXPORTED_FUNCTIONS="['_onMessage']" -s EXPORTED_RUNTIME_METHODS="['ccall', 'cwrap']" -s ALLOW_MEMORY_GROWTH=1 -s EXPORT_ES6=1 --bind -O3

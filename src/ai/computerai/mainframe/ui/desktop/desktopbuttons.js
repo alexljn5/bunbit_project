@@ -20,7 +20,7 @@ function mainOSButtonFunction() {
             false,
             () => console.log("Start App clicked!"),
             null,
-            "/game_engine/ai/computerai/computeraiimg/placeholder.webp"
+            "/src/ai/computerai/computeraiimg/placeholder.webp"
         );
     }
 

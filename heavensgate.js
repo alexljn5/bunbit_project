@@ -89,7 +89,7 @@ async function createWindow() {
     app.commandLine.appendSwitch('disable-renderer-backgrounding');
 
     // Resolve icon path
-    const iconPath = join(__dirname, 'game_engine', 'img', 'logo', 'favicon.ico');
+    const iconPath = join(__dirname, 'src', 'img', 'logo', 'favicon.ico');
     try {
         await fs.access(iconPath);
         console.log(`Icon found at: ${iconPath} *giggles*`);
@@ -133,7 +133,7 @@ async function createWindow() {
     });
 
     // Load main_game.html via Express
-    const pageUrl = `http://localhost:${PORT}/game_engine/main_game.html`;
+    const pageUrl = `http://localhost:${PORT}/src/main_game.html`;
     try {
         await mainWindow.loadURL(pageUrl);
         console.log(`Loaded page: ${pageUrl} *giggles*`);

@@ -12,7 +12,7 @@ const NUM_WORKERS = 8;
 
 // Array to hold workers
 const horizonWorkers = Array.from({ length: NUM_WORKERS }, () =>
-    new Worker('/game_engine/rendering/renderworkers/horizonrenderworker.js')
+    new Worker('/src/rendering/renderworkers/horizonrenderworker.js')
 );
 
 let isInitialized = Array(NUM_WORKERS).fill(false);

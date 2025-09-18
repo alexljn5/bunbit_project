@@ -30,7 +30,7 @@
       "creamfix.gif",
       "styles.css",
       "img/**/*",
-      "game_engine/**/*",
+      "src/**/*",
       "audio/**/*"
     ]
   },
