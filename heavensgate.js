@@ -104,10 +104,9 @@ async function createWindow() {
         icon: iconPath,
         webPreferences: {
             nodeIntegration: true,
-            contextIsolation: true,
+            contextIsolation: false,
             sandbox: false, // Explicitly disabled as requested
-            devTools: false,
-            preload: join(__dirname, 'preload.js') // Secure preload script
+            devTools: true,
         },
         autoHideMenuBar: true,
         menuBarVisible: false
