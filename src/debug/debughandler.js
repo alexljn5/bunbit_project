@@ -1,4 +1,4 @@
-// File: game_engine/debug/debughandler.js
+// File: src/debug/debughandler.js
 
 import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y } from '../globals.js';
 import { evilGlitchSystem, EvilUIState } from '../themes/eviltheme.js';
@@ -58,6 +58,14 @@ export const ENABLE_DEBUG_TERMINAL = (() => {
 })();
 
 export const HEADER_HEIGHT = 30 * SCALE_Y;
+
+//God Function
+export function debugHandlerGodFunction() {
+    debugHandlerMainFunction();
+    memCpuGodFunction();
+    initBunbitDebug();
+}
+
 
 // --- Update filtered logs ---
 export function updateFilteredLogs() {
@@ -162,7 +170,7 @@ export function resizeDebugCanvas(width, height) {
 }
 
 // --- Main debug setup ---
-export function debugHandlerGodFunction() {
+function debugHandlerMainFunction() {
     if (!ENABLE_DEBUG_TERMINAL) return console.log('Debug terminal disabled *chao chao*');
 
     overrideConsole();
@@ -296,8 +304,6 @@ export function debugHandlerGodFunction() {
     } catch (err) {
         console.error('Failed to toggle perf monitor:', err);
     }
-    memCpuGodFunction();
-    //initBunbitDebug();
 }
 
 // --- Draw debug logs with enhanced effects (using shared system) ---

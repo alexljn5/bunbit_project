@@ -2,6 +2,8 @@ import { evilGlitchSystem, EvilUIState } from '../themes/eviltheme.js';
 import { themeManager } from '../themes/thememanager.js';
 import { gameVersionNumber, gameName } from '../globals.js';
 
+const os = require('os'); // Direct Node.js os module in Electron
+
 let perfCanvas = null;
 let perfCtx = null;
 let perfContainer = null;
@@ -15,28 +17,36 @@ let PERF_HEIGHT = 200;
 let updateInterval = null;
 let glitchInterval = null;
 
-// Performance monitoring state
+// Performance monitoring state - Enhanced with game process data
 let performanceData = {
-    memory: {
-        usedJSHeapSize: 0,
-        totalJSHeapSize: 0,
-        jsHeapSizeLimit: 0
+    // Keep JS heap for game-specific accuracy
+    jsHeap: {
+        used: 0,
+        total: 0,
+        limit: 0
+    },
+    // System-wide memory from os module (unchanged, for overall view)
+    systemMemory: {
+        used: 0,
+        total: 0,
+        percent: 0
     },
     cpu: {
-        usage: 0,
-        lastTime: 0,
-        lastUsage: 0
+        usage: 0, // Now game/Electron process-specific from process.cpuUsage()
+        cores: os.cpus().length,
+        lastCpuUsage: null // To calculate delta
     },
     fps: 0,
     frameTime: 0,
     renderWorkerLoad: 0,
-    networkLatency: 0,
+    networkLatency: 0, // Simulated, since no network fetch
     gpuMemory: 0,
     frameCount: 0,
     lastFpsUpdate: 0,
-    lastFrameTime: 0, // New: Track last frame for FPS cap
+    lastFrameTime: 0,
     history: {
-        memory: [],
+        jsHeap: [],
+        systemMemory: [],
         cpu: [],
         fps: [],
         frameTime: [],
@@ -158,7 +168,7 @@ function stopDrag() {
 // --- Glitch effects (using shared system) ---
 function updateGlitchEffects() {
     const performanceStress = (performanceData.cpu.usage / 100) * 0.4 +
-        (performanceData.memory.usedJSHeapSize / performanceData.memory.jsHeapSizeLimit) * 0.3 +
+        (performanceData.systemMemory.percent / 100) * 0.3 +
         (performanceData.frameTime / 16.67) * 0.2 +
         (performanceData.renderWorkerLoad / 100) * 0.1;
 
@@ -198,7 +208,7 @@ export function memCpuGodFunction() {
     perfHeader.addEventListener('mousedown', startDrag);
 
     const title = document.createElement("div");
-    title.textContent = `${gameName} Engine Version ${gameVersionNumber} System and Performance Monitor`;
+    title.textContent = `${gameName} Engine Version ${gameVersionNumber} System and Performance Monitor (Game CPU Enhanced!)`;
     title.style.fontWeight = "bold";
     title.style.color = themeManager.getCurrentTheme().danger;
     title.style.letterSpacing = "1px";
@@ -244,7 +254,9 @@ export function memCpuGodFunction() {
 
     isPerfVisible = true;
 
-    performanceData.cpu.lastTime = performance.now();
+    // Initialize CPU baseline
+    performanceData.cpu.lastCpuUsage = process.cpuUsage();
+
     performanceData.lastFpsUpdate = performance.now();
     performanceData.lastFrameTime = performance.now();
 
@@ -274,32 +286,58 @@ export function memCpuGodFunction() {
 function updatePerformanceData() {
     if (!isPerfVisible) return;
 
+    // System Memory (from os module, unchanged)
+    const totalMem = os.totalmem();
+    const freeMem = os.freemem();
+    const usedMem = totalMem - freeMem;
+    performanceData.systemMemory = {
+        used: Math.round(usedMem / 1048576),
+        total: Math.round(totalMem / 1048576),
+        percent: Math.round((usedMem / totalMem) * 100 * 10) / 10
+    };
+
+    // Game/Electron Process CPU (from process.cpuUsage())
+    const currentCpuUsage = process.cpuUsage(performanceData.cpu.lastCpuUsage);
+    const totalCpuTime = currentCpuUsage.user + currentCpuUsage.system;
+    // Approximate % over ~1000ms interval (adjust if needed for accuracy)
+    performanceData.cpu.usage = Math.round((totalCpuTime / 10000) * 10) / 10; // totalCpuTime / 10000 ≈ % over 1s
+    performanceData.cpu.lastCpuUsage = process.cpuUsage();
+
+    // JS Heap (client-side, game-specific)
     if (hasMemoryAPI) {
-        performanceData.memory = {
-            usedJSHeapSize: performance.memory.usedJSHeapSize / 1048576,
-            totalJSHeapSize: performance.memory.totalJSHeapSize / 1048576,
-            jsHeapSizeLimit: performance.memory.jsHeapSizeLimit / 1048576
+        const mem = performance.memory;
+        performanceData.jsHeap = {
+            used: mem.usedJSHeapSize / 1048576,
+            total: mem.totalJSHeapSize / 1048576,
+            limit: mem.jsHeapSizeLimit / 1048576
         };
     }
 
+    // GPU (unchanged, still approximated)
     if (hasGpuMemoryAPI) {
         const memoryInfo = gl.getParameter(gl.getExtension('WEBGL_debug_renderer_info')?.UNMASKED_RENDERER_WEBGL);
         performanceData.gpuMemory = memoryInfo ? (memoryInfo.includes('NVIDIA') ? Math.random() * 1000 : Math.random() * 500) : 0;
     }
 
+    // FPS/Frame Time (client-side, accurate)
     const now = performance.now();
     if (now - performanceData.lastFpsUpdate >= 1000) {
         performanceData.fps = Math.min(60, Math.round(
             (performanceData.frameCount * 1000) / (now - performanceData.lastFpsUpdate)
-        )); // Cap FPS at 60
+        ));
         performanceData.frameTime = (now - performanceData.lastFpsUpdate) / performanceData.frameCount;
         performanceData.frameCount = 0;
         performanceData.lastFpsUpdate = now;
 
-        performanceData.renderWorkerLoad = Math.min(100, Math.random() * 50 + (performanceData.frameTime > 16.67 ? 50 : 0));
+        // Render worker load: based on frame time only (no CPU add, to avoid double-count)
+        performanceData.renderWorkerLoad = Math.min(100, performanceData.frameTime > 16.67 ? 70 : 30);
+
+        // Network latency (simulated, since no fetch)
         performanceData.networkLatency = Math.random() * 100;
 
-        performanceData.history.memory.push(performanceData.memory.usedJSHeapSize || 0);
+        // History updates
+        performanceData.history.jsHeap.push(performanceData.jsHeap.used || 0);
+        performanceData.history.systemMemory.push(performanceData.systemMemory.percent || 0);
         performanceData.history.cpu.push(performanceData.cpu.usage);
         performanceData.history.fps.push(performanceData.fps);
         performanceData.history.frameTime.push(performanceData.frameTime);
@@ -308,15 +346,11 @@ function updatePerformanceData() {
         performanceData.history.gpuMemory.push(performanceData.gpuMemory);
 
         const maxHistory = 30;
-        if (performanceData.history.memory.length > maxHistory) {
-            performanceData.history.memory.shift();
-            performanceData.history.cpu.shift();
-            performanceData.history.fps.shift();
-            performanceData.history.frameTime.shift();
-            performanceData.history.renderWorkerLoad.shift();
-            performanceData.history.networkLatency.shift();
-            performanceData.history.gpuMemory.shift();
-        }
+        Object.keys(performanceData.history).forEach(key => {
+            if (performanceData.history[key].length > maxHistory) {
+                performanceData.history[key].shift();
+            }
+        });
     }
 }
 
@@ -331,16 +365,6 @@ function drawPerfMonitor(time) {
     }
     performanceData.frameCount++;
     performanceData.lastFrameTime = now;
-
-    const timeDiff = now - performanceData.cpu.lastTime;
-    if (timeDiff > 100) {
-        const usage = Math.min(100, Math.max(0, (timeDiff - 16) / timeDiff * 100));
-        performanceData.cpu = {
-            usage: usage,
-            lastTime: now,
-            lastUsage: performanceData.cpu.usage
-        };
-    }
 
     const width = perfCanvas.width;
     const height = perfCanvas.height;
@@ -386,22 +410,33 @@ function drawPerfMonitor(time) {
     perfCtx.fillText(frameTimeText, 10, y);
     y += 15;
 
+    // JS Heap (game-specific)
     if (hasMemoryAPI) {
-        const memoryPercent = (performanceData.memory.usedJSHeapSize / performanceData.memory.jsHeapSizeLimit) * 100;
-        let memText = `MEM: ${performanceData.memory.usedJSHeapSize.toFixed(1)}/${performanceData.memory.jsHeapSizeLimit.toFixed(1)}MB`;
+        const heapPercent = (performanceData.jsHeap.used / performanceData.jsHeap.limit) * 100;
+        let heapText = `JS Heap: ${performanceData.jsHeap.used.toFixed(1)}/${performanceData.jsHeap.limit.toFixed(1)}MB`;
         if (evilGlitchSystem.textGlitch) {
-            memText = evilGlitchSystem.applyTextGlitch(memText);
+            heapText = evilGlitchSystem.applyTextGlitch(heapText);
         }
-        perfCtx.fillStyle = themeManager.getPerformanceColor(memoryPercent);
-        perfCtx.fillText(memText, 10, y);
+        perfCtx.fillStyle = themeManager.getPerformanceColor(heapPercent);
+        perfCtx.fillText(heapText, 10, y);
         y += 15;
     }
 
-    let cpuText = `CPU: ${performanceData.cpu.usage.toFixed(1)}%`;
+    // System Memory (accurate from os)
+    let sysMemText = `SYS MEM: ${performanceData.systemMemory.used}/${performanceData.systemMemory.total}MB (${performanceData.systemMemory.percent}%)`;
+    if (evilGlitchSystem.textGlitch) {
+        sysMemText = evilGlitchSystem.applyTextGlitch(sysMemText);
+    }
+    perfCtx.fillStyle = themeManager.getPerformanceColor(performanceData.systemMemory.percent);
+    perfCtx.fillText(sysMemText, 10, y);
+    y += 15;
+
+    // Game CPU (now process-specific)
+    let cpuText = `Game CPU: ${performanceData.cpu.usage.toFixed(1)}% (${performanceData.cpu.cores} cores)`;
     if (evilGlitchSystem.textGlitch) {
         cpuText = evilGlitchSystem.applyTextGlitch(cpuText);
     }
-    perfCtx.fillStyle = themeManager.getPerformanceColor(performanceData.cpu.usage);
+    perfCtx.fillStyle = themeManager.getPerformanceColor(performanceData.cpu.usage, [100, 50]); // Can be >100, so adjust thresholds if needed
     perfCtx.fillText(cpuText, 10, y);
     y += 15;
 
@@ -433,17 +468,19 @@ function drawPerfMonitor(time) {
 
     perfCtx.translate(-evilGlitchSystem.horizontalShift, 0);
 
-    if (performanceData.history.memory.length > 1) {
+    if (performanceData.history.systemMemory.length > 1) {
         const graphHeight = 25;
         drawGraph(perfCtx, performanceData.history.fps, 10, y, width - 20, graphHeight, themeManager.getCurrentTheme().danger, "FPS");
         y += graphHeight + 10;
         drawGraph(perfCtx, performanceData.history.frameTime, 10, y, width - 20, graphHeight, themeManager.getCurrentTheme().warning, "Frame Time");
         y += graphHeight + 10;
         if (hasMemoryAPI) {
-            drawGraph(perfCtx, performanceData.history.memory, 10, y, width - 20, graphHeight, themeManager.getCurrentTheme().danger, "MEM");
+            drawGraph(perfCtx, performanceData.history.jsHeap, 10, y, width - 20, graphHeight, themeManager.getCurrentTheme().danger, "JS Heap");
             y += graphHeight + 10;
         }
-        drawGraph(perfCtx, performanceData.history.cpu, 10, y, width - 20, graphHeight, themeManager.getCurrentTheme().warning, "CPU");
+        drawGraph(perfCtx, performanceData.history.systemMemory, 10, y, width - 20, graphHeight, themeManager.getCurrentTheme().danger, "SYS MEM %");
+        y += graphHeight + 10;
+        drawGraph(perfCtx, performanceData.history.cpu, 10, y, width - 20, graphHeight, themeManager.getCurrentTheme().warning, "Game CPU %");
         y += graphHeight + 10;
         drawGraph(perfCtx, performanceData.history.renderWorkerLoad, 10, y, width - 20, graphHeight, themeManager.getCurrentTheme().danger, "Worker Load");
         y += graphHeight + 10;
