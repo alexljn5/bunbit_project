@@ -7,11 +7,22 @@ import { tileSectors } from "../mapdata/maps.js";
 // Heap-based cache for wall rendering data
 const wallRenderCache = new Map();
 
+// Reusable quad object to reduce allocations
+const reusableQuad = {
+    topX: 0, topY: 0,
+    leftX: 0, leftY: 0,
+    rightX: 0, rightY: 0,
+    color: "gray",
+    texture: null,
+    textureX: 0,
+    alpha: 1,
+    textureKey: null // for demon animation checks
+};
+
 export function precomputeWallRenderData(sectorKey) {
     try {
         if (!texturesLoaded || !tileSectors[sectorKey]) {
-            console.warn(`Cannot precompute for sector ${sectorKey}: textures or sector missing *pouts*`);
-            return;
+            return; // early exit, don’t log every frame
         }
 
         const sector = tileSectors[sectorKey];
@@ -25,37 +36,41 @@ export function precomputeWallRenderData(sectorKey) {
             const nextColX = colX + colWidth;
             const rayCache = { quads: [] };
 
-            // Simulate ray data for static walls (assumes raycasting provides similar data)
-            const ray = { distance: 10, hitSide: "x", hitX: i / numCastRays, textureKey: sector.walls[0]?.texture || "wall_creamlol" }; // Simplified
+            // Simplified static ray data
+            const ray = {
+                distance: 10,
+                hitSide: "x",
+                hitX: i / numCastRays,
+                textureKey: sector.walls[0]?.texture || "wall_creamlol"
+            };
 
             const wallHeight = (CANVAS_HEIGHT / ray.distance) * tileSectors;
             const wallTop = (CANVAS_HEIGHT - wallHeight) * 0.5;
             const wallBottom = wallTop + wallHeight;
 
-            let textureX = (ray.hitSide === "x" ? ray.hitX : ray.hitY) - Math.floor((ray.hitSide === "x" ? ray.hitX : ray.hitY) / tileSectors) * tileSectors;
-            textureX *= tileSectorsInv;
+            const texHit = ray.hitSide === "x" ? ray.hitX : ray.hitY;
+            let textureX = (texHit % tileSectors) * tileSectorsInv;
             textureX = Math.max(0, Math.min(1, textureX));
 
-            let texture = ray.textureKey === "wall_laughing_demon" ? getDemonLaughingCurrentFrame() || defaultTexture : tileTexturesMap.get(ray.textureKey) || defaultTexture;
+            let texture = ray.textureKey === "wall_laughing_demon"
+                ? getDemonLaughingCurrentFrame() || defaultTexture
+                : tileTexturesMap.get(ray.textureKey) || defaultTexture;
 
             rayCache.quads.push({
-                topX: colX,
-                topY: wallTop,
-                leftX: colX,
-                leftY: wallBottom,
-                rightX: nextColX,
-                rightY: wallBottom,
+                topX: colX, topY: wallTop,
+                leftX: colX, leftY: wallBottom,
+                rightX: nextColX, rightY: wallBottom,
                 color: "gray",
                 texture,
                 textureX,
-                alpha: 1
+                alpha: 1,
+                textureKey: ray.textureKey
             });
 
             cacheData.push(rayCache);
         }
 
         wallRenderCache.set(sectorKey, cacheData);
-        console.log(`Precomputed wall render data for sector ${sectorKey}, cache size: ${wallRenderCache.size} *twirls*`);
     } catch (err) {
         console.error(`Error precomputing wall render data for ${sectorKey}:`, err);
     }
@@ -63,35 +78,39 @@ export function precomputeWallRenderData(sectorKey) {
 
 export function renderRaycastWalls(rayData, sectorKey) {
     if (!texturesLoaded) {
-        console.warn("Textures not loaded, rendering gray walls *pouts*");
+        // Gray fallback
         drawQuad({
-            topX: 0,
-            topY: 0,
-            leftX: 0,
-            leftY: CANVAS_HEIGHT,
-            rightX: CANVAS_WIDTH,
-            rightY: CANVAS_HEIGHT,
-            color: "gray",
-            alpha: 1
+            topX: 0, topY: 0,
+            leftX: 0, leftY: CANVAS_HEIGHT,
+            rightX: CANVAS_WIDTH, rightY: CANVAS_HEIGHT,
+            color: "gray", alpha: 1
         });
         return;
     }
 
     try {
         const cachedData = wallRenderCache.get(sectorKey);
+        const demonFrame = getDemonLaughingCurrentFrame() || tileTexturesMap.get("wall_creamlol");
+
         if (cachedData && rayData.length === cachedData.length) {
-            // Use cached data for static walls
+            // Use cached data
             for (let i = 0; i < cachedData.length; i++) {
                 const rayCache = cachedData[i];
                 for (const quad of rayCache.quads) {
-                    // Update animated textures
-                    if (quad.textureKey === "wall_laughing_demon") {
-                        quad.texture = getDemonLaughingCurrentFrame() || tileTexturesMap.get("wall_creamlol");
-                    }
-                    drawQuad(quad);
+                    // Update animated texture just once per frame
+                    reusableQuad.topX = quad.topX;
+                    reusableQuad.topY = quad.topY;
+                    reusableQuad.leftX = quad.leftX;
+                    reusableQuad.leftY = quad.leftY;
+                    reusableQuad.rightX = quad.rightX;
+                    reusableQuad.rightY = quad.rightY;
+                    reusableQuad.textureX = quad.textureX;
+                    reusableQuad.alpha = quad.alpha;
+                    reusableQuad.texture = (quad.textureKey === "wall_laughing_demon") ? demonFrame : quad.texture;
+
+                    drawQuad(reusableQuad);
                 }
             }
-            console.log(`Rendered walls from cache for sector ${sectorKey} *smiles*`);
             return;
         }
 
@@ -112,14 +131,11 @@ export function renderRaycastWalls(rayData, sectorKey) {
             if (Array.isArray(ray)) {
                 const firstHit = ray[ray.length - 1];
                 const texHit = firstHit.hitSide === "x" ? firstHit.hitX : firstHit.hitY;
-                textureX = texHit - Math.floor(texHit / tileSectors) * tileSectors;
-                textureX *= tileSectorsInv;
+                textureX = (texHit % tileSectors) * tileSectorsInv;
             } else {
                 const texHit = ray.hitSide === "x" ? ray.hitX : ray.hitY;
-                textureX = texHit - Math.floor(texHit / tileSectors) * tileSectors;
-                textureX *= tileSectorsInv;
+                textureX = (texHit % tileSectors) * tileSectorsInv;
             }
-
             textureX = Math.max(0, Math.min(1, textureX));
 
             const colX = i * colWidth;
@@ -132,65 +148,55 @@ export function renderRaycastWalls(rayData, sectorKey) {
                     const tex = tileTexturesMap.get(hit.textureKey) || defaultTexture;
                     const alpha = 0.5 * (1 - accumulatedAlpha);
 
-                    drawQuad({
-                        topX: colX,
-                        topY: wallTop,
-                        leftX: colX,
-                        leftY: wallBottom,
-                        rightX: nextColX,
-                        rightY: wallBottom,
-                        color: "gray",
-                        texture: tex,
-                        textureX,
-                        alpha
-                    });
+                    reusableQuad.topX = colX;
+                    reusableQuad.topY = wallTop;
+                    reusableQuad.leftX = colX;
+                    reusableQuad.leftY = wallBottom;
+                    reusableQuad.rightX = nextColX;
+                    reusableQuad.rightY = wallBottom;
+                    reusableQuad.color = "gray";
+                    reusableQuad.texture = tex;
+                    reusableQuad.textureX = textureX;
+                    reusableQuad.alpha = alpha;
+
+                    drawQuad(reusableQuad);
 
                     accumulatedAlpha += alpha;
                     if (accumulatedAlpha >= 1) break;
                 }
             } else {
-                let texture;
-                if (ray.textureKey === "wall_laughing_demon") {
-                    texture = getDemonLaughingCurrentFrame() || defaultTexture;
-                } else {
-                    texture = tileTexturesMap.get(ray.textureKey) || defaultTexture;
-                }
+                let texture = (ray.textureKey === "wall_laughing_demon")
+                    ? demonFrame
+                    : (tileTexturesMap.get(ray.textureKey) || defaultTexture);
 
-                if (!texture) {
-                    console.warn(`Missing wall texture: ${ray.textureKey} *tilts head*`);
-                    continue;
-                }
+                if (!texture) continue;
 
-                drawQuad({
-                    topX: colX,
-                    topY: wallTop,
-                    leftX: colX,
-                    leftY: wallBottom,
-                    rightX: nextColX,
-                    rightY: wallBottom,
-                    color: "gray",
-                    texture,
-                    textureX,
-                    alpha: 1
-                });
+                reusableQuad.topX = colX;
+                reusableQuad.topY = wallTop;
+                reusableQuad.leftX = colX;
+                reusableQuad.leftY = wallBottom;
+                reusableQuad.rightX = nextColX;
+                reusableQuad.rightY = wallBottom;
+                reusableQuad.color = "gray";
+                reusableQuad.texture = texture;
+                reusableQuad.textureX = textureX;
+                reusableQuad.alpha = 1;
+
+                drawQuad(reusableQuad);
             }
         }
 
-        // Cache the results for static sectors
+        // Cache static results
         if (sectorKey && !wallRenderCache.has(sectorKey)) {
             precomputeWallRenderData(sectorKey);
         }
     } catch (err) {
-        console.error('Error in renderRaycastWalls:', err);
+        console.error("Error in renderRaycastWalls:", err);
         drawQuad({
-            topX: 0,
-            topY: 0,
-            leftX: 0,
-            leftY: CANVAS_HEIGHT,
-            rightX: CANVAS_WIDTH,
-            rightY: CANVAS_HEIGHT,
-            color: "gray",
-            alpha: 1
+            topX: 0, topY: 0,
+            leftX: 0, leftY: CANVAS_HEIGHT,
+            rightX: CANVAS_WIDTH, rightY: CANVAS_HEIGHT,
+            color: "gray", alpha: 1
         });
     }
 }
@@ -198,8 +204,7 @@ export function renderRaycastWalls(rayData, sectorKey) {
 export function clearWallRenderCache() {
     try {
         wallRenderCache.clear();
-        console.log('Cleared wall render cache *twirls*');
     } catch (err) {
-        console.error('Error in clearWallRenderCache:', err);
+        console.error("Error in clearWallRenderCache:", err);
     }
 }
