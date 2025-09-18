@@ -94,7 +94,7 @@ async function createWindow() {
     });
 
     // Load over HTTP – workers love this!
-    const pageUrl = `http://localhost:${PORT}/index.html`;
+    const pageUrl = `http://localhost:${PORT}/game_engine/main_game.html`;
     try {
         await mainWindow.loadURL(pageUrl);
         console.log(`Loaded page: ${pageUrl} *giggles*`);
