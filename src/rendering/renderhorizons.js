@@ -12,7 +12,7 @@ const NUM_WORKERS = 8;
 
 // Array to hold workers
 const horizonWorkers = Array.from({ length: NUM_WORKERS }, () =>
-    new Worker('/src/rendering/renderworkers/horizonrenderworker.js')
+    new Worker('/src/rendering/renderworkers/horizonrenderworker.js', { type: "module" })
 );
 
 let isInitialized = Array(NUM_WORKERS).fill(false);
@@ -25,14 +25,16 @@ let textureHeightRoof = 0;
 let lastCanvasWidth = 0;
 let lastCanvasHeight = 0;
 
+// Heap-based cache for horizon data
+const horizonCache = new Map();
+
 const textureCanvas = document.createElement("canvas");
 const textureCtx = textureCanvas.getContext("2d", { willReadFrequently: true });
 
 // Final buffer to combine worker results
-let finalBuffer = null; // Initialize lazily in initializeWorkers
+let finalBuffer = null;
 
 function initializeWorkers() {
-    // Reinitialize finalBuffer to match current canvas dimensions
     finalBuffer = new Uint8ClampedArray(CANVAS_WIDTH * CANVAS_HEIGHT * 4);
 
     return Promise.all(
@@ -74,7 +76,7 @@ function updateTexture(texture, type) {
 
     textureCtx.drawImage(texture, 0, 0);
     const imageData = textureCtx.getImageData(0, 0, textureWidth, textureHeight);
-    const textureData = imageData.data; // Uint8ClampedArray
+    const textureData = imageData.data;
 
     horizonWorkers.forEach((worker, index) => {
         const newBuffer = new ArrayBuffer(textureData.byteLength);
@@ -101,16 +103,61 @@ function updateTexture(texture, type) {
     }
 }
 
-export function cleanupHorizonWorkers() {
-    horizonWorkers.forEach(worker => worker.terminate());
-    isInitialized.fill(false);
-    finalBuffer = null;
-    console.log("Horizon workers terminated *chao chao*");
+export function precomputeHorizonData(sectorKey, rayData) {
+    try {
+        if (!texturesLoaded || !tileSectors[sectorKey] || !rayData) {
+            //console.warn(`Cannot precompute horizon for sector ${sectorKey}: missing data *pouts*`);
+            return;
+        }
+
+        const floorTextureKey = mapHandler.getMapFloorTexture(sectorKey) || "floor_concrete_01";
+        const roofTextureKey = "roof_concrete_01";
+        const floorTexture = tileTexturesMap.get(floorTextureKey);
+        const roofTexture = tileTexturesMap.get(roofTextureKey);
+
+        if (!floorTexture || !roofTexture) {
+            console.warn(`Textures missing for sector ${sectorKey} *tilts head*`);
+            return;
+        }
+
+        const clipYFloor = new Float32Array(CANVAS_WIDTH).fill(CANVAS_HEIGHT);
+        const clipYRoof = new Float32Array(CANVAS_WIDTH).fill(0);
+        const colWidth = CANVAS_WIDTH / numCastRays;
+
+        for (let i = 0; i < rayData.length; i++) {
+            const ray = rayData[i];
+            if (ray && !Array.isArray(ray)) {
+                let wallHeight = (CANVAS_HEIGHT / ray.distance) * tileSectors;
+                wallHeight = Math.min(wallHeight, CANVAS_HEIGHT * 2);
+                const wallTop = Math.max(0, (CANVAS_HEIGHT - wallHeight) / 2);
+                const wallBottom = Math.min(CANVAS_HEIGHT, wallTop + wallHeight);
+                const startCol = Math.floor(i * colWidth);
+                const endCol = Math.min(Math.floor((i + 1) * colWidth), CANVAS_WIDTH);
+                for (let col = startCol; col < endCol; col++) {
+                    clipYFloor[col] = Math.min(clipYFloor[col], wallBottom);
+                    clipYRoof[col] = Math.max(clipYRoof[col], wallTop);
+                }
+            }
+        }
+
+        const cacheData = {
+            clipYFloor: new Float32Array(clipYFloor),
+            clipYRoof: new Float32Array(clipYRoof),
+            floorTextureKey,
+            roofTextureKey,
+            playerPosition: { x: playerPosition.x, z: playerPosition.z, angle: playerPosition.angle }
+        };
+
+        horizonCache.set(sectorKey, cacheData);
+        console.log(`Precomputed horizon data for sector ${sectorKey}, cache size: ${horizonCache.size} *twirls*`);
+    } catch (err) {
+        console.error(`Error precomputing horizon data for ${sectorKey}:`, err);
+    }
 }
 
 export function renderRaycastHorizons(rayData, targetCtx = renderEngine) {
     return new Promise(async resolve => {
-        console.time('renderHorizons'); // Debug perf
+        console.time('renderHorizons');
 
         if (
             isInitialized.some(init => !init) ||
@@ -121,10 +168,71 @@ export function renderRaycastHorizons(rayData, targetCtx = renderEngine) {
         }
 
         const mapKey = mapHandler.activeMapKey || "map_01";
-        const floorTextureKey = mapHandler.getMapFloorTexture(mapKey);
-        const roofTextureKey = "roof_concrete_01"; // Adjust as needed for your roof texture
+        const cachedData = horizonCache.get(mapKey);
 
-        const floorTexture = tileTexturesMap.get(floorTextureKey) || tileTexturesMap.get("floor_concrete_01");
+        // Check if cache is valid
+        const isPlayerPositionClose = cachedData &&
+            Math.abs(playerPosition.x - cachedData.playerPosition.x) < 0.1 &&
+            Math.abs(playerPosition.z - cachedData.playerPosition.z) < 0.1 &&
+            Math.abs(playerPosition.angle - cachedData.playerPosition.angle) < 0.01;
+
+        if (cachedData && isPlayerPositionClose && rayData.length === numCastRays) {
+            const floorTextureKey = cachedData.floorTextureKey;
+            const roofTextureKey = cachedData.roofTextureKey;
+
+            if (floorTextureKey !== lastFloorTextureKey) {
+                updateTexture(tileTexturesMap.get(floorTextureKey), "Floor");
+                lastFloorTextureKey = floorTextureKey;
+            }
+            if (roofTextureKey !== lastRoofTextureKey) {
+                updateTexture(tileTexturesMap.get(roofTextureKey), "Roof");
+                lastRoofTextureKey = roofTextureKey;
+            }
+
+            const rowsPerWorker = Math.ceil(CANVAS_HEIGHT / NUM_WORKERS);
+            const promises = horizonWorkers.map((worker, index) => {
+                const startY = index * rowsPerWorker;
+                const endY = Math.min(startY + rowsPerWorker, CANVAS_HEIGHT);
+
+                return new Promise(resolveWorker => {
+                    worker.onmessage = function (e) {
+                        if (e.data.type === 'render_done') {
+                            const workerBuffer = new Uint8ClampedArray(e.data.horizonBuffer);
+                            const startOffset = e.data.startY * CANVAS_WIDTH * 4;
+                            try {
+                                finalBuffer.set(workerBuffer, startOffset);
+                            } catch (error) {
+                                console.error(`Error copying horizon worker ${e.data.workerId} buffer: ${error.message}`);
+                            }
+                            resolveWorker();
+                        }
+                    };
+
+                    worker.postMessage({
+                        type: 'render',
+                        playerPosition: cachedData.playerPosition,
+                        startY,
+                        endY,
+                        workerId: index,
+                        clipYFloorBuffer: cachedData.clipYFloor.buffer,
+                        clipYRoofBuffer: cachedData.clipYRoof.buffer
+                    }, [cachedData.clipYFloor.buffer, cachedData.clipYRoof.buffer]);
+                });
+            });
+
+            await Promise.all(promises);
+            const imageData = new ImageData(finalBuffer, CANVAS_WIDTH, CANVAS_HEIGHT);
+            targetCtx.putImageData(imageData, 0, 0);
+            console.log(`Rendered horizons from cache for sector ${mapKey} *smiles*`);
+            console.timeEnd('renderHorizons');
+            resolve();
+            return;
+        }
+
+        // Fallback to real-time rendering
+        const floorTextureKey = mapHandler.getMapFloorTexture(mapKey) || "floor_concrete_01";
+        const roofTextureKey = "roof_concrete_01";
+        const floorTexture = tileTexturesMap.get(floorTextureKey);
         const roofTexture = tileTexturesMap.get(roofTextureKey);
 
         if (!texturesLoaded || !floorTexture || !floorTexture.complete || !roofTexture || !roofTexture.complete) {
@@ -141,18 +249,13 @@ export function renderRaycastHorizons(rayData, targetCtx = renderEngine) {
             updateTexture(floorTexture, "Floor");
             lastFloorTextureKey = floorTextureKey;
         }
-
         if (roofTextureKey !== lastRoofTextureKey) {
             updateTexture(roofTexture, "Roof");
             lastRoofTextureKey = roofTextureKey;
         }
 
-        // Compute clipY for floors (wall bottom)
         const clipYFloor = new Float32Array(CANVAS_WIDTH).fill(CANVAS_HEIGHT);
-        // Compute clipY for roofs (wall top)
         const clipYRoof = new Float32Array(CANVAS_WIDTH).fill(0);
-
-        const halfHeight = CANVAS_HEIGHT / 2;
         const colWidth = CANVAS_WIDTH / numCastRays;
 
         for (let i = 0; i < rayData.length; i++) {
@@ -188,7 +291,6 @@ export function renderRaycastHorizons(rayData, targetCtx = renderEngine) {
                         const startOffset = e.data.startY * CANVAS_WIDTH * 4;
                         try {
                             finalBuffer.set(workerBuffer, startOffset);
-                            //console.log(`Horizon worker ${e.data.workerId} done for rows ${e.data.startY}-${e.data.endY}`);
                         } catch (error) {
                             console.error(`Error copying horizon worker ${e.data.workerId} buffer: ${error.message}`);
                         }
@@ -216,7 +318,25 @@ export function renderRaycastHorizons(rayData, targetCtx = renderEngine) {
 
         const imageData = new ImageData(finalBuffer, CANVAS_WIDTH, CANVAS_HEIGHT);
         targetCtx.putImageData(imageData, 0, 0);
+
+        // Cache results for static sectors
+        if (!horizonCache.has(mapKey)) {
+            precomputeHorizonData(mapKey, rayData);
+        }
+
         console.timeEnd('renderHorizons');
         resolve();
     });
+}
+
+export function cleanupHorizonWorkers() {
+    try {
+        horizonWorkers.forEach(worker => worker.terminate());
+        isInitialized.fill(false);
+        finalBuffer = null;
+        horizonCache.clear();
+        console.log("Horizon workers and cache terminated *chao chao*");
+    } catch (err) {
+        console.error('Error in cleanupHorizonWorkers:', err);
+    }
 }
