@@ -3,3 +3,5 @@ dist
 secrets
 toeditshitaddtogitignore
 crash_logs
+backups
+.vscode
