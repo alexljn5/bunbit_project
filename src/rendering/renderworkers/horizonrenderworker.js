@@ -50,6 +50,33 @@ function Q_rsqrt(number) {
     return f[0];
 }
 
+// Worker CPU sampling (accumulate busy time and report periodically)
+let __workerCpuAccum = 0;
+let __workerSampleStart = (typeof performance !== 'undefined') ? performance.now() : Date.now();
+let __workerId = null;
+const __perfChannel = (typeof BroadcastChannel !== 'undefined') ? new BroadcastChannel('perf_monitor') : null;
+function __postWorkerCpu(usagePercent) {
+    const payload = { type: 'worker_cpu', usages: [{ id: __workerId || 'horizon', usage: Math.round(usagePercent * 10) / 10 }] };
+    try {
+        if (__perfChannel) __perfChannel.postMessage(payload);
+        else self.postMessage(payload);
+    } catch (err) {
+        // best-effort
+    }
+}
+setInterval(() => {
+    try {
+        const now = (typeof performance !== 'undefined') ? performance.now() : Date.now();
+        const interval = Math.max(1, now - __workerSampleStart);
+        const percent = Math.min(100, (__workerCpuAccum / interval) * 100);
+        __postWorkerCpu(percent);
+        __workerCpuAccum = 0;
+        __workerSampleStart = now;
+    } catch (err) {
+        // ignore
+    }
+}, 500);
+
 self.onmessage = function (e) {
     const { type } = e.data;
 
@@ -58,6 +85,10 @@ self.onmessage = function (e) {
         CANVAS_HEIGHT = e.data.CANVAS_HEIGHT;
         tileSectors = e.data.tileSectors;
         playerFOV = e.data.playerFOV;
+        __workerId = e.data.workerId || __workerId;
+        const rowsPerWorker = e.data.rowsPerWorker || Math.ceil(CANVAS_HEIGHT / (e.data.numWorkers || 4));
+        // Preallocate a buffer for this worker (Uint32 per pixel)
+        horizonBuffer32 = new Uint32Array(CANVAS_WIDTH * rowsPerWorker);
         self.postMessage({ type: 'init_done' });
         return;
     }
@@ -80,13 +111,14 @@ self.onmessage = function (e) {
 
     if (type === 'render') {
         const { playerPosition, startY, endY, workerId, clipYFloorBuffer, clipYRoofBuffer } = e.data;
-        const playerAngle = playerPosition.angle;
-        const playerX = playerPosition.x;
-        const playerZ = playerPosition.z;
-
+        __workerId = workerId || __workerId;
         const rowCount = endY - startY;
-        const horizonBuffer = new ArrayBuffer(CANVAS_WIDTH * rowCount * 4);
-        horizonBuffer32 = new Uint32Array(horizonBuffer);
+        if (!horizonBuffer32 || horizonBuffer32.length < CANVAS_WIDTH * rowCount) {
+            // Ensure buffer is large enough for this segment
+            horizonBuffer32 = new Uint32Array(CANVAS_WIDTH * rowCount);
+        }
+
+        const tStart = (typeof performance !== 'undefined') ? performance.now() : Date.now();
 
         const halfHeight = CANVAS_HEIGHT * 0.5;
         const projectionDist = (CANVAS_WIDTH * 0.5) / Math.tan(playerFOV * 0.5);
@@ -111,13 +143,13 @@ self.onmessage = function (e) {
                 }
 
                 const distance = (projectionDist * tileSectors * 0.5) / yCorrected;
-                const rayAngleLeft = playerAngle - playerFOV * 0.5;
-                const rayAngleRight = playerAngle + playerFOV * 0.5;
+                const rayAngleLeft = playerPosition.angle - playerFOV * 0.5;
+                const rayAngleRight = playerPosition.angle + playerFOV * 0.5;
 
-                const horizX_left = playerX + distance * fastCos(rayAngleLeft);
-                const horizZ_left = playerZ + distance * fastSin(rayAngleLeft);
-                const horizX_right = playerX + distance * fastCos(rayAngleRight);
-                const horizZ_right = playerZ + distance * fastSin(rayAngleRight);
+                const horizX_left = playerPosition.x + distance * fastCos(rayAngleLeft);
+                const horizZ_left = playerPosition.z + distance * fastSin(rayAngleLeft);
+                const horizX_right = playerPosition.x + distance * fastCos(rayAngleRight);
+                const horizZ_right = playerPosition.z + distance * fastSin(rayAngleRight);
 
                 const horizX_step = (horizX_right - horizX_left) / CANVAS_WIDTH;
                 const horizZ_step = (horizZ_right - horizZ_left) / CANVAS_WIDTH;
@@ -154,13 +186,13 @@ self.onmessage = function (e) {
                 }
 
                 const distance = (projectionDist * tileSectors * 0.5) / yCorrected;
-                const rayAngleLeft = playerAngle - playerFOV * 0.5;
-                const rayAngleRight = playerAngle + playerFOV * 0.5;
+                const rayAngleLeft = playerPosition.angle - playerFOV * 0.5;
+                const rayAngleRight = playerPosition.angle + playerFOV * 0.5;
 
-                const horizX_left = playerX + distance * fastCos(rayAngleLeft);
-                const horizZ_left = playerZ + distance * fastSin(rayAngleLeft);
-                const horizX_right = playerX + distance * fastCos(rayAngleRight);
-                const horizZ_right = playerZ + distance * fastSin(rayAngleRight);
+                const horizX_left = playerPosition.x + distance * fastCos(rayAngleLeft);
+                const horizZ_left = playerPosition.z + distance * fastSin(rayAngleLeft);
+                const horizX_right = playerPosition.x + distance * fastCos(rayAngleRight);
+                const horizZ_right = playerPosition.z + distance * fastSin(rayAngleRight);
 
                 const horizX_step = (horizX_right - horizX_left) / CANVAS_WIDTH;
                 const horizZ_step = (horizZ_right - horizZ_left) / CANVAS_WIDTH;
@@ -189,15 +221,24 @@ self.onmessage = function (e) {
             }
         }
 
-        self.postMessage(
-            {
-                type: 'render_done',
-                horizonBuffer: horizonBuffer32.buffer,
-                startY,
-                endY,
-                workerId
-            },
-            [horizonBuffer32.buffer]
-        );
+        // Transfer the buffer back to main thread for zero-copy
+        try {
+            const t1 = (typeof performance !== 'undefined') ? performance.now() : Date.now();
+            __workerCpuAccum += (t1 - tStart);
+
+            self.postMessage(
+                {
+                    type: 'render_done',
+                    horizonBuffer: horizonBuffer32.buffer,
+                    startY,
+                    endY,
+                    workerId
+                },
+                [horizonBuffer32.buffer]
+            );
+        } finally {
+            // Recreate buffer for subsequent frames to keep worker ready
+            horizonBuffer32 = new Uint32Array(CANVAS_WIDTH * (rowCount));
+        }
     }
 };

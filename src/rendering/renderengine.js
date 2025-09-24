@@ -80,6 +80,8 @@ export async function gameRenderEngine(deltaTime) {
     console.time('fullRender');
 
     try {
+        const minScale = Math.min(SCALE_X, SCALE_Y); // cache for this frame
+
         if (menuActive) {
             mainGameMenu();
             return;
@@ -119,9 +121,8 @@ export async function gameRenderEngine(deltaTime) {
         offscreenCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
         await renderRaycastHorizons(rayData, offscreenCtx);
 
-        // Draw offscreen canvas to main
-        const offscreenImageData = offscreenCtx.getImageData(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-        renderEngine.putImageData(offscreenImageData, 0, 0);
+        // Draw offscreen canvas to main — faster than getImageData/putImageData
+        renderEngine.drawImage(offscreenCanvas, 0, 0);
 
         renderRaycastWalls(rayData);
         decorationHandlerGodFunction();

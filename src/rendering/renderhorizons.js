@@ -33,9 +33,15 @@ const textureCtx = textureCanvas.getContext("2d", { willReadFrequently: true });
 
 // Final buffer to combine worker results
 let finalBuffer = null;
+let finalImageData = null;
 
 function initializeWorkers() {
+    // Reuse final buffer and ImageData to avoid reallocations each frame
     finalBuffer = new Uint8ClampedArray(CANVAS_WIDTH * CANVAS_HEIGHT * 4);
+    // Create ImageData once and reuse its underlying buffer
+    finalImageData = new ImageData(finalBuffer, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+    const rowsPerWorker = Math.ceil(CANVAS_HEIGHT / NUM_WORKERS);
 
     return Promise.all(
         horizonWorkers.map((worker, index) => {
@@ -52,7 +58,9 @@ function initializeWorkers() {
                     CANVAS_WIDTH,
                     CANVAS_HEIGHT,
                     tileSectors,
-                    playerFOV
+                    playerFOV,
+                    rowsPerWorker,
+                    numWorkers: NUM_WORKERS
                 });
             });
         })
@@ -196,7 +204,9 @@ export function renderRaycastHorizons(rayData, targetCtx = renderEngine) {
 
                 return new Promise(resolveWorker => {
                     worker.onmessage = function (e) {
+                        // Accept render_done and error messages; ignore telemetry
                         if (e.data.type === 'render_done') {
+                            // Worker sent an ArrayBuffer (raw bytes)
                             const workerBuffer = new Uint8ClampedArray(e.data.horizonBuffer);
                             const startOffset = e.data.startY * CANVAS_WIDTH * 4;
                             try {
@@ -205,8 +215,19 @@ export function renderRaycastHorizons(rayData, targetCtx = renderEngine) {
                                 console.error(`Error copying horizon worker ${e.data.workerId} buffer: ${error.message}`);
                             }
                             resolveWorker();
+                        } else if (e.data.type === 'error') {
+                            console.error(`Horizon worker error (id=${e.data.workerId}):`, e.data.message, e.data.stack);
+                            // Resolve to avoid stalling the frame; main will render whatever parts are available
+                            resolveWorker();
                         }
                     };
+
+                    // Make copies of cached clip arrays so we can transfer without detaching cachedData
+                    const workerClipYFloor = new Float32Array(cachedData.clipYFloor);
+                    const workerClipYRoof = new Float32Array(cachedData.clipYRoof);
+
+                    // Attach postTime so the worker can compute queue delay
+                    const postTime = (typeof performance !== 'undefined') ? performance.now() : Date.now();
 
                     worker.postMessage({
                         type: 'render',
@@ -214,15 +235,16 @@ export function renderRaycastHorizons(rayData, targetCtx = renderEngine) {
                         startY,
                         endY,
                         workerId: index,
-                        clipYFloorBuffer: cachedData.clipYFloor.buffer,
-                        clipYRoofBuffer: cachedData.clipYRoof.buffer
-                    }, [cachedData.clipYFloor.buffer, cachedData.clipYRoof.buffer]);
+                        clipYFloorBuffer: workerClipYFloor.buffer,
+                        clipYRoofBuffer: workerClipYRoof.buffer,
+                        postTime
+                    }, [workerClipYFloor.buffer, workerClipYRoof.buffer]);
                 });
             });
 
             await Promise.all(promises);
-            const imageData = new ImageData(finalBuffer, CANVAS_WIDTH, CANVAS_HEIGHT);
-            targetCtx.putImageData(imageData, 0, 0);
+            // Reuse preallocated ImageData and blit
+            targetCtx.putImageData(finalImageData, 0, 0);
             console.log(`Rendered horizons from cache for sector ${mapKey} *smiles*`);
             console.timeEnd('renderHorizons');
             resolve();
@@ -282,10 +304,11 @@ export function renderRaycastHorizons(rayData, targetCtx = renderEngine) {
             const workerClipYFloor = new Float32Array(clipYFloor.length);
             workerClipYFloor.set(clipYFloor);
             const workerClipYRoof = new Float32Array(clipYRoof.length);
-            workerClipYRoof.set(clipYRoof);
+            workerClipYRoof.set(clipYRoof.length ? clipYRoof : clipYRoof);
 
             return new Promise(resolveWorker => {
                 worker.onmessage = function (e) {
+                    // Accept render_done and error messages; ignore telemetry
                     if (e.data.type === 'render_done') {
                         const workerBuffer = new Uint8ClampedArray(e.data.horizonBuffer);
                         const startOffset = e.data.startY * CANVAS_WIDTH * 4;
@@ -295,8 +318,13 @@ export function renderRaycastHorizons(rayData, targetCtx = renderEngine) {
                             console.error(`Error copying horizon worker ${e.data.workerId} buffer: ${error.message}`);
                         }
                         resolveWorker();
+                    } else if (e.data.type === 'error') {
+                        console.error(`Horizon worker error (id=${e.data.workerId}):`, e.data.message, e.data.stack);
+                        resolveWorker();
                     }
                 };
+
+                const postTime = (typeof performance !== 'undefined') ? performance.now() : Date.now();
 
                 worker.postMessage({
                     type: 'render',
@@ -309,15 +337,16 @@ export function renderRaycastHorizons(rayData, targetCtx = renderEngine) {
                     endY,
                     workerId: index,
                     clipYFloorBuffer: workerClipYFloor.buffer,
-                    clipYRoofBuffer: workerClipYRoof.buffer
+                    clipYRoofBuffer: workerClipYRoof.buffer,
+                    postTime
                 }, [workerClipYFloor.buffer, workerClipYRoof.buffer]);
             });
         });
 
         await Promise.all(promises);
 
-        const imageData = new ImageData(finalBuffer, CANVAS_WIDTH, CANVAS_HEIGHT);
-        targetCtx.putImageData(imageData, 0, 0);
+        // Reuse the allocated ImageData
+        targetCtx.putImageData(finalImageData, 0, 0);
 
         // Cache results for static sectors
         if (!horizonCache.has(mapKey)) {

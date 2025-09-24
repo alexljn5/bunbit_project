@@ -1,8 +1,35 @@
 let staticData = null;
 let latestFrameId = -1;
 
+// Worker CPU sampling (accumulate busy time and report periodically)
+let __workerCpuAccum = 0;
+let __workerSampleStart = (typeof performance !== 'undefined') ? performance.now() : Date.now();
+let __workerId = null;
+const __perfChannel = (typeof BroadcastChannel !== 'undefined') ? new BroadcastChannel('perf_monitor') : null;
+function __postWorkerCpu(usagePercent) {
+    const payload = { type: 'worker_cpu', usages: [{ id: __workerId || 'raycast', usage: Math.round(usagePercent * 10) / 10 }] };
+    try {
+        if (__perfChannel) __perfChannel.postMessage(payload);
+        else self.postMessage(payload);
+    } catch (err) {
+        // best-effort
+    }
+}
+setInterval(() => {
+    try {
+        const now = (typeof performance !== 'undefined') ? performance.now() : Date.now();
+        const interval = Math.max(1, now - __workerSampleStart);
+        const percent = Math.min(100, (__workerCpuAccum / interval) * 100);
+        __postWorkerCpu(percent);
+        __workerCpuAccum = 0;
+        __workerSampleStart = now;
+    } catch (err) {
+        // ignore
+    }
+}, 500);
+
 self.addEventListener("message", (e) => {
-    const startTime = performance.now();
+    const startTime = (typeof performance !== 'undefined') ? performance.now() : Date.now();
 
     try {
         if (e.data.type === "init") {
@@ -16,6 +43,7 @@ self.addEventListener("message", (e) => {
                 maxRayDepth: e.data.maxRayDepth,
                 textureTransparencyMap: e.data.textureTransparencyMap || {}
             };
+            __workerId = e.data.workerId || __workerId;
             self.postMessage({ type: "init", success: true });
             return;
         }
@@ -150,13 +178,29 @@ self.addEventListener("message", (e) => {
             rayData,
             workerTime: performance.now() - startTime
         });
+
+        // Accumulate busy time for CPU sampling
+        try {
+            const tEnd = (typeof performance !== 'undefined') ? performance.now() : Date.now();
+            __workerCpuAccum += (tEnd - startTime);
+        } catch (err) {
+            // ignore
+        }
     } catch (err) {
         self.postMessage({
             type: "error",
             error: err.message,
             frameId: e.data.frameId || -1,
-            workerTime: performance.now() - startTime
+            workerTime: (typeof performance !== 'undefined') ? performance.now() - startTime : 0
         });
+
+        // also account for time spent until error
+        try {
+            const tErr = (typeof performance !== 'undefined') ? performance.now() : Date.now();
+            __workerCpuAccum += (tErr - startTime);
+        } catch (er) {
+            // ignore
+        }
     }
 });
 

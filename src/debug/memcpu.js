@@ -42,12 +42,18 @@ let performanceData = {
     },
     fps: 0,
     frameTime: 0,
-    renderWorkerLoad: 0,
+    renderWorkerLoad: null, // null = unknown / no data
     networkLatency: 0,
-    gpuMemory: 0,
     frameCount: 0,
     lastFpsUpdate: 0,
     lastFrameTime: 0,
+    // Smoothed values container to prevent NaN/uninitialized access
+    smoothed: {
+        cpu: 0,
+        fps: 0,
+        frameTime: 0,
+        renderWorkerLoad: 0
+    },
     history: {
         jsHeap: [],
         systemMemory: [],
@@ -55,8 +61,7 @@ let performanceData = {
         fps: [],
         frameTime: [],
         renderWorkerLoad: [],
-        networkLatency: [],
-        gpuMemory: []
+        networkLatency: []
     }
 };
 
@@ -73,15 +78,40 @@ const TARGET_FRAME_TIME = 1000 / 60; // 16.67ms for 60 FPS
 
 // Worker CPU tracking
 let workerCpuUsages = [];
-window.addEventListener('message', (e) => {
-    try {
-        if (e.data.type === 'worker_cpu') {
-            workerCpuUsages = e.data.usages; // Array of { id, usage }
+
+// Use BroadcastChannel so workers can post their usage directly (works from workers and main)
+const perfChannel = (typeof BroadcastChannel !== 'undefined') ? new BroadcastChannel('perf_monitor') : null;
+if (perfChannel) {
+    perfChannel.onmessage = (e) => {
+        try {
+            if (e.data && e.data.type === 'worker_cpu') {
+                workerCpuUsages = Array.isArray(e.data.usages) ? e.data.usages : [];
+            }
+        } catch (err) {
+            console.error('Error in perfChannel message handler:', err);
         }
+    };
+} else {
+    // Fallback: accept window messages (requires workers or other code to post to window)
+    window.addEventListener('message', (e) => {
+        try {
+            if (e.data && e.data.type === 'worker_cpu') {
+                workerCpuUsages = Array.isArray(e.data.usages) ? e.data.usages : [];
+            }
+        } catch (err) {
+            console.error('Error in worker CPU message handler:', err);
+        }
+    });
+}
+
+// Helper to allow main thread code to push worker usage manually if needed
+window.reportWorkerCpuUsage = function (usages) {
+    try {
+        workerCpuUsages = Array.isArray(usages) ? usages : [];
     } catch (err) {
-        console.error('Error in worker CPU message handler:', err);
+        console.error('Error in reportWorkerCpuUsage:', err);
     }
-});
+};
 
 // Create resize handle
 function createResizeHandle() {
@@ -220,6 +250,14 @@ function updateGlitchEffects() {
     }
 }
 
+// Add runtime detection and smoothing helpers
+const isElectron = typeof process !== 'undefined' && !!process.versions?.electron;
+const EMA_ALPHA = 0.18; // smoothing factor for noisy metrics
+function smooth(prev, next) {
+    if (prev == null || isNaN(prev)) return next;
+    return prev + EMA_ALPHA * (next - prev);
+}
+
 // Main setup
 export function memCpuGodFunction() {
     try {
@@ -337,48 +375,95 @@ export function memCpuGodFunction() {
     }
 }
 
-// Update performance data
+// Replace the updatePerformanceData function with a more robust, smoothed implementation
 function updatePerformanceData() {
     try {
         if (!isPerfVisible) return;
 
-        // System Memory
-        const totalMem = os.totalmem();
-        const freeMem = os.freemem();
-        const usedMem = totalMem - freeMem;
+        const now = (hasPerformanceAPI ? performance.now() : Date.now());
+
+        // System Memory (best-effort)
+        let totalMemBytes = null;
+        let freeMemBytes = null;
+        try {
+            if (isElectron && typeof os.totalmem === 'function' && typeof os.freemem === 'function') {
+                totalMemBytes = os.totalmem();
+                freeMemBytes = os.freemem();
+            } else if (typeof navigator !== 'undefined' && navigator.deviceMemory) {
+                // navigator.deviceMemory is GB approximate
+                totalMemBytes = navigator.deviceMemory * 1024 * 1024 * 1024;
+                // No reliable free mem in browsers — estimate conservatively
+                freeMemBytes = totalMemBytes * 0.5;
+            } else if (typeof os.totalmem === 'function') {
+                totalMemBytes = os.totalmem();
+                freeMemBytes = os.freemem();
+            } else {
+                // Last resort fallback (keeps previous behavior but acknowledged as estimate)
+                totalMemBytes = 8 * 1024 * 1024 * 1024;
+                freeMemBytes = totalMemBytes * 0.5;
+            }
+        } catch (err) {
+            console.warn('Could not query system memory precisely, using estimates:', err);
+            totalMemBytes = totalMemBytes || 8 * 1024 * 1024 * 1024;
+            freeMemBytes = freeMemBytes || totalMemBytes * 0.5;
+        }
+
+        const usedMemBytes = Math.max(0, (totalMemBytes - (freeMemBytes || 0)));
+        const totalMB = Math.round((totalMemBytes || 0) / 1048576);
+        const usedMB = Math.round(usedMemBytes / 1048576);
+        const percentMem = totalMemBytes ? Math.round((usedMemBytes / totalMemBytes) * 1000) / 10 : 0;
+
         performanceData.systemMemory = {
-            used: Math.round(usedMem / 1048576),
-            total: Math.round(totalMem / 1048576),
-            percent: Math.round((usedMem / totalMem) * 100 * 10) / 10
+            used: usedMB,
+            total: totalMB,
+            percent: percentMem
         };
 
-        // Game CPU (browser fallback)
-        const now = performance.now();
+        // CPU usage
         if (typeof process !== 'undefined' && process.cpuUsage) {
-            const currentCpuUsage = process.cpuUsage(performanceData.cpu.lastCpuUsage);
-            const totalCpuTime = (currentCpuUsage.user + currentCpuUsage.system) / 10000;
-            performanceData.cpu.usage = Math.min(100, Math.round(totalCpuTime * 10) / 10);
-            performanceData.cpu.lastCpuUsage = process.cpuUsage();
+            try {
+                const currentCpuUsage = process.cpuUsage(performanceData.cpu.lastCpuUsage);
+                const totalCpuTime = (currentCpuUsage.user + currentCpuUsage.system) / 10000; // to ms-ish scale
+                // Sanity clamp and smooth
+                const instantCpu = Math.min(100, Math.max(0, Math.round(totalCpuTime * 10) / 10));
+                performanceData.smoothed.cpu = smooth(performanceData.smoothed.cpu, instantCpu);
+                performanceData.cpu.usage = Math.round(performanceData.smoothed.cpu * 10) / 10;
+                performanceData.cpu.lastCpuUsage = process.cpuUsage();
+            } catch (err) {
+                console.warn('Error reading process.cpuUsage(), falling back to heuristic:', err);
+                performanceData.cpu.lastExecutionTime = performanceData.cpu.lastExecutionTime || now;
+                const deltaTime = now - performanceData.cpu.lastExecutionTime;
+                performanceData.cpu.executionSamples.push(deltaTime);
+                if (performanceData.cpu.executionSamples.length > 10) performanceData.cpu.executionSamples.shift();
+                const avgExecutionTime = performanceData.cpu.executionSamples.reduce((s, t) => s + t, 0) / performanceData.cpu.executionSamples.length;
+                const instantCpu = Math.min(100, (avgExecutionTime / TARGET_FRAME_TIME) * 100);
+                performanceData.smoothed.cpu = smooth(performanceData.smoothed.cpu, instantCpu);
+                performanceData.cpu.usage = Math.round(performanceData.smoothed.cpu * 10) / 10;
+                performanceData.cpu.lastExecutionTime = now;
+            }
         } else {
-            // Estimate CPU usage based on execution time
+            // Browser heuristic: use execution time samples and smooth
+            performanceData.cpu.lastExecutionTime = performanceData.cpu.lastExecutionTime || now;
             const deltaTime = now - performanceData.cpu.lastExecutionTime;
             performanceData.cpu.executionSamples.push(deltaTime);
-            if (performanceData.cpu.executionSamples.length > 10) {
-                performanceData.cpu.executionSamples.shift();
-            }
-            const avgExecutionTime = performanceData.cpu.executionSamples.reduce((sum, t) => sum + t, 0) / performanceData.cpu.executionSamples.length;
-            performanceData.cpu.usage = Math.min(100, Math.round((avgExecutionTime / TARGET_FRAME_TIME) * 100 * 10) / 10);
+            if (performanceData.cpu.executionSamples.length > 10) performanceData.cpu.executionSamples.shift();
+            const avgExecutionTime = performanceData.cpu.executionSamples.reduce((s, t) => s + t, 0) / performanceData.cpu.executionSamples.length;
+            const instantCpu = Math.min(100, (avgExecutionTime / TARGET_FRAME_TIME) * 100);
+            performanceData.smoothed.cpu = smooth(performanceData.smoothed.cpu, instantCpu);
+            performanceData.cpu.usage = Math.round(performanceData.smoothed.cpu * 10) / 10;
             performanceData.cpu.lastExecutionTime = now;
         }
 
-        // Worker CPU Load (normalized per core)
-        let totalWorkerUsage = 0;
+        // Worker CPU Load - average reported worker usage (expect worker to post messages)
         if (workerCpuUsages.length > 0) {
-            totalWorkerUsage = workerCpuUsages.reduce((sum, w) => sum + (w.usage || 0), 0);
-            // Normalize by number of cores and cap at 100%
-            performanceData.renderWorkerLoad = Math.min(100, Math.round((totalWorkerUsage / performanceData.cpu.cores) * 10) / 10);
+            const avg = workerCpuUsages.reduce((s, w) => s + (w.usage || 0), 0) / workerCpuUsages.length;
+            const instantWorkerLoad = Math.min(100, Math.max(0, avg));
+            performanceData.smoothed.renderWorkerLoad = smooth(performanceData.smoothed.renderWorkerLoad, instantWorkerLoad);
+            performanceData.renderWorkerLoad = Math.round(performanceData.smoothed.renderWorkerLoad * 10) / 10;
         } else {
-            performanceData.renderWorkerLoad = 0; // Fallback
+            // No worker reports available - mark as unknown
+            performanceData.renderWorkerLoad = null;
+            performanceData.smoothed.renderWorkerLoad = 0;
         }
 
         // JS Heap
@@ -391,39 +476,36 @@ function updatePerformanceData() {
             };
         }
 
-        // GPU (approximated)
-        if (hasGpuMemoryAPI) {
-            const memoryInfo = gl.getParameter(gl.getExtension('WEBGL_debug_renderer_info')?.UNMASKED_RENDERER_WEBGL);
-            performanceData.gpuMemory = memoryInfo ? (memoryInfo.includes('NVIDIA') ? Math.random() * 1000 : Math.random() * 500) : 0;
-        }
-
-        // FPS/Frame Time
+        // FPS/Frame Time - update once per second, apply smoothing
         if (now - performanceData.lastFpsUpdate >= 1000) {
-            performanceData.fps = Math.min(60, Math.round(
-                (performanceData.frameCount * 1000) / (now - performanceData.lastFpsUpdate)
-            ));
-            performanceData.frameTime = (now - performanceData.lastFpsUpdate) / performanceData.frameCount;
+            const rawFps = performanceData.frameCount > 0 ? Math.min(60, Math.round((performanceData.frameCount * 1000) / (now - performanceData.lastFpsUpdate))) : 0;
+            const rawFrameTime = performanceData.frameCount > 0 ? ((now - performanceData.lastFpsUpdate) / performanceData.frameCount) : 0;
+
+            performanceData.smoothed.fps = smooth(performanceData.smoothed.fps, rawFps);
+            performanceData.smoothed.frameTime = smooth(performanceData.smoothed.frameTime, rawFrameTime);
+
+            performanceData.fps = Math.round(performanceData.smoothed.fps);
+            performanceData.frameTime = Math.round(performanceData.smoothed.frameTime * 100) / 100;
+
             performanceData.frameCount = 0;
             performanceData.lastFpsUpdate = now;
 
-            // Network latency (simulated)
-            performanceData.networkLatency = Math.random() * 100;
+            // Network latency remains simulated here — smooth it to reduce jitter
+            const rawLatency = Math.random() * 100;
+            performanceData.networkLatency = Math.round(smooth(performanceData.networkLatency || 0, rawLatency) * 10) / 10;
 
-            // History updates
+            // Update history (use smoothed values where appropriate)
             performanceData.history.jsHeap.push(performanceData.jsHeap.used || 0);
             performanceData.history.systemMemory.push(performanceData.systemMemory.percent || 0);
             performanceData.history.cpu.push(performanceData.cpu.usage);
             performanceData.history.fps.push(performanceData.fps);
             performanceData.history.frameTime.push(performanceData.frameTime);
-            performanceData.history.renderWorkerLoad.push(performanceData.renderWorkerLoad);
+            performanceData.history.renderWorkerLoad.push(performanceData.renderWorkerLoad != null ? performanceData.renderWorkerLoad : 0);
             performanceData.history.networkLatency.push(performanceData.networkLatency);
-            performanceData.history.gpuMemory.push(performanceData.gpuMemory);
 
             const maxHistory = 30;
             Object.keys(performanceData.history).forEach(key => {
-                if (performanceData.history[key].length > maxHistory) {
-                    performanceData.history[key].shift();
-                }
+                if (performanceData.history[key].length > maxHistory) performanceData.history[key].shift();
             });
         }
     } catch (err) {
@@ -515,11 +597,12 @@ function drawPerfMonitor(time) {
         perfCtx.fillText(cpuText, 10, y);
         y += 15;
 
-        let workerText = `Worker Load: ${performanceData.renderWorkerLoad.toFixed(1)}%`;
+        // Worker load display - show N/A when unknown
+        let workerText = performanceData.renderWorkerLoad != null ? `Worker Load: ${performanceData.renderWorkerLoad.toFixed(1)}%` : 'Worker Load: N/A';
         if (evilGlitchSystem.textGlitch) {
             workerText = evilGlitchSystem.applyTextGlitch(workerText);
         }
-        perfCtx.fillStyle = themeManager.getPerformanceColor?.(performanceData.renderWorkerLoad, [80, 50]) || '#FFFFFF';
+        perfCtx.fillStyle = themeManager.getPerformanceColor?.(performanceData.renderWorkerLoad || 0, [80, 50]) || '#FFFFFF';
         perfCtx.fillText(workerText, 10, y);
         y += 15;
 
@@ -530,16 +613,6 @@ function drawPerfMonitor(time) {
         perfCtx.fillStyle = themeManager.getPerformanceColor?.(performanceData.networkLatency, [100, 50], true) || '#FFFFFF';
         perfCtx.fillText(latencyText, 10, y);
         y += 15;
-
-        if (hasGpuMemoryAPI) {
-            let gpuText = `GPU MEM: ${performanceData.gpuMemory.toFixed(1)}MB`;
-            if (evilGlitchSystem.textGlitch) {
-                gpuText = evilGlitchSystem.applyTextGlitch(gpuText);
-            }
-            perfCtx.fillStyle = themeManager.getPerformanceColor?.(performanceData.gpuMemory, [1000, 500], true) || '#FFFFFF';
-            perfCtx.fillText(gpuText, 10, y);
-            y += 15;
-        }
 
         perfCtx.translate(-(evilGlitchSystem.horizontalShift || 0), 0);
 
@@ -561,9 +634,6 @@ function drawPerfMonitor(time) {
             y += graphHeight + 10;
             drawGraph(perfCtx, performanceData.history.networkLatency, 10, y, width - 20, graphHeight, themeManager.getCurrentTheme()?.warning || '#FFFF00', "Latency");
             y += graphHeight + 10;
-            if (hasGpuMemoryAPI) {
-                drawGraph(perfCtx, performanceData.history.gpuMemory, 10, y, width - 20, graphHeight, themeManager.getCurrentTheme()?.danger || '#FC0000', "GPU MEM");
-            }
         }
 
         perfCtx.strokeStyle = themeManager.getCurrentTheme()?.border || '#FC0000';
