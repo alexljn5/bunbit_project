@@ -30,6 +30,14 @@ if (typeof window !== 'undefined') {
         HIGH_RES_ENABLED = true;
         console.log("Debug mode: High-res enabled! *chao chao*");
     }
+
+    // Lock the ESC key using Keyboard Lock API
+    if (navigator.keyboard && navigator.keyboard.lock) {
+        navigator.keyboard.lock(['Escape'])
+            .catch(err => console.log("Could not lock ESC key:", err));
+    } else {
+        console.log("Keyboard Lock API not supported in this browser");
+    }
 }
 
 export function updateCanvasResolution(highResEnabled) {

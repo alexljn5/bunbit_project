@@ -58,8 +58,9 @@ canvas.ai-overlay {
 
 canvas#staminaBar,
 canvas.minimapCanvas {
-    position: absolute;
-    z-index: 1000;
+    position: fixed;
+    z-index: 2147483647;
+    pointer-events: auto;
     /* Stay on top */
 }
 
@@ -72,4 +73,34 @@ canvas.minimapCanvas {
     display: flex;
     justify-content: center;
     margin-bottom: 20px;
+}
+
+/* Ensure when the container is fullscreen the canvas fills the viewport and preserves rendering behavior */
+.game-container:fullscreen,
+.game-container:-webkit-full-screen,
+.game-container:-moz-full-screen,
+.game-container:-ms-fullscreen {
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: none !important;
+    max-height: none !important;
+    display: block;
+}
+
+.game-container:fullscreen canvas#mainGameRender,
+.game-container:-webkit-full-screen canvas#mainGameRender,
+.game-container:-moz-full-screen canvas#mainGameRender,
+.game-container:-ms-fullscreen canvas#mainGameRender {
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: none !important;
+    max-height: none !important;
+    transform: none !important;
+    /* avoid unexpected CSS transforms */
+    image-rendering: pixelated;
+}
+
+/* Make sure overlays inside the container remain interactive */
+.game-container:fullscreen * {
+    pointer-events: auto !important;
 }

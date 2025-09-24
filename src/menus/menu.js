@@ -234,7 +234,23 @@ window.addEventListener('keydown', function (e) {
         e.preventDefault();
         const canvas = renderEngine.canvas;
         if (!document.fullscreenElement) {
-            if (canvas.requestFullscreen) canvas.requestFullscreen();
+            // Request fullscreen on the container that holds canvas and overlays so DOM overlays stay interactive
+            const container = canvas ? (canvas.closest('.game-container') || canvas.parentElement) : null;
+            const target = container || canvas || document.documentElement;
+            try {
+                if (target.requestFullscreen) {
+                    target.requestFullscreen();
+                } else if (target.webkitRequestFullscreen) {
+                    target.webkitRequestFullscreen();
+                } else if (target.mozRequestFullScreen) {
+                    target.mozRequestFullScreen();
+                } else if (target.msRequestFullscreen) {
+                    target.msRequestFullscreen();
+                }
+            } catch (err) {
+                console.error('Failed to request fullscreen on container, falling back to canvas:', err);
+                if (canvas && canvas.requestFullscreen) canvas.requestFullscreen();
+            }
         } else {
             if (document.exitFullscreen) document.exitFullscreen();
         }
