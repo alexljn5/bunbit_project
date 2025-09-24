@@ -18,22 +18,35 @@ export function corpseSpriteRustyKeyInteraction() {
     const dz = playerPosition.z - corpse1WorldPos.z;
     const distance = Math.sqrt(dx * dx + dz * dz);
 
-    // Show pickup box and handle pickup with 'T' key
-    if (distance < spriteRadius && !playerInventory.includes("rusty_key")) {
-        drawRustyKeyPickupBox();
-        if (keys.t && !lastCorpseTState) {
-            playerInventory.push("rusty_key");
-            rustyKeyPickupBoxShown = false;
-            playerMovementDisabled = false;
-            console.log("You picked up the rusty key! *giggles*");
-        }
+    // If player already has the rusty key, nothing to do
+    if (playerInventory.includes("rusty_key")) {
+        rustyKeyPickupBoxShown = false;
+        playerMovementDisabled = false;
+        return;
     }
-    lastCorpseTState = keys.t;
 
-    // Draw the pickup box if it should be shown
+    // On T press (rising edge) toggle the pickup box and lock/unlock movement
+    if (distance < spriteRadius && keys.t && !lastCorpseTState) {
+        rustyKeyPickupBoxShown = !rustyKeyPickupBoxShown;
+        playerMovementDisabled = rustyKeyPickupBoxShown;
+    }
+
+    // Auto-pickup when walked very close to corpse (walk-over behavior)
+    const WALK_PICKUP_THRESHOLD = 30; // smaller threshold for immediate pickup
+    if (distance < WALK_PICKUP_THRESHOLD && !playerInventory.includes("rusty_key")) {
+        playerInventory.push("rusty_key");
+        rustyKeyPickupBoxShown = false;
+        playerMovementDisabled = false;
+        console.log("You picked up the rusty key by walking over the corpse! *giggles*");
+    }
+
+    // Preserve explicit pickup-box drawing if requested by T
     if (rustyKeyPickupBoxShown) {
         drawRustyKeyPickupBox();
     }
+
+    // Update last T state for debouncing
+    lastCorpseTState = keys.t;
 }
 
 export function metalPipeSpriteInteraction() {
