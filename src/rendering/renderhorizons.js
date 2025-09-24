@@ -204,7 +204,6 @@ export function renderRaycastHorizons(rayData, targetCtx = renderEngine) {
 
                 return new Promise(resolveWorker => {
                     worker.onmessage = function (e) {
-                        // Accept render_done and error messages; ignore telemetry
                         if (e.data.type === 'render_done') {
                             // Worker sent an ArrayBuffer (raw bytes)
                             const workerBuffer = new Uint8ClampedArray(e.data.horizonBuffer);
@@ -215,19 +214,12 @@ export function renderRaycastHorizons(rayData, targetCtx = renderEngine) {
                                 console.error(`Error copying horizon worker ${e.data.workerId} buffer: ${error.message}`);
                             }
                             resolveWorker();
-                        } else if (e.data.type === 'error') {
-                            console.error(`Horizon worker error (id=${e.data.workerId}):`, e.data.message, e.data.stack);
-                            // Resolve to avoid stalling the frame; main will render whatever parts are available
-                            resolveWorker();
                         }
                     };
 
                     // Make copies of cached clip arrays so we can transfer without detaching cachedData
                     const workerClipYFloor = new Float32Array(cachedData.clipYFloor);
                     const workerClipYRoof = new Float32Array(cachedData.clipYRoof);
-
-                    // Attach postTime so the worker can compute queue delay
-                    const postTime = (typeof performance !== 'undefined') ? performance.now() : Date.now();
 
                     worker.postMessage({
                         type: 'render',
@@ -236,8 +228,7 @@ export function renderRaycastHorizons(rayData, targetCtx = renderEngine) {
                         endY,
                         workerId: index,
                         clipYFloorBuffer: workerClipYFloor.buffer,
-                        clipYRoofBuffer: workerClipYRoof.buffer,
-                        postTime
+                        clipYRoofBuffer: workerClipYRoof.buffer
                     }, [workerClipYFloor.buffer, workerClipYRoof.buffer]);
                 });
             });
@@ -308,7 +299,6 @@ export function renderRaycastHorizons(rayData, targetCtx = renderEngine) {
 
             return new Promise(resolveWorker => {
                 worker.onmessage = function (e) {
-                    // Accept render_done and error messages; ignore telemetry
                     if (e.data.type === 'render_done') {
                         const workerBuffer = new Uint8ClampedArray(e.data.horizonBuffer);
                         const startOffset = e.data.startY * CANVAS_WIDTH * 4;
@@ -318,13 +308,8 @@ export function renderRaycastHorizons(rayData, targetCtx = renderEngine) {
                             console.error(`Error copying horizon worker ${e.data.workerId} buffer: ${error.message}`);
                         }
                         resolveWorker();
-                    } else if (e.data.type === 'error') {
-                        console.error(`Horizon worker error (id=${e.data.workerId}):`, e.data.message, e.data.stack);
-                        resolveWorker();
                     }
                 };
-
-                const postTime = (typeof performance !== 'undefined') ? performance.now() : Date.now();
 
                 worker.postMessage({
                     type: 'render',
@@ -337,8 +322,7 @@ export function renderRaycastHorizons(rayData, targetCtx = renderEngine) {
                     endY,
                     workerId: index,
                     clipYFloorBuffer: workerClipYFloor.buffer,
-                    clipYRoofBuffer: workerClipYRoof.buffer,
-                    postTime
+                    clipYRoofBuffer: workerClipYRoof.buffer
                 }, [workerClipYFloor.buffer, workerClipYRoof.buffer]);
             });
         });
