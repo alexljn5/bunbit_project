@@ -217,3 +217,95 @@ function handleTextureError(textureName) {
 }
 
 export { tileTextures, texturesLoaded, };
+
+// After initializing tileTexturesMap entries above, try to offload image decoding to a worker
+async function _startTextureWorkerLoad() {
+    if (typeof Worker === 'undefined' || typeof createImageBitmap === 'undefined') {
+        console.warn('Worker or createImageBitmap not available; using main-thread image loading fallback');
+        return false;
+    }
+
+    try {
+        const worker = new Worker('/src/mapdata/textureloaderworker.js', { type: 'module' });
+        const texturesToSend = [];
+        for (const [key, value] of Object.entries(tileTextures)) {
+            if (key === 'wall_laughing_demon') {
+                // send all frames
+                value.forEach((frame, idx) => {
+                    texturesToSend.push({ key: key, url: frame.src, frameIndex: idx });
+                });
+            } else {
+                texturesToSend.push({ key, url: value.src, frameIndex: null });
+            }
+        }
+
+        worker.onmessage = function (e) {
+            const data = e.data;
+            if (!data) return;
+            if (data.type === 'loaded') {
+                try {
+                    const key = data.key;
+                    const frameIndex = data.frameIndex;
+                    const img = data.imageBitmap;
+                    // replace map entry with ImageBitmap or a frame array
+                    if (key === 'wall_laughing_demon') {
+                        if (!tileTexturesMap.get(key) || !Array.isArray(tileTexturesMap.get(key))) {
+                            tileTexturesMap.set(key, []);
+                        }
+                        const frames = tileTexturesMap.get(key);
+                        frames[frameIndex] = img;
+                    } else {
+                        tileTexturesMap.set(key, img);
+                    }
+                    if (data.hasTransparency === true) textureTransparencyMap[key] = true;
+                    // store sampled column if provided for debugging/fallback
+                    if (data.sampledColumnBuffer) {
+                        try {
+                            textureTransparencyMap[`${key}_sampledColumn`] = new Uint8ClampedArray(data.sampledColumnBuffer);
+                        } catch (errSC) {
+                            // ignore
+                        }
+                    }
+                    // free original HTMLImage objects if any
+                    try {
+                        const orig = tileTextures[key];
+                        if (orig && orig instanceof Image) {
+                            // Allow GC by removing src reference
+                            orig.src = '';
+                        }
+                    } catch (errFree) {
+                        // ignore
+                    }
+                    if (!texturesLoaded) {
+                        texturesToLoad--;
+                        console.log(`Texture worker loaded: ${key} (remaining: ${texturesToLoad})`);
+                        if (texturesToLoad === 0) {
+                            texturesLoaded = true;
+                            console.log('All textures loaded via worker');
+                        }
+                    }
+                } catch (err) {
+                    console.error('Error applying texture from worker', err);
+                }
+            } else if (data.type === 'error') {
+                console.error('Texture worker error', data.key, data.message);
+            } else {
+                // ignore other messages
+            }
+        };
+
+        worker.postMessage({ type: 'load', textures: texturesToSend });
+        return true;
+    } catch (err) {
+        console.error('Failed to start texture worker:', err);
+        return false;
+    }
+}
+
+// Try to start worker-based loading; fallback will continue to attach onload handlers below
+_startTextureWorkerLoad().then(ok => {
+    if (!ok) {
+        // fallback — existing onload handlers remain in place
+        console.log('Texture worker not used; falling back to main-thread image loader');
+    }
+});
