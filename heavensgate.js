@@ -8,6 +8,8 @@ import express from 'express';
 import http from 'http';
 import bodyParser from 'body-parser';  // Added for JSON POST parsing
 
+let toggleDevTools = false;
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -106,7 +108,7 @@ async function createWindow() {
             nodeIntegration: true,
             contextIsolation: false,
             sandbox: false, // changed to false so DevTools and debugging work reliably
-            devTools: true
+            devTools: toggleDevTools,
         },
         autoHideMenuBar: true,
         menuBarVisible: false
