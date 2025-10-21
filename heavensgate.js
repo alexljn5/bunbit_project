@@ -3,9 +3,10 @@ import { join, dirname } from 'path';
 import { promises as fs } from 'fs';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
-import mysql from 'mysql2/promise';
+import mysql from 'mysql2/promise';  // Keeping this, but not using for logs—remove if you want!
 import express from 'express';
 import http from 'http';
+import bodyParser from 'body-parser';  // Added for JSON POST parsing
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -14,7 +15,7 @@ const __dirname = dirname(__filename);
 dotenv.config();
 
 let mainWindow = null;
-let dbConnection = null;
+let dbConnection = null;  // Optional, keeping for now
 let httpServer = null;
 
 // Crash log directory
@@ -117,15 +118,64 @@ async function createWindow() {
 
     // Start Express server
     const server = express();
+    server.use(bodyParser.json());  // For JSON parsing
     server.use(express.static(__dirname));
-    const PORT = process.env.PORT || 3000;
+
+    // Custom scary_logs folder in userData (self-contained, local files)
+    const userDataPath = app.getPath('userData');
+    const logsFolder = join(userDataPath, 'scary_logs');
+    try {
+        await fs.mkdir(logsFolder, { recursive: true });
+        console.log(`Scary logs folder ready at: ${logsFolder} *shivers*`);
+    } catch (error) {
+        console.error('Failed to create scary_logs:', error);
+        await writeCrashLog(error, 'Logs Folder');
+    }
+
+    // API: GET /player-logs - Fetch all logs as array of JSON objects
+    server.get('/player-logs', async (req, res) => {
+        try {
+            const logs = [];
+            const files = await fs.readdir(logsFolder);
+            for (const file of files) {
+                if (file.endsWith('.json')) {
+                    const data = JSON.parse(await fs.readFile(join(logsFolder, file), 'utf8'));
+                    logs.push(data);
+                }
+            }
+            res.json(logs);
+        } catch (error) {
+            console.error('GET /player-logs error:', error);
+            await writeCrashLog(error, 'API GET /player-logs');
+            res.status(500).json({ error: 'Failed to fetch logs' });
+        }
+    });
+
+    // API: POST /player-log - Save new log as JSON file
+    server.post('/player-log', async (req, res) => {
+        try {
+            const logData = req.body;
+            if (!logData.timestamp) throw new Error('Timestamp required');
+            const fileName = `log_${logData.timestamp}.json`;
+            const filePath = join(logsFolder, fileName);
+            await fs.writeFile(filePath, JSON.stringify(logData, null, 2));
+            res.json({ message: 'Log saved', data: logData });
+        } catch (error) {
+            console.error('POST /player-log error:', error);
+            await writeCrashLog(error, 'API POST /player-log');
+            res.status(500).json({ error: 'Failed to save log' });
+        }
+    });
+
+    let PORT = process.env.PORT || 3000;
     httpServer = http.createServer(server);
     httpServer.on('error', async (error) => {
         console.error('Express server error:', error.message);
         await writeCrashLog(error, 'Express Server');
         if (error.code === 'EADDRINUSE') {
-            console.warn(`Port ${PORT} is in use, trying port ${PORT + 1} *pouts*`);
-            httpServer.listen(PORT + 1, 'localhost');
+            PORT += 1;
+            console.warn(`Port ${PORT - 1} in use, trying ${PORT} *pouts*`);
+            httpServer.listen(PORT, 'localhost');
         }
     });
     httpServer.listen(PORT, 'localhost', () => {
@@ -156,11 +206,12 @@ async function createWindow() {
             mainWindow.reload();
         }
     });
+
 }
 
 app.whenReady().then(async () => {
     await ensureLogDir();
-    await connectDB();
+    await connectDB();  // Optional—comment out if not using DB
     await createWindow();
 });
 

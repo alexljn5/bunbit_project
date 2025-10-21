@@ -30,7 +30,7 @@ if (mainCanvas) {
 
 //computerAICanvas.style.transformOrigin = "center";
 
-let isAIOverlayActive = false;  // Move here if you want global
+let isAIOverlayActive = true;  // Move here if you want global
 
 export function computerAIGodFunction() {
     if (CURRENT_COMPUTER_STATE === "login") {

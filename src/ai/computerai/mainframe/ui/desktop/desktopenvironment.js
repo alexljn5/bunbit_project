@@ -21,13 +21,13 @@ function drawDesktop() {
     mainDesktopEnvironmentStuff();
 
     // Footer
-    desktopenvironmentFooter();
+    desktopEnvironmentFooter();
 
     // Buttons (images included)
     desktopButtonsGodFunction();
 
     // OS logo text (async)
-    desktopenvironmentOsLogo();
+    desktopEnvironmentOsLogo();
 
     // Loop
     _animationFrameId = requestAnimationFrame(drawDesktop);
@@ -48,11 +48,11 @@ function mainDesktopEnvironmentStuff() {
     computerAIRenderEngine.fillText("This is your desktop after successful login!", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 40);
 }
 
-async function desktopenvironmentOsLogo() {
+async function desktopEnvironmentOsLogo() {
     await bunbitOSText(); // async logo/text rendering
 }
 
-function desktopenvironmentFooter() {
+function desktopEnvironmentFooter() {
     const footerHeight = 60 * SCALE_Y;
     computerAIRenderEngine.fillStyle = "#af0f0fff";
     computerAIRenderEngine.fillRect(0, CANVAS_HEIGHT - footerHeight, CANVAS_WIDTH, footerHeight);
