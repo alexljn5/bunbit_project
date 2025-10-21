@@ -101,8 +101,8 @@ async function createWindow() {
     }
 
     mainWindow = new BrowserWindow({
-        width: 800,
-        height: 800,
+        width: 850,
+        height: 850,
         icon: iconPath,
         webPreferences: {
             nodeIntegration: true,
