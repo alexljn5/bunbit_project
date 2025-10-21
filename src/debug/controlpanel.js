@@ -15,31 +15,36 @@ export function initControlPanel() {
 
     const debugPanel = document.createElement('div');
     debugPanel.id = 'bunbit-debug-panel';
-    // Position top-left and keep visible above fullscreen/canvas
+    // Make the panel span most of the viewport with a padding margin so the border looks "cool"
+    const edgeGap = 20; // px from viewport edges
     debugPanel.style.position = 'fixed';
-    debugPanel.style.top = '10px';
-    debugPanel.style.left = '10px';
-    debugPanel.style.right = 'auto';
-    debugPanel.style.bottom = 'auto';
-    debugPanel.style.padding = `${10 * SCALE_Y}px`;
+    debugPanel.style.top = `${edgeGap}px`;
+    debugPanel.style.left = `${edgeGap}px`;
+    //debugPanel.style.right = `${edgeGap}px`;
+    //debugPanel.style.bottom = `${edgeGap}px`;
+    // Span almost the entire viewport (edgeGap inset) so the panel visually stretches across the screen
+    debugPanel.style.right = `${edgeGap}px`;
+    debugPanel.style.bottom = `${edgeGap}px`;
+    debugPanel.style.padding = `${12 * SCALE_Y}px ${20 * SCALE_X}px`;
     debugPanel.style.border = `${2 * SCALE_X}px solid ${themeManager.getCurrentTheme()?.border || '#FC0000'}`;
-    debugPanel.style.borderRadius = `${5 * SCALE_X}px`;
-    debugPanel.style.zIndex = '2147483647';
+    debugPanel.style.borderRadius = `${8 * SCALE_X}px`;
+    debugPanel.style.zIndex = '2147483646';
     debugPanel.style.display = 'flex';
     debugPanel.style.flexDirection = 'column';
-    debugPanel.style.alignItems = 'center';
-    debugPanel.style.justifyContent = 'center';
+    // Keep buttons stacked at top-left of the panel so their positions remain familiar
+    debugPanel.style.alignItems = 'flex-start';
+    debugPanel.style.justifyContent = 'flex-start';
     debugPanel.style.cursor = 'default';
     debugPanel.style.pointerEvents = 'auto';
-    debugPanel.style.minWidth = `${120 * SCALE_X}px`;
+    debugPanel.style.minWidth = 'auto';
     debugPanel.style.minHeight = `${60 * SCALE_Y}px`;
     debugPanel.style.userSelect = 'none';
-    debugPanel.style.backgroundColor = themeManager.getCurrentTheme()?.background || '#000000';
+    // Slightly translucent themed background so you can still see the game behind it
+    debugPanel.style.backgroundColor = themeManager.getCurrentTheme()?.background || 'rgba(0,0,0,0.7)';
     debugPanel.style.color = themeManager.getCurrentTheme()?.text || '#FC0000';
-    debugPanel.style.boxShadow = `0 0 15px ${themeManager.getCurrentTheme()?.border || '#FC0000'}`;
+    debugPanel.style.boxShadow = `0 6px 30px ${themeManager.getCurrentTheme()?.border || '#FC0000'}`;
     // Make scaling predictable when using SCALE_X/Y elsewhere
     debugPanel.style.transformOrigin = 'top left';
-    // Keep default scale; UI elements already sized using SCALE_X/SCALE_Y
     debugPanel.style.transform = `scale(1)`;
 
     const header = document.createElement('div');
@@ -88,21 +93,48 @@ export function initControlPanel() {
     debugPanel.appendChild(showDebugButton);
     document.body.appendChild(debugPanel);
 
-    // Ensure visible in stacking contexts
+    // Ensure visible in stacking contexts and preserve spanning (do not collapse to top-left)
     setTimeout(() => {
         const p = document.getElementById('bunbit-debug-panel');
         if (!p) return;
-        p.style.zIndex = '2147483647';
+        p.style.zIndex = '2147483646';
         p.style.display = 'flex';
         p.style.visibility = 'visible';
         p.style.pointerEvents = 'auto';
-        // ensure it stays at top-left
-        p.style.top = '10px';
-        p.style.left = '10px';
-        p.style.right = 'auto';
-        p.style.bottom = 'auto';
+        // preserve spanning from edgeGap (do not set right/bottom to 'auto')
+        //p.style.top = `${edgeGap}px`;
+        //p.style.left = `${edgeGap}px`;
+        //p.style.right = `${edgeGap}px`;
+        //p.style.bottom = `${edgeGap}px`;
+        // Preserve spanning inset so panel remains full-window-like
+        p.style.top = `${edgeGap}px`;
+        p.style.left = `${edgeGap}px`;
+        p.style.right = `${edgeGap}px`;
+        p.style.bottom = `${edgeGap}px`;
         try { document.body.appendChild(p); } catch (e) { /* ignore */ }
     }, 150);
+
+    // Defensive: if another script removes the panel, re-create it up to N times
+    let removalRetries = 0;
+    const maxRemovalRetries = 5;
+    const observer = new MutationObserver((mutations) => {
+        const exists = !!document.getElementById('bunbit-debug-panel');
+        if (!exists && removalRetries < maxRemovalRetries) {
+            removalRetries++;
+            console.warn('bunbit-debug-panel removed externally — re-inserting (attempt', removalRetries, ')');
+            try {
+                // Re-create by calling initControlPanel again
+                // Avoid infinite recursion by scheduling next tick
+                setTimeout(() => initControlPanel(), 50);
+            } catch (e) {
+                console.error('Failed to re-init control panel:', e);
+            }
+        }
+        if (removalRetries >= maxRemovalRetries) {
+            observer.disconnect();
+        }
+    });
+    observer.observe(document.body, { childList: true, subtree: false });
 
     // Button handlers
     reloadButton.addEventListener('click', () => {
@@ -131,6 +163,8 @@ export function initControlPanel() {
                             canvas.width = CANVAS_WIDTH;
                             canvas.height = CANVAS_HEIGHT;
                         }
+                        // Ensure canvas stacks above control panel
+                        try { if (canvas) canvas.style.zIndex = '2147483647'; } catch (e) { console.warn('Could not set canvas z-index', e); }
                         window.game = gameLoop(gameRenderEngine);
                         initializeRenderWorkers();
                     }
@@ -161,8 +195,8 @@ export function initControlPanel() {
                     }
                     const renderEngine = canvas.getContext('2d');
                     if (renderEngine) renderEngine.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+                    cleanupRenderWorkers();
                 }
-                cleanupRenderWorkers();
             }
         } catch (e) { console.error('Stop button error:', e); }
     }

@@ -69,7 +69,7 @@ function renderPauseMenu() {
     renderEngine.fillText("Press M to return to main menu", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 40);
     renderEngine.restore();
 }
-
+debugHandlerGodFunction(); // <--- only setup once at startup
 // --- Render Engine ---
 export async function gameRenderEngine(deltaTime) {
     titleHandlerGodFunction();
@@ -205,5 +205,3 @@ export function cleanupRenderWorkers() {
 
 export { initializeRenderWorkers };
 
-// --- Debug Terminal Setup (called once) ---
-debugHandlerGodFunction(); // <--- only setup once at startup

@@ -268,7 +268,8 @@ export function memCpuGodFunction() {
         perfContainer.style.position = "absolute";
         perfContainer.style.right = "0";
         perfContainer.style.bottom = "0";
-        perfContainer.style.zIndex = "210";
+        // Ensure perf monitor appears above control panel and debug terminal
+        perfContainer.style.zIndex = "2147483649";
         perfContainer.style.backgroundColor = themeManager.getCurrentTheme()?.background || '#000000';
         perfContainer.style.border = `2px solid ${themeManager.getCurrentTheme()?.border || '#FC0000'}`;
         perfContainer.style.boxSizing = "border-box";

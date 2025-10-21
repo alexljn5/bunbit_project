@@ -204,7 +204,8 @@ function debugHandlerMainFunction() {
     debugContainer.style.position = 'absolute';
     debugContainer.style.left = '0';
     debugContainer.style.bottom = '0';
-    debugContainer.style.zIndex = '200';
+    // Ensure debug terminal is above the control panel (one level above game canvas)
+    debugContainer.style.zIndex = '2147483649';
     debugContainer.style.backgroundColor = 'transparent';
     debugContainer.style.border = 'none';
     debugContainer.style.boxSizing = 'border-box';
