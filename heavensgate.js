@@ -8,7 +8,7 @@ import express from 'express';
 import http from 'http';
 import bodyParser from 'body-parser';  // Added for JSON POST parsing
 
-let toggleDevTools = false;
+let toggleDevTools = true;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
