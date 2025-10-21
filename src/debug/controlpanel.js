@@ -88,14 +88,41 @@ export function initControlPanel() {
         btn.style.backgroundColor = DEFAULT_BUTTON_BG;
         btn.style.color = DEFAULT_TEXT;
         btn.style.borderColor = DEFAULT_BORDER;
+        // make sure buttons render above the logo canvas
+        btn.style.position = 'relative';
+        btn.style.zIndex = '2';
     });
     reloadButton.style.marginTop = `${10 * SCALE_Y}px`;
 
-    // Add background image centered behind controls
-    debugPanel.style.backgroundImage = "url('img/logo/logo-ascii-transparent.png')";
-    debugPanel.style.backgroundRepeat = 'no-repeat';
-    debugPanel.style.backgroundPosition = 'center center';
-    debugPanel.style.backgroundSize = '320px 320px';
+    // Add an <img> element for the logo so we can brighten and smoothly mask it (no obvious square)
+    const _logoSrc = 'img/logo/logo-ascii-transparent.png';
+    const logoEl = document.createElement('img');
+    logoEl.src = _logoSrc;
+    logoEl.alt = '';
+    // Position and sizing
+    logoEl.style.position = 'absolute';
+    logoEl.style.left = '50%';
+    logoEl.style.top = '50%';
+    logoEl.style.transform = 'translate(-50%, -50%)';
+    logoEl.style.width = '512px';
+    logoEl.style.height = 'auto';
+    logoEl.style.maxWidth = '60%';
+    // Visual blending: brighten, increase contrast, and blend with panel color
+    logoEl.style.filter = 'brightness(4.90) contrast(10.15) saturate(10.2)';
+    logoEl.style.mixBlendMode = 'overlay';
+    // So it doesn't show an obvious square: soften edges with borderRadius + clip-path ellipse
+    logoEl.style.borderRadius = '18%';
+    logoEl.style.clipPath = 'ellipse(48% 40% at 50% 50%)';
+    // Subtle shadow for separation
+    logoEl.style.boxShadow = '0 12px 40px rgba(0,0,0,0.55)';
+    // Non-interactive and behind buttons
+    logoEl.style.pointerEvents = 'none';
+    logoEl.style.opacity = '0.94';
+    logoEl.style.zIndex = '0';
+    debugPanel.appendChild(logoEl);
+    // Ensure header and buttons render above
+    header.style.zIndex = '3';
+    // Buttons already set to zIndex 2 above
 
     debugPanel.appendChild(header);
     debugPanel.appendChild(reloadButton);
