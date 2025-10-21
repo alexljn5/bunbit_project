@@ -15,11 +15,14 @@ export function initControlPanel() {
 
     const debugPanel = document.createElement('div');
     debugPanel.id = 'bunbit-debug-panel';
+    // Position top-left and keep visible above fullscreen/canvas
     debugPanel.style.position = 'fixed';
-    debugPanel.style.bottom = '10px';
-    debugPanel.style.right = '10px';
+    debugPanel.style.top = '10px';
+    debugPanel.style.left = '10px';
+    debugPanel.style.right = 'auto';
+    debugPanel.style.bottom = 'auto';
     debugPanel.style.padding = `${10 * SCALE_Y}px`;
-    debugPanel.style.border = `${2 * SCALE_X}px solid`;
+    debugPanel.style.border = `${2 * SCALE_X}px solid ${themeManager.getCurrentTheme()?.border || '#FC0000'}`;
     debugPanel.style.borderRadius = `${5 * SCALE_X}px`;
     debugPanel.style.zIndex = '2147483647';
     debugPanel.style.display = 'flex';
@@ -31,6 +34,13 @@ export function initControlPanel() {
     debugPanel.style.minWidth = `${120 * SCALE_X}px`;
     debugPanel.style.minHeight = `${60 * SCALE_Y}px`;
     debugPanel.style.userSelect = 'none';
+    debugPanel.style.backgroundColor = themeManager.getCurrentTheme()?.background || '#000000';
+    debugPanel.style.color = themeManager.getCurrentTheme()?.text || '#FC0000';
+    debugPanel.style.boxShadow = `0 0 15px ${themeManager.getCurrentTheme()?.border || '#FC0000'}`;
+    // Make scaling predictable when using SCALE_X/Y elsewhere
+    debugPanel.style.transformOrigin = 'top left';
+    // Keep default scale; UI elements already sized using SCALE_X/SCALE_Y
+    debugPanel.style.transform = `scale(1)`;
 
     const header = document.createElement('div');
     header.style.width = '100%';
@@ -86,6 +96,11 @@ export function initControlPanel() {
         p.style.display = 'flex';
         p.style.visibility = 'visible';
         p.style.pointerEvents = 'auto';
+        // ensure it stays at top-left
+        p.style.top = '10px';
+        p.style.left = '10px';
+        p.style.right = 'auto';
+        p.style.bottom = 'auto';
         try { document.body.appendChild(p); } catch (e) { /* ignore */ }
     }, 150);
 
