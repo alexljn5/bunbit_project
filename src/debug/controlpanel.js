@@ -62,7 +62,7 @@ export function initControlPanel() {
 
     const reloadButton = document.createElement('button');
     reloadButton.id = 'bunbit-reload-button';
-    reloadButton.textContent = '🔄 Reload';
+    reloadButton.textContent = 'Reload';
 
     const playButton = document.createElement('button');
     playButton.id = 'bunbit-play-button';
@@ -74,7 +74,7 @@ export function initControlPanel() {
 
     const showDebugButton = document.createElement('button');
     showDebugButton.id = 'bunbit-debug-toggle';
-    showDebugButton.textContent = '🐛 Show Debug';
+    showDebugButton.textContent = 'Show Debug';
 
     // basic styling for readability
     [reloadButton, playButton, stopButton, showDebugButton].forEach(btn => {
@@ -139,12 +139,6 @@ export function initControlPanel() {
         p.style.display = 'flex';
         p.style.visibility = 'visible';
         p.style.pointerEvents = 'auto';
-        // preserve spanning from edgeGap (do not set right/bottom to 'auto')
-        //p.style.top = `${edgeGap}px`;
-        //p.style.left = `${edgeGap}px`;
-        //p.style.right = `${edgeGap}px`;
-        //p.style.bottom = `${edgeGap}px`;
-        // Preserve spanning inset so panel remains full-window-like
         p.style.top = `${edgeGap}px`;
         p.style.left = `${edgeGap}px`;
         p.style.right = `${edgeGap}px`;
@@ -243,7 +237,7 @@ export function initControlPanel() {
     // Show Debug toggles other debug features but keeps the control panel visible
     showDebugButton.addEventListener('click', () => {
         window.defaultDebugVisible = !window.defaultDebugVisible;
-        showDebugButton.textContent = window.defaultDebugVisible ? '🐛 Hide Debug' : '🐛 Show Debug';
+        showDebugButton.textContent = window.defaultDebugVisible ? 'Hide Debug' : 'Show Debug';
         if (window.defaultDebugVisible) {
             memCpuGodFunction();
             // Use start helper if available
