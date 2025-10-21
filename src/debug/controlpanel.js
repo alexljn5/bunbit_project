@@ -71,8 +71,12 @@ export function initControlPanel() {
     showDebugButton.id = 'bunbit-debug-toggle';
     showDebugButton.textContent = '🐛 Show Debug';
 
+    const themeButton = document.createElement('button');
+    themeButton.id = 'bunbit-theme-button';
+    themeButton.textContent = 'THEME';
+
     // basic styling for readability
-    [reloadButton, playButton, stopButton, showDebugButton].forEach(btn => {
+    [reloadButton, playButton, stopButton, showDebugButton, themeButton].forEach(btn => {
         btn.style.padding = `${8 * SCALE_Y}px ${12 * SCALE_X}px`;
         btn.style.cursor = 'pointer';
         btn.style.border = `${1 * SCALE_X}px solid`;
@@ -86,8 +90,15 @@ export function initControlPanel() {
     });
     reloadButton.style.marginTop = `${10 * SCALE_Y}px`;
 
+    // Add background image centered behind controls
+    debugPanel.style.backgroundImage = "url('img/logo/logo.png')";
+    debugPanel.style.backgroundRepeat = 'no-repeat';
+    debugPanel.style.backgroundPosition = 'center center';
+    debugPanel.style.backgroundSize = '200px 200px';
+
     debugPanel.appendChild(header);
     debugPanel.appendChild(reloadButton);
+    debugPanel.appendChild(themeButton);
     debugPanel.appendChild(playButton);
     debugPanel.appendChild(stopButton);
     debugPanel.appendChild(showDebugButton);
@@ -226,6 +237,18 @@ export function initControlPanel() {
         if (!dragging) return; const dx = e.clientX - sx; const dy = e.clientY - sy; debugPanel.style.left = `${ox + dx}px`; debugPanel.style.top = `${oy + dy}px`; debugPanel.style.right = 'auto'; debugPanel.style.bottom = 'auto';
     });
     document.addEventListener('mouseup', () => { dragging = false; debugPanel.style.cursor = 'default'; });
+
+    themeManager.registerOnThemeChange(() => {
+        const t = themeManager.getCurrentTheme();
+        debugPanel.style.border = `${2 * SCALE_X}px solid ${t.border}`;
+        debugPanel.style.backgroundColor = t.background;
+        debugPanel.style.color = t.text;
+        [reloadButton, playButton, stopButton, showDebugButton, themeButton].forEach(btn => {
+            btn.style.backgroundColor = t.buttonBg;
+            btn.style.color = t.text;
+            btn.style.borderColor = t.border;
+        });
+    });
 
     return debugPanel;
 }

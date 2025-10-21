@@ -211,7 +211,12 @@ function debugHandlerMainFunction() {
     debugContainer.style.boxSizing = 'border-box';
     debugContainer.style.overflow = 'hidden';
     debugContainer.style.resize = 'none';
-    debugContainer.style.boxShadow = `0 0 15px ${themeManager.getCurrentTheme().border}`;
+    // Only apply glow boxShadow for evil theme
+    if (themeManager.getCurrentThemeName && themeManager.getCurrentThemeName() === 'evil') {
+        debugContainer.style.boxShadow = `0 0 15px ${themeManager.getCurrentTheme().border}`;
+    } else {
+        debugContainer.style.boxShadow = 'none';
+    }
     document.body.appendChild(debugContainer);
 
     debugCanvas = document.createElement('canvas');

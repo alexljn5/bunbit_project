@@ -274,7 +274,12 @@ export function memCpuGodFunction() {
         perfContainer.style.border = `2px solid ${themeManager.getCurrentTheme()?.border || '#FC0000'}`;
         perfContainer.style.boxSizing = "border-box";
         perfContainer.style.overflow = "hidden";
-        perfContainer.style.boxShadow = `0 0 15px ${themeManager.getCurrentTheme()?.border || '#FC0000'}`;
+        // Only apply glow boxShadow for evil theme
+        if (themeManager.getCurrentThemeName && themeManager.getCurrentThemeName() === 'evil') {
+            perfContainer.style.boxShadow = `0 0 15px ${themeManager.getCurrentTheme()?.border || '#FC0000'}`;
+        } else {
+            perfContainer.style.boxShadow = 'none';
+        }
         document.body.appendChild(perfContainer);
 
         perfHeader = document.createElement("div");

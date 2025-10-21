@@ -2,6 +2,8 @@
 
 import { EVIL_THEME, evilGlitchSystem, getLogColor as getEvilLogColor, getPerformanceColor as getEvilPerformanceColor } from './eviltheme.js';
 import { HIGH_CONTRAST_THEME, getLogColor as getHighContrastLogColor, getPerformanceColor as getHighContrastPerformanceColor } from './highcontrast.js';
+import { CALM_THEME, getLogColor as getCalmLogColor, getPerformanceColor as getCalmPerformanceColor } from './calmtheme.js';
+import { HACKY_THEME, getLogColor as getHackyLogColor, getPerformanceColor as getHackyPerformanceColor } from './hackytheme.js';
 
 export class ThemeManager {
     constructor() {
@@ -17,7 +19,9 @@ export class ThemeManager {
                 theme: HIGH_CONTRAST_THEME,
                 getLogColor: getHighContrastLogColor,
                 getPerformanceColor: getHighContrastPerformanceColor
-            }
+            },
+            { name: 'calm', theme: CALM_THEME, getLogColor: getCalmLogColor, getPerformanceColor: getCalmPerformanceColor },
+            { name: 'hacky', theme: HACKY_THEME, getLogColor: getHackyLogColor, getPerformanceColor: getHackyPerformanceColor }
         ];
         this.currentThemeIndex = 0;
         this.currentTheme = this.themes[this.currentThemeIndex];
@@ -25,6 +29,11 @@ export class ThemeManager {
 
     getCurrentTheme() {
         return this.currentTheme.theme;
+    }
+
+    // Return the current theme name (e.g. 'evil', 'highcontrast')
+    getCurrentThemeName() {
+        return this.currentTheme?.name;
     }
 
     getLogColor(type) {

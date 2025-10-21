@@ -16,7 +16,8 @@ export const EVIL_THEME = {
     corruption: 'rgba(255, 0, 0, 0.1)',  // Data corruption effect
     buttonBg: '#1a0000',   // Dark red-black (for debughandler buttons)
     buttonHover: '#300000', // Darker blood red
-    smear: 'rgba(255, 0, 0, 0.2)'       // Smear effect for advanced glitches
+    smear: 'rgba(255, 0, 0, 0.2)',       // Smear effect for advanced glitches
+    glow: true
 };
 
 // --- UI STATE MANAGER ---

@@ -3,20 +3,21 @@
 // High-contrast theme optimized for colorblind accessibility
 export const HIGH_CONTRAST_THEME = {
     background: '#000000', // Pure black for maximum contrast
-    headerBg: '#1a1a1a',   // Dark gray for header
+    headerBg: '#ffffff',   // Dark gray for header
     border: '#ffffff',     // Bright white for outlines
-    text: '#ffffff',       // White for primary text
+    text: '#00ff00',       // White for primary text
     danger: '#ffff00',     // Bright yellow for errors/highlights
-    warning: '#00b7eb',    // Cyan for warnings (avoid red-green)
-    good: '#ffffff',       // White for neutral/good states
-    graphBg: 'rgba(255, 255, 255, 0.2)', // Light gray for graphs
-    resizeHandle: '#4d4d4d', // Medium gray for resize handle
+    warning: '#00ffff',    // Cyan for warnings (avoid red-green)
+    good: '#00ff00',       // White for neutral/good states
+    graphBg: 'rgba(255,255,255,0.06)', // Light gray for graphs
+    resizeHandle: '#ffffff', // Medium gray for resize handle
     resizeBorder: '#ffffff', // White for resize border
-    scanlines: 'rgba(255, 255, 255, 0.05)', // Subtle white scanlines
-    corruption: 'rgba(255, 255, 255, 0.15)', // White corruption effect
-    buttonBg: '#333333',   // Dark gray for buttons
-    buttonHover: '#666666', // Lighter gray for button hover
-    smear: 'rgba(255, 255, 255, 0.25)' // White smear effect
+    scanlines: 'rgba(255,255,255,0.03)', // Subtle white scanlines
+    corruption: 'rgba(255,255,255,0.08)', // White corruption effect
+    buttonBg: '#000000',   // Dark gray for buttons
+    buttonHover: '#222222', // Lighter gray for button hover
+    smear: 'rgba(255,255,255,0.1)', // White smear effect
+    glow: false
 };
 
 // Reuse EvilUIState and EvilGlitchSystem from eviltheme.js
