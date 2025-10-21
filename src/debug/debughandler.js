@@ -3,8 +3,8 @@
 import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y } from '../globals.js';
 import { evilGlitchSystem, EvilUIState } from '../themes/eviltheme.js';
 import { themeManager } from '../themes/thememanager.js';
-import { initBunbitDebug } from './bunbitdebug.js';
-import { memCpuGodFunction, togglePerfMonitor } from './memcpu.js';
+import { initBunbitDebug } from './panels/bunbitdebug.js';
+import { memCpuGodFunction, togglePerfMonitor } from './panels/memcpu.js';
 
 const consoleOriginal = {
     debug: console.debug,

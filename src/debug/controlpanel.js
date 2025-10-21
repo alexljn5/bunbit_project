@@ -3,7 +3,7 @@ import { setMenuActive } from '../gamestate.js';
 import { gameLoop } from '../main_game.js';
 import { setupMenuClickHandler } from '../menus/menu.js';
 import { gameRenderEngine, initializeRenderWorkers, cleanupRenderWorkers } from '../rendering/renderengine.js';
-import { memCpuGodFunction, stopMemCpuMonitor } from './memcpu.js';
+import { memCpuGodFunction, stopMemCpuMonitor } from './panels/memcpu.js';
 import { debugHandlerGodFunction, stopDebugTerminal } from './debughandler.js';
 
 // Local defaults to avoid importing theme manager (prevents load-order/circular issues)

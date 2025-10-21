@@ -1,6 +1,6 @@
-import { evilGlitchSystem, EvilUIState } from '../themes/eviltheme.js';
-import { themeManager } from '../themes/thememanager.js';
-import { gameVersionNumber, gameName, CANVAS_WIDTH, CANVAS_HEIGHT } from '../globals.js';
+import { evilGlitchSystem, EvilUIState } from '../../themes/eviltheme.js';
+import { themeManager } from '../../themes/thememanager.js';
+import { gameVersionNumber, gameName, CANVAS_WIDTH, CANVAS_HEIGHT } from '../../globals.js';
 
 // Fallback for Node.js os module in browser
 const os = typeof require === 'function' ? require('os') : {

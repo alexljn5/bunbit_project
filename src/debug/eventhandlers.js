@@ -1,5 +1,5 @@
 import { SCALE_Y, SCALE_X } from '../globals.js';
-import { togglePerfMonitor } from './memcpu.js';
+import { togglePerfMonitor } from './panels/memcpu.js';
 import {
     updateFilteredLogs,
     drawDebugTerminal,
