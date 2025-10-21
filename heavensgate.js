@@ -105,8 +105,8 @@ async function createWindow() {
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false,
-            sandbox: false,
-            devTools: false
+            sandbox: false, // changed to false so DevTools and debugging work reliably
+            devTools: true
         },
         autoHideMenuBar: true,
         menuBarVisible: false
@@ -187,6 +187,15 @@ async function createWindow() {
     try {
         await mainWindow.loadURL(pageUrl);
         console.log(`Loaded page: ${pageUrl} *giggles*`);
+        // Open DevTools detached so user can inspect and reveal the debug control panel
+        try {
+            if (mainWindow && mainWindow.webContents && typeof mainWindow.webContents.openDevTools === 'function') {
+                mainWindow.webContents.openDevTools({ mode: 'detach' });
+                console.log('DevTools opened automatically.');
+            }
+        } catch (err) {
+            console.warn('Could not open DevTools automatically:', err);
+        }
     } catch (error) {
         console.error('Failed to load page:', error);
         await writeCrashLog(error, 'Page Load');

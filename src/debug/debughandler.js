@@ -61,11 +61,27 @@ export const HEADER_HEIGHT = 30 * SCALE_Y;
 
 //God Function
 export function debugHandlerGodFunction() {
+    // Only initialize debug terminal and perf monitor when the global flag is true
+    try {
+        if (!window || !window.defaultDebugVisible) return;
+    } catch (e) {
+        return;
+    }
+
+    // Initialize features
     debugHandlerMainFunction();
     memCpuGodFunction();
-    initBunbitDebug();
 }
 
+// Exported helper to start debug features on demand (used by control panel)
+export function startDebugFeatures() {
+    try {
+        debugHandlerMainFunction();
+        memCpuGodFunction();
+    } catch (err) {
+        console.error('Failed to start debug features:', err);
+    }
+}
 
 // --- Update filtered logs ---
 export function updateFilteredLogs() {
@@ -552,4 +568,4 @@ export function stopDebugTerminal() {
 }
 
 // --- Initialize ---
-debugHandlerGodFunction();
+// NOTE: automatic initialization disabled. Call startDebugFeatures() from the control panel when the user toggles debug.
