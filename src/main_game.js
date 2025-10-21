@@ -7,17 +7,14 @@ export function gameLoop(renderCallback) {
     async function tick(time) {
         if (!isRunning) return;
 
-        if (time - lastTime < targetFrameTime) {
-            rafId = requestAnimationFrame(tick);
-            return;
-        }
-
         const deltaTime = (time - lastTime) / 1000;
         lastTime = time;
         window.deltaTime = deltaTime;
 
         try {
             await renderCallback(deltaTime);
+            // Increment game frame counter for accurate FPS tracking
+            window.gameFrameCount = (window.gameFrameCount || 0) + 1;
         } catch (error) {
             console.error("Render error:", error);
         }
@@ -29,6 +26,7 @@ export function gameLoop(renderCallback) {
             if (!isRunning) {
                 isRunning = true;
                 lastTime = performance.now();
+                window.gameFrameCount = 0; // Reset on start
                 requestAnimationFrame(tick);
             }
         },

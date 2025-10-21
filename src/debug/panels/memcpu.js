@@ -50,8 +50,6 @@ let performanceData = {
     // Smoothed values container to prevent NaN/uninitialized access
     smoothed: {
         cpu: 0,
-        fps: 0,
-        frameTime: 0,
         renderWorkerLoad: 0
     },
     history: {
@@ -482,38 +480,23 @@ function updatePerformanceData() {
             };
         }
 
-        // FPS/Frame Time - update once per second, apply smoothing
-        if (now - performanceData.lastFpsUpdate >= 1000) {
-            const rawFps = performanceData.frameCount > 0 ? Math.min(60, Math.round((performanceData.frameCount * 1000) / (now - performanceData.lastFpsUpdate))) : 0;
-            const rawFrameTime = performanceData.frameCount > 0 ? ((now - performanceData.lastFpsUpdate) / performanceData.frameCount) : 0;
+        // Network latency remains simulated here — smooth it to reduce jitter
+        const rawLatency = Math.random() * 100;
+        performanceData.networkLatency = Math.round(smooth(performanceData.networkLatency || 0, rawLatency) * 10) / 10;
 
-            performanceData.smoothed.fps = smooth(performanceData.smoothed.fps, rawFps);
-            performanceData.smoothed.frameTime = smooth(performanceData.smoothed.frameTime, rawFrameTime);
+        // Update history (use current values)
+        performanceData.history.jsHeap.push(performanceData.jsHeap.used || 0);
+        performanceData.history.systemMemory.push(performanceData.systemMemory.percent || 0);
+        performanceData.history.cpu.push(performanceData.cpu.usage);
+        performanceData.history.fps.push(performanceData.fps);
+        performanceData.history.frameTime.push(performanceData.frameTime);
+        performanceData.history.renderWorkerLoad.push(performanceData.renderWorkerLoad != null ? performanceData.renderWorkerLoad : 0);
+        performanceData.history.networkLatency.push(performanceData.networkLatency);
 
-            performanceData.fps = Math.round(performanceData.smoothed.fps);
-            performanceData.frameTime = Math.round(performanceData.smoothed.frameTime * 100) / 100;
-
-            performanceData.frameCount = 0;
-            performanceData.lastFpsUpdate = now;
-
-            // Network latency remains simulated here — smooth it to reduce jitter
-            const rawLatency = Math.random() * 100;
-            performanceData.networkLatency = Math.round(smooth(performanceData.networkLatency || 0, rawLatency) * 10) / 10;
-
-            // Update history (use smoothed values where appropriate)
-            performanceData.history.jsHeap.push(performanceData.jsHeap.used || 0);
-            performanceData.history.systemMemory.push(performanceData.systemMemory.percent || 0);
-            performanceData.history.cpu.push(performanceData.cpu.usage);
-            performanceData.history.fps.push(performanceData.fps);
-            performanceData.history.frameTime.push(performanceData.frameTime);
-            performanceData.history.renderWorkerLoad.push(performanceData.renderWorkerLoad != null ? performanceData.renderWorkerLoad : 0);
-            performanceData.history.networkLatency.push(performanceData.networkLatency);
-
-            const maxHistory = 30;
-            Object.keys(performanceData.history).forEach(key => {
-                if (performanceData.history[key].length > maxHistory) performanceData.history[key].shift();
-            });
-        }
+        const maxHistory = 30;
+        Object.keys(performanceData.history).forEach(key => {
+            if (performanceData.history[key].length > maxHistory) performanceData.history[key].shift();
+        });
     } catch (err) {
         console.error('Error in updatePerformanceData:', err);
     }
@@ -531,6 +514,19 @@ function drawPerfMonitor(time) {
         }
         performanceData.frameCount++;
         performanceData.lastFrameTime = now;
+
+        // Calculate FPS using main game loop's deltaTime for accuracy
+        if (window.deltaTime) {
+            performanceData.fps = Math.round(1 / window.deltaTime);
+            performanceData.frameTime = window.deltaTime * 1000;
+        } else {
+            // Fallback to instantaneous calculation
+            if (!performanceData.lastFpsFrameTime) performanceData.lastFpsFrameTime = now;
+            const deltaTime = (now - performanceData.lastFpsFrameTime) / 1000;
+            performanceData.lastFpsFrameTime = now;
+            performanceData.fps = Math.round(1 / deltaTime);
+            performanceData.frameTime = deltaTime * 1000;
+        }
 
         const width = perfCanvas.width;
         const height = perfCanvas.height;
