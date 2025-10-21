@@ -1,3 +1,6 @@
+/* ===========================
+   Base Layout
+=========================== */
 body {
     background-color: black;
     margin: 0;
@@ -6,13 +9,19 @@ body {
     flex-direction: column;
     justify-content: center;
     align-items: center;
+    overflow: hidden;
+    /* Prevent unwanted scrollbars */
 }
 
+/* ===========================
+   UI Containers
+=========================== */
 .ui-container {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 10px;
+    padding: 10px;
 }
 
 .gameMenu {
@@ -23,47 +32,52 @@ body {
     gap: 10px;
 }
 
+/* ===========================
+   Game Container
+=========================== */
 .game-container {
     position: relative;
     display: inline-block;
-    /* Simple fix: Cap max size but allow viewport scaling */
     max-width: 90vw;
     max-height: 90vh;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    /* Keeps canvas square by default */
 }
 
+/* ===========================
+   Canvas Styling
+=========================== */
 canvas#mainGameRender {
-    border: 0px solid black;
+    border: 0;
     display: block;
-    /* Prevent flex issues */
+    width: 100%;
+    height: 100%;
     image-rendering: pixelated;
-    /* CRISP PIXELS - fixes blurry upscale! */
     image-rendering: -moz-crisp-edges;
-    /* Firefox */
     image-rendering: crisp-edges;
-    /* Safari/Chrome alternative */
     transform-origin: top left;
-    /* Consistent scaling anchor */
 }
 
 canvas#mainGameRender,
 canvas.ai-overlay {
     image-rendering: pixelated;
     image-rendering: -moz-crisp-edges;
-    /* Firefox */
     image-rendering: crisp-edges;
-    /* Safari/other */
     transform-origin: top left;
-    /* Consistent scaling anchor */
 }
 
+/* Overlay elements (HUD, minimap, stamina bar, etc.) */
 canvas#staminaBar,
 canvas.minimapCanvas {
     position: fixed;
     z-index: 2147483647;
     pointer-events: auto;
-    /* Stay on top */
 }
 
+/* ===========================
+   Misc Elements
+=========================== */
 .noiseSeed {
     display: flex;
     align-items: center;
@@ -75,7 +89,9 @@ canvas.minimapCanvas {
     margin-bottom: 20px;
 }
 
-/* Ensure when the container is fullscreen the canvas fills the viewport and preserves rendering behavior */
+/* ===========================
+   Fullscreen Behavior
+=========================== */
 .game-container:fullscreen,
 .game-container:-webkit-full-screen,
 .game-container:-moz-full-screen,
@@ -96,11 +112,55 @@ canvas.minimapCanvas {
     max-width: none !important;
     max-height: none !important;
     transform: none !important;
-    /* avoid unexpected CSS transforms */
     image-rendering: pixelated;
 }
 
-/* Make sure overlays inside the container remain interactive */
 .game-container:fullscreen * {
     pointer-events: auto !important;
+}
+
+/* ===========================
+   Responsive Tweaks
+=========================== */
+
+/* Tablets */
+@media (max-width: 1024px) {
+    .ui-container {
+        gap: 8px;
+    }
+
+    .game-container {
+        max-width: 95vw;
+        max-height: 70vh;
+    }
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+    body {
+        flex-direction: column;
+        justify-content: flex-start;
+        padding-top: 10px;
+    }
+
+    .game-container {
+        max-width: 100vw;
+        max-height: 70vh;
+        aspect-ratio: 1 / 1;
+    }
+
+    .ui-container {
+        gap: 5px;
+        padding: 5px;
+    }
+
+    .lopsidedBnuuy {
+        margin-bottom: 10px;
+    }
+
+    canvas#staminaBar,
+    canvas.minimapCanvas {
+        transform: scale(0.8);
+        transform-origin: top right;
+    }
 }
