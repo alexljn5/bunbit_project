@@ -16,7 +16,8 @@ const reusableQuad = {
     texture: null,
     textureX: 0,
     alpha: 1,
-    textureKey: null // for demon animation checks
+    textureKey: null, // for demon animation checks
+    ctx: null
 };
 
 // Create a precompute worker for wall caches
@@ -57,7 +58,7 @@ export function precomputeWallRenderData(sectorKey) {
     }
 }
 
-export function renderRaycastWalls(rayData, sectorKey) {
+export function renderRaycastWalls(rayData, sectorKey, ctx = null) {
     if (!texturesLoaded) {
         // Gray fallback
         drawQuad({
@@ -89,6 +90,7 @@ export function renderRaycastWalls(rayData, sectorKey) {
                 reusableQuad.alpha = geom[base + 7];
                 const key = tKeys[i] || null;
                 reusableQuad.texture = (key === "wall_laughing_demon") ? demonFrame : tileTexturesMap.get(key) || tileTexturesMap.get('wall_creamlol');
+                reusableQuad.ctx = ctx; // use provided ctx
                 drawQuad(reusableQuad);
             }
             return;
@@ -138,6 +140,7 @@ export function renderRaycastWalls(rayData, sectorKey) {
                     reusableQuad.texture = tex;
                     reusableQuad.textureX = textureX;
                     reusableQuad.alpha = alpha;
+                    reusableQuad.ctx = ctx;
 
                     drawQuad(reusableQuad);
 
@@ -161,6 +164,7 @@ export function renderRaycastWalls(rayData, sectorKey) {
                 reusableQuad.texture = texture;
                 reusableQuad.textureX = textureX;
                 reusableQuad.alpha = 1;
+                reusableQuad.ctx = ctx;
 
                 drawQuad(reusableQuad);
             }

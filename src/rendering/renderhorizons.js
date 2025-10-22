@@ -4,7 +4,7 @@ import { tileTexturesMap, texturesLoaded } from "../mapdata/maptexturesloader.js
 import { playerPosition } from "../playerdata/playerlogic.js";
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from "../globals.js";
 import { fastCos, fastSin } from "../math/mathtables.js";
-import { renderEngine } from "./renderengine.js";
+import { renderEngine, drawQuad } from "./renderengine.js";
 import { playerFOV, numCastRays } from "./raycasting.js";
 
 // Number of workers to use
@@ -250,10 +250,18 @@ export function renderRaycastHorizons(rayData, targetCtx = renderEngine) {
 
         if (!texturesLoaded || !floorTexture || !floorTexture.complete || !roofTexture || !roofTexture.complete) {
             console.warn("Textures not loaded or invalid, rendering fallback *hides*");
-            targetCtx.fillStyle = "black";
-            targetCtx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT / 2);
-            targetCtx.fillStyle = "gray";
-            targetCtx.fillRect(0, CANVAS_HEIGHT / 2, CANVAS_WIDTH, CANVAS_HEIGHT / 2);
+            drawQuad({
+                topX: 0, topY: 0,
+                leftX: 0, leftY: CANVAS_HEIGHT / 2,
+                rightX: CANVAS_WIDTH, rightY: CANVAS_HEIGHT / 2,
+                color: "black", alpha: 1, ctx: targetCtx
+            });
+            drawQuad({
+                topX: 0, topY: CANVAS_HEIGHT / 2,
+                leftX: 0, leftY: CANVAS_HEIGHT,
+                rightX: CANVAS_WIDTH, rightY: CANVAS_HEIGHT,
+                color: "gray", alpha: 1, ctx: targetCtx
+            });
             resolve();
             return;
         }
