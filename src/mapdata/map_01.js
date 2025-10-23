@@ -3,6 +3,7 @@ import {
     fullTileBrickGraffiti01, fullTileLaughingDemon, fullTileBrickDoor01Closed, fullTileBrickDoor01Open,
     fullTileFenceWallTest, fullTileBrickCream, fullTileBrickEye, fullTileCasper01
 } from './maptexturesloader.js';
+import { addMapLight } from '../rendering/lightengine/renderlight.js';
 
 // ------------------------
 // Sector grids
@@ -85,7 +86,6 @@ map_01_sectors.forEach(({ data, startY, startX }) => {
 // ------------------------
 // Map metadata with floor and lights
 // ------------------------
-import { addMapLight } from '../rendering/lightengine/renderlight.js';
 
 export const map_01_data = {
     grid: map_01,

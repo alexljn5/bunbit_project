@@ -3,6 +3,7 @@ import {
     fullTileBrickGraffiti01, fullTileLaughingDemon, fullTileBrickDoor01Closed, fullTileBrickDoor01Open
 } from './maptexturesloader.js';
 import { buildMapGrid } from './maputils.js';
+import { addMapLight } from '../rendering/lightengine/renderlight.js';
 
 // Debug sector (16x16 square room)
 export const map_debug_sector1 = [
@@ -43,5 +44,16 @@ export const map_debug = buildMapGrid(map_debug_sectors);
 export const map_debug_data = {
     grid: map_debug,
     sectors: map_debug_sectors,
-    floorTextureId: 51 // floor_test (uses creamlol.png)
+    floorTextureId: 51, // floor_test (uses creamlol.png)
+
+    lights: [
+        // sector1 - soft red near Casper tile
+        addMapLight([2.5, 4.5], '#ff5555', 1.2, 5.0),
+
+        // sector2 - cyan in the hallway
+        addMapLight([1.5, 2.0], '#aaffff', 5.8, 4.0),
+
+        // sector3 - yellow near laughing demon
+        addMapLight([4.0, 5.5], '#cfa415ff', 1.4, 5.5)
+    ]
 };
