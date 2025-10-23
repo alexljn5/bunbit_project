@@ -1,19 +1,11 @@
 // src/rendering/lightengine/renderlight.js
-//
-// Creamified version 🐰✨
-// No more mysterious magic numbers — just cute, clean, self-documenting WebGL!
-//
-
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from "../../globals.js";
 import { playerFOV, numCastRays } from "../raycasting.js";
 import { playerPosition } from "../../playerdata/playerlogic.js";
 import { vertexShaderSource, fragmentShaderSource } from "./shaders.js";
 
-// 🧩 Constants for clarity
-const MAX_DEPTH = 1000.0; // Used to normalize ray depth data
-const DEPTH_TEXTURE_LEVEL = 0;
+const MAX_LIGHTS = 4;
 
-// Quad geometry for fullscreen lighting pass
 const QUAD_VERTICES = new Float32Array([
     -1, -1,
     1, -1,
@@ -21,251 +13,212 @@ const QUAD_VERTICES = new Float32Array([
     1, 1
 ]);
 
-// Texture units
-const TEXTURE_UNIT_SCENE = 0;
-const TEXTURE_UNIT_DEPTH = 1;
-
-// Vertex attributes
-const POSITION_COMPONENTS = 2;
-const VERTEX_STRIDE = 0;
-const VERTEX_OFFSET = 0;
-const VERTEX_COUNT = 4;
-
-// Lighting canvas for rendering
 const lightingCanvas = document.createElement("canvas");
 lightingCanvas.width = CANVAS_WIDTH;
 lightingCanvas.height = CANVAS_HEIGHT;
 
-// WebGL variables
 let gl = null;
-let lightingProgram = null;
+let program = null;
 let quadBuffer = null;
 let sceneTexture = null;
 let depthTexture = null;
-let lights = []; // Dynamic light array
+let locations = null;
 
-// 🌟 Initialize the lighting engine
-export function initLightingEngine() {
-    console.log("Initializing WebGL lighting *giggles*");
+let lights = [];
 
-    gl = lightingCanvas.getContext("webgl");
-    if (!gl) {
-        console.error("WebGL not supported! Lighting disabled. *pouts*");
-        return false;
+// ---------- Color utilities ----------
+function hexToRgbArray(hex) {
+    if (!hex) return [1, 1, 1];
+    hex = hex.replace("#", "");
+    if (hex.length === 3) hex = hex.split("").map(c => c + c).join("");
+    const val = parseInt(hex, 16);
+    return [((val >> 16) & 255) / 255, ((val >> 8) & 255) / 255, (val & 255) / 255];
+}
+
+function normalizeColorInput(col) {
+    if (Array.isArray(col)) {
+        const is255 = col.some(c => c > 1);
+        return col.map(c => (is255 ? c / 255 : c));
     }
+    return hexToRgbArray(col);
+}
 
-    // Cache important GL enums for clarity
-    const {
-        ARRAY_BUFFER,
-        STATIC_DRAW,
-        TRIANGLE_STRIP,
-        FLOAT,
-        TEXTURE_2D,
-        TEXTURE_MIN_FILTER,
-        TEXTURE_MAG_FILTER,
-        LINEAR,
-        NEAREST,
-        RGBA,
-        LUMINANCE,
-        UNSIGNED_BYTE
-    } = gl;
+// ---------- Light API ----------
+export function createLight(position = [0, 0, 1], color = "#fff", intensity = 1.0) {
+    return { position: [...position], color: normalizeColorInput(color), intensity };
+}
 
-    console.log("WebGL context created, version:", gl.getParameter(gl.VERSION));
+export function addLight(position, color = "#fff", intensity = 1.0) {
+    if (lights.length >= MAX_LIGHTS) return false;
+    const l = createLight(position, color, intensity);
+    lights.push(l);
+    return l;
+}
 
-    // Build shaders
-    const fsSource = fragmentShaderSource(CANVAS_WIDTH, CANVAS_HEIGHT);
-    lightingProgram = createShaderProgram(gl, vertexShaderSource, fsSource);
-    if (!lightingProgram) {
-        console.error("Failed to create lighting program *sad chao*");
-        return false;
-    }
-
-    // Create fullscreen quad
-    quadBuffer = gl.createBuffer();
-    gl.bindBuffer(ARRAY_BUFFER, quadBuffer);
-    gl.bufferData(ARRAY_BUFFER, QUAD_VERTICES, STATIC_DRAW);
-    console.log("Quad buffer created *twirls*");
-
-    // Init single dynamic light following the player
-    lights = [
-        { position: [playerPosition.x, playerPosition.z, 1.0], color: [1.0, 1.0, 0.8], intensity: 1.0 }
-    ];
-    console.log("Lights initialized:", JSON.stringify(lights));
-
-    const error = gl.getError();
-    if (error !== gl.NO_ERROR) {
-        console.error("WebGL error after init:", error);
-    }
+export function setLight(index, { position, color, intensity }) {
+    if (index < 0 || index >= lights.length) return false;
+    if (position) lights[index].position = [...position];
+    if (color) lights[index].color = normalizeColorInput(color);
+    if (intensity !== undefined) lights[index].intensity = intensity;
     return true;
 }
 
-// 🕯 Update lights (can be called per frame)
-export function updateLights(customLights = []) {
-    if (customLights.length > 0) {
-        lights = customLights;
-    }
-
-    // Example: main light follows player
-    if (lights[0]) {
-        lights[0].position = [playerPosition.x, playerPosition.z, 1.0];
-    }
-
-    console.log("Lights updated:", JSON.stringify(lights));
+export function getLights() {
+    return lights.slice();
 }
 
-// 💡 Apply lighting post-process to the rendered scene
-export function applyLighting(sceneCanvas, rayData) {
-    if (!gl || !lightingProgram) {
-        console.warn("Lighting skipped: WebGL or program not ready *pouts*");
-        return;
+// ---------- Engine lifecycle ----------
+export function initLightingEngine() {
+    gl = lightingCanvas.getContext("webgl");
+    if (!gl) {
+        console.error("WebGL not supported");
+        return false;
     }
 
-    console.time("applyLighting");
+    program = createProgram(gl, vertexShaderSource, fragmentShaderSource(CANVAS_WIDTH, CANVAS_HEIGHT));
+    if (!program) return false;
+
+    quadBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, QUAD_VERTICES, gl.STATIC_DRAW);
+
+    // player-following light
+    lights = [createLight([playerPosition.x, playerPosition.z, 1], "#ff0000", 1.0)];
+
+    locations = {
+        a_position: gl.getAttribLocation(program, "a_position"),
+        u_sceneTexture: gl.getUniformLocation(program, "u_sceneTexture"),
+        u_depthTexture: gl.getUniformLocation(program, "u_depthTexture"),
+        u_playerPos: gl.getUniformLocation(program, "u_playerPos"),
+        u_fov: gl.getUniformLocation(program, "u_fov"),
+        u_resolution: gl.getUniformLocation(program, "u_resolution"),
+        u_lightPos: gl.getUniformLocation(program, "u_lightPos"),
+        u_lightColor: gl.getUniformLocation(program, "u_lightColor"),
+        u_lightIntensity: gl.getUniformLocation(program, "u_lightIntensity"),
+        u_lightCount: gl.getUniformLocation(program, "u_lightCount")
+    };
+
+    return true;
+}
+
+export function updateLights(customLights = []) {
+    if (customLights.length > 0) {
+        lights = customLights.slice(0, MAX_LIGHTS).map(l =>
+            createLight(l.position ?? [0, 0, 1], l.color ?? "#fff", l.intensity ?? 1.0)
+        );
+    }
+    if (lights[0]) {
+        lights[0].position[0] = playerPosition.x;
+        lights[0].position[1] = playerPosition.z;
+    }
+}
+
+export function applyLighting(sceneCanvas, rayData) {
+    if (!gl || !program) return;
+
     gl.viewport(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-    gl.useProgram(lightingProgram);
+    gl.useProgram(program);
 
-    const {
-        ARRAY_BUFFER,
-        FLOAT,
-        TEXTURE_2D,
-        TEXTURE_MIN_FILTER,
-        TEXTURE_MAG_FILTER,
-        LINEAR,
-        NEAREST,
-        RGBA,
-        LUMINANCE
-    } = gl;
-
-    // 🎨 Upload scene texture
+    // Scene texture
     if (!sceneTexture) sceneTexture = gl.createTexture();
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT_SCENE);
-    gl.bindTexture(TEXTURE_2D, sceneTexture);
-    gl.texImage2D(TEXTURE_2D, 0, RGBA, RGBA, UNSIGNED_BYTE, sceneCanvas);
-    gl.texParameteri(TEXTURE_2D, TEXTURE_MIN_FILTER, LINEAR);
-    gl.texParameteri(TEXTURE_2D, TEXTURE_MAG_FILTER, LINEAR);
-    gl.uniform1i(gl.getUniformLocation(lightingProgram, "u_sceneTexture"), TEXTURE_UNIT_SCENE);
-    console.log("Scene texture bound, size:", CANVAS_WIDTH, "x", CANVAS_HEIGHT);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, sceneTexture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, sceneCanvas);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.uniform1i(locations.u_sceneTexture, 0);
 
-    // 🌫 Build depth texture from ray data
+    // Depth texture
     if (!depthTexture) depthTexture = gl.createTexture();
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT_DEPTH);
-    gl.bindTexture(TEXTURE_2D, depthTexture);
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, depthTexture);
 
-    const depthData = new Float32Array(CANVAS_WIDTH * CANVAS_HEIGHT);
+    const floatExt = gl.getExtension("OES_texture_float");
+    const useFloat = !!floatExt;
+    const depthArray = useFloat ? new Float32Array(CANVAS_WIDTH * CANVAS_HEIGHT) : new Uint8Array(CANVAS_WIDTH * CANVAS_HEIGHT);
     const colWidth = CANVAS_WIDTH / numCastRays;
+
     for (let i = 0; i < numCastRays; i++) {
-        const depth = rayData[i]?.distance || MAX_DEPTH;
-        const startCol = Math.floor(i * colWidth);
-        const endCol = Math.min(Math.floor((i + 1) * colWidth), CANVAS_WIDTH);
-        for (let col = startCol; col < endCol; col++) {
-            for (let row = 0; row < CANVAS_HEIGHT; row++) {
-                depthData[row * CANVAS_WIDTH + col] = depth / MAX_DEPTH;
+        const depth = rayData[i]?.distance ?? 1000;
+        const start = Math.floor(i * colWidth);
+        const end = Math.min(Math.floor((i + 1) * colWidth), CANVAS_WIDTH);
+        for (let x = start; x < end; x++) {
+            for (let y = 0; y < CANVAS_HEIGHT; y++) {
+                const idx = y * CANVAS_WIDTH + x;
+                depthArray[idx] = useFloat ? depth / 1000 : Math.floor(Math.min(depth / 1000, 1) * 255);
             }
         }
     }
 
-    gl.texImage2D(
-        TEXTURE_2D,
-        DEPTH_TEXTURE_LEVEL,
-        LUMINANCE,
-        CANVAS_WIDTH,
-        CANVAS_HEIGHT,
-        0,
-        LUMINANCE,
-        FLOAT,
-        depthData
-    );
-    gl.texParameteri(TEXTURE_2D, TEXTURE_MIN_FILTER, NEAREST);
-    gl.texParameteri(TEXTURE_2D, TEXTURE_MAG_FILTER, NEAREST);
-    gl.uniform1i(gl.getUniformLocation(lightingProgram, "u_depthTexture"), TEXTURE_UNIT_DEPTH);
-    console.log("Depth texture bound (first sample):", depthData[0]);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, CANVAS_WIDTH, CANVAS_HEIGHT, 0,
+        gl.LUMINANCE, useFloat ? gl.FLOAT : gl.UNSIGNED_BYTE, depthArray);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.uniform1i(locations.u_depthTexture, 1);
 
-    // 🎛 Set shader uniforms
-    const playerPos = [playerPosition.x, playerPosition.z, playerPosition.angle];
-    gl.uniform3fv(gl.getUniformLocation(lightingProgram, "u_playerPos"), new Float32Array(playerPos));
-    gl.uniform1f(gl.getUniformLocation(lightingProgram, "u_fov"), playerFOV);
-    gl.uniform2f(gl.getUniformLocation(lightingProgram, "u_resolution"), CANVAS_WIDTH, CANVAS_HEIGHT);
+    // Player
+    gl.uniform3fv(locations.u_playerPos, new Float32Array([playerPosition.x, playerPosition.z, playerPosition.angle]));
+    gl.uniform1f(locations.u_fov, playerFOV);
+    gl.uniform2f(locations.u_resolution, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-    const lightPos = lights.flatMap(l => l.position);
-    const lightColor = lights.flatMap(l => l.color);
-    const lightIntensity = lights.map(l => l.intensity);
+    // Lights
+    const posArray = new Float32Array(MAX_LIGHTS * 3);
+    const colorArray = new Float32Array(MAX_LIGHTS * 3);
+    const intensityArray = new Float32Array(MAX_LIGHTS);
 
-    gl.uniform3fv(gl.getUniformLocation(lightingProgram, "u_lightPos"), new Float32Array(lightPos));
-    gl.uniform3fv(gl.getUniformLocation(lightingProgram, "u_lightColor"), new Float32Array(lightColor));
-    gl.uniform1fv(gl.getUniformLocation(lightingProgram, "u_lightIntensity"), new Float32Array(lightIntensity));
-    gl.uniform1i(gl.getUniformLocation(lightingProgram, "u_lightCount"), lights.length);
-
-    console.log(
-        "Uniforms set:",
-        "\nPlayerPos:", playerPos,
-        "\nFOV:", playerFOV,
-        "\nLightCount:", lights.length
-    );
-
-    // 🧱 Draw fullscreen lighting quad
-    gl.bindBuffer(ARRAY_BUFFER, quadBuffer);
-    const posLoc = gl.getAttribLocation(lightingProgram, "a_position");
-    gl.enableVertexAttribArray(posLoc);
-    gl.vertexAttribPointer(posLoc, POSITION_COMPONENTS, FLOAT, false, VERTEX_STRIDE, VERTEX_OFFSET);
-    gl.drawArrays(gl.TRIANGLE_STRIP, VERTEX_OFFSET, VERTEX_COUNT);
-    console.log("Lighting quad drawn *sparkles*");
-
-    const error = gl.getError();
-    if (error !== gl.NO_ERROR) {
-        console.error("WebGL error in applyLighting:", error);
+    for (let i = 0; i < MAX_LIGHTS; i++) {
+        const l = lights[i];
+        if (l) {
+            posArray.set(l.position, i * 3);
+            colorArray.set(l.color, i * 3);
+            intensityArray[i] = l.intensity;
+        }
     }
 
-    console.timeEnd("applyLighting");
+    gl.uniform3fv(locations.u_lightPos, posArray);
+    gl.uniform3fv(locations.u_lightColor, colorArray);
+    gl.uniform1fv(locations.u_lightIntensity, intensityArray);
+    gl.uniform1i(locations.u_lightCount, Math.min(lights.length, MAX_LIGHTS));
+
+    // Draw
+    gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
+    gl.enableVertexAttribArray(locations.a_position);
+    gl.vertexAttribPointer(locations.a_position, 2, gl.FLOAT, false, 0, 0);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 }
 
-// 🧹 Cleanup
+// ---------- Cleanup ----------
 export function cleanupLightingEngine() {
-    if (gl) {
-        gl.deleteProgram(lightingProgram);
-        gl.deleteBuffer(quadBuffer);
-        gl.deleteTexture(sceneTexture);
-        gl.deleteTexture(depthTexture);
-        console.log("Lighting cleaned up! *chao chao*");
-    }
+    if (!gl) return;
+    [program, quadBuffer, sceneTexture, depthTexture].forEach(obj => { if (obj) gl.delete(obj); });
+    gl = program = quadBuffer = sceneTexture = depthTexture = null;
+    lights = [];
 }
 
-// 🧠 Shader utility helpers
-function createShaderProgram(gl, vsSource, fsSource) {
-    console.log("Creating shader program *twirls*");
+// ---------- Shader helpers ----------
+function createProgram(gl, vsSource, fsSource) {
     const vs = compileShader(gl, vsSource, gl.VERTEX_SHADER);
     const fs = compileShader(gl, fsSource, gl.FRAGMENT_SHADER);
-    if (!vs || !fs) {
-        console.error("Shader compilation failed *pouts*");
+    if (!vs || !fs) return null;
+
+    const prog = gl.createProgram();
+    gl.attachShader(prog, vs);
+    gl.attachShader(prog, fs);
+    gl.linkProgram(prog);
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+        console.error("Shader link error", gl.getProgramInfoLog(prog));
         return null;
     }
-
-    const program = gl.createProgram();
-    gl.attachShader(program, vs);
-    gl.attachShader(program, fs);
-    gl.linkProgram(program);
-
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-        console.error("Shader link error:", gl.getProgramInfoLog(program));
-        return null;
-    }
-
-    console.log("Shader program linked successfully! *sparkles*");
-    return program;
+    return prog;
 }
 
-function compileShader(gl, source, type) {
+function compileShader(gl, src, type) {
     const shader = gl.createShader(type);
-    gl.shaderSource(shader, source);
+    gl.shaderSource(shader, src);
     gl.compileShader(shader);
-
     if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-        console.error(
-            `Shader compile error (${type === gl.VERTEX_SHADER ? "vertex" : "fragment"}):`,
-            gl.getShaderInfoLog(shader)
-        );
+        console.error("Shader compile error", gl.getShaderInfoLog(shader));
         return null;
     }
-
-    console.log(`Shader compiled: ${type === gl.VERTEX_SHADER ? "vertex" : "fragment"} *chao chao*`);
     return shader;
 }

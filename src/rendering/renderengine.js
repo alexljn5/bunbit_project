@@ -257,7 +257,7 @@ function applyLighting(rayData) {
     gl.activeTexture(gl.TEXTURE0);
     if (!sceneTexture) sceneTexture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, sceneTexture);
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    //gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, offscreenCanvas);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
@@ -469,13 +469,10 @@ export function drawQuad({ topX, topY, leftX, leftY, rightX, rightY, color, text
         const destWidth = rightX - leftX;
         const destHeight = rightY - topY;
 
-        // Flip vertically by using transform
-        ctx.translate(leftX, topY + destHeight); // move origin to bottom-left of quad
-        ctx.scale(1, -1);                        // flip vertically
         ctx.drawImage(
             texture,
-            textureX * texture.width, 0, 1, texture.height, // source rect
-            0, 0, destWidth, destHeight                     // destination rect in flipped coords
+            textureX * texture.width, 0, 1, texture.height, // source rect (1px wide strip)
+            leftX, topY, destWidth, destHeight              // destination from top-left, no flip!
         );
     } else {
         ctx.beginPath();
