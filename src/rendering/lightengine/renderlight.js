@@ -2,11 +2,17 @@
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from "../../globals.js";
 import { playerFOV, numCastRays } from "../raycasting.js";
 import { playerPosition } from "../../playerdata/playerlogic.js";
-import { vertexShaderSource, fragmentShaderSource, createShaderProgramSafe, ensureDepthTextureUpload } from "./shaders.js";
-import { createBuffer } from "./buffers.js";
+import { vertexShaderSource, fragmentShaderSource, createShaderProgramSafe } from "./shaders.js";
 
 const MAX_LIGHTS = 4;
 
+// ---------- Worker-based lighting ----------
+const lightWorkerUrl = new URL("./renderworkers/lightworker.js", import.meta.url);
+const lightWorker = new Worker(lightWorkerUrl, { type: "module" });
+let lightWorkerInitialized = false;
+let pendingLightingResolve = null;
+
+// ---------- Offscreen/main-thread fallback ----------
 const lightingCanvas = document.createElement("canvas");
 lightingCanvas.width = CANVAS_WIDTH;
 lightingCanvas.height = CANVAS_HEIGHT;
@@ -16,9 +22,28 @@ let lightingProgram = null;
 let quadBuffer = null;
 let sceneTexture = null;
 let depthTexture = null;
+
+// Cached uniform locations
+let u_sceneTexLoc, u_depthTexLoc, u_playerPosLoc, u_fovLoc, u_resolutionLoc;
+let u_lightPosLoc, u_lightColorLoc, u_lightIntensityLoc, u_lightCountLoc;
+
 let lights = [];
 
-// ---------- Color utilities ----------
+// ---------- Worker message handling ----------
+lightWorker.onmessage = (e) => {
+    const { type, imageBitmap } = e.data;
+    if (type === 'init_response') {
+        lightWorkerInitialized = e.data.success;
+        if (!lightWorkerInitialized) console.error("Light worker init failed:", e.data.error);
+    } else if (type === 'lighting_applied' && pendingLightingResolve) {
+        pendingLightingResolve(imageBitmap);
+        pendingLightingResolve = null;
+    } else if (type === 'cleanup_done') {
+        console.log("Light worker cleanup done");
+    }
+};
+
+// ---------- Utilities ----------
 function hexToRgbArray(hex) {
     if (!hex) return [1, 1, 1];
     hex = hex.replace("#", "");
@@ -28,10 +53,7 @@ function hexToRgbArray(hex) {
 }
 
 function normalizeColorInput(col) {
-    if (Array.isArray(col)) {
-        const is255 = col.some(c => c > 1);
-        return col.map(c => (is255 ? c / 255 : c));
-    }
+    if (Array.isArray(col)) return col.map(c => (c > 1 ? c / 255 : c));
     return hexToRgbArray(col);
 }
 
@@ -59,172 +81,156 @@ export function getLights() {
     return lights.slice();
 }
 
-// ---------- Engine lifecycle ----------
+// ---------- Engine ----------
 export function initLightingEngine() {
-    if (gl) return true; // already initialized
-    console.log("Initializing WebGL lighting *giggles*");
-    // prefer webgl2 where available
-    gl = lightingCanvas.getContext('webgl2', { premultipliedAlpha: false }) || lightingCanvas.getContext('webgl', { premultipliedAlpha: false });
-    if (!gl) {
-        console.error("WebGL not supported! Lighting disabled. *pouts*");
-        return false;
-    }
-    console.log("WebGL context:", gl.getParameter(gl.VERSION));
+    if (gl) return true;
 
-    // compile program
+    gl = lightingCanvas.getContext('webgl2', { premultipliedAlpha: false }) ||
+        lightingCanvas.getContext('webgl', { premultipliedAlpha: false });
+    if (!gl) return false;
+
     lightingProgram = createShaderProgramSafe(gl, vertexShaderSource, fragmentShaderSource);
-    if (!lightingProgram) {
-        console.error("Failed to create lighting program *sad chao*");
-        return false;
-    }
+    if (!lightingProgram) return false;
 
-    // create full-screen quad (6 verts -> 2 triangles)
+    // Cache uniform locations
+    u_sceneTexLoc = gl.getUniformLocation(lightingProgram, 'u_sceneTexture');
+    u_depthTexLoc = gl.getUniformLocation(lightingProgram, 'u_depthTexture');
+    u_playerPosLoc = gl.getUniformLocation(lightingProgram, 'u_playerPos');
+    u_fovLoc = gl.getUniformLocation(lightingProgram, 'u_fov');
+    u_resolutionLoc = gl.getUniformLocation(lightingProgram, 'u_resolution');
+    u_lightPosLoc = gl.getUniformLocation(lightingProgram, 'u_lightPos');
+    u_lightColorLoc = gl.getUniformLocation(lightingProgram, 'u_lightColor');
+    u_lightIntensityLoc = gl.getUniformLocation(lightingProgram, 'u_lightIntensity');
+    u_lightCountLoc = gl.getUniformLocation(lightingProgram, 'u_lightCount');
+
+    // Quad buffer (only once)
     quadBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
-    const quadVerts = new Float32Array([
-        -1.0, -1.0,
-        1.0, -1.0,
-        -1.0, 1.0,
-        -1.0, 1.0,
-        1.0, -1.0,
-        1.0, 1.0
-    ]);
-    gl.bufferData(gl.ARRAY_BUFFER, quadVerts, gl.STATIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+        -1, -1, 1, -1, -1, 1,
+        -1, 1, 1, -1, 1, 1
+    ]), gl.STATIC_DRAW);
 
-    // textures will be created on first use
-    sceneTexture = null;
-    depthTexture = null;
+    // Create reusable textures
+    sceneTexture = gl.createTexture();
+    depthTexture = gl.createTexture();
 
-    // default light (follow player)
-    lights = [
-        { position: [playerPosition.x, playerPosition.z, 1.0], color: [1.0, 0.9, 0.7], intensity: 1.2 }
-    ];
+    // Default light
+    lights = [createLight([playerPosition.x, playerPosition.z, 1.0], [1, 0.9, 0.7], 1.2)];
 
-    console.log("Lighting engine ready *twirls*");
+    console.log("Lighting engine initialized!");
     return true;
 }
 
 export function updateLights(customLights = []) {
-    if (customLights && customLights.length) lights = customLights;
-    if (lights[0]) lights[0].position[0] = playerPosition.x, lights[0].position[1] = playerPosition.z;
+    if (customLights.length) lights = customLights;
+    if (lights[0]) {
+        lights[0].position[0] = playerPosition.x;
+        lights[0].position[1] = playerPosition.z;
+    }
 }
 
-export function applyLighting(rayData, offscreenCanvas, offscreenCtx) {
-    if (!initLightingEngine()) return;
+// ---------- Apply lighting ----------
+export async function applyLighting(rayData, offscreenCanvas, offscreenCtx) {
+    if (!rayData || !rayData.length) return;
 
-    if (!rayData || !Array.isArray(rayData)) return;
+    // Worker path
+    if (lightWorkerInitialized) {
+        lightWorker.postMessage({ type: 'updateLights', data: { customLights: lights, playerPos: playerPosition } });
 
-    const startTime = performance.now();
-    console.time('applyLighting');
+        const offscreen = offscreenCanvas.transferControlToOffscreen?.() || offscreenCanvas;
+        pendingLightingResolve = null;
+
+        const imagePromise = new Promise(resolve => pendingLightingResolve = resolve);
+        lightWorker.postMessage({
+            type: 'applyLighting',
+            data: { rayData, playerPos: playerPosition, playerFOV, numCastRays, offscreenCanvas: offscreen }
+        }, [offscreen]);
+
+        const result = await imagePromise;
+        offscreenCtx.drawImage(result, 0, 0);
+        return;
+    }
+
+    // Main-thread fallback
+    if (!gl) initLightingEngine();
+
     gl.viewport(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-    gl.clearColor(0.02, 0.02, 0.03, 1.0);
+    gl.clearColor(0.02, 0.02, 0.03, 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
-
     gl.useProgram(lightingProgram);
 
-    // --- Scene texture upload (unit 0) ---
+    // Upload scene texture
     gl.activeTexture(gl.TEXTURE0);
-    if (!sceneTexture) sceneTexture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, sceneTexture);
-    //gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, offscreenCanvas);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.uniform1i(gl.getUniformLocation(lightingProgram, 'u_sceneTexture'), 0);
+    gl.uniform1i(u_sceneTexLoc, 0);
 
-    // --- Depth texture upload (safe RGBA fallback) ---
-    const depthData = new Uint8Array(CANVAS_WIDTH * CANVAS_HEIGHT * 4); // RGBA
-    const colWidth = CANVAS_WIDTH / numCastRays;
+    // Depth texture (minimal 1D array per ray)
+    const depthData = new Uint8Array(numCastRays);
     for (let i = 0; i < numCastRays; i++) {
-        const d = rayData[i]?.distance ?? 1000.0;
-        const normalized = Math.min(1.0, Math.max(0.0, d / 1000.0));
-        const byteVal = Math.floor(normalized * 255);
-        const startCol = Math.floor(i * colWidth);
-        const endCol = Math.min(Math.floor((i + 1) * colWidth), CANVAS_WIDTH);
-        for (let col = startCol; col < endCol; col++) {
-            for (let row = 0; row < CANVAS_HEIGHT; row++) {
-                const idx = (row * CANVAS_WIDTH + col) * 4;
-                depthData[idx] = byteVal;
-                depthData[idx + 1] = byteVal;
-                depthData[idx + 2] = byteVal;
-                depthData[idx + 3] = 255;
-            }
-        }
+        const d = rayData[i]?.distance ?? 1000;
+        depthData[i] = Math.min(255, Math.max(0, Math.floor((d / 1000) * 255)));
     }
-
     gl.activeTexture(gl.TEXTURE1);
-    if (!depthTexture) depthTexture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, depthTexture);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, CANVAS_WIDTH, CANVAS_HEIGHT, 0, gl.RGBA, gl.UNSIGNED_BYTE, depthData);
-    gl.uniform1i(gl.getUniformLocation(lightingProgram, 'u_depthTexture'), 1);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, numCastRays, 1, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, depthData);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.uniform1i(u_depthTexLoc, 1);
 
-    // --- Set uniforms ---
-    gl.uniform3fv(gl.getUniformLocation(lightingProgram, 'u_playerPos'), new Float32Array([playerPosition.x, playerPosition.z, playerPosition.angle]));
-    gl.uniform1f(gl.getUniformLocation(lightingProgram, 'u_fov'), playerFOV);
-    gl.uniform2f(gl.getUniformLocation(lightingProgram, 'u_resolution'), CANVAS_WIDTH, CANVAS_HEIGHT);
+    // Uniforms
+    gl.uniform3fv(u_playerPosLoc, new Float32Array([playerPosition.x, playerPosition.z, playerPosition.angle]));
+    gl.uniform1f(u_fovLoc, playerFOV);
+    gl.uniform2f(u_resolutionLoc, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-    const maxLights = 4;
-    const lightPosFlat = new Float32Array(maxLights * 3);
-    const lightColorFlat = new Float32Array(maxLights * 3);
-    const lightIntensityFlat = new Float32Array(maxLights);
-    for (let i = 0; i < maxLights; i++) {
+    const lightPosFlat = new Float32Array(MAX_LIGHTS * 3);
+    const lightColorFlat = new Float32Array(MAX_LIGHTS * 3);
+    const lightIntensityFlat = new Float32Array(MAX_LIGHTS);
+    for (let i = 0; i < MAX_LIGHTS; i++) {
         if (lights[i]) {
             lightPosFlat.set(lights[i].position, i * 3);
             lightColorFlat.set(lights[i].color, i * 3);
-            lightIntensityFlat[i] = lights[i].intensity ?? 1.0;
+            lightIntensityFlat[i] = lights[i].intensity ?? 1;
         }
     }
-    gl.uniform3fv(gl.getUniformLocation(lightingProgram, 'u_lightPos'), lightPosFlat);
-    gl.uniform3fv(gl.getUniformLocation(lightingProgram, 'u_lightColor'), lightColorFlat);
-    gl.uniform1fv(gl.getUniformLocation(lightingProgram, 'u_lightIntensity'), lightIntensityFlat);
-    gl.uniform1i(gl.getUniformLocation(lightingProgram, 'u_lightCount'), Math.min(lights.length, maxLights));
+    gl.uniform3fv(u_lightPosLoc, lightPosFlat);
+    gl.uniform3fv(u_lightColorLoc, lightColorFlat);
+    gl.uniform1fv(u_lightIntensityLoc, lightIntensityFlat);
+    gl.uniform1i(u_lightCountLoc, Math.min(lights.length, MAX_LIGHTS));
 
-    // --- Draw quad ---
-    const gpuStartTime = performance.now();
+    // Draw full-screen quad
     gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
     const posLoc = gl.getAttribLocation(lightingProgram, 'a_position');
     gl.enableVertexAttribArray(posLoc);
     gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-    // --- Copy to offscreen canvas ---
-    try {
-        if (typeof gl.finish === 'function') gl.finish();
-        offscreenCtx.save();
-        offscreenCtx.setTransform(1, 0, 0, 1, 0, 0);
-        offscreenCtx.drawImage(lightingCanvas, 0, 0);
-        offscreenCtx.restore();
-    } catch (err) {
-        console.warn("Could not copy GL canvas into offscreenCtx:", err);
-    }
-
-    console.timeEnd('applyLighting');
-
-    // Measure GPU frame time for performance monitor (GPU draw + copy time)
-    const gpuEndTime = performance.now();
-    window.lastGpuFrameTime = gpuEndTime - gpuStartTime;
+    // Copy to 2D offscreen
+    offscreenCtx.drawImage(lightingCanvas, 0, 0);
 }
 
 // ---------- Cleanup ----------
 export function cleanupLightingEngine() {
-    if (!gl) return;
-    try {
-        if (lightingProgram) gl.deleteProgram(lightingProgram);
-        if (quadBuffer) gl.deleteBuffer(quadBuffer);
-        if (sceneTexture) gl.deleteTexture(sceneTexture);
-        if (depthTexture) gl.deleteTexture(depthTexture);
-    } catch (err) {
-        console.warn("Error cleaning GL resources:", err);
+    if (lightWorkerInitialized) {
+        lightWorker.postMessage({ type: 'cleanup' });
+        lightWorkerInitialized = false;
     }
+    pendingLightingResolve = null;
+
+    if (!gl) return;
+    if (lightingProgram) gl.deleteProgram(lightingProgram);
+    if (quadBuffer) gl.deleteBuffer(quadBuffer);
+    if (sceneTexture) gl.deleteTexture(sceneTexture);
+    if (depthTexture) gl.deleteTexture(depthTexture);
+
     gl = null;
     lightingProgram = null;
     quadBuffer = null;
     sceneTexture = null;
     depthTexture = null;
     lights = [];
-    console.log("Lighting cleaned up! *chao chao*");
+    console.log("Lighting engine cleaned up!");
 }
-
-
