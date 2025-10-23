@@ -419,11 +419,11 @@ export async function gameRenderEngine(deltaTime) {
         await renderRaycastHorizons(rayData, offscreenCtx);
         renderRaycastWalls(rayData, mapHandler.activeMapKey, offscreenCtx);
         decorationHandlerGodFunction();
-        drawSprites(rayData);
 
         // Lighting pass: update lights and apply
         updateLights();
         applyLighting(rayData);
+        drawSprites(rayData, offscreenCtx);
 
         // Draw final offscreen canvas to the visible canvas
         renderEngine.drawImage(offscreenCanvas, 0, 0);

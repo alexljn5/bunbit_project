@@ -90,7 +90,8 @@ export function renderSprite({
     adjustedScreenX: providedScreenX,
     startColumn: providedStartCol,
     endColumn: providedEndCol,
-    correctedDistance: providedDistance
+    correctedDistance: providedDistance,
+    ctx
 }) {
     if (!isLoaded || !sprite || !worldPos) return null;
 
@@ -137,12 +138,16 @@ export function renderSprite({
     const sx = visibleFractionStart * spriteImageWidth;
     const sWidth = (visibleFractionEnd - visibleFractionStart) * spriteImageWidth;
 
-    renderEngine.drawImage(
+    ctx.save();
+    ctx.translate(visibleLeftX, spriteY - playerVantagePointY.playerVantagePointY + spriteHeight);
+    ctx.scale(1, -1);
+    ctx.drawImage(
         sprite,
         sx, 0, sWidth, sprite.height,
-        visibleLeftX, spriteY - playerVantagePointY.playerVantagePointY,
+        0, 0,
         visibleScreenWidth, spriteHeight
     );
+    ctx.restore();
 
     return { adjustedScreenX, spriteWidth: visibleScreenWidth, spriteY, spriteHeight };
 }

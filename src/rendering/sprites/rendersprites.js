@@ -45,7 +45,7 @@ export class Sprite {
         this._isLoaded = value;
     }
 
-    defaultRender(rayData, renderEngine) {
+    defaultRender(rayData, ctx) {
         if (!this.isLoaded || !this.image || !this.worldPos || typeof renderSprite !== 'function') {
             return null;
         }
@@ -59,7 +59,8 @@ export class Sprite {
             aspectRatio: this.aspectRatio,
             baseYRatio: this.baseYRatio,
             scaleFactor: this.scaleFactor,
-            spriteId: this.id
+            spriteId: this.id,
+            ctx
         });
     }
 }
@@ -116,10 +117,10 @@ export class SpriteManager {
         }
     }
 
-    renderSprites(rayData) {
+    renderSprites(rayData, ctx) {
         if (!rayData) return;
         // Render Background layer (no sorting)
-        this.layers[LAYERS.BACKGROUND].forEach(sprite => sprite.renderFunction(rayData, renderEngine));
+        this.layers[LAYERS.BACKGROUND].forEach(sprite => sprite.renderFunction(rayData, ctx));
 
         // Render Midground layer (sorted by distance)
         const midgroundSprites = this.layers[LAYERS.MIDGROUND]
@@ -132,10 +133,10 @@ export class SpriteManager {
             })
             .filter(s => s)
             .sort((a, b) => b.distance - a.distance); // Farthest first
-        midgroundSprites.forEach(({ sprite }) => sprite.renderFunction(rayData, renderEngine));
+        midgroundSprites.forEach(({ sprite }) => sprite.renderFunction(rayData, ctx));
 
         // Render Foreground layer (no sorting)
-        this.layers[LAYERS.FOREGROUND].forEach(sprite => sprite.renderFunction(rayData, renderEngine));
+        this.layers[LAYERS.FOREGROUND].forEach(sprite => sprite.renderFunction(rayData, ctx));
     }
 
     getSprite(id) { return this.sprites.get(id); }
@@ -170,9 +171,9 @@ export class SpriteManager {
 
 export const spriteManager = new SpriteManager();
 
-export function drawSprites(rayData) {
+export function drawSprites(rayData, ctx) {
     if (!rayData) return;
-    spriteManager.renderSprites(rayData);
+    spriteManager.renderSprites(rayData, ctx);
 }
 
 export function initializeSprites() {

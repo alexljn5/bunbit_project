@@ -34,7 +34,7 @@ export function registerSprites() {
         image: playerHandSprite,
         isLoaded: handLoaded,
         layer: LAYERS.FOREGROUND,
-        renderFunction: (rayData, renderEngine) => {
+        renderFunction: (rayData, ctx) => {
             if (!handLoaded && !metalPipePlayerHandLoaded && !genericGunPlayerHandLoaded) return null;
             let handSprite = playerHandSprite;
             const selectedItem = playerInventory[inventoryState.selectedInventoryIndex];
@@ -49,7 +49,7 @@ export function registerSprites() {
             const spriteWidth = 256 * SCALE_X;
             const spriteHeight = 512 * SCALE_Y;
             const spriteX = 450 * SCALE_X;
-            renderEngine.drawImage(handSprite, spriteX, bobbingY, spriteWidth, spriteHeight);
+            ctx.drawImage(handSprite, spriteX, bobbingY, spriteWidth, spriteHeight);
             return null; // No depth info needed
         }
     });
@@ -104,7 +104,7 @@ export function registerSprites() {
         aspectRatio: 128 / 80,
         baseYRatio: 500 / REF_CANVAS_HEIGHT,
         scaleFactor: 0.5,
-        renderFunction: (rayData, renderEngine) => {
+        renderFunction: (rayData, ctx) => {
             if (spriteState.isMetalPipeCollected) return null;
             return renderSprite({
                 sprite: metalPipeSprite,
@@ -116,7 +116,8 @@ export function registerSprites() {
                 aspectRatio: 128 / 80,
                 baseYRatio: 500 / REF_CANVAS_HEIGHT,
                 scaleFactor: 0.5,
-                spriteId: 'metalPipe'
+                spriteId: 'metalPipe',
+                ctx
             });
         }
     });
@@ -135,7 +136,7 @@ export function registerSprites() {
         scaleFactor: 0.5,
         aspectRatio: 1,
         baseYRatio: 400 / REF_CANVAS_HEIGHT,
-        renderFunction: (rayData, renderEngine) => {
+        renderFunction: (rayData, ctx) => {
             if (spriteState.isNineMmAmmoCollected) return null;
             const worldPos = spriteManager.getSprite("nineMMAmmo")?.worldPos;
             if (!worldPos) return null;
@@ -165,7 +166,8 @@ export function registerSprites() {
                 startColumn,
                 endColumn,
                 correctedDistance,
-                spriteId: 'nineMMAmmo'
+                spriteId: 'nineMMAmmo',
+                ctx
             });
             return result ? { adjustedScreenX, spriteWidth, spriteY: spriteYBottom - spriteHeight, spriteHeight } : null;
         }
@@ -186,7 +188,7 @@ export function registerSprites() {
         aspectRatio: 128 / 80,
         baseYRatio: 400 / REF_CANVAS_HEIGHT,
         scaleFactor: 0.5,
-        renderFunction: (rayData, renderEngine) => {
+        renderFunction: (rayData, ctx) => {
             if (!boyKisserEnemySpriteLoaded) return null;
             return renderSprite({
                 sprite: boyKisserEnemySprite,
@@ -198,7 +200,8 @@ export function registerSprites() {
                 aspectRatio: 128 / 80,
                 baseYRatio: 400 / REF_CANVAS_HEIGHT,
                 scaleFactor: 0.5,
-                spriteId: 'boyKisser'
+                spriteId: 'boyKisser',
+                ctx
             });
         }
     });
@@ -218,7 +221,7 @@ export function registerSprites() {
         aspectRatio: 128 / 80,
         baseYRatio: 400 / REF_CANVAS_HEIGHT,
         scaleFactor: 0.5,
-        renderFunction: (rayData, renderEngine) => {
+        renderFunction: (rayData, ctx) => {
             if (!casperLesserDemonSpriteLoaded) return null;
             return renderSprite({
                 sprite: casperLesserDemonSprite,
@@ -230,7 +233,8 @@ export function registerSprites() {
                 aspectRatio: 128 / 80,
                 baseYRatio: 400 / REF_CANVAS_HEIGHT,
                 scaleFactor: 0.5,
-                spriteId: 'casperLesserDemon'
+                spriteId: 'casperLesserDemon',
+                ctx
             });
         }
     });
@@ -303,7 +307,7 @@ export function registerSprites() {
             aspectRatio: 128 / 80,
             baseYRatio: 400 / REF_CANVAS_HEIGHT,
             scaleFactor: 0.5,
-            renderFunction: (rayData, renderEngine) => {
+            renderFunction: (rayData, ctx) => {
                 if (!placeholderAiSpriteLoaded) return null;
                 return renderSprite({
                     sprite: placeholderAiSprite,
@@ -315,7 +319,8 @@ export function registerSprites() {
                     aspectRatio: 128 / 80,
                     baseYRatio: 400 / REF_CANVAS_HEIGHT,
                     scaleFactor: 0.5,
-                    spriteId: placeholderId
+                    spriteId: placeholderId,
+                    ctx
                 });
             }
         });
