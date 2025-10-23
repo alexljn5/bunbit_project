@@ -6,6 +6,31 @@ import { playerPosition } from "../../playerdata/playerlogic.js";
 import { numCastRays } from "../raycasting.js";
 import { vertexShaderSource, fragmentShaderSource } from "./shaders.js";
 
+// Constants for magic numbers
+const QUAD_VERTICES = new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]);
+const TEXTURE_UNIT_SCENE = 0; // Texture unit index for scene
+const TEXTURE_UNIT_DEPTH = 1; // Texture unit index for depth
+const TEXTURE_2D_ACTIVE_SCENE = 33984; // gl.TEXTURE0
+const TEXTURE_2D_ACTIVE_DEPTH = 33985; // gl.TEXTURE1
+const POSITION_COMPONENTS = 2;
+const VERTEX_STRIDE = 0;
+const VERTEX_OFFSET = 0;
+const DRAW_MODE = 5; // gl.TRIANGLE_STRIP
+const VERTEX_COUNT = 4;
+const MAX_DEPTH = 1000.0;
+const DEPTH_TEXTURE_LEVEL = 0;
+const TEXTURE_MIN_FILTER_NEAREST = 9728; // gl.NEAREST
+const TEXTURE_MAG_FILTER_NEAREST = 9728; // gl.NEAREST
+const TEXTURE_MIN_FILTER_LINEAR = 9729; // gl.LINEAR
+const TEXTURE_MAG_FILTER_LINEAR = 9729; // gl.LINEAR
+const RGBA_FORMAT = 6408; // gl.RGBA
+const UNSIGNED_BYTE = 5121; // gl.UNSIGNED_BYTE
+const LUMINANCE_FORMAT = 6409; // gl.LUMINANCE
+const FLOAT_TYPE = 5126; // gl.FLOAT
+const STATIC_DRAW = 35044; // gl.STATIC_DRAW
+const ARRAY_BUFFER = 34962; // gl.ARRAY_BUFFER
+const TEXTURE_2D = 3553; // gl.TEXTURE_2D
+
 const lightingCanvas = document.createElement("canvas");
 lightingCanvas.width = CANVAS_WIDTH;
 lightingCanvas.height = CANVAS_HEIGHT;
@@ -34,7 +59,7 @@ export function initLightingEngine() {
     }
     quadBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, QUAD_VERTICES, STATIC_DRAW);
     console.log("Quad buffer created *twirls*");
 
     // Init lights
@@ -80,7 +105,7 @@ export function applyLighting(sceneCanvas, rayData) {
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, sceneCanvas);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.uniform1i(gl.getUniformLocation(lightingProgram, 'u_sceneTexture'), 0);
+    gl.uniform1i(gl.getUniformLocation(lightingProgram, 'u_sceneTexture'), TEXTURE_UNIT_SCENE);
     console.log("Scene texture bound, size:", CANVAS_WIDTH, "x", CANVAS_HEIGHT);
 
     // Update depth texture from rayData
@@ -95,14 +120,14 @@ export function applyLighting(sceneCanvas, rayData) {
         const endCol = Math.min(Math.floor((i + 1) * colWidth), CANVAS_WIDTH);
         for (let col = startCol; col < endCol; col++) {
             for (let row = 0; row < CANVAS_HEIGHT; row++) {
-                depthData[row * CANVAS_WIDTH + col] = depth / 1000;
+                depthData[row * CANVAS_WIDTH + col] = depth / MAX_DEPTH;
             }
         }
     }
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, CANVAS_WIDTH, CANVAS_HEIGHT, 0, gl.LUMINANCE, gl.FLOAT, depthData);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-    gl.uniform1i(gl.getUniformLocation(lightingProgram, 'u_depthTexture'), 1);
+    gl.uniform1i(gl.getUniformLocation(lightingProgram, 'u_depthTexture'), TEXTURE_UNIT_DEPTH);
     console.log("Depth texture bound, sample:", depthData[0]);
 
     // Set uniforms
@@ -123,8 +148,8 @@ export function applyLighting(sceneCanvas, rayData) {
     gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
     const posLoc = gl.getAttribLocation(lightingProgram, 'a_position');
     gl.enableVertexAttribArray(posLoc);
-    gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    gl.vertexAttribPointer(posLoc, POSITION_COMPONENTS, gl.FLOAT, false, VERTEX_STRIDE, VERTEX_OFFSET);
+    gl.drawArrays(DRAW_MODE, VERTEX_OFFSET, VERTEX_COUNT);
     console.log("Lighting quad drawn *sparkles*");
 
     // Check WebGL errors
