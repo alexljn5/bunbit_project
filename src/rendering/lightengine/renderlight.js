@@ -116,7 +116,7 @@ export function initLightingEngine() {
     depthTexture = gl.createTexture();
 
     // Default light
-    lights = [createLight([playerPosition.x, playerPosition.z, 1.0], [1, 0.9, 0.7], 1.2)];
+    lights = [createLight([playerPosition.x, playerPosition.z, 1.0], [1, 0.9, 0.9], 1.2)];
 
     console.log("Lighting engine initialized!");
     return true;
