@@ -10,6 +10,14 @@ let CANVAS_HEIGHT = 0;
 let tileSectors = 0;
 let playerFOV = 0;
 
+// Precomputed constants
+let texScaleXFloor = 0;
+let texScaleYFloor = 0;
+let texScaleXRoof = 0;
+let texScaleYRoof = 0;
+let halfHeight = 0;
+let projectionDist = 0;
+
 // --- Ultra-Fast Math Tables for Worker ---
 const SIN_TABLE_BITS = 10;               // 2^10 = 1024 entries
 const SIN_TABLE_SIZE = 1 << SIN_TABLE_BITS;
@@ -89,6 +97,9 @@ self.onmessage = function (e) {
         const rowsPerWorker = e.data.rowsPerWorker || Math.ceil(CANVAS_HEIGHT / (e.data.numWorkers || 4));
         // Preallocate a buffer for this worker (Uint32 per pixel)
         horizonBuffer32 = new Uint32Array(CANVAS_WIDTH * rowsPerWorker);
+        // Precompute constants
+        halfHeight = CANVAS_HEIGHT * 0.5;
+        projectionDist = (CANVAS_WIDTH * 0.5) / Math.tan(playerFOV * 0.5);
         self.postMessage({ type: 'init_done' });
         return;
     }
@@ -97,6 +108,8 @@ self.onmessage = function (e) {
         textureDataFloor = new Uint32Array(e.data.textureData);
         textureWidthFloor = e.data.textureWidth;
         textureHeightFloor = e.data.textureHeight;
+        texScaleXFloor = textureWidthFloor / tileSectors;
+        texScaleYFloor = textureHeightFloor / tileSectors;
         console.log(`Worker received floor texture: ${textureWidthFloor}x${textureHeightFloor} *chao chao*`);
         return;
     }
@@ -105,6 +118,8 @@ self.onmessage = function (e) {
         textureDataRoof = new Uint32Array(e.data.textureData);
         textureWidthRoof = e.data.textureWidth;
         textureHeightRoof = e.data.textureHeight;
+        texScaleXRoof = textureWidthRoof / tileSectors;
+        texScaleYRoof = textureHeightRoof / tileSectors;
         console.log(`Worker received roof texture: ${textureWidthRoof}x${textureHeightRoof} *chao chao*`);
         return;
     }
@@ -119,9 +134,6 @@ self.onmessage = function (e) {
         }
 
         const tStart = (typeof performance !== 'undefined') ? performance.now() : Date.now();
-
-        const halfHeight = CANVAS_HEIGHT * 0.5;
-        const projectionDist = (CANVAS_WIDTH * 0.5) / Math.tan(playerFOV * 0.5);
 
         const wallColor = 0xFF000000; // Black for wall areas
 
@@ -154,13 +166,11 @@ self.onmessage = function (e) {
                 const horizX_step = (horizX_right - horizX_left) / CANVAS_WIDTH;
                 const horizZ_step = (horizZ_right - horizZ_left) / CANVAS_WIDTH;
 
-                const texScaleX = textureWidthRoof / tileSectors;
-                const texScaleY = textureHeightRoof / tileSectors;
-                const texX_step = horizX_step * texScaleX;
-                const texY_step = horizZ_step * texScaleY;
+                const texX_step = horizX_step * texScaleXRoof;
+                const texY_step = horizZ_step * texScaleYRoof;
 
-                let texX = (horizX_left % tileSectors) * texScaleX;
-                let texY = (horizZ_left % tileSectors) * texScaleY;
+                let texX = (horizX_left % tileSectors) * texScaleXRoof;
+                let texY = (horizZ_left % tileSectors) * texScaleYRoof;
 
                 for (let x = 0; x < CANVAS_WIDTH; x++) {
                     pixelColor = wallColor;
@@ -197,13 +207,11 @@ self.onmessage = function (e) {
                 const horizX_step = (horizX_right - horizX_left) / CANVAS_WIDTH;
                 const horizZ_step = (horizZ_right - horizZ_left) / CANVAS_WIDTH;
 
-                const texScaleX = textureWidthFloor / tileSectors;
-                const texScaleY = textureHeightFloor / tileSectors;
-                const texX_step = horizX_step * texScaleX;
-                const texY_step = horizZ_step * texScaleY;
+                const texX_step = horizX_step * texScaleXFloor;
+                const texY_step = horizZ_step * texScaleYFloor;
 
-                let texX = (horizX_left % tileSectors) * texScaleX;
-                let texY = (horizZ_left % tileSectors) * texScaleY;
+                let texX = (horizX_left % tileSectors) * texScaleXFloor;
+                let texY = (horizZ_left % tileSectors) * texScaleYFloor;
 
                 for (let x = 0; x < CANVAS_WIDTH; x++) {
                     pixelColor = wallColor;
