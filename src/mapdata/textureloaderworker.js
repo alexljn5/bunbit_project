@@ -29,7 +29,7 @@ self.onmessage = async function (e) {
             try {
                 if (typeof OffscreenCanvas !== 'undefined') {
                     const oc = new OffscreenCanvas(bitmap.width, bitmap.height);
-                    const ctx = oc.getContext('2d');
+                    const ctx = oc.getContext('2d', { willReadFrequently: true });
                     ctx.drawImage(bitmap, 0, 0);
                     try {
                         const img = ctx.getImageData(0, 0, bitmap.width, bitmap.height);
