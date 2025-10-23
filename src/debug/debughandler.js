@@ -150,15 +150,15 @@ function updateButtonPositions() {
         x += w + gap;
     });
 
-    // Cache buttons
-    if (!buttonsCanvas) {
-        buttonsCanvas = document.createElement('canvas');
-        buttonsCanvas.width = DEBUG_WIDTH;
-        buttonsCanvas.height = HEADER_HEIGHT;
-    }
+    // Always resize the offscreen canvas to match current DEBUG_WIDTH
+    if (!buttonsCanvas) buttonsCanvas = document.createElement('canvas');
+    buttonsCanvas.width = DEBUG_WIDTH;
+    buttonsCanvas.height = HEADER_HEIGHT;
+
     const btnCtx = buttonsCanvas.getContext('2d');
     drawButtonsToCanvas(btnCtx);
 }
+
 
 // --- Draw buttons to offscreen canvas ---
 function drawButtonsToCanvas(ctx) {
@@ -218,7 +218,9 @@ function debugHandlerMainFunction() {
     debugContainer.style.backgroundColor = 'transparent';
     debugContainer.style.boxSizing = 'border-box';
     debugContainer.style.overflow = 'hidden';
-    debugContainer.style.resize = 'none';
+    debugContainer.style.resize = 'both'; // allow manual resizing
+    debugContainer.style.overflow = 'auto'; // needed for 'both'
+
     debugContainer.style.boxShadow = themeManager.getCurrentThemeName?.() === 'evil' ? `0 0 15px ${themeManager.getCurrentTheme().border}` : 'none';
     document.body.appendChild(debugContainer);
 
@@ -226,6 +228,85 @@ function debugHandlerMainFunction() {
     debugCanvas.id = 'debugTerminal';
     debugCanvas.style.display = 'block';
     debugContainer.appendChild(debugCanvas);
+    // --- Drag + Resize Handle ---
+    let isDragging = false;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let initialX = 0;
+    let initialY = 0;
+
+    let isResizing = false;
+    let resizeStartX = 0;
+    let resizeStartY = 0;
+    let initialWidth = 0;
+    let initialHeight = 0;
+
+    // Resize handle area
+    const resizeHandleSize = 16 * SCALE_X;
+
+    // Mouse down
+    debugContainer.addEventListener('mousedown', e => {
+        const rect = debugContainer.getBoundingClientRect();
+        const offsetX = e.clientX - rect.left;
+        const offsetY = e.clientY - rect.top;
+
+        if (offsetX >= rect.width - resizeHandleSize && offsetY >= rect.height - resizeHandleSize) {
+            // Start resizing
+            isResizing = true;
+            resizeStartX = e.clientX;
+            resizeStartY = e.clientY;
+            initialWidth = rect.width;
+            initialHeight = rect.height;
+            e.preventDefault();
+        } else {
+            // Start dragging
+            isDragging = true;
+            dragStartX = e.clientX;
+            dragStartY = e.clientY;
+            initialX = rect.left;
+            initialY = rect.top;
+            e.preventDefault();
+        }
+    });
+
+    // Mouse move
+    window.addEventListener('mousemove', e => {
+        if (isDragging) {
+            const dx = e.clientX - dragStartX;
+            const dy = e.clientY - dragStartY;
+            debugContainer.style.left = `${initialX + dx}px`;
+            debugContainer.style.bottom = 'auto';
+            debugContainer.style.top = `${initialY + dy}px`;
+            e.preventDefault();
+        }
+        if (isResizing) {
+            const dw = e.clientX - resizeStartX;
+            const dh = e.clientY - resizeStartY;
+            const newWidth = Math.max(MIN_WIDTH, initialWidth + dw);
+            const newHeight = Math.max(MIN_HEIGHT, initialHeight + dh);
+            resizeDebugCanvas(newWidth, newHeight - HEADER_HEIGHT); // header is separate
+            e.preventDefault();
+        }
+    });
+
+    // Mouse up
+    window.addEventListener('mouseup', () => {
+        isDragging = false;
+        isResizing = false;
+    });
+
+    // Optional: Show cursor for resize handle
+    debugContainer.addEventListener('mousemove', e => {
+        const rect = debugContainer.getBoundingClientRect();
+        const offsetX = e.clientX - rect.left;
+        const offsetY = e.clientY - rect.top;
+        if (offsetX >= rect.width - resizeHandleSize && offsetY >= rect.height - resizeHandleSize) {
+            debugContainer.style.cursor = 'nwse-resize';
+        } else {
+            debugContainer.style.cursor = 'grab';
+        }
+    });
+
 
     debugCtx = debugCanvas.getContext('2d');
     debugCtx.imageSmoothingEnabled = false;
@@ -288,6 +369,10 @@ function debugHandlerMainFunction() {
     updateFilteredLogs();
     needsRedraw = true;
     drawDebugTerminal();
+    // Initial log so terminal isn’t empty
+    console.log('Bunbit Debug Terminal initialized! *chao chao*');
+
+
 
     try { togglePerfMonitor(); } catch (err) { console.error(err); }
 }
