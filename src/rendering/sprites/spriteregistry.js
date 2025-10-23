@@ -252,7 +252,7 @@ export function registerSprites() {
         scaleFactor: 1,
         aspectRatio: 150 / 250,
         baseYRatio: 0.5,
-        renderFunction: (rayData, renderEngine) => {
+        renderFunction: (rayData, ctx) => {
             if (!creamSpinLoaded) return null;
             const currentFrame = getCreamSpinCurrentFrame();
             if (!currentFrame) return null;
@@ -278,7 +278,8 @@ export function registerSprites() {
                 startColumn,
                 endColumn,
                 correctedDistance,
-                spriteId: 'creamSpin'
+                spriteId: 'creamSpin',
+                ctx
             });
             return result;
         }

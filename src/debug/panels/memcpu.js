@@ -34,6 +34,15 @@ let performanceData = {
         total: 0,
         percent: 0
     },
+    gpu: {
+        renderer: 'Unknown',
+        vendor: 'Unknown',
+        memoryUsed: 0,
+        memoryTotal: 0,
+        frameTime: 0,
+        lastFrameTime: 0,
+        frameCount: 0
+    },
     cpu: {
         usage: 0,
         cores: os.cpus().length,
@@ -50,11 +59,13 @@ let performanceData = {
     // Smoothed values container to prevent NaN/uninitialized access
     smoothed: {
         cpu: 0,
-        renderWorkerLoad: 0
+        renderWorkerLoad: 0,
+        gpuFrameTime: 0
     },
     history: {
         jsHeap: [],
         systemMemory: [],
+        gpu: [],
         cpu: [],
         fps: [],
         frameTime: [],
@@ -480,6 +491,21 @@ function updatePerformanceData() {
             };
         }
 
+        // GPU info
+        if (hasGpuMemoryAPI) {
+            const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+            if (debugInfo) {
+                performanceData.gpu.renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) || 'Unknown';
+                performanceData.gpu.vendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL) || 'Unknown';
+            }
+        }
+        // GPU frame time - measure from applyLighting if available, otherwise estimate
+        if (window.lastGpuFrameTime) {
+            performanceData.smoothed.gpuFrameTime = smooth(performanceData.smoothed.gpuFrameTime, window.lastGpuFrameTime);
+            performanceData.gpu.frameTime = Math.round(performanceData.smoothed.gpuFrameTime * 10) / 10;
+            window.lastGpuFrameTime = 0; // reset
+        }
+
         // Network latency remains simulated here — smooth it to reduce jitter
         const rawLatency = Math.random() * 100;
         performanceData.networkLatency = Math.round(smooth(performanceData.networkLatency || 0, rawLatency) * 10) / 10;
@@ -487,6 +513,7 @@ function updatePerformanceData() {
         // Update history (use current values)
         performanceData.history.jsHeap.push(performanceData.jsHeap.used || 0);
         performanceData.history.systemMemory.push(performanceData.systemMemory.percent || 0);
+        performanceData.history.gpu.push(performanceData.gpu.frameTime || 0);
         performanceData.history.cpu.push(performanceData.cpu.usage);
         performanceData.history.fps.push(performanceData.fps);
         performanceData.history.frameTime.push(performanceData.frameTime);
@@ -616,6 +643,22 @@ function drawPerfMonitor(time) {
         perfCtx.fillText(latencyText, 10, y);
         y += 15;
 
+        let gpuRendererText = `GPU: ${performanceData.gpu.renderer}`;
+        if (evilGlitchSystem.textGlitch) {
+            gpuRendererText = evilGlitchSystem.applyTextGlitch(gpuRendererText);
+        }
+        perfCtx.fillStyle = themeManager.getPerformanceColor?.(0) || '#FFFFFF'; // neutral
+        perfCtx.fillText(gpuRendererText, 10, y);
+        y += 15;
+
+        let gpuFrameTimeText = `GPU Frame Time: ${performanceData.gpu.frameTime.toFixed(2)}ms`;
+        if (evilGlitchSystem.textGlitch) {
+            gpuFrameTimeText = evilGlitchSystem.applyTextGlitch(gpuFrameTimeText);
+        }
+        perfCtx.fillStyle = themeManager.getPerformanceColor?.(performanceData.gpu.frameTime, [20, 16.67], true) || '#FFFFFF';
+        perfCtx.fillText(gpuFrameTimeText, 10, y);
+        y += 15;
+
         perfCtx.translate(-(evilGlitchSystem.horizontalShift || 0), 0);
 
         if (performanceData.history.systemMemory.length > 1) {
@@ -635,6 +678,8 @@ function drawPerfMonitor(time) {
             drawGraph(perfCtx, performanceData.history.renderWorkerLoad, 10, y, width - 20, graphHeight, themeManager.getCurrentTheme()?.danger || '#FC0000', "Worker Load");
             y += graphHeight + 10;
             drawGraph(perfCtx, performanceData.history.networkLatency, 10, y, width - 20, graphHeight, themeManager.getCurrentTheme()?.warning || '#FFFF00', "Latency");
+            y += graphHeight + 10;
+            drawGraph(perfCtx, performanceData.history.gpu, 10, y, width - 20, graphHeight, themeManager.getCurrentTheme()?.warning || '#FFFF00', "GPU Frame Time");
             y += graphHeight + 10;
         }
 

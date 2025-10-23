@@ -86,7 +86,6 @@ async function connectDB() {
 async function createWindow() {
     // Disable Chromium features
     app.commandLine.appendSwitch('no-sandbox');
-    //app.commandLine.appendSwitch('disable-gpu');
     app.commandLine.appendSwitch('disable-features', 'Spellcheck,WebRTC,Autofill,FontsNetwork,MediaSession,Geolocation,WebSQL,WebAudio');
     app.commandLine.appendSwitch('disable-background-timer-throttling');
     app.commandLine.appendSwitch('disable-renderer-backgrounding');

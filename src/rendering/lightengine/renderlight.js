@@ -114,6 +114,7 @@ export function applyLighting(rayData, offscreenCanvas, offscreenCtx) {
 
     if (!rayData || !Array.isArray(rayData)) return;
 
+    const startTime = performance.now();
     console.time('applyLighting');
     gl.viewport(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     gl.clearColor(0.02, 0.02, 0.03, 1.0);
@@ -181,6 +182,7 @@ export function applyLighting(rayData, offscreenCanvas, offscreenCtx) {
     gl.uniform1i(gl.getUniformLocation(lightingProgram, 'u_lightCount'), Math.min(lights.length, maxLights));
 
     // --- Draw quad ---
+    const gpuStartTime = performance.now();
     gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
     const posLoc = gl.getAttribLocation(lightingProgram, 'a_position');
     gl.enableVertexAttribArray(posLoc);
@@ -199,6 +201,10 @@ export function applyLighting(rayData, offscreenCanvas, offscreenCtx) {
     }
 
     console.timeEnd('applyLighting');
+
+    // Measure GPU frame time for performance monitor (GPU draw + copy time)
+    const gpuEndTime = performance.now();
+    window.lastGpuFrameTime = gpuEndTime - gpuStartTime;
 }
 
 // ---------- Cleanup ----------
