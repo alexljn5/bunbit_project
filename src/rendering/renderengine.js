@@ -31,7 +31,9 @@ import { soundHandlerGodFunction } from "../audio/soundhandler.js";
 import { showTerminal } from "../console/terminal/terminal.js";
 import { debugHandlerGodFunction, drawDebugTerminal } from "../debug/debughandler.js";
 import { titleHandlerGodFunction } from "../ui/titlehandler.js";
+import { initLightingEngine, updateLights, applyLighting, cleanupLightingEngine } from "./lightengine/renderlight.js";
 
+debugHandlerGodFunction();
 
 // --- DOM Elements ---
 const domElements = {
@@ -77,11 +79,6 @@ function renderPauseMenu() {
     renderEngine.fillText("Press M to return to main menu", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 40);
     renderEngine.restore();
 }
-debugHandlerGodFunction(); // <--- only setup once at startup
-
-
-// ========== LIGHTING SUBSYSTEM (moved to lightengine) ==========
-import { initLightingEngine, updateLights, applyLighting, cleanupLightingEngine } from "./lightengine/renderlight.js";
 
 
 // --- Render Workers initialization (keeps your behavior) ---
