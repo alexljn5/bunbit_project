@@ -4,7 +4,7 @@ import { playerFOV, numCastRays } from "../raycasting.js";
 import { playerPosition } from "../../playerdata/playerlogic.js";
 import { vertexShaderSource, fragmentShaderSource, createShaderProgramSafe } from "./shaders.js";
 
-const MAX_LIGHTS = 4;
+const MAX_LIGHTS = 8; // Increase max lights to support player + map lights
 
 // ---------- Worker-based lighting ----------
 const lightWorkerUrl = new URL("./renderworkers/lightworker.js", import.meta.url);
@@ -27,7 +27,9 @@ let depthTexture = null;
 let u_sceneTexLoc, u_depthTexLoc, u_playerPosLoc, u_fovLoc, u_resolutionLoc;
 let u_lightPosLoc, u_lightColorLoc, u_lightIntensityLoc, u_lightCountLoc;
 
-let lights = [];
+// ---------- Lights ----------
+let lights = [];       // dynamic/player lights
+export const mapLights = []; // stationary map lights
 
 // ---------- Worker message handling ----------
 lightWorker.onmessage = (e) => {
@@ -81,6 +83,30 @@ export function getLights() {
     return lights.slice();
 }
 
+// ---------- Map Lights ----------
+export function createMapLight(position = [0, 0], color = "#fff", intensity = 1.0, radius = 5.0) {
+    return { position: [position[0], position[1], 0], color: normalizeColorInput(color), intensity, radius };
+}
+
+export function addMapLight(position, color = "#fff", intensity = 1.0, radius = 5.0) {
+    const l = createMapLight(position, color, intensity, radius);
+    mapLights.push(l);
+    return l;
+}
+
+export function setMapLight(index, { position, color, intensity, radius }) {
+    if (index < 0 || index >= mapLights.length) return false;
+    if (position) { mapLights[index].position[0] = position[0]; mapLights[index].position[1] = position[1]; }
+    if (color) mapLights[index].color = normalizeColorInput(color);
+    if (intensity !== undefined) mapLights[index].intensity = intensity;
+    if (radius !== undefined) mapLights[index].radius = radius;
+    return true;
+}
+
+export function getMapLights() {
+    return mapLights.slice();
+}
+
 // ---------- Engine ----------
 export function initLightingEngine() {
     if (gl) return true;
@@ -115,7 +141,7 @@ export function initLightingEngine() {
     sceneTexture = gl.createTexture();
     depthTexture = gl.createTexture();
 
-    // Default light
+    // Default player light
     lights = [createLight([playerPosition.x, playerPosition.z, 1.0], [1, 0.9, 0.9], 1.2)];
 
     console.log("Lighting engine initialized!");
@@ -168,7 +194,7 @@ export async function applyLighting(rayData, offscreenCanvas, offscreenCtx) {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.uniform1i(u_sceneTexLoc, 0);
 
-    // Depth texture (minimal 1D array per ray)
+    // Depth texture
     const depthData = new Uint8Array(numCastRays);
     for (let i = 0; i < numCastRays; i++) {
         const d = rayData[i]?.distance ?? 1000;
@@ -186,20 +212,23 @@ export async function applyLighting(rayData, offscreenCanvas, offscreenCtx) {
     gl.uniform1f(u_fovLoc, playerFOV);
     gl.uniform2f(u_resolutionLoc, CANVAS_WIDTH, CANVAS_HEIGHT);
 
+    // Merge lights + mapLights
+    const allLights = [...lights, ...mapLights];
     const lightPosFlat = new Float32Array(MAX_LIGHTS * 3);
     const lightColorFlat = new Float32Array(MAX_LIGHTS * 3);
     const lightIntensityFlat = new Float32Array(MAX_LIGHTS);
-    for (let i = 0; i < MAX_LIGHTS; i++) {
-        if (lights[i]) {
-            lightPosFlat.set(lights[i].position, i * 3);
-            lightColorFlat.set(lights[i].color, i * 3);
-            lightIntensityFlat[i] = lights[i].intensity ?? 1;
-        }
+
+    for (let i = 0; i < Math.min(allLights.length, MAX_LIGHTS); i++) {
+        const l = allLights[i];
+        lightPosFlat.set(l.position, i * 3);
+        lightColorFlat.set(l.color, i * 3);
+        lightIntensityFlat[i] = l.intensity ?? 1;
     }
+
     gl.uniform3fv(u_lightPosLoc, lightPosFlat);
     gl.uniform3fv(u_lightColorLoc, lightColorFlat);
     gl.uniform1fv(u_lightIntensityLoc, lightIntensityFlat);
-    gl.uniform1i(u_lightCountLoc, Math.min(lights.length, MAX_LIGHTS));
+    gl.uniform1i(u_lightCountLoc, Math.min(allLights.length, MAX_LIGHTS));
 
     // Draw full-screen quad
     gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
@@ -232,5 +261,6 @@ export function cleanupLightingEngine() {
     sceneTexture = null;
     depthTexture = null;
     lights = [];
+    mapLights.length = 0;
     console.log("Lighting engine cleaned up!");
 }
