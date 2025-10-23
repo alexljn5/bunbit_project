@@ -139,8 +139,7 @@ export function renderSprite({
     const sWidth = (visibleFractionEnd - visibleFractionStart) * spriteImageWidth;
 
     ctx.save();
-    ctx.translate(visibleLeftX, spriteY - playerVantagePointY.playerVantagePointY + spriteHeight);
-    ctx.scale(1, -1);
+    ctx.translate(visibleLeftX, spriteY - playerVantagePointY.playerVantagePointY);
     ctx.drawImage(
         sprite,
         sx, 0, sWidth, sprite.height,
