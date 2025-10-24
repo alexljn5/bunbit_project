@@ -21,6 +21,7 @@ export const keys = Object.fromEntries([
 
 let playerMovementSpeed = 100;
 let playerRotationSpeed = Math.PI / 3;
+let mouseSensitivity = 0.002; // Adjust for mouse look sensitivity
 let lastTime = performance.now();
 export const playerStamina = { playerStaminaBar: 100 };
 let maxStamina = 100;
@@ -79,6 +80,21 @@ window.addEventListener("blur", () => {
 document.addEventListener('pointerlockchange', () => {
     if (document.pointerLockElement !== canvas && document.mozPointerLockElement !== canvas) {
         for (let key in keys) keys[key] = false;
+    }
+});
+
+// Mouse movement for look around
+document.addEventListener('mousemove', (event) => {
+    if (document.pointerLockElement === canvas || document.mozPointerLockElement === canvas) {
+        if (gameOver || showTerminal) return;
+        playerPosition.angle += event.movementX * mouseSensitivity;
+    }
+});
+
+// Request pointer lock on canvas click
+canvas.addEventListener('click', () => {
+    if (document.pointerLockElement !== canvas && document.mozPointerLockElement !== canvas) {
+        canvas.requestPointerLock();
     }
 });
 

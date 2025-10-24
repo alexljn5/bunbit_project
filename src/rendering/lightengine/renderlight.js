@@ -7,7 +7,7 @@ import { vertexShaderSource, fragmentShaderSource, createShaderProgramSafe } fro
 const MAX_LIGHTS = 8; // Increase max lights to support player + map lights
 
 // ---------- Worker-based lighting ----------
-const lightWorkerUrl = new URL("./renderworkers/lightworker.js", import.meta.url);
+const lightWorkerUrl = new URL("../renderworkers/lightworker.js", import.meta.url);
 const lightWorker = new Worker(lightWorkerUrl, { type: "module" });
 let lightWorkerInitialized = false;
 let pendingLightingResolve = null;
