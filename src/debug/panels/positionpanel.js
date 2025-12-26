@@ -156,18 +156,41 @@ export function initPositionPanel() {
     let currentPosX = 0;
     let currentPosY = 0;
 
+    function ensureCanvasPixelSize(canvas) {
+        try {
+            // Use the canvas drawing buffer size (canvas.width/height attributes) as CSS pixels
+            const w = canvas.width || 800;
+            const h = canvas.height || 800;
+            canvas.style.width = `${w}px`;
+            canvas.style.height = `${h}px`;
+            canvas.style.left = '0px';
+            canvas.style.top = '0px';
+            canvas.style.position = 'fixed';
+            canvas.style.transformOrigin = 'top left';
+        } catch (e) {
+            console.warn('[ScalingPanel] could not ensure canvas pixel size', e);
+        }
+    }
+
+    function applyTransform(canvas) {
+        // translate values must be divided by scale so visual offset stays at desired pixels
+        const tx = currentPosX / Math.max(0.0001, currentScaleX);
+        const ty = currentPosY / Math.max(0.0001, currentScaleY);
+        canvas.style.transform = `translate(${tx}px, ${ty}px) scale(${currentScaleX}, ${currentScaleY})`;
+    }
+
     scalingPanel.appendChild(createSliderControl(
         'Position X',
-        -500,
-        500,
+        -2000,
+        2000,
         10,
         0,
         (val) => {
             const canvas = getCanvas();
             if (canvas) {
                 currentPosX = val;
-                canvas.style.left = `${currentPosX}px`;
-                canvas.style.position = 'fixed';
+                ensureCanvasPixelSize(canvas);
+                applyTransform(canvas);
                 console.log('[ScalingPanel] Position X updated to', val);
             }
         }
@@ -175,16 +198,16 @@ export function initPositionPanel() {
 
     scalingPanel.appendChild(createSliderControl(
         'Position Y',
-        -500,
-        500,
+        -2000,
+        2000,
         10,
         0,
         (val) => {
             const canvas = getCanvas();
             if (canvas) {
                 currentPosY = val;
-                canvas.style.top = `${currentPosY}px`;
-                canvas.style.position = 'fixed';
+                ensureCanvasPixelSize(canvas);
+                applyTransform(canvas);
                 console.log('[ScalingPanel] Position Y updated to', val);
             }
         }
@@ -193,15 +216,15 @@ export function initPositionPanel() {
     scalingPanel.appendChild(createSliderControl(
         'Width Scale',
         0.1,
-        3,
+        4,
         0.05,
         1,
         (val) => {
             const canvas = getCanvas();
             if (canvas) {
                 currentScaleX = val;
-                canvas.style.transform = `scale(${currentScaleX}, ${currentScaleY})`;
-                canvas.style.transformOrigin = 'top left';
+                ensureCanvasPixelSize(canvas);
+                applyTransform(canvas);
                 console.log('[ScalingPanel] Width scale updated to', val);
             }
         }
@@ -210,15 +233,15 @@ export function initPositionPanel() {
     scalingPanel.appendChild(createSliderControl(
         'Height Scale',
         0.1,
-        3,
+        4,
         0.05,
         1,
         (val) => {
             const canvas = getCanvas();
             if (canvas) {
                 currentScaleY = val;
-                canvas.style.transform = `scale(${currentScaleX}, ${currentScaleY})`;
-                canvas.style.transformOrigin = 'top left';
+                ensureCanvasPixelSize(canvas);
+                applyTransform(canvas);
                 console.log('[ScalingPanel] Height scale updated to', val);
             }
         }
