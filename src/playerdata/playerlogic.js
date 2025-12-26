@@ -92,12 +92,13 @@ document.addEventListener('mousemove', (event) => {
 });
 
 // Request pointer lock on canvas click
+/*
 canvas.addEventListener('click', () => {
     if (document.pointerLockElement !== canvas && document.mozPointerLockElement !== canvas) {
         canvas.requestPointerLock();
     }
 });
-
+*/
 // Import showTerminal from terminal.js
 import { showTerminal } from "../console/terminal/terminal.js";
 
