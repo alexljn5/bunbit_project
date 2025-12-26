@@ -15,7 +15,7 @@ export const HACKY_THEME = {
     buttonBg: '#001220',
     buttonHover: '#002933',
     smear: 'rgba(57,255,20,0.12)',
-    glow: true
+    glow: false
 };
 
 export function getLogColor(type) {

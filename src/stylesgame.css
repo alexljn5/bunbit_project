@@ -29,6 +29,8 @@ body {
     /* Simple fix: Cap max size but allow viewport scaling */
     max-width: 90vw;
     max-height: 90vh;
+    /* Portal window - colors are managed by thememanager.js */
+    padding: 0;
 }
 
 canvas#mainGameRender {

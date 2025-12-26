@@ -1,16 +1,3 @@
-/**
- * Centralized Item Registry
- * Single source of truth for all items in the game
- * Used by: debug commands, inventory UI, item handlers, etc.
- * 
- * NOTE: Sprites are NOT stored here to avoid circular dependencies.
- * Use the helper functions getItemSprite() to safely access sprites from spritetextures.
- */
-
-/**
- * Master item registry with metadata (NO sprites to avoid circular imports)
- * Every item in the game should be defined here
- */
 export const ITEM_REGISTRY = {
     metal_pipe: {
         id: "metal_pipe",
@@ -32,54 +19,44 @@ export const ITEM_REGISTRY = {
     },
 };
 
-/**
- * Quick lookup map for item display names (auto-generated from registry)
- * Usage: AVAILABLE_ITEMS[itemId] → "Item Name"
- */
 export const AVAILABLE_ITEMS = Object.entries(ITEM_REGISTRY).reduce((acc, [, item]) => {
     acc[item.id] = item.name;
     return acc;
 }, {});
 
-/**
- * Sprite map built on demand from spritetextures module
- * This is lazily populated when getItemSprite() is called
- */
 let spriteMapCache = null;
 
-/**
+/* I am too afraid to touch this*
  * Get the sprite map (lazy-loaded from spritetextures to avoid circular deps)
  * @returns {object} Map of itemId → sprite Image
  */
 function getSpriteMapCache() {
     if (spriteMapCache) return spriteMapCache;
-    
+
     // Dynamically import spritetextures only when needed
     const spriteTextures = globalThis.spriteTextures;
     if (!spriteTextures) {
         console.warn("[ItemRegistry] spriteTextures not loaded yet");
         return {};
     }
-    
+
     spriteMapCache = {
         metal_pipe: spriteTextures.metalPipeSprite,
         generic_gun: spriteTextures.genericGunSprite,
         rusty_key: spriteTextures.rustyKeySprite
     };
-    
+
     return spriteMapCache;
 }
 
-/**
- * Export for convenience (auto-generated from spritetextures)
- * Usage: SPRITE_MAP[itemId] → Image sprite
- */
 export const SPRITE_MAP = new Proxy({}, {
     get(target, prop) {
         const cache = getSpriteMapCache();
         return cache[prop] || null;
     }
 });
+
+//This code block was made by Claude and it somehow works, I do not understand it, do not touch it though.
 
 /**
  * Get item metadata by ID
@@ -115,14 +92,14 @@ export function getItemName(itemId) {
 export function validateSprites() {
     const missingSprites = [];
     const spriteMap = getSpriteMapCache();
-    
+
     Object.entries(ITEM_REGISTRY).forEach(([itemId, item]) => {
         const sprite = spriteMap[itemId];
         if (!sprite || !sprite.complete) {
             missingSprites.push(itemId);
         }
     });
-    
+
     if (missingSprites.length > 0) {
         console.warn(`[ItemRegistry] Missing sprites: ${missingSprites.join(", ")}`);
     }
