@@ -6,7 +6,7 @@ export const HIGH_CONTRAST_THEME = {
     headerBg: '#ffffff',   // Dark gray for header
     border: '#ffffff',     // Bright white for outlines
     text: '#00ff00',       // White for primary text
-    danger: '#ffff00',     // Bright yellow for errors/highlights
+    danger: '#ff8800ff',     // Bright yellow for errors/highlights
     warning: '#00ffff',    // Cyan for warnings (avoid red-green)
     good: '#00ff00',       // White for neutral/good states
     graphBg: 'rgba(255,255,255,0.06)', // Light gray for graphs
@@ -26,7 +26,7 @@ import { EvilUIState, EvilGlitchSystem, evilGlitchSystem } from './eviltheme.js'
 export function getLogColor(type) {
     return {
         debug: '#ffffff',   // White
-        error: '#ffff00',   // Yellow
+        error: '#ff8800ff',   // Orange
         warn: '#00b7eb',    // Cyan
         info: '#ffffff',    // White
         log: '#ffffff'      // White
@@ -36,7 +36,7 @@ export function getLogColor(type) {
 export function getPerformanceColor(value, thresholds = [70, 85]) {
     if (value < thresholds[0]) return '#ffffff'; // White for good
     if (value < thresholds[1]) return '#00b7eb'; // Cyan for warning
-    return '#ffff00'; // Yellow for danger
+    return '#ff8800ff'; // Yellow for danger
 }
 
 export { EvilUIState, evilGlitchSystem };
