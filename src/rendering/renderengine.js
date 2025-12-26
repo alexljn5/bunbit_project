@@ -1,6 +1,6 @@
 // Entire renderer with fixed WebGL lighting pipeline (no more black screen)
 
-import { gameLoop } from "../main_game.js";
+import { gameLoop } from "../game_loop.js";
 import { playerLogic, playerPosition, showDebugTools, gameOver, onRespawn, keys } from "../playerdata/playerlogic.js";
 import { drawRespawnMenu } from "../menus/menurespawn.js";
 import { playerInventoryGodFunction } from "../playerdata/playerinventory.js";

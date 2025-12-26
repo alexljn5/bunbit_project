@@ -175,6 +175,13 @@ computerAiSprite.onerror = () => {
 if (typeof window !== 'undefined') window.boyKisserEnemyHealth = boyKisserEnemyHealth;
 else if (typeof globalThis !== 'undefined') globalThis.boyKisserEnemyHealth = boyKisserEnemyHealth;
 
+// Make sprites available globally for itemregistry.js to access without circular dependency
+globalThis.spriteTextures = {
+    metalPipeSprite,
+    genericGunSprite,
+    rustyKeySprite
+};
+
 export function getCreamSpinCurrentFrame() {
     if (!creamSpinLoaded) return null;
     creamSpinFrameTimer++;

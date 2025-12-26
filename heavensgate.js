@@ -3,12 +3,9 @@ import { join, dirname } from 'path';
 import { promises as fs } from 'fs';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
-import mysql from 'mysql2/promise';  // Keeping this, but not using for logs—remove if you want!
 import express from 'express';
 import http from 'http';
-import bodyParser from 'body-parser';  // Added for JSON POST parsing
-
-let toggleDevTools = true;
+import bodyParser from 'body-parser';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -17,7 +14,6 @@ const __dirname = dirname(__filename);
 dotenv.config();
 
 let mainWindow = null;
-let dbConnection = null;  // Optional, keeping for now
 let httpServer = null;
 
 // Crash log directory
@@ -65,26 +61,8 @@ process.on('unhandledRejection', async (reason, promise) => {
     await writeCrashLog(reason instanceof Error ? reason : new Error(String(reason)), 'Unhandled Rejection');
 });
 
-async function connectDB() {
-    try {
-        dbConnection = await mysql.createConnection({
-            host: process.env.DB_HOST || 'localhost',
-            port: parseInt(process.env.DB_PORT || '3306'),
-            user: process.env.DB_USER || 'game_user',
-            password: process.env.DB_PASSWORD || '',
-            database: process.env.DB_NAME || 'game_db'
-        });
-        console.log('Connected to MySQL! *chao chao*');
-        return dbConnection;
-    } catch (error) {
-        console.error('Failed to connect to MySQL:', error.message);
-        await writeCrashLog(error, 'MySQL Connection');
-        return null;
-    }
-}
-
 async function createWindow() {
-    // Disable Chromium features
+    // Disable Chromium features for performance
     app.commandLine.appendSwitch('no-sandbox');
     app.commandLine.appendSwitch('disable-features', 'Spellcheck,WebRTC,Autofill,FontsNetwork,MediaSession,Geolocation,WebSQL,WebAudio');
     app.commandLine.appendSwitch('disable-background-timer-throttling');
@@ -106,8 +84,8 @@ async function createWindow() {
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false,
-            sandbox: false, // changed to false so DevTools and debugging work reliably
-            devTools: toggleDevTools,
+            sandbox: false,
+            devTools: true,
         },
         autoHideMenuBar: true,
         menuBarVisible: false
@@ -117,9 +95,9 @@ async function createWindow() {
     Menu.setApplicationMenu(null);
     console.log('Application menu bar disabled! *twirls*');
 
-    // Start Express server
+    // Start Express server for static files and player logs API
     const server = express();
-    server.use(bodyParser.json());  // For JSON parsing
+    server.use(bodyParser.json());
     server.use(express.static(__dirname));
 
     // Custom scary_logs folder in userData (self-contained, local files)
@@ -221,7 +199,6 @@ async function createWindow() {
 
 app.whenReady().then(async () => {
     await ensureLogDir();
-    await connectDB();  // Optional—comment out if not using DB
     await createWindow();
 });
 
@@ -229,13 +206,7 @@ app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
         app.quit();
     }
-    if (dbConnection) {
-        dbConnection.end();
-        console.log('MySQL connection closed! *waves*');
-    }
     if (httpServer) {
         httpServer.close(() => console.log('Mini-server stopped *chao chao*'));
     }
 });
-
-export { dbConnection };

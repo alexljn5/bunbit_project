@@ -1,6 +1,6 @@
 import { SCALE_X, SCALE_Y, CANVAS_WIDTH, CANVAS_HEIGHT } from '../globals.js';
 import { setMenuActive } from '../gamestate.js';
-import { gameLoop } from '../main_game.js';
+import { gameLoop } from '../game_loop.js';
 import { setupMenuClickHandler } from '../menus/menu.js';
 import { gameRenderEngine, initializeRenderWorkers, cleanupRenderWorkers } from '../rendering/renderengine.js';
 import { memCpuGodFunction, stopMemCpuMonitor } from './panels/memcpu.js';

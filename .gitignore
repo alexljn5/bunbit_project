@@ -1,7 +1,8 @@
-node_modules
-dist
-secrets
-toeditshitaddtogitignore
-crash_logs
-backups
-.vscode
+node_modules/
+dist/
+secrets/
+toeditshitaddtogitignore/
+crash_logs/
+backups/
+.vscode/
+todo.md

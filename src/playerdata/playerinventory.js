@@ -1,38 +1,32 @@
 import { renderEngine } from "../rendering/renderengine.js";
-import { metalPipeSprite, genericGunSprite, rustyKeySprite } from "../rendering/sprites/spritetextures.js";
-import { compiledTextStyle } from "../debugtools.js";
 import { keys } from "./playerlogic.js";
 import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT } from "../globals.js";
+import { ITEM_REGISTRY, SPRITE_MAP, validateSprites } from "../itemhandler/itemregistry.js";
 
 export let playerInventory = [];
 export let showInventorySprite = false;
 export const inventoryState = { selectedInventoryIndex: 0 };
 
 export function playerInventoryGodFunction() {
+    validateSprites();
     inventoryUIShit();
     keyHandlingOfInventory();
 }
 
 function inventoryUIShit() {
     if (showInventorySprite) {
-        compiledTextStyle();
         renderEngine.save();
         renderEngine.globalAlpha = 0.588;
         renderEngine.fillStyle = "#222";
         renderEngine.fillRect(0, 0, CANVAS_WIDTH, 100 * SCALE_Y);
         renderEngine.globalAlpha = 1.0;
-        const spriteMap = {
-            "metal_pipe": metalPipeSprite,
-            "generic_gun": genericGunSprite,
-            "rusty_key": rustyKeySprite
-        };
         let x = 10 * SCALE_X;
         const maxSlots = 9;
         const slotSize = 64 * SCALE_X;
         const slotSpacing = 10 * SCALE_X;
         for (let i = 0; i < maxSlots; i++) {
             const itemKey = playerInventory[i];
-            const sprite = spriteMap[itemKey];
+            const sprite = SPRITE_MAP[itemKey];
             if (i === inventoryState.selectedInventoryIndex) {
                 renderEngine.strokeStyle = '#FFD700';
                 renderEngine.lineWidth = 4 * Math.min(SCALE_X, SCALE_Y);
