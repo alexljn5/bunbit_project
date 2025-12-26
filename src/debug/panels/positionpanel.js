@@ -153,6 +153,42 @@ export function initPositionPanel() {
     // Add sliders
     let currentScaleX = 1;
     let currentScaleY = 1;
+    let currentPosX = 0;
+    let currentPosY = 0;
+
+    scalingPanel.appendChild(createSliderControl(
+        'Position X',
+        -500,
+        500,
+        10,
+        0,
+        (val) => {
+            const canvas = getCanvas();
+            if (canvas) {
+                currentPosX = val;
+                canvas.style.left = `${currentPosX}px`;
+                canvas.style.position = 'fixed';
+                console.log('[ScalingPanel] Position X updated to', val);
+            }
+        }
+    ));
+
+    scalingPanel.appendChild(createSliderControl(
+        'Position Y',
+        -500,
+        500,
+        10,
+        0,
+        (val) => {
+            const canvas = getCanvas();
+            if (canvas) {
+                currentPosY = val;
+                canvas.style.top = `${currentPosY}px`;
+                canvas.style.position = 'fixed';
+                console.log('[ScalingPanel] Position Y updated to', val);
+            }
+        }
+    ));
 
     scalingPanel.appendChild(createSliderControl(
         'Width Scale',
