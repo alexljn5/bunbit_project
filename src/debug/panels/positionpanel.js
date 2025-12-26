@@ -151,6 +151,9 @@ export function initPositionPanel() {
     }
 
     // Add sliders
+    let currentScaleX = 1;
+    let currentScaleY = 1;
+
     scalingPanel.appendChild(createSliderControl(
         'Width Scale',
         0.1,
@@ -160,7 +163,9 @@ export function initPositionPanel() {
         (val) => {
             const canvas = getCanvas();
             if (canvas) {
-                canvas.style.width = `${val * 100}%`;
+                currentScaleX = val;
+                canvas.style.transform = `scale(${currentScaleX}, ${currentScaleY})`;
+                canvas.style.transformOrigin = 'top left';
                 console.log('[ScalingPanel] Width scale updated to', val);
             }
         }
@@ -175,7 +180,9 @@ export function initPositionPanel() {
         (val) => {
             const canvas = getCanvas();
             if (canvas) {
-                canvas.style.height = `${val * 100}%`;
+                currentScaleY = val;
+                canvas.style.transform = `scale(${currentScaleX}, ${currentScaleY})`;
+                canvas.style.transformOrigin = 'top left';
                 console.log('[ScalingPanel] Height scale updated to', val);
             }
         }
