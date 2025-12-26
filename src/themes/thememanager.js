@@ -152,9 +152,38 @@ export class ThemeManager {
         // Explicitly theme the debug dashboard if it exists and style its children (buttons/logo)
         try {
             if (typeof document !== 'undefined') {
+                // Helper: treat exact pure black/white as "neutral" header colors we don't want
+                const isNeutralHex = (h) => typeof h === 'string' && (h.toLowerCase() === '#000000' || h.toLowerCase() === '#ffffff');
+                const hexToRgba = (hex, alpha = 1) => {
+                    try {
+                        const h = hex.replace('#', '');
+                        const bigint = parseInt(h.length === 3 ? h.split('').map(c => c + c).join('') : h, 16);
+                        const r = (bigint >> 16) & 255;
+                        const g = (bigint >> 8) & 255;
+                        const b = bigint & 255;
+                        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+                    } catch (e) {
+                        return hex;
+                    }
+                };
+
                 const panel = document.getElementById('bunbit-debug-panel');
                 if (panel) {
-                    panel.style.backgroundColor = theme.headerBg || theme.background || '';
+                    // Choose a panel background that avoids pure black/white when headerBg is neutral
+                    let panelBg = theme.headerBg || theme.background || '';
+                    if (isNeutralHex(theme.headerBg) && theme.background) {
+                        // Use a subtle gradient blending the theme border and the page background.
+                        // This preserves evil's red tint (border is red) and prevents highcontrast
+                        // from producing a solid white block.
+                        const borderColor = theme.border || theme.background;
+                        panelBg = `linear-gradient(180deg, ${hexToRgba(borderColor, 0.08)}, ${hexToRgba(theme.background, 0.95)})`;
+                    }
+
+                    // Apply as background (use background to support gradients)
+                    panel.style.background = panelBg || '';
+                    // Clear any leftover backgroundColor to avoid conflicts
+                    try { panel.style.backgroundColor = ''; } catch (e) { /* ignore */ }
+
                     panel.style.borderColor = theme.border || '';
                     panel.style.borderStyle = 'solid';
                     panel.style.borderWidth = theme.glow === true ? '3px' : '2px';
@@ -172,8 +201,43 @@ export class ThemeManager {
 
                     const logo = panel.querySelector('img');
                     if (logo) {
-                        logo.style.filter = theme.logoFilter || 'brightness(1.6) contrast(1.2)';
-                        logo.style.mixBlendMode = theme.mixBlendMode || 'overlay';
+                        // If the theme explicitly provides a logoFilter, apply it. Otherwise
+                        // preserve the control panel's default filter so the logo doesn't vanish.
+                        if (theme.logoFilter) {
+                            logo.style.filter = theme.logoFilter;
+                        }
+
+                        // Apply mixBlendMode only if the theme specifies one. If not, keep
+                        // whatever the control panel set (or fall back to 'normal') to avoid
+                        // unexpected disappearance when 'overlay' interacts with similar backgrounds.
+                        if (theme.mixBlendMode) {
+                            logo.style.mixBlendMode = theme.mixBlendMode;
+                        } else if (!logo.style.mixBlendMode) {
+                            logo.style.mixBlendMode = 'normal';
+                        }
+
+                        // Allow theme to override opacity, otherwise preserve existing value
+                        if (typeof theme.logoOpacity !== 'undefined') {
+                            logo.style.opacity = String(theme.logoOpacity);
+                        }
+
+                        // Prevent the logo's blend mode from interacting with elements outside
+                        // the panel by creating an isolation stacking context on the panel.
+                        try { panel.style.isolation = 'isolate'; } catch (e) { /* ignore */ }
+
+                        // Best-effort: if no theme filter was provided and mixBlendMode is set to
+                        // something potentially destructive, ensure a minimum brightness so the
+                        // logo remains visible.
+                        try {
+                            const computed = (typeof window !== 'undefined' && window.getComputedStyle) ? window.getComputedStyle(logo) : null;
+                            const effectiveMix = logo.style.mixBlendMode || (computed && computed.mixBlendMode) || 'normal';
+                            if (!theme.logoFilter && effectiveMix !== 'normal') {
+                                const baseFilter = (logo.style.filter && logo.style.filter !== '') ? logo.style.filter : (computed && computed.filter && computed.filter !== 'none' ? computed.filter : '');
+                                if (!baseFilter.includes('brightness')) {
+                                    logo.style.filter = baseFilter ? `${baseFilter} brightness(1.6) contrast(1.2)` : 'brightness(1.6) contrast(1.2)';
+                                }
+                            }
+                        } catch (inner) { /* ignore */ }
                     }
                 }
             }
