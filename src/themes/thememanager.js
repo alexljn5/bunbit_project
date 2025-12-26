@@ -112,16 +112,13 @@ export class ThemeManager {
         // Inline-apply styles to chosen container (strongest, immediate)
         if (container) {
             container.style.backgroundColor = theme.background || '';
-            container.style.borderColor = theme.border || '';
-            container.style.borderStyle = 'solid';
-            container.style.borderWidth = theme.glow === true ? '3px' : '2px';
+            // Remove any outer border so the main debug panel remains the primary framed element
+            try {
+                container.style.border = 'none';
+                container.style.boxShadow = 'none';
+            } catch (e) { /* ignore */ }
             container.style.boxSizing = 'border-box';
             container.style.padding = '0';
-            if (theme.glow === true) {
-                container.style.boxShadow = `0 0 40px ${theme.border}, 0 0 80px ${theme.border}, inset 0 0 20px ${theme.border}`;
-            } else {
-                container.style.boxShadow = 'none';
-            }
         }
 
         // Also apply directly to canvas if present
@@ -141,7 +138,7 @@ export class ThemeManager {
             }
             styleEl.textContent = `
                 html, body { background-color: ${theme.background} !important; color: ${theme.text} !important; }
-                .game-container { background-color: ${theme.background} !important; border-color: ${theme.border} !important; border-style: solid !important; border-width: ${theme.glow === true ? '3px' : '2px'} !important; box-shadow: ${theme.glow === true ? `0 0 40px ${theme.border}, 0 0 80px ${theme.border}, inset 0 0 20px ${theme.border}` : 'none'} !important; }
+                .game-container { background-color: ${theme.background} !important; }
                 canvas#mainGameRender { border-color: ${theme.border} !important; box-shadow: ${theme.glow === true ? `0 0 20px ${theme.border}` : 'none'} !important; }
                 .gameMenu { background-color: ${theme.headerBg || theme.background} !important; color: ${theme.text} !important; }
             `;
