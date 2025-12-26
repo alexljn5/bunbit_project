@@ -48,9 +48,12 @@ export function updateCanvasResolution(highResEnabled) {
     if (domElements.mainGameRender) {
         domElements.mainGameRender.width = renderResolution;
         domElements.mainGameRender.height = renderResolution;
-        const scale = highResEnabled ? 1 : 2;
-        domElements.mainGameRender.style.transform = `scale(${scale})`;
-        domElements.mainGameRender.style.transformOrigin = 'center';
+        // Allow CSS to scale the display canvas dynamically (not transform)
+        domElements.mainGameRender.style.width = '100%';
+        domElements.mainGameRender.style.height = '100%';
+        domElements.mainGameRender.style.maxWidth = '90vw';
+        domElements.mainGameRender.style.maxHeight = '90vh';
+        domElements.mainGameRender.style.aspectRatio = '1';
     }
 
     // Update resolution values
@@ -58,6 +61,24 @@ export function updateCanvasResolution(highResEnabled) {
     CANVAS_HEIGHT = renderResolution;
     SCALE_X = renderResolution / REF_CANVAS_WIDTH;
     SCALE_Y = renderResolution / REF_CANVAS_HEIGHT;
+}
+
+// Handle window resize to keep canvas responsive
+export function onWindowResize() {
+    if (domElements.mainGameRender && domElements.mainGameRender.parentElement) {
+        // Canvas internal resolution stays same (renderResolution), CSS scaling handles viewport
+        // Optionally adjust render resolution based on device pixel ratio for high-DPI displays
+        const dpr = window.devicePixelRatio || 1;
+        // If you want to support super high DPI, uncomment below and adjust render resolution
+        // const renderResolution = HIGH_RES_ENABLED ? 800 : 400;
+        // const newResolution = Math.ceil(renderResolution * Math.min(dpr, 2)); // Cap at 2x
+        // domElements.mainGameRender.width = newResolution;
+        // domElements.mainGameRender.height = newResolution;
+    }
+}
+
+if (typeof window !== 'undefined') {
+    window.addEventListener('resize', onWindowResize);
 }
 
 // Initialize with default (low-res) in browser or Node.js

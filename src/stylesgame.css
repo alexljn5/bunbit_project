@@ -6,6 +6,7 @@ body {
     flex-direction: column;
     justify-content: center;
     align-items: center;
+    overflow: hidden;
 }
 
 .ui-container {
@@ -25,17 +26,25 @@ body {
 
 .game-container {
     position: relative;
-    display: inline-block;
-    /* Simple fix: Cap max size but allow viewport scaling */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    /* Responsive sizing: allow 1:1 aspect ratio and scale to fit viewport */
     max-width: 90vw;
     max-height: 90vh;
-    /* Portal window - colors are managed by thememanager.js */
+    aspect-ratio: 1;
     padding: 0;
 }
 
 canvas#mainGameRender {
     border: 0px solid black;
     display: block;
+    /* Responsive: fill container while preserving pixel-perfect rendering */
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
     /* Prevent flex issues */
     image-rendering: pixelated;
     /* CRISP PIXELS - fixes blurry upscale! */
@@ -43,8 +52,6 @@ canvas#mainGameRender {
     /* Firefox */
     image-rendering: crisp-edges;
     /* Safari/Chrome alternative */
-    transform-origin: top left;
-    /* Consistent scaling anchor */
 }
 
 canvas#mainGameRender,
@@ -54,8 +61,6 @@ canvas.ai-overlay {
     /* Firefox */
     image-rendering: crisp-edges;
     /* Safari/other */
-    transform-origin: top left;
-    /* Consistent scaling anchor */
 }
 
 canvas#staminaBar,
@@ -86,7 +91,7 @@ canvas.minimapCanvas {
     height: 100vh !important;
     max-width: none !important;
     max-height: none !important;
-    display: block;
+    display: flex !important;
 }
 
 .game-container:fullscreen canvas#mainGameRender,
@@ -97,9 +102,6 @@ canvas.minimapCanvas {
     height: 100vh !important;
     max-width: none !important;
     max-height: none !important;
-    transform: none !important;
-    /* avoid unexpected CSS transforms */
-    image-rendering: pixelated;
 }
 
 /* Make sure overlays inside the container remain interactive */

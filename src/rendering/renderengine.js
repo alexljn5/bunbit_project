@@ -43,6 +43,10 @@ const domElements = {
 export const renderEngine = domElements.mainGameRender.getContext("2d");
 renderEngine.imageSmoothingEnabled = false;
 
+// Expose globally to avoid circular dependency issues
+window.__renderEngine = renderEngine;
+window.__mainGameRender = null; // Will be set after mainGameRender is defined
+
 const offscreenCanvas = document.createElement("canvas");
 offscreenCanvas.width = CANVAS_WIDTH;
 offscreenCanvas.height = CANVAS_HEIGHT;
@@ -65,6 +69,9 @@ const renderWorker2 = new Worker("/src/rendering/renderworkers/renderengineworke
 export function mainGameRender() {
     game = gameLoop(gameRenderEngine);
 }
+
+// Expose globally to avoid circular dependency issues
+window.__mainGameRender = mainGameRender;
 
 function renderPauseMenu() {
     renderEngine.save();
@@ -98,6 +105,9 @@ export function cleanupRenderWorkers() {
     cleanupLightingEngine();
 }
 export { initializeRenderWorkers };
+
+// Expose globally to avoid circular dependency issues
+window.__initializeRenderWorkers = initializeRenderWorkers;
 
 
 // --- Main game render loop (mostly unchanged) ---

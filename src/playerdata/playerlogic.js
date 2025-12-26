@@ -40,6 +40,9 @@ export let playerPosition = { x: 2.5 * 50 / 2, z: 2.5 * 50 / 2, angle: 0 };
 export let previousPosition = { x: playerPosition.x, z: playerPosition.z };
 export let playerMovement = { x: 0, z: 0 };
 
+// Expose globally for circular dependency avoidance
+window.__playerPosition = playerPosition;
+
 // --- Bobbing effect state ---
 let bobbingTime = 0;
 let bobbingOffset = 0;

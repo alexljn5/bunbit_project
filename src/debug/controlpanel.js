@@ -7,6 +7,16 @@ import { memCpuGodFunction, stopMemCpuMonitor } from './panels/memcpu.js';
 import { debugHandlerGodFunction, stopDebugTerminal } from './debughandler.js';
 import { themeManager } from '../themes/thememanager.js';
 
+// Lazy getter to access playerPosition and avoid circular dependency issues
+function getPlayerPosition() {
+    // Try to get from global first
+    if (window.__playerPosition) {
+        return window.__playerPosition;
+    }
+    // Return a safe fallback
+    return { x: 100, z: 100, y: 128, angle: 0 };
+}
+
 // Local defaults to avoid importing theme manager (prevents load-order/circular issues)
 const DEFAULT_BORDER = '#FC0000';
 const DEFAULT_BACKGROUND = '#0a0000';
@@ -156,12 +166,114 @@ export function initControlPanel() {
     header.style.zIndex = '3';
     // Buttons already set to zIndex 2 above
 
+    // Create a position controller section
+    const positionSection = document.createElement('div');
+    positionSection.style.marginTop = `${15 * SCALE_Y}px`;
+    positionSection.style.padding = `${10 * SCALE_X}px`;
+    positionSection.style.borderTop = `1px solid ${DEFAULT_BORDER}`;
+    positionSection.style.width = '100%';
+
+    // Helper to create slider with label and value display
+    function createSliderControl(label, min, max, step, initialValue, onChange) {
+        const container = document.createElement('div');
+        container.style.marginBottom = `${8 * SCALE_Y}px`;
+        container.style.display = 'flex';
+        container.style.flexDirection = 'column';
+        container.style.gap = `${4 * SCALE_Y}px`;
+
+        const labelEl = document.createElement('label');
+        labelEl.textContent = label;
+        labelEl.style.fontSize = `${11 * SCALE_Y}px`;
+        labelEl.style.fontWeight = 'bold';
+        labelEl.style.color = DEFAULT_TEXT;
+
+        const controlContainer = document.createElement('div');
+        controlContainer.style.display = 'flex';
+        controlContainer.style.gap = `${8 * SCALE_X}px`;
+        controlContainer.style.alignItems = 'center';
+
+        const slider = document.createElement('input');
+        slider.type = 'range';
+        slider.min = min;
+        slider.max = max;
+        slider.step = step;
+        slider.value = initialValue;
+        slider.style.flex = '1';
+        slider.style.cursor = 'pointer';
+        slider.style.height = '6px';
+
+        const valueDisplay = document.createElement('span');
+        valueDisplay.textContent = parseFloat(initialValue).toFixed(1);
+        valueDisplay.style.fontSize = `${10 * SCALE_Y}px`;
+        valueDisplay.style.color = DEFAULT_TEXT;
+        valueDisplay.style.minWidth = '50px';
+        valueDisplay.style.textAlign = 'right';
+
+        slider.addEventListener('input', (e) => {
+            const newValue = parseFloat(e.target.value);
+            valueDisplay.textContent = newValue.toFixed(1);
+            onChange(newValue);
+        });
+
+        controlContainer.appendChild(slider);
+        controlContainer.appendChild(valueDisplay);
+        container.appendChild(labelEl);
+        container.appendChild(controlContainer);
+
+        return container;
+    }
+
+    // Create X, Y, Z sliders
+    positionSection.appendChild(createSliderControl(
+        'X Position',
+        0,
+        2000,
+        5,
+        getPlayerPosition().x,
+        (val) => { getPlayerPosition().x = val; }
+    ));
+
+    positionSection.appendChild(createSliderControl(
+        'Z Position',
+        0,
+        2000,
+        5,
+        getPlayerPosition().z,
+        (val) => { getPlayerPosition().z = val; }
+    ));
+
+    positionSection.appendChild(createSliderControl(
+        'Y Position (Height)',
+        0,
+        500,
+        2,
+        getPlayerPosition().y || 128,
+        (val) => { getPlayerPosition().y = val; }
+    ));
+
+    // Add a label showing current angle
+    const angleSection = document.createElement('div');
+    angleSection.style.marginTop = `${8 * SCALE_Y}px`;
+    angleSection.style.fontSize = `${10 * SCALE_Y}px`;
+    angleSection.style.color = DEFAULT_TEXT;
+    angleSection.textContent = 'Angle: ' + (getPlayerPosition().angle * (180 / Math.PI)).toFixed(1) + '°';
+
+    // Update angle display periodically
+    setInterval(() => {
+        if (angleSection.parentElement) {
+            angleSection.textContent = 'Angle: ' + (getPlayerPosition().angle * (180 / Math.PI)).toFixed(1) + '°';
+        }
+    }, 100);
+
+    positionSection.appendChild(angleSection);
+
     debugPanel.appendChild(header);
     debugPanel.appendChild(reloadButton);
     debugPanel.appendChild(playButton);
     debugPanel.appendChild(stopButton);
     debugPanel.appendChild(showDebugButton);
     debugPanel.appendChild(themeSelector);
+    debugPanel.appendChild(positionSection);
     document.body.appendChild(debugPanel);
 
     // Ensure visible in stacking contexts and preserve spanning (do not collapse to top-left)
