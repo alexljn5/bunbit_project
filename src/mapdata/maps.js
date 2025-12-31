@@ -1,3 +1,4 @@
+import { map_hub_sectors, map_hub_data } from "./map_hub.js";
 import { map_01_sectors, map_01_data } from "./map_01.js";
 import { map_02_sectors, map_02_data } from "./map_02.js";
 import { map_03_data, map_03_sectors } from "./map_03.js";
@@ -12,6 +13,7 @@ import { map_test_sectors, map_test_data } from "./map_test.js";
 export const tileSectors = 50;
 
 export const mapSectorsTable = new Map([
+    ["map_hub", map_hub_sectors],
     ["map_01", map_01_sectors],
     ["map_02", map_02_sectors],
     ["map_03", map_03_sectors],
@@ -24,6 +26,7 @@ export const mapSectorsTable = new Map([
 ]);
 
 export const mapTable = new Map([
+    ["map_hub", map_hub_data],
     ["map_01", map_01_data],
     ["map_02", map_02_data],
     ["map_03", map_03_data],
