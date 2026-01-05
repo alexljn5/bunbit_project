@@ -157,9 +157,24 @@ async function createWindow() {
             httpServer.listen(PORT, 'localhost');
         }
     });
-    httpServer.listen(PORT, 'localhost', () => {
+    httpServer.listen(PORT, 'localhost', async () => {
         console.log(`Mini-server running at http://localhost:${PORT} *twirls*`);
+
+        const pageUrl = `http://localhost:${PORT}/src/main_game.html`;
+
+        try {
+            await mainWindow.loadURL(pageUrl);
+            console.log(`Loaded page: ${pageUrl} *giggles*`);
+
+            if (mainWindow?.webContents?.openDevTools) {
+                mainWindow.webContents.openDevTools({ mode: 'detach' });
+            }
+        } catch (error) {
+            console.error('Failed to load page:', error);
+            await writeCrashLog(error, 'Page Load');
+        }
     });
+
 
     // Load main_game.html via Express
     const pageUrl = `http://localhost:${PORT}/src/main_game.html`;
