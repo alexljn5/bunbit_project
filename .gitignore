@@ -5,7 +5,9 @@ toeditshitaddtogitignore/
 crash_logs/
 backups/
 .vscode/
-todo.md/
-helpfuladvice.txt/
-.env/
-.gitattributes/
+todo.md
+helpfuladvice.txt
+.env
+.fallow/
+.fallowrc.json
+.vscode.*/
