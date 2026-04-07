@@ -1,10 +1,12 @@
 import { SCALE_X, SCALE_Y, CANVAS_WIDTH, CANVAS_HEIGHT } from '../globals.js';
 import { setMenuActive } from '../gamestate.js';
-import { gameLoop } from '../main_game.js';
+import { gameLoop } from '../game_loop.js';
 import { setupMenuClickHandler } from '../menus/menu.js';
 import { gameRenderEngine, initializeRenderWorkers, cleanupRenderWorkers } from '../rendering/renderengine.js';
 import { memCpuGodFunction, stopMemCpuMonitor } from './panels/memcpu.js';
 import { debugHandlerGodFunction, stopDebugTerminal } from './debughandler.js';
+import { themeManager } from '../themes/thememanager.js';
+import { togglePositionPanel } from './panels/positionpanel.js';
 
 // Local defaults to avoid importing theme manager (prevents load-order/circular issues)
 const DEFAULT_BORDER = '#FC0000';
@@ -76,8 +78,43 @@ export function initControlPanel() {
     showDebugButton.id = 'bunbit-debug-toggle';
     showDebugButton.textContent = 'Show Debug';
 
+    const positionButton = document.createElement('button');
+    positionButton.id = 'bunbit-position-toggle';
+    positionButton.textContent = 'Scale';
+
+    // Theme selector dropdown
+    const themeSelector = document.createElement('select');
+    themeSelector.id = 'bunbit-theme-selector';
+    themeSelector.style.padding = `${8 * SCALE_Y}px ${12 * SCALE_X}px`;
+    themeSelector.style.cursor = 'pointer';
+    themeSelector.style.border = `${1 * SCALE_X}px solid ${DEFAULT_BORDER}`;
+    themeSelector.style.borderRadius = `${4 * SCALE_X}px`;
+    themeSelector.style.fontSize = `${12 * SCALE_Y}px`;
+    themeSelector.style.fontWeight = 'bold';
+    themeSelector.style.marginTop = `${5 * SCALE_Y}px`;
+    themeSelector.style.backgroundColor = DEFAULT_BUTTON_BG;
+    themeSelector.style.color = DEFAULT_TEXT;
+    themeSelector.style.position = 'absolute';
+    themeSelector.style.top = `${12 * SCALE_Y}px`;
+    themeSelector.style.right = `${20 * SCALE_X}px`;
+    themeSelector.style.zIndex = '2';
+
+    // Populate theme options
+    ['calm', 'hacky', 'highcontrast', 'evil'].forEach(themeName => {
+        const option = document.createElement('option');
+        option.value = themeName;
+        option.textContent = themeName.charAt(0).toUpperCase() + themeName.slice(1);
+        option.selected = themeName === 'calm'; // calm is default
+        themeSelector.appendChild(option);
+    });
+
+    // Handle theme changes
+    themeSelector.addEventListener('change', (e) => {
+        themeManager.setTheme(e.target.value);
+    });
+
     // basic styling for readability
-    [reloadButton, playButton, stopButton, showDebugButton].forEach(btn => {
+    [reloadButton, playButton, stopButton, showDebugButton, positionButton].forEach(btn => {
         btn.style.padding = `${8 * SCALE_Y}px ${12 * SCALE_X}px`;
         btn.style.cursor = 'pointer';
         btn.style.border = `${1 * SCALE_X}px solid`;
@@ -129,6 +166,8 @@ export function initControlPanel() {
     debugPanel.appendChild(playButton);
     debugPanel.appendChild(stopButton);
     debugPanel.appendChild(showDebugButton);
+    debugPanel.appendChild(positionButton);
+    debugPanel.appendChild(themeSelector);
     document.body.appendChild(debugPanel);
 
     // Ensure visible in stacking contexts and preserve spanning (do not collapse to top-left)
@@ -145,6 +184,15 @@ export function initControlPanel() {
         p.style.bottom = `${edgeGap}px`;
         try { document.body.appendChild(p); } catch (e) { /* ignore */ }
     }, 150);
+
+    // Notify other systems that the control panel exists now (ThemeManager listens for this)
+    try {
+        if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+            window.dispatchEvent(new Event('controlPanelReady'));
+        }
+    } catch (e) {
+        // ignore in restricted environments
+    }
 
     // Defensive: if another script removes the panel, re-create it up to N times
     let removalRetries = 0;
@@ -246,6 +294,11 @@ export function initControlPanel() {
             stopMemCpuMonitor();
             stopDebugTerminal();
         }
+    });
+
+    // Position panel toggle
+    positionButton.addEventListener('click', () => {
+        togglePositionPanel();
     });
 
     // Drag handlers (simple)

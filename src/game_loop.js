@@ -7,12 +7,15 @@ export function gameLoop(renderCallback) {
     async function tick(time) {
         if (!isRunning) return;
 
-        const deltaTime = (time - lastTime) / 1000;
+        // Compute delta in milliseconds, but expose delta in seconds to consumers
+        const rawDeltaMs = (lastTime ? (time - lastTime) : targetFrameTime);
         lastTime = time;
-        window.deltaTime = deltaTime;
+        const deltaSeconds = rawDeltaMs / 1000;
+        // Expose deltaTime in seconds (debug tools expect seconds)
+        window.deltaTime = deltaSeconds;
 
         try {
-            await renderCallback(deltaTime);
+            await renderCallback(deltaSeconds);
             // Increment game frame counter for accurate FPS tracking
             window.gameFrameCount = (window.gameFrameCount || 0) + 1;
         } catch (error) {
@@ -25,9 +28,9 @@ export function gameLoop(renderCallback) {
         start: () => {
             if (!isRunning) {
                 isRunning = true;
-                lastTime = performance.now();
-                window.gameFrameCount = 0; // Reset on start
-                requestAnimationFrame(tick);
+                // Initialize lastTime to now to prevent a very large first-frame delta
+                lastTime = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+                rafId = requestAnimationFrame(tick);
             }
         },
         stop: () => {

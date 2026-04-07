@@ -1,12 +1,7 @@
 import { genericGunAmmo, genericGunDamage, genericGunRange } from "../../itemhandler/guns/gunregistry.js";
 import { playerInventory, inventoryState } from "../../playerdata/playerinventory.js";
 import { playerHealth, playerStamina } from "../../playerdata/playerlogic.js";
-
-const AVAILABLE_ITEMS = {
-    "metal_pipe": "Metal Pipe",
-    "generic_gun": "Generic Gun",
-    "rusty_key": "Rusty Key"
-};
+import { ITEM_REGISTRY, AVAILABLE_ITEMS } from "../../itemhandler/itemregistry.js";
 
 let godMode = false;
 const originalHealth = 100;

@@ -23,7 +23,7 @@ domElements.mainPageButton.addEventListener("click", mainPageButton);
 generateAndDrawNoise();
 
 function playGameButton() {
-    window.location.href = "main_game.html";
+    window.location.href = "../main_game.html";
 }
 
 function mainPageButton() {

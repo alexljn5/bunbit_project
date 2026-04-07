@@ -9,25 +9,41 @@ let currentCommand = "";
 let inputActive = false;
 let lastKeyStates = {};
 
+//Helper function to check if on electron or not
+function isElectron() {
+    return typeof window !== "undefined"
+        && typeof window.process === "object"
+        && !!window.process.versions?.electron;
+}
+
 export function displayTheTerminal() {
-    // Toggle terminal with 'Y' key only when input is not active
-    if (keys.y && !lastYState && !inputActive) {
+    const electron = isElectron();
+
+    // Choose key depending on environment
+    const key = electron ? "t" : "y";
+
+    // Toggle terminal only when key is newly pressed
+    if (keys[key] && !lastYState && !inputActive) {
         showTerminal = !showTerminal;
+
         if (!showTerminal) {
             inputActive = false;
             currentCommand = "";
         }
-        console.log("Terminal toggled:", showTerminal);
+
+        console.log(
+            `Terminal toggled (${electron ? "Electron" : "Web"}):`,
+            showTerminal
+        );
     }
-    lastYState = keys.y;
+
+    // Track last key state (reuse lastYState safely)
+    lastYState = keys[key];
 
     if (showTerminal) {
         terminalOverLay();
         inputIntoTheTerminal();
-        // Prevent game pause when terminal is active
-        if (showTerminal) {
-            keys["escape"] = false; // Disable pause key
-        }
+        keys["escape"] = false;
     }
 }
 
