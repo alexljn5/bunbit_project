@@ -169,7 +169,7 @@ async function createWindow() {
             console.log(`Loaded page: ${pageUrl} *giggles*`);
 
             if (mainWindow?.webContents?.openDevTools) {
-                mainWindow.webContents.openDevTools({ mode: 'detach' });
+                //mainWindow.webContents.openDevTools({ mode: 'detach' });
             }
         } catch (error) {
             console.error('Failed to load page:', error);

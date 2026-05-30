@@ -39,8 +39,7 @@ function rebuildButtons(canvas) {
 
     buttons = [
         { name: "Play", x: cx - w / 2, y: cy - 200, w, h, hovered: false },
-        { name: "Maps", x: cx - w / 2, y: cy - 80, w, h, hovered: false },
-        { name: "Fractal", x: cx - w / 2, y: cy + 40, w, h, hovered: false }
+        { name: "Maps", x: cx - w / 2, y: cy - 80, w, h, hovered: false }
     ];
 }
 
@@ -243,11 +242,6 @@ export function setupMenuClickHandler() {
 
             if (b.name === "Maps") {
                 showMapSelect = true;
-            }
-
-            if (b.name === "Fractal") {
-                if (window.__fractalActive) stopFractal();
-                else startFractal({ maxIter: 120 });
             }
 
             return;
