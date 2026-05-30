@@ -19,7 +19,16 @@ public class RaycastMathKernel {
     }
 
     public static void main(String[] args) {
-        // TeaVM needs an entry point; exported helpers below are called from JS.
+        // TeaVM needs an entry point.
+        // Force linkage/reachability of the batch PoC class so its @JSExport methods
+        // are included in the same output wasm.
+        com.bunbit.render.RaycastMathKernelRaycastBatchPoC raycastBatchPoC = null;
+        // noinspection ConstantValue
+        if (System.nanoTime() == Long.MIN_VALUE) {
+            // dead-code, but keeps the reference for TeaVM reachability analysis
+            raycastBatchPoC = new com.bunbit.render.RaycastMathKernelRaycastBatchPoC();
+            System.out.println(raycastBatchPoC);
+        }
     }
 
     @JSExport

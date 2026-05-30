@@ -12,6 +12,8 @@ const WorkerState = {
     wasmPromise: null,
     wasmStatus: "disabled",
 
+    batchPoC: null,
+
     cpuAccum: 0,
     workerId: null,
 
@@ -19,6 +21,14 @@ const WorkerState = {
         typeof BroadcastChannel !== "undefined"
             ? new BroadcastChannel("perf_monitor")
             : null,
+
+    // Stage 2 buffers (reused)
+    outDistance: null,
+    outHit: null,
+    outSide: null,
+
+    // IMPORTANT: persistent flattened map (NO per-frame allocation)
+    flatMap: null
 };
 
 /* =========================================================
@@ -93,52 +103,30 @@ async function loadWasm() {
     if (WorkerState.wasm) return WorkerState.wasm;
     if (WorkerState.wasmPromise) return WorkerState.wasmPromise;
 
-    if (typeof WebAssembly === "undefined" || typeof importScripts !== "function") {
-        postWasmStatus("fallback");
-        return null;
-    }
-
-    postWasmStatus("loading");
-
     WorkerState.wasmPromise = (async () => {
         try {
             importScripts(WASM_RUNTIME_URL);
 
-            if (!self.TeaVM?.wasmGC) {
-                throw new Error("TeaVM runtime missing");
-            }
-
             const res = await fetch(WASM_URL);
-            if (!res.ok) {
-                throw new Error(`WASM fetch failed: ${res.status}`);
-            }
-
             const bytes = await res.arrayBuffer();
+
             const instance = await self.TeaVM.wasmGC.load(bytes, {
                 stackDeobfuscator: { enabled: false }
             });
 
             const exports = instance.exports;
 
-            if (
-                typeof exports.fastSin !== "function" ||
-                typeof exports.fastCos !== "function"
-            ) {
-                throw new Error("WASM exports missing fastSin/fastCos");
-            }
-
-            const test = exports.fastSin(0);
-            if (!Number.isFinite(test)) {
-                throw new Error("WASM runtime sanity test failed");
+            if (!exports.fastSin || !exports.fastCos) {
+                throw new Error("WASM missing fastSin/fastCos");
             }
 
             WorkerState.wasm = exports;
-            postWasmStatus("ready");
+            WorkerState.batchPoC = exports.raycastColumnsBatch || null;
 
+            postWasmStatus("ready");
             return exports;
 
         } catch (e) {
-            console.warn("[WASM fallback]", e.message);
             WorkerState.wasm = null;
             postWasmStatus("fallback");
             return null;
@@ -157,8 +145,8 @@ async function loadWasm() {
 
 function postCpu() {
     const now = performance?.now?.() ?? Date.now();
-
     const interval = Math.max(1, now - WorkerState._lastCpuTime);
+
     const percent = Math.min(100, (WorkerState.cpuAccum / interval) * 100);
 
     const payload = {
@@ -183,7 +171,27 @@ WorkerState._lastCpuTime = performance?.now?.() ?? Date.now();
 setInterval(postCpu, 500);
 
 /* =========================================================
-   RAYCAST CORE
+   MAP FLATTEN (CALLED ONLY ON INIT)
+========================================================= */
+
+function flattenMap(map) {
+    const h = map.length;
+    const w = map[0].length;
+
+    const grid = new Int32Array(w * h);
+
+    for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+            const tile = map[y][x];
+            grid[y * w + x] = tile && tile.type === "wall" ? 1 : 0;
+        }
+    }
+
+    return { grid, w, h };
+}
+
+/* =========================================================
+   RAYCAST CORE (JS FALLBACK ONLY)
 ========================================================= */
 
 function castRayColumn(x, s, map, math, wasm) {
@@ -281,8 +289,6 @@ function castRayColumn(x, s, map, math, wasm) {
         floorTextureKey: floorTex,
         hitX: rayX + distance * cosA,
         hitY: rayY + distance * sinA,
-
-        // optional debug hook
         backend: wasm ? "wasm" : "js"
     };
 }
@@ -297,6 +303,7 @@ self.addEventListener("message", async (e) => {
     try {
         const d = e.data;
 
+        /* ---------------- INIT ---------------- */
         if (d.type === "init") {
             WorkerState.static = {
                 tileSize: d.tileSectors,
@@ -310,6 +317,8 @@ self.addEventListener("message", async (e) => {
             };
 
             WorkerState.workerId = d.workerId;
+
+            WorkerState.flatMap = flattenMap(d.map_01);
 
             if (WorkerState.static.useWasm) {
                 await loadWasm();
@@ -335,18 +344,79 @@ self.addEventListener("message", async (e) => {
         const map = s.map;
         const useWasm = !!WorkerState.wasm && s.useWasm;
 
-        const rayData = new Array(d.endRay - d.startRay);
+        const rayCount = d.endRay - d.startRay;
 
-        for (let i = 0; i < rayData.length; i++) {
-            const x = d.startRay + i;
+        /* =====================================================
+           STAGE 2 WASM DDA PATH
+        ===================================================== */
 
-            rayData[i] = castRayColumn(
-                x,
-                s,
-                map,
-                MathBackend,
-                useWasm
+        if (useWasm && WorkerState.batchPoC) {
+
+            if (!WorkerState.outDistance || WorkerState.outDistance.length < rayCount) {
+                WorkerState.outDistance = new Float64Array(rayCount);
+                WorkerState.outHit = new Int32Array(rayCount);
+                WorkerState.outSide = new Int32Array(rayCount);
+            }
+
+            WorkerState.batchPoC(
+                s.posX,
+                s.posZ,
+                s.playerAngle,
+                s.playerFOV,
+                d.startRay,
+                d.endRay,
+                s.numCastRays,
+                s.tileSize,
+                WorkerState.flatMap.w,
+                WorkerState.flatMap.h,
+                WorkerState.flatMap.grid,
+                s.maxRayDepth,
+                WorkerState.outDistance,
+                WorkerState.outHit,
+                WorkerState.outSide
             );
+
+            const rayData = new Array(rayCount);
+
+            for (let i = 0; i < rayCount; i++) {
+                if (!WorkerState.outHit[i]) {
+                    rayData[i] = null;
+                    continue;
+                }
+
+                rayData[i] = {
+                    column: d.startRay + i,
+                    distance: WorkerState.outDistance[i],
+                    hitSide: WorkerState.outSide[i] ? "y" : "x",
+                    textureKey: "wall_default",
+                    floorTextureKey: "floor_concrete",
+                    hitX: null,
+                    hitY: null,
+                    backend: "wasm"
+                };
+            }
+
+            self.postMessage({
+                type: "frame",
+                frameId: d.frameId,
+                startRay: d.startRay,
+                rayData,
+                workerTime: (performance?.now?.() ?? Date.now()) - t0
+            });
+
+            WorkerState.cpuAccum += (performance?.now?.() ?? Date.now()) - t0;
+            return;
+        }
+
+        /* =====================================================
+           FALLBACK PATH
+        ===================================================== */
+
+        const rayData = new Array(rayCount);
+
+        for (let i = 0; i < rayCount; i++) {
+            const x = d.startRay + i;
+            rayData[i] = castRayColumn(x, s, map, MathBackend, useWasm);
         }
 
         self.postMessage({

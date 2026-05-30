@@ -25,12 +25,26 @@ test {
 
 teavm {
     all {
+        // Build the helper kernel (fastSin/fastCos/...)
+        // NOTE: TeaVM only keeps/export reachable code from the configured entry.
         mainClass = 'com.bunbit.render.RaycastMathKernel'
+
         outputDir = file('../../wasm/generated')
+
+
     }
+
+
+    // Build the raycast batch PoC as part of the same TeaVM run.
+    // Teavm plugin may not support multiple entry blocks; we rely on @JSExport
+    // methods being included in the same wasm output.
+    // (If later you want a dedicated entry, switch to a second teavm block supported by your plugin.)
+
+
 
     wasmGC {
         targetFileName = 'bunbit-renderhelpers.wasm'
+
         copyRuntime = true
         obfuscated = false
         debugInformation = true
