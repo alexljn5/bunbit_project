@@ -201,6 +201,28 @@ export async function gameRenderEngine(deltaTime) {
             return;
         }
         const rayData = await castRays();
+
+        window.__raycastBackendStats = {
+            wasm: 0,
+            js: 0,
+            unknown: 0,
+            total: rayData?.length ?? 0
+        };
+
+        if (rayData && rayData.length) {
+            for (let i = 0; i < rayData.length; i++) {
+                const r = rayData[i];
+
+                if (!r) continue;
+
+                if (r.backend === "wasm") window.__raycastBackendStats.wasm++;
+                else if (r.backend === "js") window.__raycastBackendStats.js++;
+                else window.__raycastBackendStats.unknown++;
+            }
+
+            console.log("[Raycast backend check]", window.__raycastBackendStats);
+        }
+
         if (!rayData || rayData.every(ray => ray === null)) {
             console.warn(`Invalid rayData: ${JSON.stringify(rayData)} *pouts*`);
             renderEngine.fillStyle = "gray";
