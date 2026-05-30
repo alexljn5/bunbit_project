@@ -318,7 +318,6 @@ function startMenuLoop() {
             stopMenuLoop();
             return;
         }
-        console.log("Rendering settings menu");
         menuSettingsRender();
         menuRafId = requestAnimationFrame(menuTick);
     }

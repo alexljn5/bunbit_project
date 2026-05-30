@@ -1,5 +1,63 @@
 let staticData = null;
 let latestFrameId = -1;
+const WASM_BASE = "/src/wasm/generated/wasm-gc";
+const WASM_RUNTIME_URL = `${WASM_BASE}/bunbit-renderhelpers.wasm-runtime.js`;
+const WASM_URL = `${WASM_BASE}/bunbit-renderhelpers.wasm`;
+let wasmHelpers = null;
+let wasmHelpersPromise = null;
+let wasmStatus = "disabled";
+
+function postWasmStatus(status) {
+    wasmStatus = status;
+    try {
+        self.postMessage({ type: "wasmStatus", status });
+    } catch (err) {
+        // best-effort diagnostic only
+    }
+}
+
+async function loadRenderHelpersWasmInWorker() {
+    if (wasmHelpers) return wasmHelpers;
+    if (wasmHelpersPromise) return wasmHelpersPromise;
+    if (typeof WebAssembly === "undefined" || typeof importScripts !== "function") {
+        postWasmStatus("fallback");
+        return null;
+    }
+
+    postWasmStatus("loading");
+    wasmHelpersPromise = (async () => {
+        try {
+            importScripts(WASM_RUNTIME_URL);
+            if (!self.TeaVM || !self.TeaVM.wasmGC) {
+                throw new Error("TeaVM WasmGC runtime did not initialize in worker");
+            }
+            const response = await fetch(WASM_URL);
+            if (!response.ok) {
+                throw new Error(`Failed to fetch ${WASM_URL}: ${response.status}`);
+            }
+            const wasmBytes = await response.arrayBuffer();
+            const teavm = await self.TeaVM.wasmGC.load(wasmBytes, {
+                stackDeobfuscator: { enabled: false }
+            });
+            wasmHelpers = teavm.exports;
+            postWasmStatus("ready");
+            return wasmHelpers;
+        } catch (error) {
+            wasmHelpers = null;
+            postWasmStatus("fallback");
+            console.warn("[WASM] Raycast worker using JS fallback", {
+                status: "fallback",
+                mathSource: "js",
+                reason: error.message
+            });
+            return null;
+        } finally {
+            wasmHelpersPromise = null;
+        }
+    })();
+
+    return wasmHelpersPromise;
+}
 
 // Worker CPU sampling (accumulate busy time and report periodically)
 let __workerCpuAccum = 0;
@@ -28,7 +86,7 @@ setInterval(() => {
     }
 }, 500);
 
-self.addEventListener("message", (e) => {
+self.addEventListener("message", async (e) => {
     const startTime = (typeof performance !== 'undefined') ? performance.now() : Date.now();
 
     try {
@@ -41,9 +99,15 @@ self.addEventListener("message", (e) => {
                 CANVAS_WIDTH: e.data.CANVAS_WIDTH,
                 numCastRays: e.data.numCastRays,
                 maxRayDepth: e.data.maxRayDepth,
-                textureTransparencyMap: e.data.textureTransparencyMap || {}
+                textureTransparencyMap: e.data.textureTransparencyMap || {},
+                useWasmRayMath: !!e.data.useWasmRayMath
             };
             __workerId = e.data.workerId || __workerId;
+            if (staticData.useWasmRayMath) {
+                await loadRenderHelpersWasmInWorker();
+            } else {
+                postWasmStatus("disabled");
+            }
             self.postMessage({ type: "init", success: true });
             return;
         }
@@ -65,15 +129,18 @@ self.addEventListener("message", (e) => {
             tileSectors, map_01, textureIdMap,
             floorTextureIdMap, CANVAS_WIDTH, numCastRays, maxRayDepth
         } = staticData;
+        const useWasmMath = staticData.useWasmRayMath && wasmHelpers;
 
         const rayCount = endRay - startRay;
         const rayData = new Array(rayCount);
 
         for (let i = 0; i < rayCount; i++) {
             const x = startRay + i;
-            const rayAngle = playerAngle + (-playerFOV / 2 + (x / numCastRays) * playerFOV);
-            const cosAngle = fastCos(rayAngle);
-            const sinAngle = fastSin(rayAngle);
+            const rayAngle = useWasmMath
+                ? wasmHelpers.rayAngle(playerAngle, playerFOV, x, numCastRays)
+                : playerAngle + (-playerFOV / 2 + (x / numCastRays) * playerFOV);
+            const cosAngle = useWasmMath ? wasmHelpers.fastCos(rayAngle) : fastCos(rayAngle);
+            const sinAngle = useWasmMath ? wasmHelpers.fastSin(rayAngle) : fastSin(rayAngle);
 
             let distance = 0;
             let rayX = posX;

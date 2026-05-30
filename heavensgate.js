@@ -160,7 +160,9 @@ async function createWindow() {
     httpServer.listen(PORT, 'localhost', async () => {
         console.log(`Mini-server running at http://localhost:${PORT} *twirls*`);
 
-        const pageUrl = `http://localhost:${PORT}/src/main_game.html`;
+        const gameQuery = process.env.GAME_QUERY || '';
+        const normalizedGameQuery = gameQuery && !gameQuery.startsWith('?') ? `?${gameQuery}` : gameQuery;
+        const pageUrl = `http://localhost:${PORT}/src/main_game.html${normalizedGameQuery}`;
 
         try {
             await mainWindow.loadURL(pageUrl);
@@ -177,7 +179,9 @@ async function createWindow() {
 
 
     // Load main_game.html via Express
-    const pageUrl = `http://localhost:${PORT}/src/main_game.html`;
+    const gameQuery = process.env.GAME_QUERY || '';
+    const normalizedGameQuery = gameQuery && !gameQuery.startsWith('?') ? `?${gameQuery}` : gameQuery;
+    const pageUrl = `http://localhost:${PORT}/src/main_game.html${normalizedGameQuery}`;
     try {
         await mainWindow.loadURL(pageUrl);
         console.log(`Loaded page: ${pageUrl} *giggles*`);

@@ -20,14 +20,31 @@ if (/Mobi|Android/i.test(navigator.userAgent) || navigator.hardwareConcurrency <
 // --- OPTIMIZED RAYCASTING WORKER MANAGEMENT ---
 const NUM_WORKERS = Math.min(navigator.hardwareConcurrency || 4, 4);
 const workerUrl = new URL("./renderworkers/raycastworker.js", import.meta.url);
-const workers = Array.from({ length: NUM_WORKERS }, () => new Worker(workerUrl, { type: "module" }));
+const useWasmRayMath = new URLSearchParams(window.location.search).get("wasmRayMath") === "true";
+const workers = Array.from({ length: NUM_WORKERS }, () => new Worker(workerUrl));
 const workerPendingFrames = new Map();
 let workersInitialized = false;
 let currentFrameId = 0;
 let lastFrameResults = { frameId: -1, results: null };
+export let raycastWasmStatus = useWasmRayMath ? "requested" : "disabled";
+window.__raycastWasmStatus = raycastWasmStatus;
+window.__raycastMathSource = useWasmRayMath ? "wasm-requested" : "js";
 
 workers.forEach((worker, idx) => {
     worker.onmessage = (e) => {
+        if (e.data.type === "wasmStatus") {
+            raycastWasmStatus = e.data.status;
+            window.__raycastWasmStatus = raycastWasmStatus;
+            window.__raycastMathSource = raycastWasmStatus === "ready" ? "wasm" : "js";
+            console.info("[WASM] Raycast worker status", {
+                worker: idx,
+                status: raycastWasmStatus,
+                mathSource: window.__raycastMathSource,
+                enabledByQuery: useWasmRayMath
+            });
+            return;
+        }
+
         const { frameId } = e.data;
         const key = `${frameId}_${idx}`;
         const cb = workerPendingFrames.get(key);
@@ -57,17 +74,19 @@ export async function initializeWorkers() {
         floorTextureIdMap: Object.fromEntries(floorTextureIdMap),
         CANVAS_WIDTH,
         numCastRays,
-        maxRayDepth
+        maxRayDepth,
+        useWasmRayMath
     };
     let resolved = false;
     const initPromise = new Promise((resolve) => {
         const handler = (e) => {
             if (e.data.type === "init" && !resolved) {
                 resolved = true;
+                workers[0].removeEventListener("message", handler);
                 resolve(e.data.success);
             }
         };
-        workers[0].addEventListener("message", handler, { once: true });
+        workers[0].addEventListener("message", handler);
         workers[0].addEventListener("error", () => resolve(false), { once: true });
     });
     for (let w of workers) w.postMessage(staticData);
@@ -97,7 +116,8 @@ export async function castRays() {
             CANVAS_WIDTH,
             numCastRays,
             maxRayDepth,
-            textureTransparencyMap: textureTransparencyMap
+            textureTransparencyMap: textureTransparencyMap,
+            useWasmRayMath
         });
         workersInitialized = true;
     }
@@ -185,7 +205,8 @@ export function updateGraphicsSettings({ numCastRays: newRays, maxRayDepth: newD
                     floorTextureIdMap: Object.fromEntries(floorTextureIdMap),
                     CANVAS_WIDTH,
                     numCastRays,
-                    maxRayDepth
+                    maxRayDepth,
+                    useWasmRayMath
                 });
             }
         }

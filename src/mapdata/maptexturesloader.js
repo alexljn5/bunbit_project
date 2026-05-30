@@ -56,6 +56,26 @@ let cachedFrame = null;
 
 let texturesLoaded = false;
 let texturesToLoad = Object.keys(tileTextures).length + demonLaughingFrameCount - 1;
+const textureRegistrationLog = [];
+const textureLoadLog = [];
+let textureSummaryLogged = false;
+
+function trackTextureRegistration(type, key, src) {
+    textureRegistrationLog.push({ type, key, src });
+}
+
+function trackTextureLoad(entry) {
+    textureLoadLog.push(entry);
+}
+
+function logTextureSummary(status = "complete") {
+    if (textureSummaryLogged) return;
+    textureSummaryLogged = true;
+    console.groupCollapsed(`[Textures] ${status}: ${textureLoadLog.length}/${textureRegistrationLog.length} processed`);
+    console.log("registered", textureRegistrationLog);
+    console.log("processed", textureLoadLog);
+    console.groupEnd();
+}
 
 export const fullTile = { type: "wall", textureId: 1, texture: "wall_creamlol", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
 export const fullTileBrick = { type: "wall", textureId: 2, texture: "wall_brick", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
@@ -99,18 +119,19 @@ export const floorTest = { type: "floor", textureId: 51, texture: "floor_test", 
 // Initialize tileTexturesMap
 for (const [key, texture] of Object.entries(floorTextures)) {
     tileTexturesMap.set(key, texture);
-    console.log(`Loading floor texture: ${key} from ${texture.src} *twirls*`);
+    trackTextureRegistration("floor", key, texture.src);
 }
 for (const [key, texture] of Object.entries(roofTextures)) {
     tileTexturesMap.set(key, texture);
-    console.log(`Loading roof texture: ${key} from ${texture.src} *twirls*`);
+    trackTextureRegistration("roof", key, texture.src);
 }
 for (const [key, texture] of Object.entries(tileTextures)) {
     if (key === "wall_laughing_demon") {
         tileTexturesMap.set(key, isBrowser ? tileTextures.wall_laughing_demon[0] : { src: "./img/sprites/demonlaughing/demonlaughing_frame_0.gif" });
+        trackTextureRegistration("wall-animation", key, `${demonLaughingFrameCount} frames`);
     } else {
         tileTexturesMap.set(key, texture);
-        console.log(`Loading wall texture: ${key} from ${texture.src} *claps*`);
+        trackTextureRegistration("wall", key, texture.src);
     }
 }
 
@@ -140,7 +161,7 @@ if (isBrowser) {
         await checkTexturesLoaded(textureName)();
         const hasTransparency = await checkTextureTransparency(texture);
         textureTransparencyMap[textureName] = hasTransparency;
-        console.log(`Texture ${textureName} transparency: ${hasTransparency}`);
+        trackTextureLoad({ name: textureName, status: "transparency-checked", hasTransparency });
     }
 
     for (const [name, texture] of Object.entries(floorTextures)) {
@@ -191,16 +212,16 @@ export function getDemonLaughingCurrentFrame() {
 function checkTexturesLoaded(textureName) {
     return () => {
         texturesToLoad--;
-        console.log(`Texture loaded: ${textureName}, remaining: ${texturesToLoad} *giggles*`);
+        trackTextureLoad({ name: textureName, status: "loaded", remaining: texturesToLoad });
         if (textureName.includes("demonlaughing")) {
             if (tileTextures.wall_laughing_demon.filter(f => f.complete).length === demonLaughingFrameCount) {
                 demonLaughingLoaded = true;
-                console.log("All demon laughing frames loaded! *claps*");
+                trackTextureLoad({ name: "wall_laughing_demon", status: "animation-ready" });
             }
         }
         if (texturesToLoad === 0) {
             texturesLoaded = true;
-            console.log("All textures loaded! Ready to render! *twirls*");
+            logTextureSummary("loaded");
         }
     };
 }
@@ -208,10 +229,11 @@ function checkTexturesLoaded(textureName) {
 function handleTextureError(textureName) {
     return () => {
         console.error(`Failed to load texture: ${textureName} *pouts*`);
+        trackTextureLoad({ name: textureName, status: "error" });
         texturesToLoad--;
         if (texturesToLoad === 0) {
             texturesLoaded = true;
-            console.log("All textures processed, but some failed! *hides*");
+            logTextureSummary("processed with errors");
         }
     };
 }
@@ -278,10 +300,10 @@ async function _startTextureWorkerLoad() {
                     }
                     if (!texturesLoaded) {
                         texturesToLoad--;
-                        console.log(`Texture worker loaded: ${key} (remaining: ${texturesToLoad})`);
+                        trackTextureLoad({ name: key, status: "worker-loaded", remaining: texturesToLoad });
                         if (texturesToLoad === 0) {
                             texturesLoaded = true;
-                            console.log('All textures loaded via worker');
+                            logTextureSummary("loaded via worker");
                         }
                     }
                 } catch (err) {
@@ -306,6 +328,6 @@ async function _startTextureWorkerLoad() {
 _startTextureWorkerLoad().then(ok => {
     if (!ok) {
         // fallback — existing onload handlers remain in place
-        console.log('Texture worker not used; falling back to main-thread image loader');
+        console.info('[Textures] Worker not used; falling back to main-thread image loader');
     }
 });

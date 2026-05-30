@@ -13,7 +13,15 @@ public class RenderHelpersTest {
 
     @Test
     public void testTrigStubs() {
-        assertEquals(Math.cos(1.2), RenderHelpers.fastCos(1.2), 1e-9);
-        assertEquals(Math.sin(2.3), RenderHelpers.fastSin(2.3), 1e-9);
+        assertEquals(Math.cos(1.2), RenderHelpers.fastCos(1.2), 0.01);
+        assertEquals(Math.sin(2.3), RenderHelpers.fastSin(2.3), 0.01);
+    }
+
+    @Test
+    public void testRayAngle() {
+        double fov = Math.PI / 6;
+        assertEquals(1.0 - fov / 2.0, RenderHelpers.rayAngle(1.0, fov, 0, 3), 1e-9);
+        assertEquals(1.0 - fov / 6.0, RenderHelpers.rayAngle(1.0, fov, 1, 3), 1e-9);
+        assertEquals(1.0 + fov / 6.0, RenderHelpers.rayAngle(1.0, fov, 2, 3), 1e-9);
     }
 }

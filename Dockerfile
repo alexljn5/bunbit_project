@@ -1,10 +1,10 @@
-# Multi-stage builder: run Java Gradle tests then prepare Node runtime
-# Stage 1: run Gradle tests for the Java scaffold
+# Multi-stage builder: run Java/TeaVM build then prepare Node runtime
+# Stage 1: build the Java WASM scaffold
 FROM gradle:8.6-jdk17 AS builder
 WORKDIR /home/project
 COPY . .
-# Run unit tests from the Java subproject (non-fatal to overall build)
-RUN gradle -p src/rendering/java test --no-daemon || true
+# Run unit tests and generate src/wasm/generated/wasm-gc/*
+RUN gradle -p src/rendering/java test buildWasmGC --no-daemon
 
 # Stage 2: Node runtime to serve the app statically for browser-based testing
 FROM node:18-bullseye

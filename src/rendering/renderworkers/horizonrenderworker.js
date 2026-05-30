@@ -110,7 +110,6 @@ self.onmessage = function (e) {
         textureHeightFloor = e.data.textureHeight;
         texScaleXFloor = textureWidthFloor / tileSectors;
         texScaleYFloor = textureHeightFloor / tileSectors;
-        console.log(`Worker received floor texture: ${textureWidthFloor}x${textureHeightFloor} *chao chao*`);
         return;
     }
 
@@ -120,7 +119,6 @@ self.onmessage = function (e) {
         textureHeightRoof = e.data.textureHeight;
         texScaleXRoof = textureWidthRoof / tileSectors;
         texScaleYRoof = textureHeightRoof / tileSectors;
-        console.log(`Worker received roof texture: ${textureWidthRoof}x${textureHeightRoof} *chao chao*`);
         return;
     }
 
