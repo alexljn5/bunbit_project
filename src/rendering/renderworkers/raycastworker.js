@@ -22,12 +22,13 @@ const WorkerState = {
 };
 
 /* =========================================================
-   MATH BACKEND (HOT PATH SAFE)
+   MATH BACKEND (JS FALLBACK)
 ========================================================= */
 
 const SIN_TABLE_BITS = 11;
 const SIN_TABLE_SIZE = 1 << SIN_TABLE_BITS;
 const SIN_TABLE_MASK = SIN_TABLE_SIZE - 1;
+
 const FIXED_POINT_SHIFT = 16;
 const ANGLE_SCALE =
     (SIN_TABLE_SIZE << FIXED_POINT_SHIFT) / (Math.PI * 2) | 0;
@@ -74,7 +75,7 @@ function Q_rsqrt(n) {
 }
 
 /* =========================================================
-   WASM LOADER (ISOLATED)
+   WASM LOADER
 ========================================================= */
 
 const WASM_BASE = "/src/wasm/generated/wasm-gc";
@@ -108,21 +109,40 @@ async function loadWasm() {
             }
 
             const res = await fetch(WASM_URL);
-            if (!res.ok) throw new Error("WASM fetch failed");
+            if (!res.ok) {
+                throw new Error(`WASM fetch failed: ${res.status}`);
+            }
 
             const bytes = await res.arrayBuffer();
             const instance = await self.TeaVM.wasmGC.load(bytes, {
                 stackDeobfuscator: { enabled: false }
             });
 
-            WorkerState.wasm = instance.exports;
+            const exports = instance.exports;
+
+            if (
+                typeof exports.fastSin !== "function" ||
+                typeof exports.fastCos !== "function"
+            ) {
+                throw new Error("WASM exports missing fastSin/fastCos");
+            }
+
+            const test = exports.fastSin(0);
+            if (!Number.isFinite(test)) {
+                throw new Error("WASM runtime sanity test failed");
+            }
+
+            WorkerState.wasm = exports;
             postWasmStatus("ready");
-            return WorkerState.wasm;
+
+            return exports;
 
         } catch (e) {
+            console.warn("[WASM fallback]", e.message);
             WorkerState.wasm = null;
             postWasmStatus("fallback");
             return null;
+
         } finally {
             WorkerState.wasmPromise = null;
         }
@@ -136,8 +156,7 @@ async function loadWasm() {
 ========================================================= */
 
 function postCpu() {
-    const now =
-        typeof performance !== "undefined" ? performance.now() : Date.now();
+    const now = performance?.now?.() ?? Date.now();
 
     const interval = Math.max(1, now - WorkerState._lastCpuTime);
     const percent = Math.min(100, (WorkerState.cpuAccum / interval) * 100);
@@ -160,9 +179,7 @@ function postCpu() {
     WorkerState._lastCpuTime = now;
 }
 
-WorkerState._lastCpuTime =
-    typeof performance !== "undefined" ? performance.now() : Date.now();
-
+WorkerState._lastCpuTime = performance?.now?.() ?? Date.now();
 setInterval(postCpu, 500);
 
 /* =========================================================
@@ -170,11 +187,12 @@ setInterval(postCpu, 500);
 ========================================================= */
 
 function castRayColumn(x, s, map, math, wasm) {
-    const rayAngle = wasm
-        ? WorkerState.wasm.rayAngle(
-            s.playerAngle, s.playerFOV, x, s.numCastRays
-        )
-        : math.rayAngle(s.playerAngle, s.playerFOV, x, s.numCastRays);
+    const rayAngle = math.rayAngle(
+        s.playerAngle,
+        s.playerFOV,
+        x,
+        s.numCastRays
+    );
 
     const cosA = wasm ? WorkerState.wasm.fastCos(rayAngle) : math.cos(rayAngle);
     const sinA = wasm ? WorkerState.wasm.fastSin(rayAngle) : math.sin(rayAngle);
@@ -237,6 +255,7 @@ function castRayColumn(x, s, map, math, wasm) {
             if (!transparent) {
                 hit = true;
                 texture = tex;
+
                 if (lastFloor) {
                     floorTex =
                         s.floorMap[lastFloor.floorTextureId] || floorTex;
@@ -261,7 +280,10 @@ function castRayColumn(x, s, map, math, wasm) {
         textureKey: texture,
         floorTextureKey: floorTex,
         hitX: rayX + distance * cosA,
-        hitY: rayY + distance * sinA
+        hitY: rayY + distance * sinA,
+
+        // optional debug hook
+        backend: wasm ? "wasm" : "js"
     };
 }
 
@@ -270,10 +292,7 @@ function castRayColumn(x, s, map, math, wasm) {
 ========================================================= */
 
 self.addEventListener("message", async (e) => {
-    const t0 =
-        typeof performance !== "undefined"
-            ? performance.now()
-            : Date.now();
+    const t0 = performance?.now?.() ?? Date.now();
 
     try {
         const d = e.data;
@@ -290,18 +309,13 @@ self.addEventListener("message", async (e) => {
                 useWasm: !!d.useWasmRayMath
             };
 
-            WorkerState.workerId = d.workerId || WorkerState.workerId;
+            WorkerState.workerId = d.workerId;
 
-            if (WorkerState.static.useWasm) await loadWasm();
+            if (WorkerState.static.useWasm) {
+                await loadWasm();
+            }
 
             self.postMessage({ type: "init", success: true });
-            return;
-        }
-
-        if (d.type === "updateSettings") {
-            WorkerState.static.numCastRays = d.numCastRays;
-            WorkerState.static.maxRayDepth = d.maxRayDepth;
-            self.postMessage({ type: "updateSettings", success: true });
             return;
         }
 
@@ -340,18 +354,17 @@ self.addEventListener("message", async (e) => {
             frameId: d.frameId,
             startRay: d.startRay,
             rayData,
-            workerTime: performance.now() - t0
+            workerTime: (performance?.now?.() ?? Date.now()) - t0
         });
 
-        WorkerState.cpuAccum += performance.now() - t0;
+        WorkerState.cpuAccum += (performance?.now?.() ?? Date.now()) - t0;
 
     } catch (err) {
         self.postMessage({
             type: "error",
             error: err.message,
             frameId: e.data?.frameId ?? -1,
-            workerTime:
-                performance.now?.() - t0 || 0
+            workerTime: (performance?.now?.() ?? Date.now()) - t0
         });
     }
 });
