@@ -157,34 +157,18 @@ export function initPositionPanel() {
     let currentPosY = 0;
 
     function ensureCanvasPixelSize(canvas) {
-        try {
-            // Use the canvas drawing buffer size (canvas.width/height attributes) as CSS pixels
-            const w = canvas.width || 800;
-            const h = canvas.height || 800;
-            canvas.style.width = `${w}px`;
-            canvas.style.height = `${h}px`;
-            canvas.style.left = '0px';
-            canvas.style.top = '0px';
-            canvas.style.position = 'fixed';
-            canvas.style.transformOrigin = 'top left';
-        } catch (e) {
-            console.warn('[ScalingPanel] could not ensure canvas pixel size', e);
-        }
-    }
+        const w = canvas.width || 800;
+        const h = canvas.height || 800;
 
+        canvas.style.width = `${w}px`;
+        canvas.style.height = `${h}px`;
+    }
     function applyTransform(canvas) {
-        // Avoid CSS transform (translate/scale) on the interactive canvas.
-        // CSS transforms break pointer hit-testing in debug/event math.
-        // Instead, keep drawing-buffer sizing and only move via left/top.
-        // Position sliders map to CSS pixels.
         canvas.style.left = `${currentPosX}px`;
         canvas.style.top = `${currentPosY}px`;
 
-        // Use CSS sizing for visual scale without transforming the element.
-        // (We still keep the canvas width/height attributes via ensureCanvasPixelSize.)
-        canvas.style.width = `${canvas.width * currentScaleX}px`;
-        canvas.style.height = `${canvas.height * currentScaleY}px`;
-        canvas.style.transform = '';
+        canvas.style.transformOrigin = "0 0";
+        canvas.style.transform = `scale(${currentScaleX}, ${currentScaleY})`;
     }
 
 
