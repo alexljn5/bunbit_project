@@ -44,10 +44,6 @@ process.on('unhandledRejection', async (reason) => {
 
 async function createWindow() {
     app.commandLine.appendSwitch('no-sandbox');
-    app.commandLine.appendSwitch(
-        'disable-features',
-        'Spellcheck,WebRTC,Autofill,Geolocation,WebSQL,WebAudio'
-    );
 
     const iconPath = join(__dirname, 'src', 'img', 'logo', 'favicon.ico');
 
@@ -123,7 +119,7 @@ async function createWindow() {
             await mainWindow.loadURL(url);
             console.log(`Loaded: ${url}`);
 
-            mainWindow.webContents.openDevTools({ mode: 'detach' });
+            mainWindow.webContents.openDevTools({ mode: 'right' });
         } catch (e) {
             console.error('Load failed:', e);
         }
