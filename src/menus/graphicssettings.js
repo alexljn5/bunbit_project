@@ -2,6 +2,7 @@ import { updateGraphicsSettings, numCastRays, maxRayDepth } from "../rendering/r
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from "../globals.js";
 import { updateCanvasResolution } from "../globals.js";
 import { drawButton, drawMenuOverlay } from "./overlays.js";
+import { refreshMenuClickHandlers } from "./menu.js";
 
 export const graphicsPresets = {
     potato: {
@@ -44,8 +45,12 @@ export function applyGraphicsPreset(preset) {
     const highResPresets = ["medium", "high", "extreme", "nasa"];
     if (lowResPresets.includes(preset)) {
         updateCanvasResolution(false);
+        // Canvas dimensions / CSS scaling changed: refresh menu hit-testing.
+        try { refreshMenuClickHandlers(); } catch (_) { }
     } else if (highResPresets.includes(preset)) {
         updateCanvasResolution(true);
+        // Canvas dimensions / CSS scaling changed: refresh menu hit-testing.
+        try { refreshMenuClickHandlers(); } catch (_) { }
     }
     return true;
 }

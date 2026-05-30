@@ -131,6 +131,13 @@ function drawMapSelectOverlay() {
     renderEngine.restore();
 }
 
+export function refreshMenuClickHandlers() {
+    // Reattach click/hover handlers after resolution/canvas scaling changes.
+    // This fixes hit-testing when canvas CSS size changes but globals-based button geometry updates.
+    menuHandlersAttached = false;
+    setupMenuClickHandler();
+}
+
 export function setupMenuClickHandler() {
     const renderEngine = getRenderEngine();
     const canvas = renderEngine.canvas;
