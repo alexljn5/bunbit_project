@@ -11,5 +11,9 @@ helpfuladvice.txt
 .fallow/
 .fallowrc.json
 .vscode.*/
-start_bunbig_engine.sh
+start_bunbit_engine.sh
 package-lock.json
+src/wasm/generated/
+src/rendering/java/.gradle/
+src/rendering/java/build/
+no_wasm_bunbit_engine.sh
