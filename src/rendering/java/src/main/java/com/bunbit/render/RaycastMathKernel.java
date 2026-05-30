@@ -2,7 +2,7 @@ package com.bunbit.render;
 
 import org.teavm.jso.JSExport;
 
-public class RenderHelpers {
+public class RaycastMathKernel {
     private static final int SIN_TABLE_SIZE = 1024;
     private static final int FIXED_POINT_SHIFT = 16;
     private static final int SIN_TABLE_MASK = SIN_TABLE_SIZE - 1;
