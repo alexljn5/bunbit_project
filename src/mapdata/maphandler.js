@@ -11,6 +11,7 @@ export class MapHandler {
         this.activeMapKey = null;
         this.activeSector = null;
         this.activeSectorId = null;
+        this.warnedMissingMapKeyFallback = false;
         this.buildAllMaps();
     }
 
@@ -148,7 +149,10 @@ export class MapHandler {
 
     getFullMap(mapKey = this.activeMapKey) {
         if (!mapKey) {
-            console.warn(`No mapKey provided, falling back to map_01`);
+            if (!this.warnedMissingMapKeyFallback) {
+                this.warnedMissingMapKeyFallback = true;
+                console.warn(`[Map] No mapKey provided, falling back to map_01`);
+            }
             mapKey = "map_01";
         }
         const mapData = this.fullMapCache.get(mapKey);

@@ -10,206 +10,132 @@ import bodyParser from 'body-parser';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Load environment variables
 dotenv.config();
 
 let mainWindow = null;
 let httpServer = null;
 
-// Crash log directory
 const logDir = join(__dirname, 'crash_logs');
 
-// Ensure crash_logs directory exists
 async function ensureLogDir() {
-    try {
-        await fs.mkdir(logDir, { recursive: true });
-    } catch (err) {
-        console.error('Failed to create crash_logs directory:', err.message);
-    }
+    await fs.mkdir(logDir, { recursive: true }).catch(() => { });
 }
 
-// Write crash log to file
 async function writeCrashLog(error, context = 'General') {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const logFile = join(logDir, `crash_log_${timestamp}.txt`);
+
     const logContent = `Crash Report - ${context}
-Timestamp: ${new Date().toISOString()}
-Error: ${error.message || 'Unknown error'}
-Stack: ${error.stack || 'No stack trace available'}
-Platform: ${process.platform}
-Node Version: ${process.version}
-Electron Version: ${process.versions.electron}
+Time: ${new Date().toISOString()}
+Error: ${error?.message || error}
+Stack: ${error?.stack || 'N/A'}
 ----------------------------------------\n`;
 
-    try {
-        await fs.appendFile(logFile, logContent);
-        console.log(`Crash log saved to ${logFile} *chao chao*`);
-    } catch (err) {
-        console.error('Failed to write crash log:', err.message);
-    }
+    await fs.appendFile(logFile, logContent).catch(() => { });
 }
 
-// Global error handlers
-process.on('uncaughtException', async (error) => {
-    console.error('Uncaught Exception:', error);
-    await writeCrashLog(error, 'Uncaught Exception');
-    app.quit();
+process.on('uncaughtException', async (err) => {
+    await writeCrashLog(err, 'UncaughtException');
 });
 
-process.on('unhandledRejection', async (reason, promise) => {
-    console.error('Unhandled Rejection at:', promise, 'Reason:', reason);
-    await writeCrashLog(reason instanceof Error ? reason : new Error(String(reason)), 'Unhandled Rejection');
+process.on('unhandledRejection', async (reason) => {
+    await writeCrashLog(reason, 'UnhandledRejection');
 });
 
 async function createWindow() {
-    // Disable Chromium features for performance
     app.commandLine.appendSwitch('no-sandbox');
-    app.commandLine.appendSwitch('disable-features', 'Spellcheck,WebRTC,Autofill,FontsNetwork,MediaSession,Geolocation,WebSQL,WebAudio');
-    app.commandLine.appendSwitch('disable-background-timer-throttling');
-    app.commandLine.appendSwitch('disable-renderer-backgrounding');
+    app.commandLine.appendSwitch(
+        'disable-features',
+        'Spellcheck,WebRTC,Autofill,Geolocation,WebSQL,WebAudio'
+    );
 
-    // Resolve icon path
     const iconPath = join(__dirname, 'src', 'img', 'logo', 'favicon.ico');
-    try {
-        await fs.access(iconPath);
-        console.log(`Icon found at: ${iconPath} *giggles*`);
-    } catch (error) {
-        console.warn(`Icon not found at: ${iconPath}, proceeding without icon *pouts*`);
-    }
 
     mainWindow = new BrowserWindow({
         width: 850,
         height: 850,
         icon: iconPath,
+        autoHideMenuBar: true,
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false,
             sandbox: false,
-            devTools: true,
         },
-        autoHideMenuBar: true,
-        menuBarVisible: false
     });
 
-    // Remove menu bar
     Menu.setApplicationMenu(null);
-    console.log('Application menu bar disabled! *twirls*');
 
-    // Start Express server for static files and player logs API
     const server = express();
     server.use(bodyParser.json());
     server.use(express.static(__dirname));
 
-    // Custom scary_logs folder in userData (self-contained, local files)
     const userDataPath = app.getPath('userData');
     const logsFolder = join(userDataPath, 'scary_logs');
-    try {
-        await fs.mkdir(logsFolder, { recursive: true });
-        console.log(`Scary logs folder ready at: ${logsFolder} *shivers*`);
-    } catch (error) {
-        console.error('Failed to create scary_logs:', error);
-        await writeCrashLog(error, 'Logs Folder');
-    }
 
-    // API: GET /player-logs - Fetch all logs as array of JSON objects
+    await fs.mkdir(logsFolder, { recursive: true });
+
     server.get('/player-logs', async (req, res) => {
         try {
-            const logs = [];
             const files = await fs.readdir(logsFolder);
-            for (const file of files) {
-                if (file.endsWith('.json')) {
-                    const data = JSON.parse(await fs.readFile(join(logsFolder, file), 'utf8'));
-                    logs.push(data);
+            const logs = [];
+
+            for (const f of files) {
+                if (f.endsWith('.json')) {
+                    const raw = await fs.readFile(join(logsFolder, f), 'utf8');
+                    logs.push(JSON.parse(raw));
                 }
             }
+
             res.json(logs);
-        } catch (error) {
-            console.error('GET /player-logs error:', error);
-            await writeCrashLog(error, 'API GET /player-logs');
-            res.status(500).json({ error: 'Failed to fetch logs' });
+        } catch (e) {
+            await writeCrashLog(e, 'GET player-logs');
+            res.status(500).json({ error: 'failed' });
         }
     });
 
-    // API: POST /player-log - Save new log as JSON file
     server.post('/player-log', async (req, res) => {
         try {
-            const logData = req.body;
-            if (!logData.timestamp) throw new Error('Timestamp required');
-            const fileName = `log_${logData.timestamp}.json`;
-            const filePath = join(logsFolder, fileName);
-            await fs.writeFile(filePath, JSON.stringify(logData, null, 2));
-            res.json({ message: 'Log saved', data: logData });
-        } catch (error) {
-            console.error('POST /player-log error:', error);
-            await writeCrashLog(error, 'API POST /player-log');
-            res.status(500).json({ error: 'Failed to save log' });
+            const data = req.body;
+            const file = join(logsFolder, `log_${data.timestamp}.json`);
+            await fs.writeFile(file, JSON.stringify(data, null, 2));
+            res.json({ ok: true });
+        } catch (e) {
+            await writeCrashLog(e, 'POST player-log');
+            res.status(500).json({ error: 'failed' });
         }
     });
 
-    let PORT = process.env.PORT || 3000;
+    const PORT = Number(process.env.PORT || 3000);
+
     httpServer = http.createServer(server);
-    httpServer.on('error', async (error) => {
-        console.error('Express server error:', error.message);
-        await writeCrashLog(error, 'Express Server');
-        if (error.code === 'EADDRINUSE') {
-            PORT += 1;
-            console.warn(`Port ${PORT - 1} in use, trying ${PORT} *pouts*`);
-            httpServer.listen(PORT, 'localhost');
-        }
-    });
+
     httpServer.listen(PORT, 'localhost', async () => {
-        console.log(`Mini-server running at http://localhost:${PORT} *twirls*`);
+        console.log(`Server running on http://localhost:${PORT}`);
 
-        const pageUrl = `http://localhost:${PORT}/src/main_game.html`;
+        const gameQuery = process.env.GAME_QUERY || '';
+        const normalized = gameQuery && !gameQuery.startsWith('?')
+            ? `?${gameQuery}`
+            : gameQuery;
+
+        const url = `http://localhost:${PORT}/src/main_game.html${normalized}`;
 
         try {
-            await mainWindow.loadURL(pageUrl);
-            console.log(`Loaded page: ${pageUrl} *giggles*`);
+            await mainWindow.loadURL(url);
+            console.log(`Loaded: ${url}`);
 
-            if (mainWindow?.webContents?.openDevTools) {
-                mainWindow.webContents.openDevTools({ mode: 'detach' });
-            }
-        } catch (error) {
-            console.error('Failed to load page:', error);
-            await writeCrashLog(error, 'Page Load');
+            mainWindow.webContents.openDevTools({ mode: 'detach' });
+        } catch (e) {
+            console.error('Load failed:', e);
         }
     });
 
-
-    // Load main_game.html via Express
-    const pageUrl = `http://localhost:${PORT}/src/main_game.html`;
-    try {
-        await mainWindow.loadURL(pageUrl);
-        console.log(`Loaded page: ${pageUrl} *giggles*`);
-        // Open DevTools detached so user can inspect and reveal the debug control panel
-        try {
-            if (mainWindow && mainWindow.webContents && typeof mainWindow.webContents.openDevTools === 'function') {
-                mainWindow.webContents.openDevTools({ mode: 'detach' });
-                console.log('DevTools opened automatically.');
-            }
-        } catch (err) {
-            console.warn('Could not open DevTools automatically:', err);
-        }
-    } catch (error) {
-        console.error('Failed to load page:', error);
-        await writeCrashLog(error, 'Page Load');
-    }
-
-    // Handle renderer process crashes
-    mainWindow.webContents.on('render-process-gone', async (event, details) => {
-        const error = new Error(`Renderer process crashed: ${details.reason}`);
-        console.error(error.message);
-        await writeCrashLog(error, 'Renderer Process Crash');
+    mainWindow.webContents.on('render-process-gone', async (_, d) => {
+        await writeCrashLog(new Error(d.reason), 'RendererCrash');
     });
 
-    // Handle reload IPC
     ipcMain.on('reload-window', () => {
-        if (mainWindow) {
-            console.log('Reloading window! *chao chao*');
-            mainWindow.reload();
-        }
+        mainWindow?.reload();
     });
-
 }
 
 app.whenReady().then(async () => {
@@ -218,10 +144,6 @@ app.whenReady().then(async () => {
 });
 
 app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') {
-        app.quit();
-    }
-    if (httpServer) {
-        httpServer.close(() => console.log('Mini-server stopped *chao chao*'));
-    }
+    if (httpServer) httpServer.close();
+    if (process.platform !== 'darwin') app.quit();
 });

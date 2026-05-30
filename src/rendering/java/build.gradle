@@ -1,5 +1,6 @@
 plugins {
     id 'java'
+    id 'org.teavm' version '0.14.1'
 }
 
 group 'com.bunbit'
@@ -13,6 +14,7 @@ repositories {
 }
 
 dependencies {
+    implementation teavm.libs.jso
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.3'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.3'
 }
@@ -20,3 +22,19 @@ dependencies {
 test {
     useJUnitPlatform()
 }
+
+teavm {
+    all {
+        mainClass = 'com.bunbit.render.RaycastMathKernel'
+        outputDir = file('../../wasm/generated')
+    }
+
+    wasmGC {
+        targetFileName = 'bunbit-renderhelpers.wasm'
+        copyRuntime = true
+        obfuscated = false
+        debugInformation = true
+    }
+}
+
+tasks.assemble.dependsOn(tasks.buildWasmGC)

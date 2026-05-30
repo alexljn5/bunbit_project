@@ -32,6 +32,9 @@ import { showTerminal } from "../console/terminal/terminal.js";
 import { debugHandlerGodFunction, drawDebugTerminal } from "../debug/debughandler.js";
 import { titleHandlerGodFunction } from "../ui/titlehandler.js";
 import { initLightingEngine, updateLights, applyLighting, cleanupLightingEngine } from "./lightengine/renderlight.js";
+import { tryLoadRenderHelpersWasm } from "../wasm/renderhelpers.js";
+
+const DEBUG_FRAME_TIMING = new URLSearchParams(window.location.search).get("debugFrameTiming") === "true";
 
 debugHandlerGodFunction();
 
@@ -61,6 +64,10 @@ glCanvas.height = CANVAS_HEIGHT;
 export let game = null;
 let isRenderingFrame = false;
 let renderWorkersInitialized = false;
+let renderHelpersWasm = null;
+let renderHelpersWasmPromise = null;
+let renderHelpersWasmStatus = "idle";
+let defaultMapLoadWarned = false;
 
 const renderWorker1 = new Worker("/src/rendering/renderworkers/renderengineworker.js", { type: "module" });
 const renderWorker2 = new Worker("/src/rendering/renderworkers/renderengineworker.js", { type: "module" });
@@ -87,6 +94,45 @@ function renderPauseMenu() {
     renderEngine.restore();
 }
 
+async function initializeRenderHelpersWasm() {
+    if (renderHelpersWasmStatus === "ready") {
+        return renderHelpersWasm;
+    }
+    if (renderHelpersWasmStatus === "loading" && renderHelpersWasmPromise) {
+        return renderHelpersWasmPromise;
+    }
+
+    renderHelpersWasmStatus = "loading";
+    window.__renderHelpersWasmStatus = renderHelpersWasmStatus;
+
+    renderHelpersWasmPromise = tryLoadRenderHelpersWasm();
+    renderHelpersWasm = await renderHelpersWasmPromise;
+    if (renderHelpersWasm) {
+        renderHelpersWasmStatus = "ready";
+        window.__renderHelpersWasm = renderHelpersWasm;
+        console.info("[WASM] RenderHelpers ready", {
+            source: "wasm",
+            status: renderHelpersWasmStatus,
+            clampInt: renderHelpersWasm.clampInt(15, 0, 10),
+            rayAngle: renderHelpersWasm.rayAngle(0, playerFOV, Math.floor(numCastRays / 2), numCastRays)
+        });
+    } else {
+        renderHelpersWasmStatus = "fallback";
+        window.__renderHelpersWasm = null;
+    }
+
+    window.__renderHelpersWasmStatus = renderHelpersWasmStatus;
+    renderHelpersWasmPromise = null;
+    return renderHelpersWasm;
+}
+
+export function getRenderHelpersWasm() {
+    return renderHelpersWasm;
+}
+
+export function getRenderHelpersWasmStatus() {
+    return renderHelpersWasmStatus;
+}
 
 // --- Render Workers initialization (keeps your behavior) ---
 function initializeRenderWorkers() {
@@ -97,6 +143,7 @@ function initializeRenderWorkers() {
     renderWorkersInitialized = true;
     // Init lighting here too (ensure GL program exists)
     initLightingEngine();
+    initializeRenderHelpersWasm();
 }
 export function cleanupRenderWorkers() {
     renderWorker1.terminate();
@@ -108,6 +155,7 @@ export { initializeRenderWorkers };
 
 // Expose globally to avoid circular dependency issues
 window.__initializeRenderWorkers = initializeRenderWorkers;
+window.__initializeRenderHelpersWasm = initializeRenderHelpersWasm;
 
 
 // --- Main game render loop (mostly unchanged) ---
@@ -116,7 +164,7 @@ export async function gameRenderEngine(deltaTime) {
     drawDebugTerminal();
     if (isRenderingFrame) return;
     isRenderingFrame = true;
-    console.time('fullRender');
+    if (DEBUG_FRAME_TIMING) console.time('fullRender');
     try {
         const minScale = Math.min(SCALE_X, SCALE_Y);
         if (menuActive) {
@@ -138,9 +186,19 @@ export async function gameRenderEngine(deltaTime) {
             keys["m"] = false;
         }
         menuHandler();
+        // Gate raycasting until a map is actually active/ready to avoid all-null frames.
         if (!mapHandler.activeMapKey) {
-            console.log("No active map, loading map_01 *twirls*");
-            mapHandler.loadMap("map_01", playerPosition);
+            if (!defaultMapLoadWarned) {
+                defaultMapLoadWarned = true;
+                console.warn("[Map] No active map, loading map_01");
+            }
+            await mapHandler.loadMap("map_01", playerPosition);
+        }
+        if (!mapHandler.activeMapKey) {
+            // Map still not ready; render a placeholder and skip raycasting.
+            renderEngine.fillStyle = "#333";
+            renderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            return;
         }
         const rayData = await castRays();
         if (!rayData || rayData.every(ray => ray === null)) {
@@ -190,7 +248,7 @@ export async function gameRenderEngine(deltaTime) {
         renderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     } finally {
         isRenderingFrame = false;
-        console.timeEnd('fullRender');
+        if (DEBUG_FRAME_TIMING) console.timeEnd('fullRender');
     }
 }
 

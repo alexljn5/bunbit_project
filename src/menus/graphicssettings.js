@@ -2,6 +2,8 @@ import { updateGraphicsSettings, numCastRays, maxRayDepth } from "../rendering/r
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from "../globals.js";
 import { updateCanvasResolution } from "../globals.js";
 import { drawButton, drawMenuOverlay } from "./overlays.js";
+import { getMouseCanvasPos } from "../utils/inputTransform.js";
+
 
 export const graphicsPresets = {
     potato: {
@@ -44,6 +46,8 @@ export function applyGraphicsPreset(preset) {
     const highResPresets = ["medium", "high", "extreme", "nasa"];
     if (lowResPresets.includes(preset)) {
         updateCanvasResolution(false);
+        // Canvas dimensions / CSS scaling changed: refresh menu hit-testing.
+        try { refreshMenuClickHandlers(); } catch (_) { }
     } else if (highResPresets.includes(preset)) {
         updateCanvasResolution(true);
     }
@@ -118,11 +122,7 @@ export function drawGraphicsOverlay(renderEngine, SCALE_X, SCALE_Y, showGraphics
 
 export function handleGraphicsMenuClick(e, renderEngine, SCALE_X, SCALE_Y, presetButtons, setShowGraphics, setNeedsRedraw) {
     const canvas = renderEngine.canvas;
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = CANVAS_WIDTH / rect.width;
-    const scaleY = CANVAS_HEIGHT / rect.height;
-    const mouseX = (e.clientX - rect.left) * scaleX;
-    const mouseY = (e.clientY - rect.top) * scaleY;
+    const { x: mouseX, y: mouseY } = getMouseCanvasPos(canvas, e);
 
     const backButton = {
         name: "Back",

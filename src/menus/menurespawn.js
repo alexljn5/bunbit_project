@@ -48,11 +48,7 @@ export function drawRespawnMenu(canvas, onRespawn) {
     // Clear previous click handler and set new one
     canvas.onclick = null;
     canvas.onclick = function (e) {
-        const rect = canvas.getBoundingClientRect();
-        const scaleX = CANVAS_WIDTH / rect.width;
-        const scaleY = CANVAS_HEIGHT / rect.height;
-        const mouseX = (e.clientX - rect.left) * scaleX;
-        const mouseY = (e.clientY - rect.top) * scaleY;
+        const { x: mouseX, y: mouseY } = getMouseCanvasPos(canvas, e);
 
         if (
             mouseX >= buttonX &&

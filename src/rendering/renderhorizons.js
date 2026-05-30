@@ -7,6 +7,8 @@ import { fastCos, fastSin } from "../math/mathtables.js";
 import { renderEngine, drawQuad } from "./renderengine.js";
 import { playerFOV, numCastRays } from "./raycasting.js";
 
+const DEBUG_HORIZON_TIMING = new URLSearchParams(window.location.search).get("debugHorizonTiming") === "true";
+
 // Number of workers to use
 const NUM_WORKERS = 8;
 
@@ -24,6 +26,7 @@ let textureWidthRoof = 0;
 let textureHeightRoof = 0;
 let lastCanvasWidth = 0;
 let lastCanvasHeight = 0;
+let horizonWorkersReadyLogged = false;
 
 // Heap-based cache for horizon data
 const horizonCache = new Map();
@@ -49,7 +52,6 @@ function initializeWorkers() {
                 worker.onmessage = function (e) {
                     if (e.data.type === 'init_done') {
                         isInitialized[index] = true;
-                        console.log(`Horizon worker ${index} initialized *chao chao*`);
                         resolve();
                     }
                 };
@@ -67,7 +69,10 @@ function initializeWorkers() {
     ).then(() => {
         lastCanvasWidth = CANVAS_WIDTH;
         lastCanvasHeight = CANVAS_HEIGHT;
-        console.log("All horizon workers ready *twirls*");
+        if (!horizonWorkersReadyLogged) {
+            horizonWorkersReadyLogged = true;
+            console.info("[Horizon] workers ready", { workers: NUM_WORKERS });
+        }
     });
 }
 
@@ -165,7 +170,7 @@ export function precomputeHorizonData(sectorKey, rayData) {
 
 export function renderRaycastHorizons(rayData, targetCtx = renderEngine) {
     return new Promise(async resolve => {
-        console.time('renderHorizons');
+        if (DEBUG_HORIZON_TIMING) console.time('renderHorizons');
 
         if (
             isInitialized.some(init => !init) ||
@@ -236,8 +241,7 @@ export function renderRaycastHorizons(rayData, targetCtx = renderEngine) {
             await Promise.all(promises);
             // Reuse preallocated ImageData and blit
             targetCtx.putImageData(finalImageData, 0, 0);
-            console.log(`Rendered horizons from cache for sector ${mapKey} *smiles*`);
-            console.timeEnd('renderHorizons');
+            if (DEBUG_HORIZON_TIMING) console.timeEnd('renderHorizons');
             resolve();
             return;
         }
@@ -345,7 +349,7 @@ export function renderRaycastHorizons(rayData, targetCtx = renderEngine) {
             precomputeHorizonData(mapKey, rayData);
         }
 
-        console.timeEnd('renderHorizons');
+        if (DEBUG_HORIZON_TIMING) console.timeEnd('renderHorizons');
         resolve();
     });
 }
