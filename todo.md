@@ -3,6 +3,7 @@
 
 
 ## TODO
+
 Core stability (must not regress)
 
 Confirm single initialization path for Electron → Express → window load (no duplicate loadURL / retry logic)
@@ -69,7 +70,7 @@ Add manifest file:
 lists wasm version + JS binding version
 Prepare dockerization plan:
 static server container (Express → nginx later)
-deterministic asset paths (no local absolute paths like C:\Users\... in logs)
+Deterministic asset paths (no local absolute paths like C:\Users... in logs)
 
 Engine sanity checks (important)
 
