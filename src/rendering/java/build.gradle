@@ -25,7 +25,7 @@ test {
 
 teavm {
     all {
-        mainClass = 'com.bunbit.render.RenderHelpers'
+        mainClass = 'com.bunbit.render.RaycastMathKernel'
         outputDir = file('../../wasm/generated')
     }
 
