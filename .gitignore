@@ -11,3 +11,5 @@ helpfuladvice.txt
 .fallow/
 .fallowrc.json
 .vscode.*/
+start_bunbig_engine.sh
+package-lock.json
