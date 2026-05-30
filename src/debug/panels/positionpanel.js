@@ -173,11 +173,20 @@ export function initPositionPanel() {
     }
 
     function applyTransform(canvas) {
-        // translate values must be divided by scale so visual offset stays at desired pixels
-        const tx = currentPosX / Math.max(0.0001, currentScaleX);
-        const ty = currentPosY / Math.max(0.0001, currentScaleY);
-        canvas.style.transform = `translate(${tx}px, ${ty}px) scale(${currentScaleX}, ${currentScaleY})`;
+        // Avoid CSS transform (translate/scale) on the interactive canvas.
+        // CSS transforms break pointer hit-testing in debug/event math.
+        // Instead, keep drawing-buffer sizing and only move via left/top.
+        // Position sliders map to CSS pixels.
+        canvas.style.left = `${currentPosX}px`;
+        canvas.style.top = `${currentPosY}px`;
+
+        // Use CSS sizing for visual scale without transforming the element.
+        // (We still keep the canvas width/height attributes via ensureCanvasPixelSize.)
+        canvas.style.width = `${canvas.width * currentScaleX}px`;
+        canvas.style.height = `${canvas.height * currentScaleY}px`;
+        canvas.style.transform = '';
     }
+
 
     scalingPanel.appendChild(createSliderControl(
         'Position X',
