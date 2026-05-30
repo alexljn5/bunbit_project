@@ -17,6 +17,33 @@ const horizonWorkers = Array.from({ length: NUM_WORKERS }, () =>
     new Worker('/src/rendering/renderworkers/horizonrenderworker.js', { type: "module" })
 );
 
+// Debug: forward worker WASM status/trig stats to main-thread console.
+function attachHorizonWorkerDebug(worker, index) {
+    worker.addEventListener('message', (e) => {
+        const msg = e.data;
+        if (!msg) return;
+
+        if (msg.type === 'wasmError') {
+            console.warn(`[HorizonWorker ${index}] wasmError`, msg);
+            return;
+        }
+
+        if (msg.type === 'wasmStatus' || msg.type === 'wasmTrigStats') {
+            console.info(`[HorizonWorker ${index}] ${msg.type}`, msg);
+            return;
+        }
+
+        if (msg.type === 'wasmTrigStats') {
+            console.info(`[HorizonWorker ${index}] wasm trig stats`, msg);
+        }
+    });
+}
+
+
+horizonWorkers.forEach((w, i) => attachHorizonWorkerDebug(w, i));
+
+
+
 let isInitialized = Array(NUM_WORKERS).fill(false);
 let lastFloorTextureKey = "";
 let lastRoofTextureKey = "";
@@ -208,19 +235,25 @@ export function renderRaycastHorizons(rayData, targetCtx = renderEngine) {
                 const endY = Math.min(startY + rowsPerWorker, CANVAS_HEIGHT);
 
                 return new Promise(resolveWorker => {
-                    worker.onmessage = function (e) {
-                        if (e.data.type === 'render_done') {
-                            // Worker sent an ArrayBuffer (raw bytes)
-                            const workerBuffer = new Uint8ClampedArray(e.data.horizonBuffer);
-                            const startOffset = e.data.startY * CANVAS_WIDTH * 4;
-                            try {
-                                finalBuffer.set(workerBuffer, startOffset);
-                            } catch (error) {
-                                console.error(`Error copying horizon worker ${e.data.workerId} buffer: ${error.message}`);
-                            }
-                            resolveWorker();
+                    const handler = (e) => {
+                        const data = e.data;
+                        if (data?.type !== 'render_done') return;
+                        if (data.workerId !== index) return;
+
+                        // Worker sent an ArrayBuffer (raw bytes)
+                        const workerBuffer = new Uint8ClampedArray(data.horizonBuffer);
+                        const startOffset = data.startY * CANVAS_WIDTH * 4;
+                        try {
+                            finalBuffer.set(workerBuffer, startOffset);
+                        } catch (error) {
+                            console.error(`Error copying horizon worker ${data.workerId} buffer: ${error.message}`);
                         }
+                        worker.removeEventListener('message', handler);
+                        resolveWorker();
                     };
+                    worker.addEventListener('message', handler);
+
+
 
                     // Make copies of cached clip arrays so we can transfer without detaching cachedData
                     const workerClipYFloor = new Float32Array(cachedData.clipYFloor);
