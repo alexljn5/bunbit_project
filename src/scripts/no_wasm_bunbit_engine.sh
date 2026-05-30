@@ -116,7 +116,7 @@ build_wasm_if_needed() {
 cd "$PROJECT_ROOT/src/rendering/java"
 
 SRC="$PROJECT_ROOT/src/wasm/generated/wasm-gc"
-DST="$PROJECT_ROOT/public/wasm/wasm-gc"
+DST="$PROJECT_ROOT/src/wasm/wasm-public"
 
 log_info "Syncing WASM output..."
 
