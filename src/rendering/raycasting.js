@@ -103,13 +103,14 @@ export function initializeMap() {
 
 export async function castRays() {
     const currentMap = mapHandler.getFullMap();
-    if (!currentMap || !Array.isArray(currentMap) || !currentMap[0]) {
+    if (!currentMap || !Array.isArray(currentMap) || !currentMap[0] || !Array.isArray(currentMap[0])) {
         return lastFrameResults.results || new Array(numCastRays).fill(null);
     }
     if (!workersInitialized) {
         for (let w of workers) w.postMessage({
             type: "init",
             tileSectors,
+            // IMPORTANT: initialize workers with the actual active map grid
             map_01: currentMap,
             textureIdMap: Object.fromEntries(textureIdMap),
             floorTextureIdMap: Object.fromEntries(floorTextureIdMap),

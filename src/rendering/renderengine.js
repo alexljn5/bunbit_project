@@ -186,12 +186,19 @@ export async function gameRenderEngine(deltaTime) {
             keys["m"] = false;
         }
         menuHandler();
+        // Gate raycasting until a map is actually active/ready to avoid all-null frames.
         if (!mapHandler.activeMapKey) {
             if (!defaultMapLoadWarned) {
                 defaultMapLoadWarned = true;
                 console.warn("[Map] No active map, loading map_01");
             }
-            mapHandler.loadMap("map_01", playerPosition);
+            await mapHandler.loadMap("map_01", playerPosition);
+        }
+        if (!mapHandler.activeMapKey) {
+            // Map still not ready; render a placeholder and skip raycasting.
+            renderEngine.fillStyle = "#333";
+            renderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            return;
         }
         const rayData = await castRays();
         if (!rayData || rayData.every(ray => ray === null)) {
