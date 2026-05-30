@@ -1,5 +1,5 @@
 import { compiledTextStyle } from "../debugtools.js";
-import { setMenuActive } from "../gamestate.js";
+import { menuActive, setMenuActive } from "../gamestate.js";
 import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT } from "../globals.js";
 import { mapTable } from "../mapdata/maps.js";
 import { mapHandler } from "../mapdata/maphandler.js";
@@ -49,6 +49,7 @@ let buttons = [
 let showMapSelect = false;
 let mapButtons = [];
 let selectedMapName = null;
+let menuHandlersAttached = false;
 
 export function mainGameMenu() {
     menuBackGround();
@@ -138,8 +139,11 @@ export function setupMenuClickHandler() {
         setTimeout(setupMenuClickHandler, 100); // Retry if canvas not ready
         return;
     }
+    if (menuHandlersAttached) return;
+    menuHandlersAttached = true;
     console.log('Setting up menu click handler! *chao chao*');
-    canvas.onmousemove = function (e) {
+    canvas.addEventListener('mousemove', function (e) {
+        if (!menuActive) return;
         const rect = canvas.getBoundingClientRect();
         const scaleX = CANVAS_WIDTH / rect.width;
         const scaleY = CANVAS_HEIGHT / rect.height;
@@ -160,8 +164,9 @@ export function setupMenuClickHandler() {
                 );
             });
         }
-    };
-    canvas.onclick = function (e) {
+    });
+    canvas.addEventListener('click', function (e) {
+        if (!menuActive) return;
         e.preventDefault(); // Stop browser/Electron from eating clicks
         e.stopPropagation(); // Prevent bubbling to other elements
         console.log('Canvas clicked at:', e.clientX, e.clientY); // Debug click coords
@@ -265,7 +270,7 @@ export function setupMenuClickHandler() {
                 }
             });
         }
-    };
+    });
 }
 
 // Wait for DOM content loaded to ensure all modules (like renderEngine) are ready
