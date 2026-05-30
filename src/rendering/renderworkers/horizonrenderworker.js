@@ -18,7 +18,7 @@ let texScaleYRoof = 0;
 let halfHeight = 0;
 let projectionDist = 0;
 
-// --- Ultra-Fast Math Tables for Worker ---
+// --- Ultra-Fast Math Tables for Worker (fallback) ---
 const SIN_TABLE_BITS = 10;               // 2^10 = 1024 entries
 const SIN_TABLE_SIZE = 1 << SIN_TABLE_BITS;
 const SIN_TABLE_MASK = SIN_TABLE_SIZE - 1;
@@ -34,16 +34,98 @@ for (let i = 0; i < SIN_TABLE_SIZE; i++) {
     cosTable[i] = Math.cos(angle);
 }
 
-// Bitshift-based fastSin / fastCos
-function fastSin(angle) {
+function fastSinJs(angle) {
     const idx = ((angle * ANGLE_SCALE) | 0) >>> FIXED_POINT_SHIFT & SIN_TABLE_MASK;
     return sinTable[idx];
 }
 
-function fastCos(angle) {
+function fastCosJs(angle) {
     const idx = ((angle * ANGLE_SCALE) | 0) >>> FIXED_POINT_SHIFT & SIN_TABLE_MASK;
     return cosTable[idx];
 }
+
+// --- WASM loader (accelerate sin/cos only) ---
+let wasmExports = null;
+let wasmPromise = null;
+let wasmStatus = 'disabled';
+
+const WASM_BASE = '/src/wasm/generated/wasm-gc';
+const WASM_RUNTIME_URL = `${WASM_BASE}/bunbit-renderhelpers.wasm-runtime.js`;
+const WASM_URL = `${WASM_BASE}/bunbit-renderhelpers.wasm`;
+
+function postWasmStatus(status) {
+    wasmStatus = status;
+    try {
+        self.postMessage({ type: 'wasmStatus', status });
+    } catch { }
+}
+
+async function loadWasmSinCos() {
+    if (wasmExports) return wasmExports;
+    if (wasmPromise) return wasmPromise;
+
+    if (typeof WebAssembly === 'undefined' || typeof importScripts !== 'function') {
+        postWasmStatus('fallback');
+        return null;
+    }
+
+    postWasmStatus('loading');
+
+    wasmPromise = (async () => {
+        try {
+            importScripts(WASM_RUNTIME_URL);
+
+            if (!self.TeaVM?.wasmGC) {
+                throw new Error('TeaVM runtime missing');
+            }
+
+            const res = await fetch(WASM_URL);
+            if (!res.ok) throw new Error(`WASM fetch failed: ${res.status}`);
+
+            const bytes = await res.arrayBuffer();
+            const instance = await self.TeaVM.wasmGC.load(bytes, {
+                stackDeobfuscator: { enabled: false }
+            });
+
+            const exports = instance.exports;
+            if (typeof exports.fastSin !== 'function' || typeof exports.fastCos !== 'function') {
+                throw new Error('WASM exports missing fastSin/fastCos');
+            }
+
+            // sanity test
+            if (!Number.isFinite(exports.fastSin(0))) {
+                throw new Error('WASM fastSin sanity failed');
+            }
+
+            wasmExports = exports;
+            postWasmStatus('ready');
+            return wasmExports;
+        } catch (e) {
+            wasmExports = null;
+            postWasmStatus('fallback');
+            console.warn('[WASM horizon] fallback', e?.message || e);
+            return null;
+        } finally {
+            wasmPromise = null;
+        }
+    })();
+
+    return wasmPromise;
+}
+
+function fastSin(angle) {
+    return wasmExports ? wasmExports.fastSin(angle) : fastSinJs(angle);
+}
+
+function fastCos(angle) {
+    return wasmExports ? wasmExports.fastCos(angle) : fastCosJs(angle);
+}
+
+// Kick WASM load as early as possible (do not block rendering)
+// If this fails, we automatically fall back to JS trig.
+loadWasmSinCos();
+
+
 
 // Optional: ultra-fast inverse square root
 const buf = new ArrayBuffer(4);
