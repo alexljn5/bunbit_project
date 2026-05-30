@@ -104,36 +104,24 @@ async function loadWasm() {
     if (WorkerState.wasmPromise) return WorkerState.wasmPromise;
 
     WorkerState.wasmPromise = (async () => {
-        try {
-            importScripts(WASM_RUNTIME_URL);
+        importScripts(WASM_RUNTIME_URL);
 
-            const res = await fetch(WASM_URL);
-            const bytes = await res.arrayBuffer();
+        const res = await fetch(WASM_URL);
+        const bytes = await res.arrayBuffer();
 
-            const instance = await self.TeaVM.wasmGC.load(bytes, {
-                stackDeobfuscator: { enabled: false }
-            });
+        const module = await self.TeaVM.wasmGC.load(bytes, {
+            stackDeobfuscator: { enabled: false }
+        });
 
-            const exports = instance.exports;
-
-            if (!exports.fastSin || !exports.fastCos) {
-                throw new Error("WASM missing fastSin/fastCos");
-            }
-
-            WorkerState.wasm = exports;
-            WorkerState.batchPoC = exports.raycastColumnsBatch || null;
-
-            postWasmStatus("ready");
-            return exports;
-
-        } catch (e) {
-            WorkerState.wasm = null;
-            postWasmStatus("fallback");
-            return null;
-
-        } finally {
-            WorkerState.wasmPromise = null;
+        if (!module.exports.raycastColumnsBatch) {
+            throw new Error("WASM export missing: raycastColumnsBatch");
         }
+
+        WorkerState.wasm = module;
+        WorkerState.batchPoC = module.exports.raycastColumnsBatch;
+
+        postWasmStatus("ready");
+        return module;
     })();
 
     return WorkerState.wasmPromise;
@@ -352,11 +340,8 @@ self.addEventListener("message", async (e) => {
 
         if (useWasm && WorkerState.batchPoC) {
 
-            if (!WorkerState.outDistance || WorkerState.outDistance.length < rayCount) {
-                WorkerState.outDistance = new Float64Array(rayCount);
-                WorkerState.outHit = new Int32Array(rayCount);
-                WorkerState.outSide = new Int32Array(rayCount);
-            }
+            const rayCount = d.endRay - d.startRay;
+            ensureBuffers(rayCount);
 
             WorkerState.batchPoC(
                 s.posX,
@@ -369,7 +354,7 @@ self.addEventListener("message", async (e) => {
                 s.tileSize,
                 WorkerState.flatMap.w,
                 WorkerState.flatMap.h,
-                WorkerState.flatMap.grid,
+                WorkerState.flatMap.grid, // Int32Array OK in TeaVM GC
                 s.maxRayDepth,
                 WorkerState.outDistance,
                 WorkerState.outHit,
@@ -379,7 +364,8 @@ self.addEventListener("message", async (e) => {
             const rayData = new Array(rayCount);
 
             for (let i = 0; i < rayCount; i++) {
-                if (!WorkerState.outHit[i]) {
+
+                if (WorkerState.outHit[i] === 0) {
                     rayData[i] = null;
                     continue;
                 }
@@ -387,11 +373,9 @@ self.addEventListener("message", async (e) => {
                 rayData[i] = {
                     column: d.startRay + i,
                     distance: WorkerState.outDistance[i],
-                    hitSide: WorkerState.outSide[i] ? "y" : "x",
+                    hitSide: WorkerState.outSide[i] === 1 ? "y" : "x",
                     textureKey: "wall_default",
                     floorTextureKey: "floor_concrete",
-                    hitX: null,
-                    hitY: null,
                     backend: "wasm"
                 };
             }
@@ -404,7 +388,6 @@ self.addEventListener("message", async (e) => {
                 workerTime: (performance?.now?.() ?? Date.now()) - t0
             });
 
-            WorkerState.cpuAccum += (performance?.now?.() ?? Date.now()) - t0;
             return;
         }
 
