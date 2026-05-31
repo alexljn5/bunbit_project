@@ -66,6 +66,10 @@ public class RaycastMathKernel {
 
     // ----------------------------
     // BATCH RAYCAST
+    //
+    // FIX: outDistance is Float64Array, outHit/outSide are Int32Array.
+    // JS side must use Float64Array and Int32Array buffers to match —
+    // previously used Float32Array/Uint8Array which caused silent corruption.
     // ----------------------------
 
     @JSExport
@@ -82,9 +86,9 @@ public class RaycastMathKernel {
             int mapH,
             Int32Array tileGrid,
             int maxRayDepth,
-            Float64Array outDistance,
-            Int32Array outHit,
-            Int32Array outSide) {
+            Float64Array outDistance, // JS: new Float64Array(rayCount)
+            Int32Array outHit, // JS: new Int32Array(rayCount)
+            Int32Array outSide) { // JS: new Int32Array(rayCount)
 
         int n = rayEnd - rayStart;
 
@@ -98,18 +102,15 @@ public class RaycastMathKernel {
             double cosA = Math.cos(a);
             double sinA = Math.sin(a);
 
-            double rayX = posX;
-            double rayY = posZ;
-
-            int cellX = (int) Math.floor(rayX / tileSize);
-            int cellY = (int) Math.floor(rayY / tileSize);
+            int cellX = (int) Math.floor(posX / tileSize);
+            int cellY = (int) Math.floor(posZ / tileSize);
 
             double distX = (cosA != 0)
-                    ? ((cosA > 0 ? cellX + 1 : cellX) * tileSize - rayX) / cosA
+                    ? ((cosA > 0 ? cellX + 1 : cellX) * tileSize - posX) / cosA
                     : Double.POSITIVE_INFINITY;
 
             double distY = (sinA != 0)
-                    ? ((sinA > 0 ? cellY + 1 : cellY) * tileSize - rayY) / sinA
+                    ? ((sinA > 0 ? cellY + 1 : cellY) * tileSize - posZ) / sinA
                     : Double.POSITIVE_INFINITY;
 
             double deltaX = Math.abs(tileSize / cosA);
@@ -126,12 +127,12 @@ public class RaycastMathKernel {
                     distance = distX;
                     cellX += (cosA > 0 ? 1 : -1);
                     distX += deltaX;
-                    side = 1;
+                    side = 1; // y-side
                 } else {
                     distance = distY;
                     cellY += (sinA > 0 ? 1 : -1);
                     distY += deltaY;
-                    side = 0;
+                    side = 0; // x-side
                 }
 
                 if (cellX < 0 || cellY < 0 || cellX >= mapW || cellY >= mapH) {
@@ -144,14 +145,15 @@ public class RaycastMathKernel {
             }
 
             if (hit) {
-                double corrected = distance / Math.sqrt(1.0 + (a - playerAngle) * (a - playerAngle));
+                double angleDiff = a - playerAngle;
+                double corrected = distance / Math.sqrt(1.0 + angleDiff * angleDiff);
 
                 outHit.set(i, 1);
                 outDistance.set(i, corrected);
                 outSide.set(i, side);
             } else {
                 outHit.set(i, 0);
-                outDistance.set(i, 0);
+                outDistance.set(i, 0.0);
                 outSide.set(i, 0);
             }
         }

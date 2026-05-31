@@ -1,6 +1,42 @@
 "use strict";
 
 /* =========================================================
+   DEBUG + CRASH HANDLING
+========================================================= */
+
+function debug(msg, extra = {}) {
+    try {
+        self.postMessage({
+            type: "wasmDebug",
+            msg,
+            ...extra
+        });
+    } catch { }
+}
+
+self.addEventListener("error", (e) => {
+    try {
+        self.postMessage({
+            type: "workerError",
+            message: e.message,
+            filename: e.filename,
+            line: e.lineno,
+            column: e.colno
+        });
+    } catch { }
+});
+
+self.addEventListener("unhandledrejection", (e) => {
+    try {
+        self.postMessage({
+            type: "workerError",
+            message: "UnhandledPromiseRejection",
+            reason: e.reason?.message || String(e.reason)
+        });
+    } catch { }
+});
+
+/* =========================================================
    STATE
 ========================================================= */
 
@@ -22,17 +58,16 @@ const WorkerState = {
             ? new BroadcastChannel("perf_monitor")
             : null,
 
-    // Stage 2 buffers (reused)
+    // FIX: Float64Array and Int32Array to match Java signature
     outDistance: null,
     outHit: null,
     outSide: null,
 
-    // IMPORTANT: persistent flattened map (NO per-frame allocation)
     flatMap: null
 };
 
 /* =========================================================
-   MATH BACKEND (JS FALLBACK)
+   MATH BACKEND
 ========================================================= */
 
 const SIN_TABLE_BITS = 11;
@@ -69,7 +104,7 @@ const MathBackend = {
 };
 
 /* =========================================================
-   FAST INVERSE SQRT
+   FAST INV SQRT
 ========================================================= */
 
 const buf = new ArrayBuffer(4);
@@ -82,6 +117,24 @@ function Q_rsqrt(n) {
     u32[0] = 0x5f3759df - (u32[0] >> 1);
     f32[0] = f32[0] * (1.5 - x2 * f32[0] * f32[0]);
     return f32[0];
+}
+
+/* =========================================================
+   BUFFER MANAGEMENT
+   FIX: Use Float64Array/Int32Array to match Java JSExport signature
+========================================================= */
+
+function ensureBuffers(rayCount) {
+    if (
+        !WorkerState.outDistance ||
+        WorkerState.outDistance.length < rayCount
+    ) {
+        debug("Allocating buffers", { rayCount });
+
+        WorkerState.outDistance = new Float64Array(rayCount);  // was Float32Array
+        WorkerState.outHit = new Int32Array(rayCount);    // was Uint8Array
+        WorkerState.outSide = new Int32Array(rayCount);    // was Uint8Array
+    }
 }
 
 /* =========================================================
@@ -100,66 +153,72 @@ function postWasmStatus(status) {
 }
 
 async function loadWasm() {
-    if (WorkerState.wasm) return WorkerState.wasm;
-    if (WorkerState.wasmPromise) return WorkerState.wasmPromise;
+
+    if (WorkerState.wasm) {
+        debug("WASM already loaded");
+        return WorkerState.wasm;
+    }
+
+    if (WorkerState.wasmPromise) {
+        debug("WASM already loading");
+        return WorkerState.wasmPromise;
+    }
 
     WorkerState.wasmPromise = (async () => {
-        importScripts(WASM_RUNTIME_URL);
+        try {
 
-        const res = await fetch(WASM_URL);
-        const bytes = await res.arrayBuffer();
+            debug("Starting WASM load");
 
-        const module = await self.TeaVM.wasmGC.load(bytes, {
-            stackDeobfuscator: { enabled: false }
-        });
+            importScripts(WASM_RUNTIME_URL);
+            debug("Runtime loaded");
 
-        if (!module.exports.raycastColumnsBatch) {
-            throw new Error("WASM export missing: raycastColumnsBatch");
+            const res = await fetch(WASM_URL);
+            debug("WASM fetch", { ok: res.ok, status: res.status });
+
+            const bytes = await res.arrayBuffer();
+            debug("WASM bytes", { size: bytes.byteLength });
+
+            const module = await self.TeaVM.wasmGC.load(bytes, {
+                stackDeobfuscator: { enabled: false }
+            });
+
+            debug("TeaVM loaded");
+
+            if (!module.exports) {
+                throw new Error("module.exports missing");
+            }
+
+            if (!module.exports.raycastColumnsBatch) {
+                throw new Error("Missing raycastColumnsBatch export");
+            }
+
+            WorkerState.wasm = module;
+            WorkerState.batchPoC = module.exports.raycastColumnsBatch;
+
+            debug("WASM ready", {
+                exports: Object.keys(module.exports)
+            });
+
+            postWasmStatus("ready");
+
+            return module;
+
+        } catch (err) {
+
+            debug("WASM FAILED", {
+                error: err?.stack || err?.message || String(err)
+            });
+
+            postWasmStatus("failed");
+            throw err;
         }
-
-        WorkerState.wasm = module;
-        WorkerState.batchPoC = module.exports.raycastColumnsBatch;
-
-        postWasmStatus("ready");
-        return module;
     })();
 
     return WorkerState.wasmPromise;
 }
 
 /* =========================================================
-   CPU METRICS
-========================================================= */
-
-function postCpu() {
-    const now = performance?.now?.() ?? Date.now();
-    const interval = Math.max(1, now - WorkerState._lastCpuTime);
-
-    const percent = Math.min(100, (WorkerState.cpuAccum / interval) * 100);
-
-    const payload = {
-        type: "worker_cpu",
-        usages: [{
-            id: WorkerState.workerId || "raycast",
-            usage: Math.round(percent * 10) / 10
-        }]
-    };
-
-    try {
-        WorkerState.perfChannel
-            ? WorkerState.perfChannel.postMessage(payload)
-            : self.postMessage(payload);
-    } catch { }
-
-    WorkerState.cpuAccum = 0;
-    WorkerState._lastCpuTime = now;
-}
-
-WorkerState._lastCpuTime = performance?.now?.() ?? Date.now();
-setInterval(postCpu, 500);
-
-/* =========================================================
-   MAP FLATTEN (CALLED ONLY ON INIT)
+   MAP FLATTEN
 ========================================================= */
 
 function flattenMap(map) {
@@ -179,10 +238,15 @@ function flattenMap(map) {
 }
 
 /* =========================================================
-   RAYCAST CORE (JS FALLBACK ONLY)
+   RAYCAST CORE
+   FIX: use WorkerState.static.map instead of d.map_01
+        (d.map_01 is only present on 'init' messages, not 'frame' messages)
 ========================================================= */
 
-function castRayColumn(x, s, map, math, wasm) {
+function castRayColumn(x, s, map, math) {
+
+    if (!map || !map[0]) return null;
+
     const rayAngle = math.rayAngle(
         s.playerAngle,
         s.playerFOV,
@@ -190,8 +254,8 @@ function castRayColumn(x, s, map, math, wasm) {
         s.numCastRays
     );
 
-    const cosA = wasm ? WorkerState.wasm.fastCos(rayAngle) : math.cos(rayAngle);
-    const sinA = wasm ? WorkerState.wasm.fastSin(rayAngle) : math.sin(rayAngle);
+    const cosA = math.cos(rayAngle);
+    const sinA = math.sin(rayAngle);
 
     let rayX = s.posX;
     let rayY = s.posZ;
@@ -214,7 +278,6 @@ function castRayColumn(x, s, map, math, wasm) {
 
     let steps = 0;
     let distance = 0;
-
     let hit = false;
     let side = null;
     let texture = null;
@@ -223,6 +286,7 @@ function castRayColumn(x, s, map, math, wasm) {
     let floorTex = "floor_concrete";
 
     while (steps++ < s.maxRayDepth * 2 && !hit) {
+
         if (distX < distY) {
             distance = distX;
             cellX += cosA > 0 ? 1 : -1;
@@ -275,24 +339,26 @@ function castRayColumn(x, s, map, math, wasm) {
         hitSide: side,
         textureKey: texture,
         floorTextureKey: floorTex,
-        hitX: rayX + distance * cosA,
-        hitY: rayY + distance * sinA,
-        backend: wasm ? "wasm" : "js"
+        backend: "js"
     };
 }
 
 /* =========================================================
-   MESSAGE HANDLER
+   MAIN LOOP
 ========================================================= */
 
 self.addEventListener("message", async (e) => {
+
     const t0 = performance?.now?.() ?? Date.now();
 
     try {
+
         const d = e.data;
 
-        /* ---------------- INIT ---------------- */
         if (d.type === "init") {
+
+            debug("INIT received");
+
             WorkerState.static = {
                 tileSize: d.tileSectors,
                 map: d.map_01,
@@ -306,10 +372,17 @@ self.addEventListener("message", async (e) => {
 
             WorkerState.workerId = d.workerId;
 
-            WorkerState.flatMap = flattenMap(d.map_01);
+            // FIX: guard flattenMap — map_01 must be a valid 2D array
+            if (d.map_01 && Array.isArray(d.map_01) && d.map_01[0]) {
+                WorkerState.flatMap = flattenMap(d.map_01);
+            } else {
+                debug("INIT: map_01 missing or invalid, flatMap not built");
+            }
 
             if (WorkerState.static.useWasm) {
+                debug("WASM requested");
                 await loadWasm();
+                debug("WASM init done");
             }
 
             self.postMessage({ type: "init", success: true });
@@ -329,19 +402,23 @@ self.addEventListener("message", async (e) => {
             playerFOV: d.playerFOV
         };
 
-        const map = s.map;
         const useWasm = !!WorkerState.wasm && s.useWasm;
 
         const rayCount = d.endRay - d.startRay;
 
-        /* =====================================================
-           STAGE 2 WASM DDA PATH
-        ===================================================== */
+        /* ================= WASM PATH ================= */
 
-        if (useWasm && WorkerState.batchPoC) {
+        if (useWasm && WorkerState.batchPoC && WorkerState.flatMap) {
 
-            const rayCount = d.endRay - d.startRay;
+            debug("WASM path entered", { frameId: d.frameId });
+
             ensureBuffers(rayCount);
+
+            debug("Calling batchPoC", {
+                rayCount,
+                start: d.startRay,
+                end: d.endRay
+            });
 
             WorkerState.batchPoC(
                 s.posX,
@@ -354,12 +431,14 @@ self.addEventListener("message", async (e) => {
                 s.tileSize,
                 WorkerState.flatMap.w,
                 WorkerState.flatMap.h,
-                WorkerState.flatMap.grid, // Int32Array OK in TeaVM GC
+                WorkerState.flatMap.grid,
                 s.maxRayDepth,
                 WorkerState.outDistance,
                 WorkerState.outHit,
                 WorkerState.outSide
             );
+
+            debug("batchPoC finished");
 
             const rayData = new Array(rayCount);
 
@@ -391,15 +470,26 @@ self.addEventListener("message", async (e) => {
             return;
         }
 
-        /* =====================================================
-           FALLBACK PATH
-        ===================================================== */
+        /* ================= JS FALLBACK ================= */
+
+        // FIX: use WorkerState.static.map — d.map_01 is undefined on frame messages
+        const map = WorkerState.static.map;
+
+        if (!map || !Array.isArray(map) || !map[0]) {
+            self.postMessage({
+                type: "error",
+                error: "Map not available in worker state",
+                frameId: d.frameId,
+                workerTime: (performance?.now?.() ?? Date.now()) - t0
+            });
+            return;
+        }
 
         const rayData = new Array(rayCount);
 
         for (let i = 0; i < rayCount; i++) {
             const x = d.startRay + i;
-            rayData[i] = castRayColumn(x, s, map, MathBackend, useWasm);
+            rayData[i] = castRayColumn(x, s, map, MathBackend);
         }
 
         self.postMessage({
@@ -413,9 +503,11 @@ self.addEventListener("message", async (e) => {
         WorkerState.cpuAccum += (performance?.now?.() ?? Date.now()) - t0;
 
     } catch (err) {
+
         self.postMessage({
             type: "error",
-            error: err.message,
+            error: err?.message || String(err),
+            stack: err?.stack || null,
             frameId: e.data?.frameId ?? -1,
             workerTime: (performance?.now?.() ?? Date.now()) - t0
         });

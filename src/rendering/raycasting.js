@@ -20,7 +20,8 @@ if (/Mobi|Android/i.test(navigator.userAgent) || navigator.hardwareConcurrency <
 // --- OPTIMIZED RAYCASTING WORKER MANAGEMENT ---
 const NUM_WORKERS = Math.min(navigator.hardwareConcurrency || 4, 4);
 const workerUrl = new URL("./renderworkers/raycastworker.js", import.meta.url);
-const useWasmRayMath = new URLSearchParams(window.location.search).get("wasmRayMath") === "true";
+const useWasmRayMath = window.__useWasmRayMath ?? true;
+console.log("[WASM flag]", useWasmRayMath, window.location.search);
 const workers = Array.from({ length: NUM_WORKERS }, () => new Worker(workerUrl));
 const workerPendingFrames = new Map();
 let workersInitialized = false;
@@ -32,27 +33,45 @@ window.__raycastMathSource = useWasmRayMath ? "wasm-requested" : "js";
 
 workers.forEach((worker, idx) => {
     worker.onmessage = (e) => {
+
         if (e.data.type === "wasmStatus") {
             raycastWasmStatus = e.data.status;
             window.__raycastWasmStatus = raycastWasmStatus;
             window.__raycastMathSource = raycastWasmStatus === "ready" ? "wasm" : "js";
-            console.info("[WASM] Raycast worker status", {
+
+            console.info("[WASM STATUS]", {
                 worker: idx,
-                status: raycastWasmStatus,
-                mathSource: window.__raycastMathSource,
-                enabledByQuery: useWasmRayMath
+                status: raycastWasmStatus
             });
+
+            return;
+        }
+
+        if (e.data.type === "wasmDebug") {
+            console.log("[WASM DEBUG]", e.data);
+            return;
+        }
+
+        if (e.data.type === "error") {
+            console.error("[WORKER ERROR]", e.data);
+            return;
+        }
+
+        if (e.data.type === "workerError") {
+            console.error("[WORKER CRASH]", e.data);
             return;
         }
 
         const { frameId } = e.data;
         const key = `${frameId}_${idx}`;
         const cb = workerPendingFrames.get(key);
+
         if (cb) {
             cb(e.data);
             workerPendingFrames.delete(key);
         }
     };
+
     worker.onerror = (error) => {
         for (const [key, resolve] of workerPendingFrames.entries()) {
             if (key.endsWith(`_${idx}`)) {
@@ -66,6 +85,8 @@ workers.forEach((worker, idx) => {
 export async function initializeWorkers() {
     const map_01 = mapTable.get("map_01");
     if (!map_01 || !Array.isArray(map_01) || !map_01[0]) return false;
+
+    // FIX: include textureTransparencyMap so workers can do transparent-wall checks
     const staticData = {
         type: "init",
         tileSectors,
@@ -75,8 +96,10 @@ export async function initializeWorkers() {
         CANVAS_WIDTH,
         numCastRays,
         maxRayDepth,
-        useWasmRayMath
+        useWasmRayMath,
+        textureTransparencyMap: textureTransparencyMap  // was missing
     };
+
     let resolved = false;
     const initPromise = new Promise((resolve) => {
         const handler = (e) => {
@@ -89,6 +112,7 @@ export async function initializeWorkers() {
         workers[0].addEventListener("message", handler);
         workers[0].addEventListener("error", () => resolve(false), { once: true });
     });
+
     for (let w of workers) w.postMessage(staticData);
     const success = await initPromise;
     workersInitialized = success;
@@ -106,32 +130,36 @@ export async function castRays() {
     if (!currentMap || !Array.isArray(currentMap) || !currentMap[0] || !Array.isArray(currentMap[0])) {
         return lastFrameResults.results || new Array(numCastRays).fill(null);
     }
+
     if (!workersInitialized) {
+        // FIX: include textureTransparencyMap here too (lazy init path)
         for (let w of workers) w.postMessage({
             type: "init",
             tileSectors,
-            // IMPORTANT: initialize workers with the actual active map grid
             map_01: currentMap,
             textureIdMap: Object.fromEntries(textureIdMap),
             floorTextureIdMap: Object.fromEntries(floorTextureIdMap),
             CANVAS_WIDTH,
             numCastRays,
             maxRayDepth,
-            textureTransparencyMap: textureTransparencyMap,
+            textureTransparencyMap: textureTransparencyMap,  // was missing
             useWasmRayMath
         });
         workersInitialized = true;
     }
+
     const posX = playerPosition.x;
     const posZ = playerPosition.z;
     const playerAngle = playerPosition.angle;
     currentFrameId++;
     const frameId = currentFrameId;
+
     if (posX < 0 || posZ < 0 || posX > currentMap[0].length * tileSectors || posZ > currentMap.length * tileSectors) {
         playerPosition.x = 5 * tileSectors;
         playerPosition.z = 5 * tileSectors;
         return lastFrameResults.results || new Array(numCastRays).fill(null);
     }
+
     const seg = Math.ceil(numCastRays / NUM_WORKERS);
     const promises = workers.map((worker, idx) => {
         const start = idx * seg;
@@ -150,7 +178,7 @@ export async function castRays() {
             const key = `${frameId}_${idx}`;
             workerPendingFrames.set(key, (data) => {
                 if (data.error) {
-                    resolve({ startRay: 0, rayData: [], frameId: -1 });
+                    resolve({ startRay: start, rayData: new Array(end - start).fill(null), frameId });
                 } else if (data.frameId === frameId) {
                     resolve(data);
                 }
@@ -158,14 +186,17 @@ export async function castRays() {
             worker.postMessage(workerData);
         });
     });
+
     const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve(null), 24));
     const results = await Promise.race([
         Promise.all(promises),
         timeoutPromise
     ]);
+
     if (!results || results.some(r => !r || r.frameId !== frameId)) {
         return lastFrameResults.results || new Array(numCastRays).fill(null);
     }
+
     const rayData = new Array(numCastRays);
     for (let i = 0; i < NUM_WORKERS; ++i) {
         const { startRay, rayData: segData } = results[i];
@@ -173,6 +204,7 @@ export async function castRays() {
             rayData[startRay + j] = segData[j];
         }
     }
+
     lastFrameResults = { frameId, results: rayData };
     return rayData;
 }
@@ -207,6 +239,7 @@ export function updateGraphicsSettings({ numCastRays: newRays, maxRayDepth: newD
                     CANVAS_WIDTH,
                     numCastRays,
                     maxRayDepth,
+                    textureTransparencyMap: textureTransparencyMap,
                     useWasmRayMath
                 });
             }
