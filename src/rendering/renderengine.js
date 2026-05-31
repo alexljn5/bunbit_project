@@ -219,8 +219,8 @@ export async function gameRenderEngine(deltaTime) {
                 else if (r.backend === "js") window.__raycastBackendStats.js++;
                 else window.__raycastBackendStats.unknown++;
             }
-
-            console.log("[Raycast backend check]", window.__raycastBackendStats);
+            //Clogs console, readd if need wasm check
+            //console.log("[Raycast backend check]", window.__raycastBackendStats);
         }
 
         if (!rayData || rayData.every(ray => ray === null)) {
