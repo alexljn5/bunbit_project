@@ -335,12 +335,22 @@ function castRayColumn(x, s, map, math) {
     const angleDiff = rayAngle - s.playerAngle;
     const corrected = distance * Q_rsqrt(1 + angleDiff * angleDiff);
 
+    // Compute textureX at cast time — hitSide and distance are already known
+    const hitWorldX = s.posX + cosA * corrected;  // use corrected? No, use distance
+    // Actually use pre-correction distance for texture coord
+    const hitAlongWall = side === "y" ? (s.posZ + sinA * distance) : (s.posX + cosA * distance);
+    let textureX = (hitAlongWall % s.tileSize) / s.tileSize;
+    if (textureX < 0) textureX += 1;
+    if (side === "y" && cosA > 0) textureX = 1 - textureX;
+    if (side === "x" && sinA < 0) textureX = 1 - textureX;
+
     return {
         column: x,
         distance: corrected,
         hitSide: side,
         textureKey: texture,
         floorTextureKey: floorTex,
+        textureX,          // ← add this
         backend: "js"
     };
 }
@@ -429,6 +439,7 @@ self.addEventListener("message", async (e) => {
             const rayData = new Array(rayCount);
 
             for (let i = 0; i < rayCount; i++) {
+
                 if (WorkerState.outHit[i] === 0) {
                     rayData[i] = null;
                     continue;
@@ -436,43 +447,38 @@ self.addEventListener("message", async (e) => {
 
                 const dist = WorkerState.outDistance[i];
                 const side = WorkerState.outSide[i];
+
+                // MUST be declared here (fixes your crash)
+                let textureKey = "wall_creamlol";
+
                 const rayIndex = d.startRay + i;
-                const a = s.playerAngle + (-s.playerFOV / 2 + (rayIndex / s.numCastRays) * s.playerFOV);
+                const a =
+                    s.playerAngle +
+                    (-s.playerFOV / 2 + (rayIndex / s.numCastRays) * s.playerFOV);
+
                 const cosA = Math.cos(a);
                 const sinA = Math.sin(a);
 
                 const hitX = s.posX + cosA * dist;
                 const hitY = s.posZ + sinA * dist;
-                const nudge = 0.5;
-                const cellX = Math.floor((hitX + (side === 1 ? (cosA > 0 ? nudge : -nudge) : 0)) / s.tileSize);
-                const cellY = Math.floor((hitY + (side === 0 ? (sinA > 0 ? nudge : -nudge) : 0)) / s.tileSize);
 
-                let textureKey = "wall_creamlol"; // real fallback, not wall_default
-                if (s.map && cellY >= 0 && cellY < s.map.length && cellX >= 0 && cellX < s.map[0].length) {
-                    const tile = s.map[cellY][cellX];
-                    if (tile) {
-                        textureKey = s.textureMap[tile.textureId]
-                            ?? s.textureMap[String(tile.textureId)]
-                            ?? "wall_creamlol";
-                    }
-                }
+                const tileSize = s.tileSize;
 
-                // ADD THIS:
-                if (i === 0) debug("tex-debug", {
-                    cellX, cellY,
-                    tileType: s.map?.[cellY]?.[cellX]?.type,
-                    tileTexId: s.map?.[cellY]?.[cellX]?.textureId,
-                    textureKey,
-                    textureMapSample: JSON.stringify(Object.entries(s.textureMap).slice(0, 3)),
-                    dist: dist.toFixed(2),
-                    hitX: hitX.toFixed(2), hitY: hitY.toFixed(2)
-                });
+                let hitAlongWall = (side === 1) ? hitY : hitX;
 
+                let textureX = (hitAlongWall % tileSize) / tileSize;
+                if (textureX < 0) textureX += 1;
+
+                if (side === 1 && cosA > 0) textureX = 1 - textureX;
+                if (side === 0 && sinA < 0) textureX = 1 - textureX;
+
+                // IMPORTANT: assign ray output LAST
                 rayData[i] = {
                     column: d.startRay + i,
                     distance: dist,
                     hitSide: side === 1 ? "y" : "x",
                     textureKey,
+                    textureX,
                     floorTextureKey: "floor_concrete_01",
                     backend: "wasm"
                 };
@@ -519,6 +525,8 @@ self.addEventListener("message", async (e) => {
             rayData,
             workerTime: (performance?.now?.() ?? Date.now()) - t0
         });
+
+        return;
 
         WorkerState.cpuAccum += (performance?.now?.() ?? Date.now()) - t0;
 

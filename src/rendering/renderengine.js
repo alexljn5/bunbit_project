@@ -286,7 +286,7 @@ export function drawQuad({ topX, topY, leftX, leftY, rightX, rightY, color, text
 
         ctx.drawImage(
             texture,
-            textureX * texture.width, 0, 1, texture.height, // source rect (1px wide strip)
+            Math.floor(textureX * texture.width), 0, 1, texture.height, // source rect (1px wide strip)
             leftX, topY, destWidth, destHeight              // destination from top-left, no flip!
         );
     } else {

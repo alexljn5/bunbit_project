@@ -21,7 +21,6 @@ const reusableQuad = {
     ctx: null
 };
 
-// Create a precompute worker for wall caches
 const wallPrecomputeWorker = new Worker('/src/rendering/renderworkers/wallprecomputeworker.js', { type: 'module' });
 wallPrecomputeWorker.onmessage = function (e) {
     if (!e.data) return;
@@ -40,9 +39,7 @@ wallPrecomputeWorker.onmessage = function (e) {
 
 export function precomputeWallRenderData(sectorKey) {
     try {
-        if (!texturesLoaded || !tileSectors[sectorKey]) {
-            return;
-        }
+        if (!texturesLoaded || !tileSectors[sectorKey]) return;
         const sector = tileSectors[sectorKey];
         wallPrecomputeWorker.postMessage({
             type: 'precompute',
@@ -58,8 +55,9 @@ export function precomputeWallRenderData(sectorKey) {
     }
 }
 
-// FIX: compute textureX from world hit position rather than ray.hitX/ray.hitY
-// (those properties don't exist on ray objects — only distance, hitSide, textureKey etc.)
+// Compute 0..1 texture X coordinate for a ray hit.
+// Uses world-space hit position projected onto the wall face.
+// rayIndex = column index (0..numCastRays-1)
 function computeTextureX(ray, rayIndex) {
     const posX = playerPosition.x;
     const posZ = playerPosition.z;
@@ -72,13 +70,19 @@ function computeTextureX(ray, rayIndex) {
     const hitWorldX = posX + cosA * ray.distance;
     const hitWorldY = posZ + sinA * ray.distance;
 
-    // Which axis was the wall face on?
-    // hitSide "x" means ray hit a wall whose face is along the X axis (N/S wall) — use hitWorldX for V coord
-    // hitSide "y" means ray hit an E/W wall — use hitWorldY
-    const hitAlongWall = ray.hitSide === "y" ? hitWorldX : hitWorldY;
+    // "y" side = ray crossed a vertical grid line (E/W wall face) → texture offset along Y
+    // "x" side = ray crossed a horizontal grid line (N/S wall face) → texture offset along X
+    const hitAlongWall = ray.hitSide === "y" ? hitWorldY : hitWorldX;
 
+    // Modulo within tile, then normalise to 0..1
     let tx = (hitAlongWall % tileSectors) / tileSectors;
-    if (tx < 0) tx += 1; // handle negative modulo
+    if (tx < 0) tx += 1;
+
+    // Mirror the texture on the back face so it doesn't reverse direction
+    // depending on which side of the wall the ray enters from.
+    if (ray.hitSide === "y" && cosA > 0) tx = 1 - tx;
+    if (ray.hitSide === "x" && sinA < 0) tx = 1 - tx;
+
     return Math.max(0, Math.min(1, tx));
 }
 
@@ -97,7 +101,7 @@ export function renderRaycastWalls(rayData, sectorKey, ctx = null) {
         const cached = wallRenderCache.get(sectorKey);
         const demonFrame = getDemonLaughingCurrentFrame() || tileTexturesMap.get("wall_creamlol");
 
-        // Cached path — geometry was precomputed by worker (textureX already baked in)
+        // Cached path — geometry precomputed by worker, textureX already baked in
         if (cached && cached.geom && cached.numRays === rayData.length) {
             const geom = cached.geom;
             const tKeys = cached.textureKeys;
@@ -137,11 +141,9 @@ export function renderRaycastWalls(rayData, sectorKey, ctx = null) {
             const nextColX = colX + colWidth;
 
             if (Array.isArray(ray)) {
-                // Transparent wall stack
                 let accumulatedAlpha = 0;
                 for (let j = ray.length - 1; j >= 0; j--) {
                     const hit = ray[j];
-                    // FIX: use computeTextureX, not hit.hitX/hit.hitY
                     const textureX = computeTextureX(hit, i);
                     const tex = tileTexturesMap.get(hit.textureKey) || defaultTexture;
                     const alpha = 0.5 * (1 - accumulatedAlpha);
@@ -163,9 +165,7 @@ export function renderRaycastWalls(rayData, sectorKey, ctx = null) {
                     if (accumulatedAlpha >= 1) break;
                 }
             } else {
-                // FIX: use computeTextureX, not ray.hitX/ray.hitY
                 const textureX = computeTextureX(ray, i);
-
                 const texture = (ray.textureKey === "wall_laughing_demon")
                     ? demonFrame
                     : (tileTexturesMap.get(ray.textureKey) || defaultTexture);
@@ -187,7 +187,6 @@ export function renderRaycastWalls(rayData, sectorKey, ctx = null) {
             }
         }
 
-        // Kick off precompute for next frame
         if (sectorKey && !wallRenderCache.has(sectorKey)) {
             precomputeWallRenderData(sectorKey);
         }
