@@ -249,23 +249,17 @@ self.addEventListener("message", async (e) => {
             ensureBuffers(rayCount);
 
             WorkerState.batchPoC(
-                s.posX, s.posZ,
-                s.playerAngle, s.playerFOV,
-                d.startRay, d.endRay,
-                s.numCastRays,
+                s.posX, s.posZ, s.playerAngle, s.playerFOV,
+                d.startRay, d.endRay, s.numCastRays,
                 s.tileSize,
-                WorkerState.flatMap.w,
-                WorkerState.flatMap.h,
+                WorkerState.flatMap.w, WorkerState.flatMap.h,
                 WorkerState.flatMap.grid,
                 s.maxRayDepth,
-
-                WorkerState.outDistance,
-                WorkerState.outHit,
-                WorkerState.outSide,
-
-                // NEW OUTPUT BUFFERS
-                WorkerState.outMapX,
-                WorkerState.outMapY
+                WorkerState.outDistance,   // 13
+                WorkerState.outHit,        // 14
+                WorkerState.outSide,       // 15
+                WorkerState.outMapX,       // 16 ← extra!
+                WorkerState.outMapY        // 17 ← extra!
             );
 
             const rayData = new Array(rayCount);

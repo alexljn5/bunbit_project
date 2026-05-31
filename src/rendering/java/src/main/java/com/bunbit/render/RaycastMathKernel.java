@@ -60,26 +60,19 @@ public class RaycastMathKernel {
 
     @JSExport
     public static void raycastColumnsBatch(
-            double posX,
-            double posZ,
-            double playerAngle,
-            double playerFov,
-            int rayStart,
-            int rayEnd,
-            int rayCount,
+            double posX, double posZ, double playerAngle, double playerFov,
+            int rayStart, int rayEnd, int rayCount,
             int tileSize,
-            int mapW,
-            int mapH,
+            int mapW, int mapH,
             Int32Array tileGrid,
             int maxRayDepth,
             Float64Array outDistance,
             Int32Array outHit,
-            Int32Array outSide) {
-
+            Int32Array outSide,
+            Int32Array outMapX,
+            Int32Array outMapY) {
         int n = rayEnd - rayStart;
-
         for (int i = 0; i < n; i++) {
-
             int rayIndex = rayStart + i;
             double a = playerAngle + (-playerFov / 2.0 + ((double) rayIndex / rayCount) * playerFov);
 
@@ -110,12 +103,12 @@ public class RaycastMathKernel {
                     distance = distX;
                     cellX += (cosA > 0 ? 1 : -1);
                     distX += deltaX;
-                    side = 1;
+                    side = 1; // y-side
                 } else {
                     distance = distY;
                     cellY += (sinA > 0 ? 1 : -1);
                     distY += deltaY;
-                    side = 0;
+                    side = 0; // x-side
                 }
 
                 if (cellX < 0 || cellY < 0 || cellX >= mapW || cellY >= mapH)
@@ -131,10 +124,14 @@ public class RaycastMathKernel {
                 outHit.set(i, 1);
                 outDistance.set(i, corrected);
                 outSide.set(i, side);
+                outMapX.set(i, cellX);
+                outMapY.set(i, cellY);
             } else {
                 outHit.set(i, 0);
                 outDistance.set(i, 0.0);
                 outSide.set(i, 0);
+                outMapX.set(i, -1);
+                outMapY.set(i, -1);
             }
         }
     }
