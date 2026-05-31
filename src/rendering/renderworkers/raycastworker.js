@@ -224,17 +224,19 @@ async function loadWasm() {
 function flattenMap(map) {
     const h = map.length;
     const w = map[0].length;
-
     const grid = new Int32Array(w * h);
+    const texGrid = new Int32Array(w * h);  // ADD THIS
 
     for (let y = 0; y < h; y++) {
         for (let x = 0; x < w; x++) {
             const tile = map[y][x];
-            grid[y * w + x] = tile && tile.type === "wall" ? 1 : 0;
+            if (tile && tile.type === "wall") {
+                grid[y * w + x] = 1;
+                texGrid[y * w + x] = tile.textureId ?? 0;  // ADD THIS
+            }
         }
     }
-
-    return { grid, w, h };
+    return { grid, texGrid, w, h };  // ADD texGrid
 }
 
 /* =========================================================
@@ -411,31 +413,15 @@ self.addEventListener("message", async (e) => {
         if (useWasm && WorkerState.batchPoC && WorkerState.flatMap) {
 
             debug("WASM path entered", { frameId: d.frameId });
-
             ensureBuffers(rayCount);
-
-            debug("Calling batchPoC", {
-                rayCount,
-                start: d.startRay,
-                end: d.endRay
-            });
+            debug("Calling batchPoC", { rayCount, start: d.startRay, end: d.endRay });
 
             WorkerState.batchPoC(
-                s.posX,
-                s.posZ,
-                s.playerAngle,
-                s.playerFOV,
-                d.startRay,
-                d.endRay,
-                s.numCastRays,
-                s.tileSize,
-                WorkerState.flatMap.w,
-                WorkerState.flatMap.h,
-                WorkerState.flatMap.grid,
-                s.maxRayDepth,
-                WorkerState.outDistance,
-                WorkerState.outHit,
-                WorkerState.outSide
+                s.posX, s.posZ, s.playerAngle, s.playerFOV,
+                d.startRay, d.endRay, s.numCastRays, s.tileSize,
+                WorkerState.flatMap.w, WorkerState.flatMap.h,
+                WorkerState.flatMap.grid, s.maxRayDepth,
+                WorkerState.outDistance, WorkerState.outHit, WorkerState.outSide
             );
 
             debug("batchPoC finished");
@@ -443,22 +429,56 @@ self.addEventListener("message", async (e) => {
             const rayData = new Array(rayCount);
 
             for (let i = 0; i < rayCount; i++) {
-
                 if (WorkerState.outHit[i] === 0) {
                     rayData[i] = null;
                     continue;
                 }
 
+                const dist = WorkerState.outDistance[i];
+                const side = WorkerState.outSide[i];
+                const rayIndex = d.startRay + i;
+                const a = s.playerAngle + (-s.playerFOV / 2 + (rayIndex / s.numCastRays) * s.playerFOV);
+                const cosA = Math.cos(a);
+                const sinA = Math.sin(a);
+
+                const hitX = s.posX + cosA * dist;
+                const hitY = s.posZ + sinA * dist;
+                const nudge = 0.5;
+                const cellX = Math.floor((hitX + (side === 1 ? (cosA > 0 ? nudge : -nudge) : 0)) / s.tileSize);
+                const cellY = Math.floor((hitY + (side === 0 ? (sinA > 0 ? nudge : -nudge) : 0)) / s.tileSize);
+
+                let textureKey = "wall_creamlol"; // real fallback, not wall_default
+                if (s.map && cellY >= 0 && cellY < s.map.length && cellX >= 0 && cellX < s.map[0].length) {
+                    const tile = s.map[cellY][cellX];
+                    if (tile) {
+                        textureKey = s.textureMap[tile.textureId]
+                            ?? s.textureMap[String(tile.textureId)]
+                            ?? "wall_creamlol";
+                    }
+                }
+
+                // ADD THIS:
+                if (i === 0) debug("tex-debug", {
+                    cellX, cellY,
+                    tileType: s.map?.[cellY]?.[cellX]?.type,
+                    tileTexId: s.map?.[cellY]?.[cellX]?.textureId,
+                    textureKey,
+                    textureMapSample: JSON.stringify(Object.entries(s.textureMap).slice(0, 3)),
+                    dist: dist.toFixed(2),
+                    hitX: hitX.toFixed(2), hitY: hitY.toFixed(2)
+                });
+
                 rayData[i] = {
                     column: d.startRay + i,
-                    distance: WorkerState.outDistance[i],
-                    hitSide: WorkerState.outSide[i] === 1 ? "y" : "x",
-                    textureKey: "wall_default",
-                    floorTextureKey: "floor_concrete",
+                    distance: dist,
+                    hitSide: side === 1 ? "y" : "x",
+                    textureKey,
+                    floorTextureKey: "floor_concrete_01",
                     backend: "wasm"
                 };
             }
 
+            // THIS WAS MISSING — without it execution falls through to the JS path
             self.postMessage({
                 type: "frame",
                 frameId: d.frameId,
@@ -467,7 +487,7 @@ self.addEventListener("message", async (e) => {
                 workerTime: (performance?.now?.() ?? Date.now()) - t0
             });
 
-            return;
+            return; // AND THIS
         }
 
         /* ================= JS FALLBACK ================= */
