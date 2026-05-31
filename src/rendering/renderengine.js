@@ -220,7 +220,7 @@ export async function gameRenderEngine(deltaTime) {
                 else window.__raycastBackendStats.unknown++;
             }
             //Clogs console, readd if need wasm check
-            //console.log("[Raycast backend check]", window.__raycastBackendStats);
+            console.log("[Raycast backend check]", window.__raycastBackendStats);
         }
 
         if (!rayData || rayData.every(ray => ray === null)) {
