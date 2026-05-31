@@ -4,6 +4,9 @@ import org.teavm.jso.JSExport;
 import org.teavm.jso.typedarrays.Float64Array;
 import org.teavm.jso.typedarrays.Int32Array;
 
+// No @Export annotation — that's for the Wasm-C backend, not wasmGC.
+// For wasmGC: this class IS the mainClass in build.gradle.
+// TeaVM exports all @JSExport static methods from the mainClass automatically.
 public class RaycastMathKernel {
 
     private static final int SIN_TABLE_SIZE = 1024;
@@ -21,10 +24,6 @@ public class RaycastMathKernel {
             COS_TABLE[i] = (float) Math.cos(a);
         }
     }
-
-    // ----------------------------
-    // JS SAFE MATH EXPORTS
-    // ----------------------------
 
     @JSExport
     public static int clampInt(int v, int lo, int hi) {
@@ -54,23 +53,10 @@ public class RaycastMathKernel {
         return playerAngle + (-playerFov / 2.0 + ((double) rayIndex / rayCount) * playerFov);
     }
 
-    // ----------------------------
-    // SAFE ALIAS (IMPORTANT)
-    // prevents JS break if TeaVM wraps exports
-    // ----------------------------
-
     @JSExport
     public static double clampInt_asDouble(double v, double lo, double hi) {
         return clampInt((int) v, (int) lo, (int) hi);
     }
-
-    // ----------------------------
-    // BATCH RAYCAST
-    //
-    // FIX: outDistance is Float64Array, outHit/outSide are Int32Array.
-    // JS side must use Float64Array and Int32Array buffers to match —
-    // previously used Float32Array/Uint8Array which caused silent corruption.
-    // ----------------------------
 
     @JSExport
     public static void raycastColumnsBatch(
@@ -86,18 +72,16 @@ public class RaycastMathKernel {
             int mapH,
             Int32Array tileGrid,
             int maxRayDepth,
-            Float64Array outDistance, // JS: new Float64Array(rayCount)
-            Int32Array outHit, // JS: new Int32Array(rayCount)
-            Int32Array outSide) { // JS: new Int32Array(rayCount)
+            Float64Array outDistance,
+            Int32Array outHit,
+            Int32Array outSide) {
 
         int n = rayEnd - rayStart;
 
         for (int i = 0; i < n; i++) {
 
             int rayIndex = rayStart + i;
-
-            double a = playerAngle
-                    + (-playerFov / 2.0 + ((double) rayIndex / rayCount) * playerFov);
+            double a = playerAngle + (-playerFov / 2.0 + ((double) rayIndex / rayCount) * playerFov);
 
             double cosA = Math.cos(a);
             double sinA = Math.sin(a);
@@ -122,32 +106,28 @@ public class RaycastMathKernel {
             double distance = 0;
 
             while (steps++ < maxRayDepth * 2 && !hit) {
-
                 if (distX < distY) {
                     distance = distX;
                     cellX += (cosA > 0 ? 1 : -1);
                     distX += deltaX;
-                    side = 1; // y-side
+                    side = 1;
                 } else {
                     distance = distY;
                     cellY += (sinA > 0 ? 1 : -1);
                     distY += deltaY;
-                    side = 0; // x-side
+                    side = 0;
                 }
 
-                if (cellX < 0 || cellY < 0 || cellX >= mapW || cellY >= mapH) {
+                if (cellX < 0 || cellY < 0 || cellX >= mapW || cellY >= mapH)
                     break;
-                }
 
-                int tile = tileGrid.get(cellY * mapW + cellX);
-                if (tile == 1)
+                if (tileGrid.get(cellY * mapW + cellX) == 1)
                     hit = true;
             }
 
             if (hit) {
                 double angleDiff = a - playerAngle;
                 double corrected = distance / Math.sqrt(1.0 + angleDiff * angleDiff);
-
                 outHit.set(i, 1);
                 outDistance.set(i, corrected);
                 outSide.set(i, side);
