@@ -131,27 +131,25 @@ export function initControlPanel() {
     });
     reloadButton.style.marginTop = `${10 * SCALE_Y}px`;
 
-    // Add an <img> element(s) for the logo so we can brighten and smoothly mask them (no obvious square)
+    // Add <img> elements for the menu art (pillars / logo / stairs)
     const pillarSrc = 'img/menu/main/pillar.png';
+    const logoSrc = 'img/logo/logo-ascii-transparent-sigil.png';
+    const logoSrcFace = 'img/logo/logo-ascii.png';
+    const stairsSrc = 'img/menu/main/stairs.png';
 
-    // Center ASCII logo
-    const _logoSrc = 'img/logo/logo-ascii-transparent.png';
-    const logoEl = document.createElement('img');
-
-    // Also spawn identical pillars to the left and right of the ascii logo
-
-
-    // Pillars to the left and right of the logo (same sizing rules as the logo)
-    // Offset is relative to pillar width: match pillar width so the pillars sit flanking the logo.
-    // 0.35 * pillar width approximates “next to” spacing without overlaps.
     const pillarOffsetFactor = 0.35;
-    const pillarElStyle = (el, side) => {
+
+    function createPillarImg(side) {
+        const el = document.createElement('img');
         el.src = pillarSrc;
         el.alt = '';
         el.style.position = 'absolute';
-        el.style.top = '50%';
-        el.style.transform = 'translate(-50%, -50%)';
+
+        // Span top-to-bottom
+        el.style.top = '0%';
         el.style.bottom = '0%';
+        el.style.transform = 'translate(-50%, 0%)';
+
         el.style.width = '512px';
         el.style.height = '100%';
         el.style.maxWidth = '60%';
@@ -167,76 +165,100 @@ export function initControlPanel() {
         el.style.zIndex = '0';
 
         // Place left/right using calc with percentage + pixel-ish proportion.
-        // Use 50% baseline (same as logo) plus/minus an offset that scales with viewport.
-        // Since pillar uses maxWidth:60%, we approximate the offset as 0.35 * 60vw.
-        // side: -1 => left, +1 => right
         const direction = side === 'left' ? -1 : 1;
         el.style.left = `calc(50% + (${direction} * ${pillarOffsetFactor} * 60vw))`;
-    };
+        return el;
+    }
 
-    const pillarLeftEl = document.createElement('img');
-    pillarElStyle(pillarLeftEl, 'left');
+    function createLogoLayers() {
+        const sigilSrc = 'img/logo/logo-ascii-transparent-sigil.png';
+        const faceSrc = 'img/logo/logo-ascii.png';
 
-    const pillarRightEl = document.createElement('img');
-    pillarElStyle(pillarRightEl, 'right');
+        // === Layer 1: Sigil (background) ===
+        const sigilEl = document.createElement('img');
+        sigilEl.src = sigilSrc;
+        sigilEl.alt = '';
+        Object.assign(sigilEl.style, {
+            position: 'absolute',
+            left: '50%',
+            top: '30%',
+            transform: 'translate(-50%, 0)',
+            width: '320px',
+            height: '320px',
+            maxWidth: '55%',
+            filter: 'brightness(4.90) contrast(10.15) saturate(10.2)',
+            mixBlendMode: 'overlay',
+            borderRadius: '18%',
+            clipPath: 'ellipse(48% 40% at 50% 50%)',
+            boxShadow: '0 12px 40px rgba(0,0,0,0.55)',
+            pointerEvents: 'none',
+            opacity: '1.34',
+            zIndex: '0'
+        });
 
-    logoEl.src = _logoSrc;
-    logoEl.alt = '';
-    // Position and sizing
-    logoEl.style.position = 'absolute';
-    logoEl.style.left = '50%';
-    logoEl.style.top = '50%';
-    logoEl.style.transform = 'translate(-50%, -50%)';
-    logoEl.style.width = '256px';
-    logoEl.style.height = '256px';
-    logoEl.style.maxWidth = '60%';
-    // Visual blending: brighten, increase contrast, and blend with panel color
-    logoEl.style.filter = 'brightness(4.90) contrast(10.15) saturate(10.2)';
-    logoEl.style.mixBlendMode = 'overlay';
-    // So it doesn't show an obvious square: soften edges with borderRadius + clip-path ellipse
-    logoEl.style.borderRadius = '18%';
-    logoEl.style.clipPath = 'ellipse(48% 40% at 50% 50%)';
-    // Subtle shadow for separation
-    logoEl.style.boxShadow = '0 12px 40px rgba(0,0,0,0.55)';
-    // Non-interactive and behind buttons
-    logoEl.style.pointerEvents = 'none';
-    logoEl.style.opacity = '0.94';
-    logoEl.style.zIndex = '0';
-    debugPanel.appendChild(logoEl);
-    // Add these:
+        // === Layer 2: Bunny Face (on top) ===
+        const faceEl = document.createElement('img');
+        faceEl.src = faceSrc;
+        faceEl.alt = '';
+        Object.assign(faceEl.style, {
+            position: 'absolute',
+            left: '50%',
+            top: '39%',
+            transform: 'translate(-50%, 0)',
+            width: '128px',
+            height: '128px',
+            maxWidth: '55%',
+            filter: 'brightness(105.5) contrast(120) saturate(18)', // You can tweak this separately
+            mixBlendMode: 'overlay',
+            //borderRadius: '18%',
+            boxShadow: '0 12px 40px rgba(0,0,0,0.55)',
+            pointerEvents: 'none',
+            opacity: '0.7',
+            zIndex: '1' // On top of the sigil
+        });
+
+        return { sigilEl, faceEl };
+    }
+
+    function createStairsImg() {
+        const el = document.createElement('img');
+        el.src = stairsSrc;
+        el.alt = '';
+
+        el.style.position = 'absolute';
+        el.style.left = '50%';
+        el.style.bottom = '8%';
+        el.style.transform = 'translate(-50%, 0)';
+        el.style.width = '640px';
+        el.style.height = 'auto';
+        el.style.maxWidth = '45%';
+        el.style.zIndex = '1';
+
+        el.style.filter = 'brightness(4.90) contrast(10.15) saturate(10.2)';
+        el.style.mixBlendMode = 'overlay';
+        el.style.opacity = '0.85';
+        el.style.pointerEvents = 'none';
+
+        el.style.transform = 'translate(-50%, 0) perspective(600px) rotateX(12deg)';
+        return el;
+    }
+
+    const pillarLeftEl = createPillarImg('left');
+    const pillarRightEl = createPillarImg('right');
+    const stairsEl = createStairsImg();
+    const { sigilEl, faceEl } = createLogoLayers();
+
+    debugPanel.appendChild(sigilEl);   // Background layer
+    debugPanel.appendChild(faceEl);    // Bunny face on top
     debugPanel.appendChild(pillarLeftEl);
     debugPanel.appendChild(pillarRightEl);
+
     // Ensure header and buttons render above
     header.style.zIndex = '3';
-    // Buttons already set to zIndex 2 above
-
-    // === STAIRS leading up to the logo ===
-    const stairsSrc = 'img/menu/main/stairs.png';   // ← change if your path is different
-
-    const stairsEl = document.createElement('img');
-    stairsEl.src = stairsSrc;
-    stairsEl.alt = '';
-
-    stairsEl.style.position = 'absolute';
-    stairsEl.style.left = '50%';
-    stairsEl.style.bottom = '8%';                    // How far from the bottom
-    stairsEl.style.transform = 'translate(-50%, 0)';
-    stairsEl.style.width = '640px';                  // Adjust width to taste
-    stairsEl.style.height = 'auto';
-    stairsEl.style.maxWidth = '45%';
-    stairsEl.style.zIndex = '1';                     // Between pillars (0) and logo/buttons
-
-    // Match the visual style of the logo and pillars
-    stairsEl.style.filter = 'brightness(4.90) contrast(10.15) saturate(10.2)';
-    stairsEl.style.mixBlendMode = 'overlay';
-    stairsEl.style.opacity = '0.85';
-    stairsEl.style.pointerEvents = 'none';
-
-    // Optional: slight perspective / tilt if you want it to feel more "leading up"
-    stairsEl.style.transform = 'translate(-50%, 0) perspective(600px) rotateX(12deg)';
 
     debugPanel.appendChild(stairsEl);
     debugPanel.appendChild(header);
+
     debugPanel.appendChild(reloadButton);
     debugPanel.appendChild(playButton);
     debugPanel.appendChild(stopButton);
