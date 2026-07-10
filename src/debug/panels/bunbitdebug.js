@@ -7,7 +7,6 @@ import { gameRenderEngine, initializeRenderWorkers, cleanupRenderWorkers } from 
 import { memCpuGodFunction, stopMemCpuMonitor } from './memcpu.js';
 import { debugHandlerGodFunction, stopDebugTerminal } from '../debughandler.js';
 import { initControlPanel } from '../controlpanel.js';
-import { runIntroPlaceholderAutorun } from '../../animations/introplaceholder.js';
 
 // State flags
 let isDragging = false;
@@ -20,17 +19,10 @@ let initialized = false;
 // Expose defaultDebugVisible globally (imported from globals.js)
 window.defaultDebugVisible = defaultDebugVisible;
 
-// Initialize BunbitDebug panel - waits for intro animation to complete first
-export async function initBunbitDebug() {
+// Initialize BunbitDebug panel
+export function initBunbitDebug() {
     if (initialized) return;
     if (typeof document === 'undefined') return;
-
-    // Wait for intro animation to complete before showing control panel
-    try {
-        await runIntroPlaceholderAutorun();
-    } catch (e) {
-        console.warn('Intro animation failed or was skipped:', e);
-    }
 
     // Create control panel via new module
     initControlPanel();
@@ -74,13 +66,13 @@ function stopDrag() {
 
 // Initialize debug panel on page load
 if (typeof document !== 'undefined') {
-    const initDebugWithRetry = async () => {
+    const initDebugWithRetry = () => {
         if (!document.body) {
             // If body is not available, retry after a short delay
             setTimeout(initDebugWithRetry, 100);
             return;
         }
-        await initBunbitDebug();
+        initBunbitDebug();
     };
 
     if (document.readyState === 'loading') {

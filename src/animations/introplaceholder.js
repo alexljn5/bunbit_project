@@ -1,78 +1,52 @@
 import { DEBUG_START_INTRO_ANIMATION, RUN_INTRO_ON_START, introActive, setIntroActive } from "../globals.js";
 
-const DEFAULT_FRAME_MS = 350; // Slower animation: ~1.4s total for 4 frames
-
-// --- Autorun state ---
 let hasRun = false;
-let introPromise = null;
 
-// Promise-based intro animation that can be awaited
+// Auto-start the intro animation when the module loads
+if (typeof window !== 'undefined') {
+    window.introActive = introActive; // Ensure window property is set
+    requestAnimationFrame(() => {
+        runIntroPlaceholderAutorun();
+    });
+}
+
 export function runIntroPlaceholderAutorun() {
     if (!RUN_INTRO_ON_START) return Promise.resolve();
-    if (hasRun) return introPromise;
+    if (hasRun) return;
     hasRun = true;
 
-    // Return a promise that resolves when the intro animation completes
-    introPromise = new Promise((resolve) => {
+    return new Promise((resolve) => {
         const tick = () => {
-            try {
-                if (typeof window !== 'undefined' && window.introActive === true) {
-                    // Ensure canvas is properly sized before animation
-                    const canvas = document.getElementById("mainGameRender");
-                    if (canvas && (canvas.width === 0 || canvas.height === 0)) {
-                        canvas.width = 800;
-                        canvas.height = 800;
+            if (window.introActive === true) {
+                maybeShowIntroPlaceholders({
+                    onComplete: () => {
+                        setIntroActive(false);
+                        // Redirect to main game after intro
+                        window.location.href = "main_game.html";
+                        resolve();
                     }
-                    // Run the intro animation and resolve when done
-                    maybeShowIntroPlaceholders({
-                        onComplete: () => {
-                            setIntroActive(false);
-                            resolve();
-                        }
-                    });
-                    return;
-                }
-            } catch (e) {
-                // ignore and keep polling
+                });
+                return;
             }
             requestAnimationFrame(tick);
         };
         requestAnimationFrame(tick);
     });
-
-    return introPromise;
 }
 
-// Convenience alias
 export function tryAutorunIntroPlaceholder() {
     return runIntroPlaceholderAutorun();
 }
 
-function preloadImages(imageSources) {
-    const promises = imageSources.map((src) => {
-        return new Promise((resolve) => {
+function preloadImages(sources) {
+    return Promise.all(sources.map(src => {
+        return new Promise(resolve => {
             const img = new Image();
             img.onload = () => resolve(img);
             img.onerror = () => resolve(null);
             img.src = src;
         });
-    });
-    return Promise.all(promises);
-}
-
-function drawFrame({ ctx, w, h, img, centerX, centerY, scale, alpha = 1 }) {
-    if (!img) return;
-
-    const bw = w * scale;
-    const bh = bw; // square-ish (fits our logo-ascii)
-
-    const x = centerX - bw / 2;
-    const y = centerY - bh / 2;
-
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    ctx.drawImage(img, x, y, bw, bh);
-    ctx.restore();
+    }));
 }
 
 export function maybeShowIntroPlaceholders({ onComplete } = {}) {
@@ -82,73 +56,78 @@ export function maybeShowIntroPlaceholders({ onComplete } = {}) {
     }
 
     const canvas = document.getElementById("mainGameRender");
-    if (!canvas || !canvas.getContext) {
+    if (!canvas) {
         onComplete?.();
         return;
     }
 
     const ctx = canvas.getContext("2d");
-    const w = canvas.width || 800;
-    const h = canvas.height || 800;
 
-    // ASCII animation frames: opening mouth feel by swapping frame art in-place.
+    // Force true fullscreen + pure black
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    canvas.width = w;
+    canvas.height = h;
+
+    // Make sure there's no blue border from the window/body
+    document.documentElement.style.background = "#000000";
+    document.body.style.background = "#000000";
+    document.body.style.margin = "0";
+    document.body.style.overflow = "hidden";
+
     const frameSources = [
-        { src: "img/logo/logo-ascii.png", scale: 0.5 },
-        { src: "img/animation/jim_stage_2_ascii.png", scale: 0.5 },
-        { src: "img/animation/jim_stage_3_ascii.png", scale: 0.5 },
-        { src: "img/animation/jim_stage_4_ascii.png", scale: 0.5 },
+        "img/logo/logo-ascii.png",
+        "img/animation/jim_stage_2_ascii.png",
+        "img/animation/jim_stage_3_ascii.png",
+        "img/animation/jim_stage_4_ascii.png",
     ];
 
-    const centerX = w * 0.5;
-    const centerY = h * 0.52;
+    const centerX = w / 2;
+    const centerY = h / 2;
 
-    const start = performance.now();
+    preloadImages(frameSources).then((imgs) => {
+        const totalDuration = 1200; // 1.2 seconds total
+        const startTime = performance.now();
 
-    // Ensure the animation starts even if images are already cached (or take time to load)
-    preloadImages(frameSources.map((f) => f.src)).then((imgs) => {
-        const totalMs = frameSources.length * DEFAULT_FRAME_MS;
+        function animate(now) {
+            const elapsed = now - startTime;
+            const progress = Math.min(elapsed / totalDuration, 1);
 
-        function frameLoop(now) {
-            const elapsed = now - start;
-
-            // Background wash: keeps a cinematic fade while ensuring the mouth progression is readable.
-            ctx.clearRect(0, 0, w, h);
-            ctx.fillStyle = "rgba(0,0,0,0.74)";
+            // Pure black background
+            ctx.fillStyle = "#000000";
             ctx.fillRect(0, 0, w, h);
 
-            // Which frame are we on?
-            const idx = Math.max(0, Math.min(frameSources.length - 1, Math.floor(elapsed / DEFAULT_FRAME_MS)));
-            const f = frameSources[idx];
-            const img = imgs[idx];
+            // Which frame to show
+            const frameIndex = Math.min(
+                imgs.length - 1,
+                Math.floor((progress * imgs.length))
+            );
 
-            // Subtle "opening" motion: slight vertical bob + overshoot alpha ramp.
-            const localT = (elapsed - idx * DEFAULT_FRAME_MS) / DEFAULT_FRAME_MS; // 0..1
-            const eased = Math.min(1, Math.max(0, localT));
-            const alpha = 0.25 + 0.75 * eased;
-            const bob = (1 - eased) * 10; // move upward as it opens
+            const img = imgs[frameIndex];
+            if (img) {
+                // Start small (0.15) → grow to bigger (0.65)
+                const scale = 0.15 + (progress * 0.50);
+                const size = Math.min(w, h) * scale;
 
-            // Draw the active frame centered.
-            drawFrame({
-                ctx,
-                w,
-                h,
-                img,
-                centerX,
-                centerY: centerY - bob,
-                scale: f.scale,
-                alpha,
-            });
+                const x = centerX - size / 2;
+                const y = centerY - size / 2;
 
-            if (elapsed < totalMs) {
-                requestAnimationFrame(frameLoop);
+                // Fade in slightly as it grows
+                ctx.globalAlpha = 0.4 + (progress * 0.6);
+
+                ctx.drawImage(img, x, y, size, size);
+                ctx.globalAlpha = 1;
+            }
+
+            if (elapsed < totalDuration) {
+                requestAnimationFrame(animate);
             } else {
-                // Final clear to ensure crisp end state.
                 ctx.clearRect(0, 0, w, h);
+                // At the end of the animation
                 onComplete?.();
             }
         }
 
-        requestAnimationFrame(frameLoop);
+        requestAnimationFrame(animate);
     });
 }
-
