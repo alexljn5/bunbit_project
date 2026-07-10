@@ -171,10 +171,11 @@ export function initControlPanel() {
     }
 
     function createLogoLayers() {
-        const sigilSrc = 'img/logo/logo-ascii-transparent-sigil.png';
+        const sigilSrc = 'img/logo/logo-ascii-transparent-sigil-blend.png';
         const faceSrc = 'img/logo/logo-ascii.png';
 
         // === Layer 1: Sigil (background) ===
+        // === SPINNING SIGIL ===
         const sigilEl = document.createElement('img');
         sigilEl.src = sigilSrc;
         sigilEl.alt = '';
@@ -185,16 +186,36 @@ export function initControlPanel() {
             transform: 'translate(-50%, 0)',
             width: '320px',
             height: '320px',
-            maxWidth: '55%',
+            maxWidth: '50%',
             filter: 'brightness(4.90) contrast(10.15) saturate(10.2)',
             mixBlendMode: 'overlay',
-            borderRadius: '18%',
-            clipPath: 'ellipse(48% 40% at 50% 50%)',
+            //borderRadius: '18%',
+            clipPath: 'ellipse(50% 50% at 50% 50%)',
             boxShadow: '0 12px 40px rgba(0,0,0,0.55)',
             pointerEvents: 'none',
-            opacity: '1.34',
+            //opacity: '1.34',
             zIndex: '0'
         });
+
+        // Add spinning animation
+        sigilEl.style.animation = 'bunbit-sigil-spin 25s linear infinite';
+
+        // Create the keyframe animation (only once)
+        if (!document.getElementById('bunbit-sigil-style')) {
+            const style = document.createElement('style');
+            style.id = 'bunbit-sigil-style';
+            style.textContent = `
+        @keyframes bunbit-sigil-spin {
+            from {
+                transform: translate(-50%, 0) rotate(0deg);
+            }
+            to {
+                transform: translate(-50%, 0) rotate(360deg);
+            }
+        }
+    `;
+            document.head.appendChild(style);
+        }
 
         // === Layer 2: Bunny Face (on top) ===
         const faceEl = document.createElement('img');
@@ -203,7 +224,7 @@ export function initControlPanel() {
         Object.assign(faceEl.style, {
             position: 'absolute',
             left: '50%',
-            top: '39%',
+            top: '38%',
             transform: 'translate(-50%, 0)',
             width: '128px',
             height: '128px',
@@ -213,7 +234,7 @@ export function initControlPanel() {
             //borderRadius: '18%',
             boxShadow: '0 12px 40px rgba(0,0,0,0.55)',
             pointerEvents: 'none',
-            opacity: '0.7',
+            opacity: '1.7',
             zIndex: '1' // On top of the sigil
         });
 
