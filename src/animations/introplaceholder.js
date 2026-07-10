@@ -216,9 +216,17 @@ function getCanvas() {
 function setupFullscreenCanvas(canvas) {
     const w = window.innerWidth;
     const h = window.innerHeight;
-    canvas.width = w;
-    canvas.height = h;
-    return { w, h };
+    const dpr = window.devicePixelRatio || 1;
+
+    // Keep drawing coordinates in CSS pixels.
+    canvas.style.width = `${w}px`;
+    canvas.style.height = `${h}px`;
+
+    // Scale the internal buffer for crisp rendering.
+    canvas.width = Math.floor(w * dpr);
+    canvas.height = Math.floor(h * dpr);
+
+    return { w, h, dpr };
 }
 
 // ─── GLITCH / SCARY EFFECTS ──────────────────────────────────
