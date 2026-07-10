@@ -71,8 +71,7 @@ export class FullscreenHandler {
     storeOriginalPositions() {
         const elements = [
             'debugTerminalContainer',
-            'perfMonitorContainer',
-            'bunbit-debug-panel'
+            'perfMonitorContainer'
         ];
 
         elements.forEach(id => {
@@ -110,7 +109,6 @@ export class FullscreenHandler {
         const elements = [
             'debugTerminalContainer',
             'perfMonitorContainer',
-            'bunbit-debug-panel',
             // Add any menu container IDs here
             'menu-container',
             'game-menu',
@@ -145,6 +143,15 @@ export class FullscreenHandler {
                 element.style.transformOrigin = 'top left';
             }
         });
+
+        // Handle control panel separately - it should remain unscaled and independent
+        const controlPanel = document.getElementById('bunbit-debug-panel');
+        if (controlPanel) {
+            controlPanel.style.zIndex = '2147483646';
+            controlPanel.style.pointerEvents = 'auto';
+            controlPanel.style.transform = 'scale(1)';
+            controlPanel.style.transformOrigin = 'top left';
+        }
     }
 
     getScaleFactor() {

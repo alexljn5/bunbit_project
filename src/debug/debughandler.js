@@ -22,7 +22,7 @@ const consoleOriginal = {
 let debugCanvas = null;
 let debugCtx = null;
 let debugContainer = null;
-let filteredLogs = [];
+export let filteredLogs = [];
 
 let glitchInterval = null;
 let lastDrawTime = 0;
@@ -323,6 +323,9 @@ export function drawDebugTerminal() {
         rafId = requestAnimationFrame(drawDebugTerminal);
         return;
     }
+
+    // Reset transform each frame to prevent accumulated translate/scale from previous draws
+    debugCtx.setTransform(1, 0, 0, 1, 0, 0);
 
     // Apply flicker effect
     debugCtx.globalAlpha = evilGlitchSystem.flicker;

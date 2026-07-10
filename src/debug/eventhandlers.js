@@ -1,5 +1,5 @@
 import { SCALE_Y, SCALE_X, virtualScrollY, scrollOffsetX, autoScroll, setVirtualScrollY, setScrollOffsetX, clearLogBuffer, logBuffer, logFilters } from '../globals.js';
-import { fullscreenHandler } from './fullscreenhandler.js';
+
 
 import { togglePerfMonitor } from './panels/memcpu.js';
 import {
@@ -14,11 +14,11 @@ import {
     MIN_WIDTH,
     MIN_HEIGHT,
     HEADER_HEIGHT,
-    resizeDebugCanvas
+    resizeDebugCanvas,
+    filteredLogs
 } from './debughandler.js';
 import { EvilUIState } from '../themes/eviltheme.js';
 import { themeManager } from '../themes/thememanager.js';
-import { fullscreenHandler } from './fullscreenhandler.js';
 
 // Handle mouse down
 export function handleMouseDown(e) {
@@ -33,8 +33,6 @@ export function handleMouseDown(e) {
 
 
     // Check resize
-    const scaleFactor = fullscreenHandler.getScaleFactor();
-
     if (mx >= resizeArea.x && mx < resizeArea.x + resizeArea.w &&
         my >= resizeArea.y && my < resizeArea.y + resizeArea.h) {
 
@@ -42,8 +40,8 @@ export function handleMouseDown(e) {
         EvilUIState.isResizing = true;
         // scaleFactor is only used for debug canvas resize math.
         // Pointer-to-canvas mapping uses rect offsets (mx/my).
-        EvilUIState.resizeStartX = e.clientX / scaleFactor;
-        EvilUIState.resizeStartY = e.clientY / scaleFactor;
+        EvilUIState.resizeStartX = e.clientX;
+        EvilUIState.resizeStartY = e.clientY;
 
         EvilUIState.resizeStartWidth = DEBUG_WIDTH;
         EvilUIState.resizeStartHeight = DEBUG_HEIGHT;
@@ -91,12 +89,13 @@ export function handleMouseDown(e) {
         // Drag only the debugContainer mini-canvas. Prevent propagation so the main canvas/game doesn't move.
         console.log('Starting drag');
         EvilUIState.isDragging = true;
-        EvilUIState.dragOffsetX = e.clientX / scaleFactor;
-        EvilUIState.dragOffsetY = e.clientY / scaleFactor;
+        EvilUIState.dragOffsetX = e.clientX;
+        EvilUIState.dragOffsetY = e.clientY;
 
         const contRect = debugContainer.getBoundingClientRect();
-        EvilUIState.containerStartX = contRect.left / scaleFactor;
-        EvilUIState.containerStartY = contRect.top / scaleFactor;
+        EvilUIState.containerStartX = contRect.left;
+        EvilUIState.containerStartY = contRect.top;
+
 
         const stopOnDrag = (ev) => {
             try {
@@ -179,9 +178,8 @@ export function handleResize(e) {
     if (!EvilUIState.isResizing) return;
 
     console.log('Resizing:', e.clientX, e.clientY);
-    const scaleFactor = fullscreenHandler.getScaleFactor();
-    const dx = (e.clientX / scaleFactor) - EvilUIState.resizeStartX;
-    const dy = (e.clientY / scaleFactor) - EvilUIState.resizeStartY;
+    const dx = e.clientX - EvilUIState.resizeStartX;
+    const dy = e.clientY - EvilUIState.resizeStartY;
 
     const newWidth = Math.max(MIN_WIDTH, EvilUIState.resizeStartWidth + dx);
     const newHeight = Math.max(MIN_HEIGHT, EvilUIState.resizeStartHeight + dy);
@@ -202,9 +200,8 @@ export function handleDrag(e) {
     if (!EvilUIState.isDragging) return;
 
     console.log('Dragging:', e.clientX, e.clientY);
-    const scaleFactor = fullscreenHandler.getScaleFactor();
-    const dx = (e.clientX / scaleFactor) - EvilUIState.dragOffsetX;
-    const dy = (e.clientY / scaleFactor) - EvilUIState.dragOffsetY;
+    const dx = e.clientX - EvilUIState.dragOffsetX;
+    const dy = e.clientY - EvilUIState.dragOffsetY;
 
     debugContainer.style.left = `${EvilUIState.containerStartX + dx}px`;
     debugContainer.style.top = `${EvilUIState.containerStartY + dy}px`;

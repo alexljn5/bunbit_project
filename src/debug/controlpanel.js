@@ -10,10 +10,13 @@ import { defaultThemeName, DEBUG_START_INTRO_ANIMATION } from '../globals.js';
 
 
 import { togglePositionPanel } from './panels/positionpanel.js';
+import { initMainDashboard } from '../menus/main_dashboard.js';
+
 
 
 
 // Local defaults to avoid importing theme manager (prevents load-order/circular issues)
+
 const DEFAULT_BORDER = '#FC0000';
 const DEFAULT_BACKGROUND = '#0a0000';
 const DEFAULT_TEXT = '#FC0000';
@@ -153,13 +156,10 @@ export function initControlPanel() {
     });
     reloadButton.style.marginTop = `${10 * SCALE_Y}px`;
 
-    // Add <img> elements for the menu art (pillars / logo / stairs)
-    const pillarSrc = 'img/menu/main/pillar.png';
-    const logoSrc = 'img/logo/logo-ascii-transparent-sigil.png';
-    const logoSrcFace = 'img/logo/logo-ascii.png';
-    const stairsSrc = 'img/menu/main/stairs.png';
+    // Main dashboard visuals moved to src/menus/main_dashboard.js (separate box)
+    // Keep this module as the pure debug control panel UI.
 
-    const pillarOffsetFactor = 0.35;
+    // (dashboard DOM removed)
 
     function createPillarImg(side) {
         const el = document.createElement('img');
@@ -286,20 +286,9 @@ export function initControlPanel() {
         return el;
     }
 
-    const pillarLeftEl = createPillarImg('left');
-    const pillarRightEl = createPillarImg('right');
-    const stairsEl = createStairsImg();
-    const { sigilEl, faceEl } = createLogoLayers();
-
-    debugPanel.appendChild(sigilEl);   // Background layer
-    debugPanel.appendChild(faceEl);    // Bunny face on top
-    debugPanel.appendChild(pillarLeftEl);
-    debugPanel.appendChild(pillarRightEl);
-
     // Ensure header and buttons render above
     header.style.zIndex = '3';
 
-    debugPanel.appendChild(stairsEl);
     debugPanel.appendChild(header);
 
     debugPanel.appendChild(reloadButton);
@@ -310,6 +299,13 @@ export function initControlPanel() {
     debugPanel.appendChild(positionButton);
     debugPanel.appendChild(themeSelector);
     document.body.appendChild(debugPanel);
+
+    // Mount the main dashboard visuals as an independent box (not inside bunbit-debug-panel)
+    try {
+        initMainDashboard();
+    } catch (e) {
+        console.error('Failed to initMainDashboard:', e);
+    }
 
     // Ensure visible in stacking contexts and preserve spanning (do not collapse to top-left)
     setTimeout(() => {
