@@ -54,6 +54,9 @@ export function initControlPanel() {
     // Prevent transform inheritance from fullscreen scaling
     debugPanel.style.isolation = 'isolate';
     debugPanel.style.overflow = 'hidden';
+    // Ensure no inherited transforms affect the panel
+    debugPanel.style.transform = 'none';
+    debugPanel.style.transformOrigin = 'top left';
 
     const header = document.createElement('div');
     header.style.width = '100%';
@@ -104,19 +107,17 @@ export function initControlPanel() {
     // Theme selector dropdown
     const themeSelector = document.createElement('select');
     themeSelector.id = 'bunbit-theme-selector';
-    themeSelector.style.padding = `${8 * SCALE_Y}px ${12 * SCALE_X}px`;
+    themeSelector.style.padding = `${6 * SCALE_Y}px ${10 * SCALE_X}px`;
     themeSelector.style.cursor = 'pointer';
     themeSelector.style.border = `${1 * SCALE_X}px solid ${DEFAULT_BORDER}`;
     themeSelector.style.borderRadius = `${4 * SCALE_X}px`;
-    themeSelector.style.fontSize = `${12 * SCALE_Y}px`;
+    themeSelector.style.fontSize = `${11 * SCALE_Y}px`;
     themeSelector.style.fontWeight = 'bold';
-    themeSelector.style.marginTop = `${5 * SCALE_Y}px`;
+    themeSelector.style.marginTop = `${4 * SCALE_Y}px`;
     themeSelector.style.backgroundColor = DEFAULT_BUTTON_BG;
     themeSelector.style.color = DEFAULT_TEXT;
-    themeSelector.style.position = 'absolute';
-    themeSelector.style.top = `${12 * SCALE_Y}px`;
-    themeSelector.style.right = `${20 * SCALE_X}px`;
-    themeSelector.style.zIndex = '2';
+    themeSelector.style.width = '100%';
+    themeSelector.style.boxSizing = 'border-box';
 
     // Populate theme options
     window.defaultThemeName = window.defaultThemeName || defaultThemeName;

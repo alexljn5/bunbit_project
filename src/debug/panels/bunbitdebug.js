@@ -9,11 +9,6 @@ import { debugHandlerGodFunction, stopDebugTerminal } from '../debughandler.js';
 import { initControlPanel } from '../controlpanel.js';
 
 // State flags
-let isDragging = false;
-let dragStartX = 0;
-let dragStartY = 0;
-let panelStartX = 0;
-let panelStartY = 0;
 let initialized = false;
 
 // Expose defaultDebugVisible globally (imported from globals.js)
@@ -34,34 +29,6 @@ export function cleanupBunbitDebug() {
     const debugPanel = document.getElementById('bunbit-debug-panel');
     if (debugPanel) debugPanel.remove();
     initialized = false;
-}
-
-// Handle drag functions (need to be defined at module level)
-function handleDrag(e) {
-    if (!isDragging) return;
-
-    const debugPanel = document.getElementById('bunbit-debug-panel');
-    if (!debugPanel) return;
-
-    const dx = e.clientX - dragStartX;
-    const dy = e.clientY - dragStartY;
-
-    debugPanel.style.left = `${panelStartX + dx}px`;
-    debugPanel.style.top = `${panelStartY + dy}px`;
-    debugPanel.style.right = 'auto';
-    debugPanel.style.bottom = 'auto';
-}
-
-function stopDrag() {
-    isDragging = false;
-    const debugPanel = document.getElementById('bunbit-debug-panel');
-    if (debugPanel) {
-        debugPanel.style.cursor = 'default';
-        const header = debugPanel.querySelector('div');
-        if (header) {
-            header.style.cursor = 'move';
-        }
-    }
 }
 
 // Initialize debug panel on page load

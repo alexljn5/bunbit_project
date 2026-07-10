@@ -274,6 +274,7 @@ export function initPositionPanel() {
         panelStartY = rect.top;
         header.style.cursor = 'grabbing';
         e.preventDefault();
+        e.stopImmediatePropagation();
     });
 
     const onMouseMove = (e) => {
@@ -284,14 +285,16 @@ export function initPositionPanel() {
         scalingPanel.style.top = `${panelStartY + deltaY}px`;
         scalingPanel.style.right = 'auto';
         scalingPanel.style.bottom = 'auto';
+        e.stopImmediatePropagation();
     };
 
-    const onMouseUp = () => {
+    const onMouseUp = (e) => {
         if (dragging) {
             console.log('[ScalingPanel] Drag end');
             dragging = false;
             header.style.cursor = 'move';
         }
+        e?.stopImmediatePropagation();
     };
 
     // Add listeners once, not on every mousedown
