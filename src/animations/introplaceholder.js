@@ -2,8 +2,8 @@ import { DEBUG_START_INTRO_ANIMATION, RUN_INTRO_ON_START, introActive, setIntroA
 
 let hasRun = false;
 
-// Auto-start the intro animation when the module loads
-if (typeof window !== 'undefined') {
+// Auto-start the intro animation when the module loads (only if RUN_INTRO_ON_START is true)
+if (typeof window !== 'undefined' && RUN_INTRO_ON_START) {
     window.introActive = introActive; // Ensure window property is set
     requestAnimationFrame(() => {
         runIntroPlaceholderAutorun();
