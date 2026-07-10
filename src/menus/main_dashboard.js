@@ -187,3 +187,19 @@ export function initMainDashboard() {
     return box;
 }
 
+// Auto-initialize on page load
+if (typeof document !== 'undefined') {
+    const initWithRetry = () => {
+        if (!document.body) {
+            setTimeout(initWithRetry, 100);
+            return;
+        }
+        initMainDashboard();
+    };
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initWithRetry);
+    } else {
+        initWithRetry();
+    }
+}
+

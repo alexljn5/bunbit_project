@@ -10,7 +10,7 @@ import { defaultThemeName, DEBUG_START_INTRO_ANIMATION } from '../globals.js';
 
 
 import { togglePositionPanel } from './panels/positionpanel.js';
-import { initMainDashboard } from '../menus/main_dashboard.js';
+
 
 
 // Local defaults to avoid importing theme manager (prevents load-order/circular issues)
@@ -180,9 +180,6 @@ export function initControlPanel() {
     debugPanel.appendChild(positionButton);
     debugPanel.appendChild(themeSelector);
     document.body.appendChild(debugPanel);
-
-    // Initialize the main dashboard (decorative background with pillars/sigil/stairs)
-    try { initMainDashboard(); } catch (e) { console.warn('Main dashboard init failed:', e); }
 
     // Notify other systems that the control panel exists now (ThemeManager listens for this)
     try {

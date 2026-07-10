@@ -3,7 +3,6 @@
 import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, MAX_LOGS, DEBUG_WIDTH, DEBUG_HEIGHT, MIN_WIDTH, MIN_HEIGHT, MAX_CHARS_PER_LINE, logBuffer, logFilters, isDebugVisible, scrollOffsetX, virtualScrollY, autoScroll, buttons, resizeArea, HEADER_HEIGHT, ENABLE_DEBUG_TERMINAL, setDebugVisible, setVirtualScrollY, setScrollOffsetX, setLogBuffer, setAutoScroll } from '../globals.js';
 import { evilGlitchSystem, EvilUIState } from '../themes/eviltheme.js';
 import { themeManager } from '../themes/thememanager.js';
-import { initBunbitDebug } from './panels/bunbitdebug.js';
 import { memCpuGodFunction, togglePerfMonitor } from './panels/memcpu.js';
 
 const consoleOriginal = {
