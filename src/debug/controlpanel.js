@@ -153,7 +153,7 @@ export function initControlPanel() {
         el.style.transform = 'translate(-50%, -50%)';
         el.style.bottom = '0%';
         el.style.width = '512px';
-        el.style.height = '512px';
+        el.style.height = '100%';
         el.style.maxWidth = '60%';
 
         // same visual blending as logo
@@ -210,6 +210,32 @@ export function initControlPanel() {
     header.style.zIndex = '3';
     // Buttons already set to zIndex 2 above
 
+    // === STAIRS leading up to the logo ===
+    const stairsSrc = 'img/menu/main/stairs.png';   // ← change if your path is different
+
+    const stairsEl = document.createElement('img');
+    stairsEl.src = stairsSrc;
+    stairsEl.alt = '';
+
+    stairsEl.style.position = 'absolute';
+    stairsEl.style.left = '50%';
+    stairsEl.style.bottom = '8%';                    // How far from the bottom
+    stairsEl.style.transform = 'translate(-50%, 0)';
+    stairsEl.style.width = '420px';                  // Adjust width to taste
+    stairsEl.style.height = 'auto';
+    stairsEl.style.maxWidth = '45%';
+    stairsEl.style.zIndex = '1';                     // Between pillars (0) and logo/buttons
+
+    // Match the visual style of the logo and pillars
+    stairsEl.style.filter = 'brightness(4.90) contrast(10.15) saturate(10.2)';
+    stairsEl.style.mixBlendMode = 'overlay';
+    stairsEl.style.opacity = '0.85';
+    stairsEl.style.pointerEvents = 'none';
+
+    // Optional: slight perspective / tilt if you want it to feel more "leading up"
+    stairsEl.style.transform = 'translate(-50%, 0) perspective(600px) rotateX(12deg)';
+
+    debugPanel.appendChild(stairsEl);
     debugPanel.appendChild(header);
     debugPanel.appendChild(reloadButton);
     debugPanel.appendChild(playButton);
