@@ -304,3 +304,24 @@ export function applyGraphicsPreset(preset) {
     updateGraphicsSettings(graphicsPresets[preset]);
     return true;
 }
+
+// --- SCROLL STATE SETTERS ---
+export function setVirtualScrollY(val) {
+    virtualScrollY = val;
+}
+
+export function setScrollOffsetX(val) {
+    scrollOffsetX = val;
+}
+
+export function setLogBuffer(newLogs) {
+    logBuffer = newLogs;
+}
+
+export function clearLogBuffer() {
+    logBuffer.length = 0;
+}
+
+export function setAutoScroll(val) {
+    autoScroll = val;
+}

@@ -1,6 +1,6 @@
 // File: src/debug/debughandler.js
 
-import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, MAX_LOGS, DEBUG_WIDTH, DEBUG_HEIGHT, MIN_WIDTH, MIN_HEIGHT, MAX_CHARS_PER_LINE, logBuffer, logFilters, isDebugVisible, scrollOffsetX, virtualScrollY, autoScroll, buttons, resizeArea, HEADER_HEIGHT, ENABLE_DEBUG_TERMINAL, setDebugVisible } from '../globals.js';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, MAX_LOGS, DEBUG_WIDTH, DEBUG_HEIGHT, MIN_WIDTH, MIN_HEIGHT, MAX_CHARS_PER_LINE, logBuffer, logFilters, isDebugVisible, scrollOffsetX, virtualScrollY, autoScroll, buttons, resizeArea, HEADER_HEIGHT, ENABLE_DEBUG_TERMINAL, setDebugVisible, setVirtualScrollY, setScrollOffsetX, setLogBuffer, setAutoScroll } from '../globals.js';
 import { evilGlitchSystem, EvilUIState } from '../themes/eviltheme.js';
 import { themeManager } from '../themes/thememanager.js';
 import { initBunbitDebug } from './panels/bunbitdebug.js';
@@ -68,7 +68,10 @@ export function updateGlitchEffects() {
 
 // --- Console override ---
 function overrideConsole() {
+    // Avoid reassigning built-in console methods if some other system is also patching console.
+    // Also, never capture immutable bindings.
     function logHelper(type, args) {
+
         const message = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg).join(' ');
 
         const error = new Error();
@@ -111,7 +114,8 @@ function overrideConsole() {
 
 // --- Update button positions ---
 function updateButtonPositions() {
-    buttons = [];
+    // buttons is exported from globals.js as a mutable reference; avoid reassigning it.
+    buttons.length = 0;
     const paddingX = 4 * SCALE_X;
     const paddingY = 4 * SCALE_Y;
     const gap = 2 * SCALE_X;
@@ -212,13 +216,11 @@ function debugHandlerMainFunction() {
             const lineHeight = 18 * SCALE_Y;
 
             if (e.shiftKey) {
-                scrollOffsetX += e.deltaY;
-                scrollOffsetX = Math.max(0, Math.min(scrollOffsetX, 1000));
+                setScrollOffsetX(Math.max(0, Math.min(scrollOffsetX + e.deltaY, 1000)));
             } else {
-                virtualScrollY += e.deltaY;
-                virtualScrollY = Math.max(-10000, virtualScrollY);
+                setVirtualScrollY(Math.max(-10000, virtualScrollY + e.deltaY));
                 const logAreaHeight = debugCanvas.height - HEADER_HEIGHT;
-                autoScroll = virtualScrollY >= Math.max(0, filteredLogs.length * lineHeight - logAreaHeight);
+                setAutoScroll(virtualScrollY >= Math.max(0, filteredLogs.length * lineHeight - logAreaHeight));
             }
 
             drawDebugTerminal();
@@ -233,32 +235,32 @@ function debugHandlerMainFunction() {
 
             switch (e.key) {
                 case 'ArrowUp':
-                    virtualScrollY = Math.max(0, virtualScrollY - lineHeight);
+                    setVirtualScrollY(Math.max(0, virtualScrollY - lineHeight));
                     e.preventDefault();
                     break;
                 case 'ArrowDown':
-                    virtualScrollY = Math.min(maxScrollY, virtualScrollY + lineHeight);
+                    setVirtualScrollY(Math.min(maxScrollY, virtualScrollY + lineHeight));
                     e.preventDefault();
                     break;
                 case 'PageUp':
-                    virtualScrollY = Math.max(0, virtualScrollY - logAreaHeight);
+                    setVirtualScrollY(Math.max(0, virtualScrollY - logAreaHeight));
                     e.preventDefault();
                     break;
                 case 'PageDown':
-                    virtualScrollY = Math.min(maxScrollY, virtualScrollY + logAreaHeight);
+                    setVirtualScrollY(Math.min(maxScrollY, virtualScrollY + logAreaHeight));
                     e.preventDefault();
                     break;
                 case 'Home':
-                    virtualScrollY = 0;
+                    setVirtualScrollY(0);
                     e.preventDefault();
                     break;
                 case 'End':
-                    virtualScrollY = maxScrollY;
+                    setVirtualScrollY(maxScrollY);
                     e.preventDefault();
                     break;
             }
 
-            autoScroll = virtualScrollY >= maxScrollY;
+            setAutoScroll(virtualScrollY >= maxScrollY);
             drawDebugTerminal();
         });
     }).catch(err => {
@@ -273,7 +275,7 @@ function debugHandlerMainFunction() {
     if (window.debugAPI && window.debugAPI.requestLogs) {
         window.debugAPI.requestLogs((log) => {
             if (Array.isArray(log)) {
-                logBuffer = log.slice(-MAX_LOGS);
+                setLogBuffer(log.slice(-MAX_LOGS));
             } else {
                 logBuffer.push(log);
                 if (logBuffer.length > MAX_LOGS) logBuffer.shift();
@@ -429,7 +431,7 @@ export function drawDebugTerminal() {
     // Auto-scroll
     if (autoScroll) {
         const maxScrollY = Math.max(0, filteredLogs.length * lineHeight - logAreaHeight);
-        virtualScrollY = maxScrollY;
+        setVirtualScrollY(maxScrollY);
     }
 
     const firstLine = Math.floor(virtualScrollY / lineHeight);

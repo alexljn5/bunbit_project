@@ -1,4 +1,4 @@
-import { SCALE_Y, SCALE_X } from '../globals.js';
+import { SCALE_Y, SCALE_X, virtualScrollY, scrollOffsetX, autoScroll, setVirtualScrollY, setScrollOffsetX, clearLogBuffer, logBuffer, logFilters } from '../globals.js';
 import { fullscreenHandler } from './fullscreenhandler.js';
 
 import { togglePerfMonitor } from './panels/memcpu.js';
@@ -7,17 +7,14 @@ import {
     drawDebugTerminal,
     buttons,
     resizeArea,
-    logBuffer,
-    logFilters,
     debugCanvas,
     debugContainer,
-    virtualScrollY,
-    scrollOffsetX,
     DEBUG_WIDTH,
     DEBUG_HEIGHT,
     MIN_WIDTH,
     MIN_HEIGHT,
-    HEADER_HEIGHT
+    HEADER_HEIGHT,
+    resizeDebugCanvas
 } from './debughandler.js';
 import { EvilUIState } from '../themes/eviltheme.js';
 import { themeManager } from '../themes/thememanager.js';
@@ -71,10 +68,10 @@ export function handleMouseDown(e) {
                     console.error('Failed to toggle perf monitor:', err);
                 }
             } else if (type === 'clear') {
-                logBuffer.length = 0;
+                clearLogBuffer();
                 updateFilteredLogs();
-                scrollOffsetX = 0;
-                virtualScrollY = 0;
+                setScrollOffsetX(0);
+                setVirtualScrollY(0);
                 drawDebugTerminal();
             } else if (type === 'theme') {
                 themeManager.toggleTheme();
@@ -84,13 +81,14 @@ export function handleMouseDown(e) {
                 const lineHeight = 18 * SCALE_Y;
                 const logAreaHeight = debugCanvas.height - HEADER_HEIGHT;
                 const maxScrollY = Math.max(0, filteredLogs.length * lineHeight - logAreaHeight);
-                virtualScrollY = Math.min(virtualScrollY, maxScrollY);
+                setVirtualScrollY(Math.min(virtualScrollY, maxScrollY));
                 drawDebugTerminal();
             }
             return;
         }
 
         // Start drag if not on button
+        // Drag only the debugContainer mini-canvas. Prevent propagation so the main canvas/game doesn't move.
         console.log('Starting drag');
         EvilUIState.isDragging = true;
         EvilUIState.dragOffsetX = e.clientX / scaleFactor;
@@ -99,6 +97,17 @@ export function handleMouseDown(e) {
         const contRect = debugContainer.getBoundingClientRect();
         EvilUIState.containerStartX = contRect.left / scaleFactor;
         EvilUIState.containerStartY = contRect.top / scaleFactor;
+
+        const stopOnDrag = (ev) => {
+            try {
+                ev.preventDefault();
+                ev.stopPropagation();
+            } catch (_) { }
+        };
+
+        document.addEventListener('mousemove', (ev) => stopOnDrag(ev), { capture: true });
+        document.addEventListener('mouseup', (ev) => stopOnDrag(ev), { capture: true });
+
         document.addEventListener('mousemove', handleDrag, { capture: true });
         document.addEventListener('mouseup', stopDrag, { capture: true });
     }

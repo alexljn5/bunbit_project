@@ -51,6 +51,10 @@ export function initControlPanel() {
     debugPanel.style.minWidth = 'auto';
     debugPanel.style.minHeight = `${60 * SCALE_Y}px`;
     debugPanel.style.userSelect = 'none';
+
+    // Prevent this panel from swallowing pointer interactions meant for other overlays.
+    // We only treat clicks on the panel's header/button bar as drag/click targets.
+    debugPanel.style.backgroundColor = DEFAULT_BACKGROUND;
     // Slightly translucent themed background so you can still see the game behind it
     debugPanel.style.backgroundColor = DEFAULT_BACKGROUND;
     debugPanel.style.color = DEFAULT_TEXT;
@@ -481,16 +485,67 @@ export function initControlPanel() {
         togglePositionPanel();
     });
 
-    // Drag handlers (simple)
-    let dragging = false, sx = 0, sy = 0, ox = 0, oy = 0;
-    header.addEventListener('mousedown', (e) => {
-        dragging = true; sx = e.clientX; sy = e.clientY; const r = debugPanel.getBoundingClientRect(); ox = r.left; oy = r.top; debugPanel.style.cursor = 'grabbing';
+    // Drag handlers (panel is independent). We ONLY drag the panel element.
+    // To prevent the main canvas from reacting to drag gestures,
+    // we capture pointer events and stop propagation on move/up.
+    let dragging = false;
+    let sx = 0, sy = 0;
+    let ox = 0, oy = 0;
+    let pointerId = null;
+
+    function onHeaderMouseDown(e) {
+        if (typeof e.button === 'number' && e.button !== 0) return;
+        if (dragging) return;
+
+        dragging = true;
+        pointerId = (typeof e.pointerId !== 'undefined') ? e.pointerId : null;
+
+        sx = e.clientX;
+        sy = e.clientY;
+        const r = debugPanel.getBoundingClientRect();
+        ox = r.left;
+        oy = r.top;
+
+        debugPanel.style.cursor = 'grabbing';
+
         e.preventDefault();
-    });
-    document.addEventListener('mousemove', (e) => {
-        if (!dragging) return; const dx = e.clientX - sx; const dy = e.clientY - sy; debugPanel.style.left = `${ox + dx}px`; debugPanel.style.top = `${oy + dy}px`; debugPanel.style.right = 'auto'; debugPanel.style.bottom = 'auto';
-    });
-    document.addEventListener('mouseup', () => { dragging = false; debugPanel.style.cursor = 'default'; });
+        e.stopPropagation();
+
+        // Capture pointer so other listeners (canvas/game) don't see drag move.
+        if (typeof header.setPointerCapture === 'function' && pointerId !== null) {
+            try { header.setPointerCapture(pointerId); } catch (_) { /* ignore */ }
+        }
+    }
+
+    function onHeaderMouseMove(e) {
+        if (!dragging) return;
+
+        // Block bubbling so the game/canvas doesn't treat drag as camera move.
+        e.preventDefault();
+        e.stopPropagation();
+
+        const dx = e.clientX - sx;
+        const dy = e.clientY - sy;
+        debugPanel.style.left = `${ox + dx}px`;
+        debugPanel.style.top = `${oy + dy}px`;
+        debugPanel.style.right = 'auto';
+        debugPanel.style.bottom = 'auto';
+    }
+
+    function onHeaderMouseUp(e) {
+        if (!dragging) return;
+        dragging = false;
+        pointerId = null;
+        debugPanel.style.cursor = 'default';
+
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    header.addEventListener('mousedown', onHeaderMouseDown);
+    document.addEventListener('mousemove', onHeaderMouseMove, { passive: false });
+    document.addEventListener('mouseup', onHeaderMouseUp, { passive: false });
+
 
     return debugPanel;
 }

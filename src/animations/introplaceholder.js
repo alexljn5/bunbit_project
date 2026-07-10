@@ -268,7 +268,7 @@ function applyRedFilter(ctx, w, h, intensity) {
 // ─── DRAW FRAME ────────────────────────────────────────────────
 function drawFrame(ctx, img, w, h, progress) {
     // Pure black background
-    ctx.fillStyle = "#0a0a0a";
+    ctx.fillStyle = "#000000ff";
     ctx.fillRect(0, 0, w, h);
 
     if (!img) return;
@@ -284,7 +284,7 @@ function drawFrame(ctx, img, w, h, progress) {
     ctx.globalAlpha = Math.min(alpha, 1);
 
     // Draw image with subtle red glow
-    ctx.shadowColor = "rgba(255, 0, 0, 0.15)";
+    ctx.shadowColor = "rgba(0, 0, 0, 0.75)";
     ctx.shadowBlur = 40;
     ctx.drawImage(img, x, y, size, size);
     ctx.shadowBlur = 0;
