@@ -86,7 +86,7 @@ export function maybeShowIntroPlaceholders({ onComplete } = {}) {
     const centerY = h / 2;
 
     preloadImages(frameSources).then((imgs) => {
-        const totalDuration = 1200; // 1.2 seconds total
+        const totalDuration = 5200; // 1.2 seconds total
         const startTime = performance.now();
 
         function animate(now) {
@@ -109,8 +109,9 @@ export function maybeShowIntroPlaceholders({ onComplete } = {}) {
                 const scale = 0.15 + (progress * 0.50);
                 const size = Math.min(w, h) * scale;
 
-                const x = centerX - size / 2;
-                const y = centerY - size / 2;
+                // Round to integers so the ASCII image doesn't land on subpixels (looks off-center)
+                const x = Math.round(centerX - size / 2);
+                const y = Math.round(centerY - size / 2);
 
                 // Fade in slightly as it grows
                 ctx.globalAlpha = 0.4 + (progress * 0.6);
