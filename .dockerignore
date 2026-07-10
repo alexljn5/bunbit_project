@@ -1,0 +1,11 @@
+.git
+.fallow
+.vscode
+node_modules
+dist
+crash_logs
+backups
+src/rendering/java/.gradle
+src/rendering/java/build
+src/wasm/generated
+*.log

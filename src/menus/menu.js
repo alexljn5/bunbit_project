@@ -1,30 +1,13 @@
 import { compiledTextStyle } from "../debugtools.js";
-import { setMenuActive } from "../gamestate.js";
-import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT } from "../globals.js";
+import { menuActive, setMenuActive } from "../gamestate.js";
 import { mapTable } from "../mapdata/maps.js";
 import { mapHandler } from "../mapdata/maphandler.js";
 import { spriteManager } from "../rendering/sprites/rendersprites.js";
 import { gameVersionNumber, gameName } from "../globals.js";
 
-// Lazy getters to avoid circular dependency
+// ---------- engine ----------
 function getRenderEngine() {
-    if (window.__renderEngine) {
-        return window.__renderEngine;
-    }
-    // Return a minimal fallback to prevent crashes
-    return {
-        canvas: null,
-        drawImage: () => { },
-        fillStyle: '#222',
-        fillRect: () => { },
-        fillText: () => { },
-        strokeStyle: '#fff',
-        strokeRect: () => { },
-        font: '12px Arial',
-        globalAlpha: 1.0,
-        save: () => { },
-        restore: () => { }
-    };
+    return window.__renderEngine || null;
 }
 
 function getPlayerPosition() {
@@ -36,278 +19,243 @@ function getMainGameRender() {
 }
 
 function getInitializeRenderWorkers() {
-    // Return the function from renderengine (imported dynamically)
     return window.__initializeRenderWorkers || (() => { });
 }
 
-let buttons = [
-    { name: "Play", x: (CANVAS_WIDTH / 2 - 50 * SCALE_X), y: (CANVAS_HEIGHT / 2 - 200 * SCALE_Y), width: 100 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
-    { name: "Maps", x: (CANVAS_WIDTH / 2 - 50 * SCALE_X), y: (CANVAS_HEIGHT / 2 - 80 * SCALE_Y), width: 100 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
-    { name: "Fractal", x: (CANVAS_WIDTH / 2 - 50 * SCALE_X), y: (CANVAS_HEIGHT / 2 + 40 * SCALE_Y), width: 100 * SCALE_X, height: 40 * SCALE_Y, hovered: false }
-];
-
+// ---------- state ----------
+let buttons = [];
 let showMapSelect = false;
 let mapButtons = [];
 let selectedMapName = null;
+let menuHandlersAttached = false;
 
+// ---------- UI LAYOUT ----------
+function rebuildButtons(canvas) {
+    const w = 100;
+    const h = 40;
+
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+
+    buttons = [
+        { name: "Play", x: cx - w / 2, y: cy - 200, w, h, hovered: false },
+        { name: "Maps", x: cx - w / 2, y: cy - 80, w, h, hovered: false }
+    ];
+}
+
+// ---------- FULLSCREEN SAFE INPUT MAPPING ----------
+function screenToCanvas(canvas, e) {
+    const rect = canvas.getBoundingClientRect();
+
+    const cx = e.clientX - rect.left;
+    const cy = e.clientY - rect.top;
+
+    const internalW = canvas.width;
+    const internalH = canvas.height;
+
+    const displayAspect = rect.width / rect.height;
+    const internalAspect = internalW / internalH;
+
+    let drawW = rect.width;
+    let drawH = rect.height;
+    let offsetX = 0;
+    let offsetY = 0;
+
+    if (displayAspect > internalAspect) {
+        drawH = rect.height;
+        drawW = drawH * internalAspect;
+        offsetX = (rect.width - drawW) / 2;
+    } else {
+        drawW = rect.width;
+        drawH = drawW / internalAspect;
+        offsetY = (rect.height - drawH) / 2;
+    }
+
+    return {
+        x: (cx - offsetX) * (internalW / drawW),
+        y: (cy - offsetY) * (internalH / drawH)
+    };
+}
+
+function hit(b, x, y) {
+    return x >= b.x && x <= b.x + b.w &&
+        y >= b.y && y <= b.y + b.h;
+}
+
+// ---------- render ----------
 export function mainGameMenu() {
-    menuBackGround();
-    menuSimpleText();
-    if (showMapSelect) {
-        drawMapSelectOverlay();
+    const engine = getRenderEngine();
+    if (!engine?.canvas) return;
+
+    menuBackGround(engine);
+    menuText(engine);
+
+    if (showMapSelect) drawMapSelect(engine);
+    else drawButtons(engine);
+}
+
+function menuBackGround(engine) {
+    if (!menuBackGround.img) {
+        menuBackGround.img = new Image();
+        menuBackGround.img.src = "./img/menu/main-menu.png";
+    }
+
+    const canvas = engine.canvas;
+
+    if (menuBackGround.img.complete) {
+        engine.drawImage(menuBackGround.img, 0, 0, canvas.width, canvas.height);
     } else {
-        menuButtons();
+        engine.fillStyle = "#222";
+        engine.fillRect(0, 0, canvas.width, canvas.height);
     }
 }
 
-let menuBackgroundImage = null;
-let menuBackgroundLoaded = false;
-function menuBackGround() {
-    const renderEngine = getRenderEngine();
-    if (!menuBackgroundImage) {
-        menuBackgroundImage = new Image();
-        menuBackgroundImage.src = "./img/menu/goon.png";
-        menuBackgroundImage.onload = () => {
-            menuBackgroundLoaded = true;
-        };
-    }
-    if (menuBackgroundLoaded) {
-        renderEngine.drawImage(menuBackgroundImage, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-    } else {
-        renderEngine.fillStyle = '#222';
-        renderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-    }
-}
+function menuText(engine) {
+    const canvas = engine.canvas;
 
-function menuSimpleText() {
-    const renderEngine = getRenderEngine();
     compiledTextStyle();
-    renderEngine.fillStyle = "#fff";
-    renderEngine.fillText(gameName, CANVAS_WIDTH - 500 * SCALE_X, 100 * SCALE_X);
-    renderEngine.fillText(`Version ${gameVersionNumber}`, CANVAS_WIDTH - 490 * SCALE_X, 150 * SCALE_X);
+    engine.fillStyle = "#fff";
+    engine.fillText(gameName, canvas.width - 500, 100);
+    engine.fillText(`Version ${gameVersionNumber}`, canvas.width - 490, 150);
 }
 
-function menuButtons() {
-    const renderEngine = getRenderEngine();
-    buttons.forEach(button => {
-        renderEngine.fillStyle = button.hovered ? "#555" : "#222";
-        renderEngine.fillRect(button.x, button.y, button.width, button.height);
-        renderEngine.strokeStyle = "#fff";
-        renderEngine.strokeRect(button.x, button.y, button.width, button.height);
-        renderEngine.fillStyle = "#fff";
+function drawButtons(engine) {
+    for (const b of buttons) {
+        engine.fillStyle = b.hovered ? "#555" : "#222";
+        engine.fillRect(b.x, b.y, b.w, b.h);
+
+        engine.strokeStyle = "#fff";
+        engine.strokeRect(b.x, b.y, b.w, b.h);
+
+        engine.fillStyle = "#fff";
         compiledTextStyle();
-        renderEngine.font = `${18 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
-        renderEngine.fillText(button.name, button.x + 20 * SCALE_X, button.y + 25 * SCALE_X);
-    });
+        engine.font = "18px Arial";
+        engine.fillText(b.name, b.x + 20, b.y + 25);
+    }
 }
 
-function drawMapSelectOverlay() {
-    const renderEngine = getRenderEngine();
-    renderEngine.save();
-    renderEngine.globalAlpha = 0.95;
-    renderEngine.fillStyle = "#111";
-    renderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-    renderEngine.globalAlpha = 1.0;
-    renderEngine.fillStyle = "#fff";
+function drawMapSelect(engine) {
+    const canvas = engine.canvas;
+
+    engine.save();
+    engine.globalAlpha = 0.95;
+    engine.fillStyle = "#111";
+    engine.fillRect(0, 0, canvas.width, canvas.height);
+    engine.globalAlpha = 1;
+
+    engine.fillStyle = "#fff";
     compiledTextStyle();
-    renderEngine.font = `${24 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
-    renderEngine.fillText("Select a Map", CANVAS_WIDTH / 2 - 80 * SCALE_X, 100 * SCALE_X);
-    const mapNames = Array.from(mapTable.keys());
-    mapButtons = mapNames.map((name, i) => {
-        const width = 180 * SCALE_X;
-        const height = 40 * SCALE_X;
-        const x = (CANVAS_WIDTH / 2 - width / 2);
-        const y = 180 * SCALE_X + i * (height + 20 * SCALE_X);
-        renderEngine.fillStyle = (selectedMapName === name) ? "#444" : "#222";
-        renderEngine.fillRect(x, y, width, height);
-        renderEngine.strokeStyle = "#fff";
-        renderEngine.strokeRect(x, y, width, height);
-        renderEngine.fillStyle = "#fff";
-        renderEngine.font = `${18 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
-        renderEngine.fillText(name, x + 20 * SCALE_X, y + 25 * SCALE_X);
-        return { name, x, y, width, height };
+    engine.fillText("Select a Map", canvas.width / 2 - 80, 100);
+
+    mapButtons = Array.from(mapTable.keys()).map((name, i) => {
+        const w = 180;
+        const h = 40;
+
+        const x = canvas.width / 2 - w / 2;
+        const y = 180 + i * (h + 20);
+
+        engine.fillStyle = selectedMapName === name ? "#444" : "#222";
+        engine.fillRect(x, y, w, h);
+
+        engine.strokeStyle = "#fff";
+        engine.strokeRect(x, y, w, h);
+
+        engine.fillStyle = "#fff";
+        engine.fillText(name, x + 20, y + 25);
+
+        return { name, x, y, w, h };
     });
-    renderEngine.restore();
+
+    engine.restore();
 }
 
+// ---------- input ----------
 export function setupMenuClickHandler() {
-    const renderEngine = getRenderEngine();
-    const canvas = renderEngine.canvas;
+    const engine = getRenderEngine();
+    const canvas = engine?.canvas;
+
     if (!canvas) {
-        console.error('Canvas not ready for click handler! Retrying in 100ms... *pouts*');
-        setTimeout(setupMenuClickHandler, 100); // Retry if canvas not ready
+        setTimeout(setupMenuClickHandler, 100);
         return;
     }
-    console.log('Setting up menu click handler! *chao chao*');
-    canvas.onmousemove = function (e) {
-        const rect = canvas.getBoundingClientRect();
-        const scaleX = CANVAS_WIDTH / rect.width;
-        const scaleY = CANVAS_HEIGHT / rect.height;
-        const mouseX = (e.clientX - rect.left) * scaleX;
-        const mouseY = (e.clientY - rect.top) * scaleY;
-        if (showMapSelect) {
-            mapButtons.forEach(btn => {
-                btn.hovered = (
-                    mouseX >= btn.x && mouseX <= btn.x + btn.width &&
-                    mouseY >= btn.y && mouseY <= btn.y + btn.height
-                );
-            });
-        } else {
-            buttons.forEach(button => {
-                button.hovered = (
-                    mouseX >= button.x && mouseX <= button.x + button.width &&
-                    mouseY >= button.y && mouseY <= button.y + button.height
-                );
-            });
-        }
-    };
-    canvas.onclick = function (e) {
-        e.preventDefault(); // Stop browser/Electron from eating clicks
-        e.stopPropagation(); // Prevent bubbling to other elements
-        console.log('Canvas clicked at:', e.clientX, e.clientY); // Debug click coords
-        const rect = canvas.getBoundingClientRect();
-        const scaleX = CANVAS_WIDTH / rect.width;
-        const scaleY = CANVAS_HEIGHT / rect.height;
-        const mouseX = (e.clientX - rect.left) * scaleX;
-        const mouseY = (e.clientY - rect.top) * scaleY;
-        if (showMapSelect) {
-            for (let btn of mapButtons) {
-                if (
-                    mouseX >= btn.x && mouseX <= btn.x + btn.width &&
-                    mouseY >= btn.y && mouseY <= btn.y + btn.height
-                ) {
-                    const playerPos = getPlayerPosition();
-                    console.log('Map button clicked:', btn.name); // Debug
-                    selectedMapName = btn.name;
-                    if (selectedMapName === "map_debug") {
-                        playerPos.x = 10 * 50;
-                        playerPos.z = 10 * 50;
-                        playerPos.angle = 0;
-                    } else if (selectedMapName === "map_01") {
-                        playerPos.x = 2.5 * 50 / 2;
-                        playerPos.z = 2.5 * 50 / 2;
-                        playerPos.angle = 0;
-                    } else if (selectedMapName === "map_02") {
-                        playerPos.x = 1.5 * 50;
-                        playerPos.z = 1.5 * 50;
-                        playerPos.angle = 0;
-                    }
-                    try {
-                        if (mapHandler.loadMap(selectedMapName, playerPos)) {
-                            spriteManager.loadSpritesForMap(selectedMapName); // Load sprites
-                            setMenuActive(false);
-                            getMainGameRender()();
-                            getInitializeRenderWorkers()();
-                            showMapSelect = false;
-                            console.log('Map loaded successfully:', selectedMapName); // Debug
-                        } else {
-                            console.error('Failed to load map:', selectedMapName);
-                            getRenderEngine().fillStyle = "#f00";
-                            getRenderEngine().fillText(`Failed to load ${selectedMapName}!`, CANVAS_WIDTH / 2 - 80 * SCALE_X, CANVAS_HEIGHT - 100 * SCALE_Y);
-                        }
-                    } catch (error) {
-                        console.error('Error in map load or render:', error.message); // Catch errors
-                        getRenderEngine().fillStyle = "#f00";
-                        getRenderEngine().fillText(`Error: ${error.message}`, CANVAS_WIDTH / 2 - 80 * SCALE_X, CANVAS_HEIGHT - 100 * SCALE_Y);
-                    }
-                    return;
-                }
-            }
-            showMapSelect = false;
-        } else {
-            buttons.forEach(button => {
-                if (
-                    mouseX >= button.x && mouseX <= button.x + button.width &&
-                    mouseY >= button.y && mouseY <= button.y + button.height
-                ) {
-                    console.log('Menu button clicked:', button.name); // Debug
-                    if (button.name === "Play") {
-                        const playerPos = getPlayerPosition();
-                        selectedMapName = "map_01";
-                        playerPos.x = 2.5 * 50 / 2;
-                        playerPos.z = 2.5 * 50 / 2;
-                        playerPos.angle = 0;
-                        try {
-                            if (mapHandler.loadMap(selectedMapName, playerPos)) {
-                                spriteManager.loadSpritesForMap(selectedMapName); // Load sprites
-                                setMenuActive(false);
-                                getMainGameRender()();
-                                getInitializeRenderWorkers()();
-                                console.log('Play started, map loaded:', selectedMapName); // Debug
-                            } else {
-                                console.error('Failed to load map_01');
-                                getRenderEngine().fillStyle = "#f00";
-                                getRenderEngine().fillText("Failed to load map_01!", CANVAS_WIDTH / 2 - 80 * SCALE_X, CANVAS_HEIGHT - 100 * SCALE_Y);
-                            }
-                        } catch (error) {
-                            console.error('Error in Play button:', error.message); // Catch errors
-                            getRenderEngine().fillStyle = "#f00";
-                            getRenderEngine().fillText(`Error: ${error.message}`, CANVAS_WIDTH / 2 - 80 * SCALE_X, CANVAS_HEIGHT - 100 * SCALE_Y);
-                        }
-                    } else if (button.name === "Fractal") {
-                        // Toggle fractal overlay. Fractal canvas is non-interactive by default.
-                        try {
-                            if (window.__fractalActive) {
-                                stopFractal();
-                                console.log('Fractal stopped');
-                            } else {
-                                startFractal({ maxIter: 120 });
-                                console.log('Fractal started');
-                            }
-                        } catch (err) {
-                            console.error('Fractal toggle error:', err);
-                        }
-                    } else if (button.name === "Maps") {
-                        showMapSelect = true;
-                        selectedMapName = null;
-                        console.log('Maps button clicked, showing map select'); // Debug
-                    }
-                }
-            });
-        }
-    };
-}
 
-// Wait for DOM content loaded to ensure all modules (like renderEngine) are ready
-window.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM loaded, initializing menu handlers... *chao chao*');
-    function initMenuHandlers() {
-        const renderEngine = getRenderEngine();
-        if (!renderEngine || !renderEngine.canvas) {
-            console.warn('renderEngine or canvas not ready, retrying in 100ms... *pouts*');
-            setTimeout(initMenuHandlers, 100);
+    if (menuHandlersAttached) return;
+    menuHandlersAttached = true;
+
+    rebuildButtons(canvas);
+
+    canvas.addEventListener("mousemove", (e) => {
+        if (!menuActive) return;
+
+        const { x, y } = screenToCanvas(canvas, e);
+        const list = showMapSelect ? mapButtons : buttons;
+
+        for (const b of list) {
+            b.hovered = hit(b, x, y);
+        }
+    });
+
+    canvas.addEventListener("click", (e) => {
+        if (!menuActive) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        const { x, y } = screenToCanvas(canvas, e);
+
+        if (showMapSelect) {
+            for (const b of mapButtons) {
+                if (!hit(b, x, y)) continue;
+
+                selectedMapName = b.name;
+
+                const p = getPlayerPosition();
+                mapHandler.loadMap(selectedMapName, p);
+                spriteManager.loadSpritesForMap(selectedMapName);
+
+                setMenuActive(false);
+                getMainGameRender()();
+                getInitializeRenderWorkers()();
+
+                showMapSelect = false;
+                return;
+            }
+
+            showMapSelect = false;
             return;
         }
-        setupMenuClickHandler();
+
+        for (const b of buttons) {
+            if (!hit(b, x, y)) continue;
+
+            if (b.name === "Play") {
+                const p = getPlayerPosition();
+                selectedMapName = "map_01";
+
+                mapHandler.loadMap(selectedMapName, p);
+                spriteManager.loadSpritesForMap(selectedMapName);
+
+                setMenuActive(false);
+                getMainGameRender()();
+                getInitializeRenderWorkers()();
+            }
+
+            if (b.name === "Maps") {
+                showMapSelect = true;
+            }
+
+            return;
+        }
+    });
+}
+
+// ---------- resize safety ----------
+window.addEventListener("resize", () => {
+    const engine = getRenderEngine();
+    if (engine?.canvas) {
+        rebuildButtons(engine.canvas);
     }
-    initMenuHandlers();
 });
 
-window.addEventListener('keydown', function (e) {
-    if (e.key === 'F11') {
-        e.preventDefault();
-        const renderEngine = getRenderEngine();
-        const canvas = renderEngine.canvas;
-        if (!document.fullscreenElement) {
-            // Request fullscreen on the container that holds canvas and overlays so DOM overlays stay interactive
-            const container = canvas ? (canvas.closest('.game-container') || canvas.parentElement) : null;
-            const target = container || canvas || document.documentElement;
-            try {
-                if (target.requestFullscreen) {
-                    target.requestFullscreen();
-                } else if (target.webkitRequestFullscreen) {
-                    target.webkitRequestFullscreen();
-                } else if (target.mozRequestFullScreen) {
-                    target.mozRequestFullScreen();
-                } else if (target.msRequestFullscreen) {
-                    target.msRequestFullscreen();
-                }
-            } catch (err) {
-                console.error('Failed to request fullscreen on container, falling back to canvas:', err);
-                if (canvas && canvas.requestFullscreen) canvas.requestFullscreen();
-            }
-        } else {
-            if (document.exitFullscreen) document.exitFullscreen();
-        }
-    }
-});
+// ---------- init ----------
+window.addEventListener("DOMContentLoaded", setupMenuClickHandler);

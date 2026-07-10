@@ -1,10 +1,10 @@
 plugins {
     id 'java'
+    id 'org.teavm' version '0.14.1'
 }
 
 group 'com.bunbit'
 version '0.1.0'
-
 sourceCompatibility = '17'
 targetCompatibility = '17'
 
@@ -13,6 +13,7 @@ repositories {
 }
 
 dependencies {
+    implementation teavm.libs.jso
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.3'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.3'
 }
@@ -20,3 +21,20 @@ dependencies {
 test {
     useJUnitPlatform()
 }
+
+teavm {
+    all {
+        // RaycastMathKernel IS the module — its @JSExport static methods
+        // become the wasmGC exports directly. No WasmEntry wrapper needed.
+        mainClass = 'com.bunbit.render.RaycastMathKernel'
+        outputDir = file('../../wasm/generated')
+    }
+    wasmGC {
+        targetFileName = 'bunbit-renderhelpers.wasm'
+        copyRuntime = true
+        obfuscated = false
+        debugInformation = true
+    }
+}
+
+tasks.assemble.dependsOn(tasks.buildWasmGC)

@@ -1,4 +1,6 @@
 import { SCALE_Y, SCALE_X } from '../globals.js';
+import { fullscreenHandler } from './fullscreenhandler.js';
+
 import { togglePerfMonitor } from './panels/memcpu.js';
 import {
     updateFilteredLogs,
@@ -26,17 +28,26 @@ export function handleMouseDown(e) {
     e.preventDefault();
     console.log('Mouse down on debug canvas:', e.clientX, e.clientY);
     const rect = debugCanvas.getBoundingClientRect();
-    const scaleFactor = fullscreenHandler.getScaleFactor();
-    const mx = (e.clientX - rect.left) / scaleFactor;
-    const my = (e.clientY - rect.top) / scaleFactor;
+    // IMPORTANT: do NOT apply fullscreen scaleFactor here.
+    // When the main canvas is CSS-rescaled, transforms can desync coordinate math.
+    // Using the debugCanvas rect directly keeps hit-testing aligned.
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+
 
     // Check resize
+    const scaleFactor = fullscreenHandler.getScaleFactor();
+
     if (mx >= resizeArea.x && mx < resizeArea.x + resizeArea.w &&
         my >= resizeArea.y && my < resizeArea.y + resizeArea.h) {
+
         console.log('Starting resize');
         EvilUIState.isResizing = true;
+        // scaleFactor is only used for debug canvas resize math.
+        // Pointer-to-canvas mapping uses rect offsets (mx/my).
         EvilUIState.resizeStartX = e.clientX / scaleFactor;
         EvilUIState.resizeStartY = e.clientY / scaleFactor;
+
         EvilUIState.resizeStartWidth = DEBUG_WIDTH;
         EvilUIState.resizeStartHeight = DEBUG_HEIGHT;
         document.addEventListener('mousemove', handleResize, { capture: true });
@@ -96,9 +107,9 @@ export function handleMouseDown(e) {
 // Handle mouse move
 export function handleMouseMove(e) {
     const rect = debugCanvas.getBoundingClientRect();
-    const scaleFactor = fullscreenHandler.getScaleFactor();
-    const mx = (e.clientX - rect.left) / scaleFactor;
-    const my = (e.clientY - rect.top) / scaleFactor;
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+
 
     let needsRedraw = false;
 

@@ -157,27 +157,20 @@ export function initPositionPanel() {
     let currentPosY = 0;
 
     function ensureCanvasPixelSize(canvas) {
-        try {
-            // Use the canvas drawing buffer size (canvas.width/height attributes) as CSS pixels
-            const w = canvas.width || 800;
-            const h = canvas.height || 800;
-            canvas.style.width = `${w}px`;
-            canvas.style.height = `${h}px`;
-            canvas.style.left = '0px';
-            canvas.style.top = '0px';
-            canvas.style.position = 'fixed';
-            canvas.style.transformOrigin = 'top left';
-        } catch (e) {
-            console.warn('[ScalingPanel] could not ensure canvas pixel size', e);
-        }
+        const w = canvas.width || 800;
+        const h = canvas.height || 800;
+
+        canvas.style.width = `${w}px`;
+        canvas.style.height = `${h}px`;
+    }
+    function applyTransform(canvas) {
+        canvas.style.left = `${currentPosX}px`;
+        canvas.style.top = `${currentPosY}px`;
+
+        canvas.style.transformOrigin = "0 0";
+        canvas.style.transform = `scale(${currentScaleX}, ${currentScaleY})`;
     }
 
-    function applyTransform(canvas) {
-        // translate values must be divided by scale so visual offset stays at desired pixels
-        const tx = currentPosX / Math.max(0.0001, currentScaleX);
-        const ty = currentPosY / Math.max(0.0001, currentScaleY);
-        canvas.style.transform = `translate(${tx}px, ${ty}px) scale(${currentScaleX}, ${currentScaleY})`;
-    }
 
     scalingPanel.appendChild(createSliderControl(
         'Position X',

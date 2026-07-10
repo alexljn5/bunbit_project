@@ -7,6 +7,8 @@ import { fastCos, fastSin } from "../math/mathtables.js";
 import { renderEngine, drawQuad } from "./renderengine.js";
 import { playerFOV, numCastRays } from "./raycasting.js";
 
+const DEBUG_HORIZON_TIMING = new URLSearchParams(window.location.search).get("debugHorizonTiming") === "true";
+
 // Number of workers to use
 const NUM_WORKERS = 8;
 
@@ -14,6 +16,33 @@ const NUM_WORKERS = 8;
 const horizonWorkers = Array.from({ length: NUM_WORKERS }, () =>
     new Worker('/src/rendering/renderworkers/horizonrenderworker.js', { type: "module" })
 );
+
+// Debug: forward worker WASM status/trig stats to main-thread console.
+function attachHorizonWorkerDebug(worker, index) {
+    worker.addEventListener('message', (e) => {
+        const msg = e.data;
+        if (!msg) return;
+
+        if (msg.type === 'wasmError') {
+            console.warn(`[HorizonWorker ${index}] wasmError`, msg);
+            return;
+        }
+
+        if (msg.type === 'wasmStatus' || msg.type === 'wasmTrigStats') {
+            console.info(`[HorizonWorker ${index}] ${msg.type}`, msg);
+            return;
+        }
+
+        if (msg.type === 'wasmTrigStats') {
+            console.info(`[HorizonWorker ${index}] wasm trig stats`, msg);
+        }
+    });
+}
+
+
+horizonWorkers.forEach((w, i) => attachHorizonWorkerDebug(w, i));
+
+
 
 let isInitialized = Array(NUM_WORKERS).fill(false);
 let lastFloorTextureKey = "";
@@ -24,6 +53,7 @@ let textureWidthRoof = 0;
 let textureHeightRoof = 0;
 let lastCanvasWidth = 0;
 let lastCanvasHeight = 0;
+let horizonWorkersReadyLogged = false;
 
 // Heap-based cache for horizon data
 const horizonCache = new Map();
@@ -49,7 +79,6 @@ function initializeWorkers() {
                 worker.onmessage = function (e) {
                     if (e.data.type === 'init_done') {
                         isInitialized[index] = true;
-                        console.log(`Horizon worker ${index} initialized *chao chao*`);
                         resolve();
                     }
                 };
@@ -67,7 +96,10 @@ function initializeWorkers() {
     ).then(() => {
         lastCanvasWidth = CANVAS_WIDTH;
         lastCanvasHeight = CANVAS_HEIGHT;
-        console.log("All horizon workers ready *twirls*");
+        if (!horizonWorkersReadyLogged) {
+            horizonWorkersReadyLogged = true;
+            console.info("[Horizon] workers ready", { workers: NUM_WORKERS });
+        }
     });
 }
 
@@ -165,7 +197,7 @@ export function precomputeHorizonData(sectorKey, rayData) {
 
 export function renderRaycastHorizons(rayData, targetCtx = renderEngine) {
     return new Promise(async resolve => {
-        console.time('renderHorizons');
+        if (DEBUG_HORIZON_TIMING) console.time('renderHorizons');
 
         if (
             isInitialized.some(init => !init) ||
@@ -203,19 +235,25 @@ export function renderRaycastHorizons(rayData, targetCtx = renderEngine) {
                 const endY = Math.min(startY + rowsPerWorker, CANVAS_HEIGHT);
 
                 return new Promise(resolveWorker => {
-                    worker.onmessage = function (e) {
-                        if (e.data.type === 'render_done') {
-                            // Worker sent an ArrayBuffer (raw bytes)
-                            const workerBuffer = new Uint8ClampedArray(e.data.horizonBuffer);
-                            const startOffset = e.data.startY * CANVAS_WIDTH * 4;
-                            try {
-                                finalBuffer.set(workerBuffer, startOffset);
-                            } catch (error) {
-                                console.error(`Error copying horizon worker ${e.data.workerId} buffer: ${error.message}`);
-                            }
-                            resolveWorker();
+                    const handler = (e) => {
+                        const data = e.data;
+                        if (data?.type !== 'render_done') return;
+                        if (data.workerId !== index) return;
+
+                        // Worker sent an ArrayBuffer (raw bytes)
+                        const workerBuffer = new Uint8ClampedArray(data.horizonBuffer);
+                        const startOffset = data.startY * CANVAS_WIDTH * 4;
+                        try {
+                            finalBuffer.set(workerBuffer, startOffset);
+                        } catch (error) {
+                            console.error(`Error copying horizon worker ${data.workerId} buffer: ${error.message}`);
                         }
+                        worker.removeEventListener('message', handler);
+                        resolveWorker();
                     };
+                    worker.addEventListener('message', handler);
+
+
 
                     // Make copies of cached clip arrays so we can transfer without detaching cachedData
                     const workerClipYFloor = new Float32Array(cachedData.clipYFloor);
@@ -236,8 +274,7 @@ export function renderRaycastHorizons(rayData, targetCtx = renderEngine) {
             await Promise.all(promises);
             // Reuse preallocated ImageData and blit
             targetCtx.putImageData(finalImageData, 0, 0);
-            console.log(`Rendered horizons from cache for sector ${mapKey} *smiles*`);
-            console.timeEnd('renderHorizons');
+            if (DEBUG_HORIZON_TIMING) console.timeEnd('renderHorizons');
             resolve();
             return;
         }
@@ -345,7 +382,7 @@ export function renderRaycastHorizons(rayData, targetCtx = renderEngine) {
             precomputeHorizonData(mapKey, rayData);
         }
 
-        console.timeEnd('renderHorizons');
+        if (DEBUG_HORIZON_TIMING) console.timeEnd('renderHorizons');
         resolve();
     });
 }

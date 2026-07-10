@@ -1,0 +1,1 @@
+WASM_RAY_MATH=true ./src/scripts/no_wasm_bunbit_engine.sh

@@ -2,6 +2,8 @@ import { game, renderEngine } from "../rendering/renderengine.js";
 import { keys } from "../playerdata/playerlogic.js";
 import { volumeSlidersGodFunction, setupAudioSliderHandlers } from "../audio/audiohandler.js";
 import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT } from "../globals.js";
+import { getMouseCanvasPos } from "../utils/inputTransform.js";
+
 import { saveGame, loadGame } from "../savedata/save_load_game.js";
 import { applyGraphicsPreset, getGraphicsSettings, drawGraphicsOverlay, handleGraphicsMenuClick } from "./graphicssettings.js";
 import { drawButton, drawMenuOverlay } from "./overlays.js";
@@ -58,7 +60,7 @@ function initOffscreenCanvas() {
 
 function drawStaticMenu() {
     const testSettingsBackGroundImage = new Image();
-    testSettingsBackGroundImage.src = "./img/menu/goon.png";
+    testSettingsBackGroundImage.src = "./img/menu/main-menu.png";
     initOffscreenCanvas();
     offscreenContext.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     // Use reusable overlay function with alpha 0.8
@@ -162,11 +164,8 @@ function drawAudioOverlay() {
 
 async function handleSettingsMenuClick(e) {
     const canvas = renderEngine.canvas;
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = CANVAS_WIDTH / rect.width;
-    const scaleY = CANVAS_HEIGHT / rect.height;
-    const mouseX = (e.clientX - rect.left) * scaleX;
-    const mouseY = (e.clientY - rect.top) * scaleY;
+    const { x: mouseX, y: mouseY } = getMouseCanvasPos(canvas, e);
+
 
     needsRedraw = true;
 
@@ -318,7 +317,6 @@ function startMenuLoop() {
             stopMenuLoop();
             return;
         }
-        console.log("Rendering settings menu");
         menuSettingsRender();
         menuRafId = requestAnimationFrame(menuTick);
     }

@@ -1,245 +1,338 @@
-let staticData = null;
-let latestFrameId = -1;
+"use strict";
 
-// Worker CPU sampling (accumulate busy time and report periodically)
-let __workerCpuAccum = 0;
-let __workerSampleStart = (typeof performance !== 'undefined') ? performance.now() : Date.now();
-let __workerId = null;
-const __perfChannel = (typeof BroadcastChannel !== 'undefined') ? new BroadcastChannel('perf_monitor') : null;
-function __postWorkerCpu(usagePercent) {
-    const payload = { type: 'worker_cpu', usages: [{ id: __workerId || 'raycast', usage: Math.round(usagePercent * 10) / 10 }] };
+/* =========================================================
+   DEBUG + CRASH HANDLING
+========================================================= */
+
+function debug(msg, extra = {}) {
     try {
-        if (__perfChannel) __perfChannel.postMessage(payload);
-        else self.postMessage(payload);
-    } catch (err) {
-        // best-effort
-    }
+        self.postMessage({
+            type: "wasmDebug",
+            msg,
+            ...extra
+        });
+    } catch { }
 }
-setInterval(() => {
+
+self.addEventListener("error", (e) => {
     try {
-        const now = (typeof performance !== 'undefined') ? performance.now() : Date.now();
-        const interval = Math.max(1, now - __workerSampleStart);
-        const percent = Math.min(100, (__workerCpuAccum / interval) * 100);
-        __postWorkerCpu(percent);
-        __workerCpuAccum = 0;
-        __workerSampleStart = now;
-    } catch (err) {
-        // ignore
-    }
-}, 500);
-
-self.addEventListener("message", (e) => {
-    const startTime = (typeof performance !== 'undefined') ? performance.now() : Date.now();
-
-    try {
-        if (e.data.type === "init") {
-            staticData = {
-                tileSectors: e.data.tileSectors,
-                map_01: e.data.map_01,
-                textureIdMap: e.data.textureIdMap,
-                floorTextureIdMap: e.data.floorTextureIdMap,
-                CANVAS_WIDTH: e.data.CANVAS_WIDTH,
-                numCastRays: e.data.numCastRays,
-                maxRayDepth: e.data.maxRayDepth,
-                textureTransparencyMap: e.data.textureTransparencyMap || {}
-            };
-            __workerId = e.data.workerId || __workerId;
-            self.postMessage({ type: "init", success: true });
-            return;
-        }
-
-        if (!staticData) throw new Error("Worker not initialized");
-
-        if (e.data.type === "updateSettings") {
-            staticData.numCastRays = e.data.numCastRays;
-            staticData.maxRayDepth = e.data.maxRayDepth;
-            self.postMessage({ type: "updateSettings", success: true });
-            return;
-        }
-
-        const { startRay, endRay, posX, posZ, playerAngle, playerFOV, frameId } = e.data;
-        if (frameId < latestFrameId) return; // Drop old frames
-        latestFrameId = frameId;
-
-        const {
-            tileSectors, map_01, textureIdMap,
-            floorTextureIdMap, CANVAS_WIDTH, numCastRays, maxRayDepth
-        } = staticData;
-
-        const rayCount = endRay - startRay;
-        const rayData = new Array(rayCount);
-
-        for (let i = 0; i < rayCount; i++) {
-            const x = startRay + i;
-            const rayAngle = playerAngle + (-playerFOV / 2 + (x / numCastRays) * playerFOV);
-            const cosAngle = fastCos(rayAngle);
-            const sinAngle = fastSin(rayAngle);
-
-            let distance = 0;
-            let rayX = posX;
-            let rayY = posZ;
-            let cellX = Math.floor(rayX / tileSectors);
-            let cellY = Math.floor(rayY / tileSectors);
-            let distToNextX = cosAngle !== 0 ? ((cosAngle > 0 ? cellX + 1 : cellX) * tileSectors - rayX) / cosAngle : Infinity;
-            let distToNextY = sinAngle !== 0 ? ((sinAngle > 0 ? cellY + 1 : cellY) * tileSectors - rayY) / sinAngle : Infinity;
-            const deltaDistX = Math.abs(tileSectors / cosAngle);
-            const deltaDistY = Math.abs(tileSectors / sinAngle);
-
-            let steps = 0;
-            let hit = false;
-            let hitSide = null;
-            let hitWallType = null;
-            let textureKey = null;
-            let floorTextureKey = "floor_concrete";
-            let floorX = 0, floorY = 0;
-            let lastFloorTile = null;
-
-            while (steps++ < maxRayDepth * 2 && !hit && distance < maxRayDepth * tileSectors) {
-                if (distToNextX < distToNextY) {
-                    distance = distToNextX;
-                    cellX += cosAngle > 0 ? 1 : -1;
-                    distToNextX += deltaDistX;
-                    hitSide = "y";
-                } else {
-                    distance = distToNextY;
-                    cellY += sinAngle > 0 ? 1 : -1;
-                    distToNextY += deltaDistY;
-                    hitSide = "x";
-                }
-
-                if (
-                    cellX < 0 || cellY < 0 ||
-                    cellX >= map_01[0].length || cellY >= map_01.length
-                ) break;
-
-                const tile = map_01[cellY][cellX];
-                if (!tile || typeof tile !== "object") break;
-
-                // New logic for transparent walls
-                if (tile.type === "wall") {
-                    // Check transparency from passed transparency map
-                    const textureName = textureIdMap[tile.textureId] || "wall_creamlol";
-                    const isTransparent = staticData.textureTransparencyMap && staticData.textureTransparencyMap[textureName];
-                    if (!isTransparent) {
-                        hit = true;
-                        hitWallType = tile.type;
-                        textureKey = textureName;
-                        if (lastFloorTile)
-                            floorTextureKey = floorTextureIdMap[lastFloorTile.floorTextureId] || floorTextureKey;
-                    } else {
-                        // Transparent wall hit, record hit but continue raycasting
-                        if (!rayData[i]) rayData[i] = [];
-                        rayData[i].push({
-                            distance,
-                            hitSide,
-                            textureKey: textureName,
-                            floorTextureKey,
-                            floorX: rayX + distance * cosAngle,
-                            floorY: rayY + distance * sinAngle
-                        });
-                        // Continue without setting hit = true
-                    }
-                } else if (tile.type === "empty") {
-                    lastFloorTile = tile;
-                    floorTextureKey = floorTextureIdMap[tile.floorTextureId] || floorTextureKey;
-                    floorX = rayX + distance * cosAngle;
-                    floorY = rayY + distance * sinAngle;
-                }
-            }
-
-            if (hit) {
-                const angleDiff = rayAngle - playerAngle;
-                const cosApprox = Q_rsqrt(1 + angleDiff * angleDiff);
-                const correctedDistance = distance * cosApprox;
-                let hitX = rayX + distance * cosAngle;
-                let hitY = rayY + distance * sinAngle;
-                if (hitSide === "y") hitX = (cosAngle > 0 ? cellX : cellX + 1) * tileSectors;
-                if (hitSide === "x") hitY = (sinAngle > 0 ? cellY : cellY + 1) * tileSectors;
-
-                rayData[i] = {
-                    column: x,
-                    distance: correctedDistance,
-                    wallType: hitWallType,
-                    hitX, hitY,
-                    hitSide,
-                    textureKey,
-                    floorTextureKey,
-                    floorX, floorY
-                };
-            } else {
-                rayData[i] = null;
-            }
-        }
-
         self.postMessage({
-            type: "frame",
-            startRay,
-            frameId,
-            rayData,
-            workerTime: performance.now() - startTime
+            type: "workerError",
+            message: e.message,
+            filename: e.filename,
+            line: e.lineno,
+            column: e.colno
         });
-
-        // Accumulate busy time for CPU sampling
-        try {
-            const tEnd = (typeof performance !== 'undefined') ? performance.now() : Date.now();
-            __workerCpuAccum += (tEnd - startTime);
-        } catch (err) {
-            // ignore
-        }
-    } catch (err) {
-        self.postMessage({
-            type: "error",
-            error: err.message,
-            frameId: e.data.frameId || -1,
-            workerTime: (typeof performance !== 'undefined') ? performance.now() - startTime : 0
-        });
-
-        // also account for time spent until error
-        try {
-            const tErr = (typeof performance !== 'undefined') ? performance.now() : Date.now();
-            __workerCpuAccum += (tErr - startTime);
-        } catch (er) {
-            // ignore
-        }
-    }
+    } catch { }
 });
 
-// --- Math Tables for Ultra-Fast Trig ---
-const SIN_TABLE_BITS = 11;                // 2^11 = 2048 entries
+self.addEventListener("unhandledrejection", (e) => {
+    try {
+        self.postMessage({
+            type: "workerError",
+            message: "UnhandledPromiseRejection",
+            reason: e.reason?.message || String(e.reason)
+        });
+    } catch { }
+});
+
+/* =========================================================
+   STATE
+========================================================= */
+
+const WorkerState = {
+    static: null,
+    latestFrameId: -1,
+
+    wasm: null,
+    wasmPromise: null,
+    wasmStatus: "disabled",
+    batchPoC: null,
+
+    cpuAccum: 0,
+    workerId: null,
+
+    perfChannel:
+        typeof BroadcastChannel !== "undefined"
+            ? new BroadcastChannel("perf_monitor")
+            : null,
+
+    outDistance: null,
+    outHit: null,
+    outSide: null,
+
+    // NEW: authoritative hit coordinates from WASM
+    outMapX: null,
+    outMapY: null,
+
+    flatMap: null
+};
+
+/* =========================================================
+   MATH BACKEND
+========================================================= */
+
+const SIN_TABLE_BITS = 11;
 const SIN_TABLE_SIZE = 1 << SIN_TABLE_BITS;
 const SIN_TABLE_MASK = SIN_TABLE_SIZE - 1;
+
 const FIXED_POINT_SHIFT = 16;
-const ANGLE_SCALE = (SIN_TABLE_SIZE << FIXED_POINT_SHIFT) / (Math.PI * 2) | 0;
+const ANGLE_SCALE =
+    (SIN_TABLE_SIZE << FIXED_POINT_SHIFT) / (Math.PI * 2) | 0;
 
 const sinTable = new Float32Array(SIN_TABLE_SIZE);
 const cosTable = new Float32Array(SIN_TABLE_SIZE);
 
 for (let i = 0; i < SIN_TABLE_SIZE; i++) {
-    const angle = (i * 2 * Math.PI) / SIN_TABLE_SIZE;
-    sinTable[i] = Math.sin(angle);
-    cosTable[i] = Math.cos(angle);
+    const a = (i * 2 * Math.PI) / SIN_TABLE_SIZE;
+    sinTable[i] = Math.sin(a);
+    cosTable[i] = Math.cos(a);
 }
 
-// Bitshift-based fastSin / fastCos
-function fastSin(angle) {
-    const idx = ((angle * ANGLE_SCALE) | 0) >>> FIXED_POINT_SHIFT & SIN_TABLE_MASK;
-    return sinTable[idx];
+const MathBackend = {
+    rayAngle(playerAngle, fov, x, numRays) {
+        return playerAngle + (-fov / 2 + (x / numRays) * fov);
+    }
+};
+
+/* =========================================================
+   BUFFER MANAGEMENT
+========================================================= */
+
+function ensureBuffers(rayCount) {
+    if (!WorkerState.outDistance || WorkerState.outDistance.length < rayCount) {
+
+        debug("Allocating buffers", { rayCount });
+
+        WorkerState.outDistance = new Float64Array(rayCount);
+        WorkerState.outHit = new Int32Array(rayCount);
+        WorkerState.outSide = new Int32Array(rayCount);
+
+        // NEW
+        WorkerState.outMapX = new Int32Array(rayCount);
+        WorkerState.outMapY = new Int32Array(rayCount);
+    }
 }
 
-function fastCos(angle) {
-    const idx = ((angle * ANGLE_SCALE) | 0) >>> FIXED_POINT_SHIFT & SIN_TABLE_MASK;
-    return cosTable[idx];
+/* =========================================================
+   WASM LOADER
+========================================================= */
+
+const WASM_BASE = "/src/wasm/generated/wasm-gc";
+const WASM_RUNTIME_URL = `${WASM_BASE}/bunbit-renderhelpers.wasm-runtime.js`;
+const WASM_URL = `${WASM_BASE}/bunbit-renderhelpers.wasm`;
+
+function postWasmStatus(status) {
+    WorkerState.wasmStatus = status;
+    try {
+        self.postMessage({ type: "wasmStatus", status });
+    } catch { }
 }
 
-// --- Ultra-fast Inverse Square Root (Q_rsqrt) ---
-const buf = new ArrayBuffer(4);
-const f = new Float32Array(buf);
-const i = new Uint32Array(buf);
+async function loadWasm() {
+    if (WorkerState.wasm) return WorkerState.wasm;
+    if (WorkerState.wasmPromise) return WorkerState.wasmPromise;
 
-function Q_rsqrt(number) {
-    const x2 = number * 0.5;
-    f[0] = number;
-    i[0] = 0x5f3759df - (i[0] >> 1);
-    f[0] = f[0] * (1.5 - x2 * f[0] * f[0]); // 1 NR iteration
-    return f[0];
+    WorkerState.wasmPromise = (async () => {
+        try {
+
+            debug("Starting WASM load");
+
+            importScripts(WASM_RUNTIME_URL);
+
+            const res = await fetch(WASM_URL);
+            const bytes = await res.arrayBuffer();
+
+            const module = await self.TeaVM.wasmGC.load(bytes, {
+                stackDeobfuscator: { enabled: false }
+            });
+
+            WorkerState.wasm = module;
+            WorkerState.batchPoC = module.exports.raycastColumnsBatch;
+
+            postWasmStatus("ready");
+            return module;
+
+        } catch (err) {
+            postWasmStatus("failed");
+            throw err;
+        }
+    })();
+
+    return WorkerState.wasmPromise;
 }
+
+/* =========================================================
+   MAP FLATTEN
+========================================================= */
+
+function flattenMap(map) {
+    const h = map.length;
+    const w = map[0].length;
+
+    const grid = new Int32Array(w * h);
+    const texGrid = new Int32Array(w * h);
+
+    for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+            const tile = map[y][x];
+            if (tile && tile.type === "wall") {
+                grid[y * w + x] = 1;
+                texGrid[y * w + x] = tile.textureId ?? 0;
+            }
+        }
+    }
+
+    return { grid, texGrid, w, h };
+}
+
+/* =========================================================
+   RAYCAST CORE (JS FALLBACK ONLY)
+========================================================= */
+
+self.addEventListener("message", async (e) => {
+
+    const t0 = performance?.now?.() ?? Date.now();
+
+    try {
+
+        const d = e.data;
+
+        if (d.type === "init") {
+
+            WorkerState.static = {
+                tileSize: d.tileSectors,
+                map: d.map_01,
+                textureMap: d.textureIdMap,
+                floorMap: d.floorTextureIdMap,
+                numCastRays: d.numCastRays,
+                maxRayDepth: d.maxRayDepth,
+                transparency: d.textureTransparencyMap || {},
+                useWasm: !!d.useWasmRayMath
+            };
+
+            WorkerState.workerId = d.workerId;
+
+            if (Array.isArray(d.map_01)) {
+                WorkerState.flatMap = flattenMap(d.map_01);
+            }
+
+            if (WorkerState.static.useWasm) {
+                await loadWasm();
+            }
+
+            self.postMessage({ type: "init", success: true });
+            return;
+        }
+
+        if (!WorkerState.static) throw new Error("Not initialized");
+
+        if (d.frameId < WorkerState.latestFrameId) return;
+        WorkerState.latestFrameId = d.frameId;
+
+        const s = {
+            ...WorkerState.static,
+            posX: d.posX,
+            posZ: d.posZ,
+            playerAngle: d.playerAngle,
+            playerFOV: d.playerFOV
+        };
+
+        const rayCount = d.endRay - d.startRay;
+
+        /* =====================================================
+           WASM PATH (FIXED)
+        ===================================================== */
+
+        if (WorkerState.wasm && WorkerState.batchPoC) {
+
+            ensureBuffers(rayCount);
+
+            WorkerState.batchPoC(
+                s.posX, s.posZ, s.playerAngle, s.playerFOV,
+                d.startRay, d.endRay, s.numCastRays,
+                s.tileSize,
+                WorkerState.flatMap.w, WorkerState.flatMap.h,
+                WorkerState.flatMap.grid,
+                s.maxRayDepth,
+                WorkerState.outDistance,   // 13
+                WorkerState.outHit,        // 14
+                WorkerState.outSide,       // 15
+                WorkerState.outMapX,       // 16 ← extra!
+                WorkerState.outMapY        // 17 ← extra!
+            );
+
+            const rayData = new Array(rayCount);
+
+            for (let i = 0; i < rayCount; i++) {
+
+                if (WorkerState.outHit[i] === 0) {
+                    rayData[i] = null;
+                    continue;
+                }
+
+                const mapX = WorkerState.outMapX[i];
+                const mapY = WorkerState.outMapY[i];
+
+                const tile = s.map?.[mapY]?.[mapX];
+
+                let textureKey = "wall_creamlol";
+
+                if (tile) {
+                    textureKey =
+                        s.textureMap[tile.textureId] ?? "wall_creamlol";
+                }
+
+                rayData[i] = {
+                    column: d.startRay + i,
+                    distance: WorkerState.outDistance[i],
+                    hitSide: WorkerState.outSide[i] === 1 ? "y" : "x",
+                    textureKey,
+                    textureX: 0,
+                    floorTextureKey: "floor_concrete_01",
+                    backend: "wasm"
+                };
+            }
+
+            self.postMessage({
+                type: "frame",
+                frameId: d.frameId,
+                startRay: d.startRay,
+                rayData,
+                workerTime: (performance?.now?.() ?? Date.now()) - t0
+            });
+
+            return;
+        }
+
+        /* =====================================================
+           JS FALLBACK (UNCHANGED)
+        ===================================================== */
+
+        const map = WorkerState.static.map;
+
+        const rayData = new Array(rayCount);
+
+        for (let i = 0; i < rayCount; i++) {
+            const x = d.startRay + i;
+            rayData[i] = castRayColumn(x, s, map, MathBackend);
+        }
+
+        self.postMessage({
+            type: "frame",
+            frameId: d.frameId,
+            startRay: d.startRay,
+            rayData,
+            workerTime: (performance?.now?.() ?? Date.now()) - t0
+        });
+
+    } catch (err) {
+
+        self.postMessage({
+            type: "error",
+            error: err?.message || String(err),
+            stack: err?.stack || null,
+            frameId: e.data?.frameId ?? -1
+        });
+    }
+});
