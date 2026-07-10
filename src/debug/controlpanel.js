@@ -10,7 +10,6 @@ import { defaultThemeName, DEBUG_START_INTRO_ANIMATION } from '../globals.js';
 
 
 import { togglePositionPanel } from './panels/positionpanel.js';
-import { initMainDashboard } from '../menus/main_dashboard.js';
 
 
 
@@ -140,153 +139,33 @@ export function initControlPanel() {
     try { themeManager.setTheme(defaultThemeName); } catch (e) { /* ignore */ }
 
 
-    // basic styling for readability
+    // basic styling for readability - compact buttons
     [reloadButton, playButton, stopButton, showDebugButton, positionButton].forEach(btn => {
-        btn.style.padding = `${8 * SCALE_Y}px ${12 * SCALE_X}px`;
+        btn.style.padding = `${6 * SCALE_Y}px ${10 * SCALE_X}px`;
         btn.style.cursor = 'pointer';
-        btn.style.border = `${1 * SCALE_X}px solid`;
+        btn.style.border = `${1 * SCALE_X}px solid ${DEFAULT_BORDER}`;
         btn.style.borderRadius = `${4 * SCALE_X}px`;
-        btn.style.fontSize = `${12 * SCALE_Y}px`;
+        btn.style.fontSize = `${11 * SCALE_Y}px`;
         btn.style.fontWeight = 'bold';
-        btn.style.marginTop = `${5 * SCALE_Y}px`;
+        btn.style.marginTop = `${4 * SCALE_Y}px`;
         btn.style.backgroundColor = DEFAULT_BUTTON_BG;
         btn.style.color = DEFAULT_TEXT;
-        btn.style.borderColor = DEFAULT_BORDER;
-        // make sure buttons render above the logo canvas
-        btn.style.position = 'relative';
-        btn.style.zIndex = '2';
+        btn.style.width = '100%';
+        btn.style.boxSizing = 'border-box';
     });
-    reloadButton.style.marginTop = `${10 * SCALE_Y}px`;
 
-    // Main dashboard visuals moved to src/menus/main_dashboard.js (separate box)
-    // Keep this module as the pure debug control panel UI.
+    // Theme selector - compact
+    themeSelector.style.padding = `${6 * SCALE_Y}px ${10 * SCALE_X}px`;
+    themeSelector.style.fontSize = `${11 * SCALE_Y}px`;
+    themeSelector.style.marginTop = `${4 * SCALE_Y}px`;
+    themeSelector.style.width = '100%';
+    themeSelector.style.boxSizing = 'border-box';
+    themeSelector.style.position = 'relative';
+    themeSelector.style.top = 'auto';
+    themeSelector.style.right = 'auto';
 
-    // (dashboard DOM removed)
-
-    function createPillarImg(side) {
-        const el = document.createElement('img');
-        el.src = pillarSrc;
-        el.alt = '';
-        el.style.position = 'absolute';
-
-        // Span top-to-bottom
-        el.style.top = '0%';
-        el.style.bottom = '0%';
-        el.style.transform = 'translate(-50%, 0%)';
-
-        el.style.width = '512px';
-        el.style.height = '100%';
-        el.style.maxWidth = '60%';
-
-        // same visual blending as logo
-        el.style.filter = 'brightness(4.90) contrast(10.15) saturate(10.2)';
-        el.style.mixBlendMode = 'overlay';
-        el.style.borderRadius = '18%';
-        el.style.clipPath = 'ellipse(48% 40% at 50% 50%)';
-        el.style.boxShadow = '0 12px 40px rgba(0,0,0,0.55)';
-        el.style.pointerEvents = 'none';
-        el.style.opacity = '0.94';
-        el.style.zIndex = '0';
-
-        // Place left/right using calc with percentage + pixel-ish proportion.
-        const direction = side === 'left' ? -1 : 1;
-        el.style.left = `calc(50% + (${direction} * ${pillarOffsetFactor} * 60vw))`;
-        return el;
-    }
-
-    function createLogoLayers() {
-        const sigilSrc = 'img/logo/logo-ascii-transparent-sigil-blend.png';
-        const faceSrc = 'img/logo/logo-ascii.png';
-
-        // === Layer 1: Sigil (background) ===
-        // === SPINNING SIGIL ===
-        const sigilEl = document.createElement('img');
-        sigilEl.src = sigilSrc;
-        sigilEl.alt = '';
-        Object.assign(sigilEl.style, {
-            position: 'absolute',
-            left: '50%',
-            top: '30%',
-            transform: 'translate(-50%, 0)',
-            width: '320px',
-            height: '320px',
-            maxWidth: '50%',
-            filter: 'brightness(4.90) contrast(10.15) saturate(10.2)',
-            mixBlendMode: 'overlay',
-            //borderRadius: '18%',
-            clipPath: 'ellipse(50% 50% at 50% 50%)',
-            boxShadow: '0 12px 40px rgba(0,0,0,0.55)',
-            pointerEvents: 'none',
-            //opacity: '1.34',
-            zIndex: '0'
-        });
-
-        // Add spinning animation
-        sigilEl.style.animation = 'bunbit-sigil-spin 25s linear infinite';
-
-        // Create the keyframe animation (only once)
-        if (!document.getElementById('bunbit-sigil-style')) {
-            const style = document.createElement('style');
-            style.id = 'bunbit-sigil-style';
-            style.textContent = `
-        @keyframes bunbit-sigil-spin {
-            from {
-                transform: translate(-50%, 0) rotate(0deg);
-            }
-            to {
-                transform: translate(-50%, 0) rotate(360deg);
-            }
-        }
-    `;
-            document.head.appendChild(style);
-        }
-
-        // === Layer 2: Bunny Face (on top) ===
-        const faceEl = document.createElement('img');
-        faceEl.src = faceSrc;
-        faceEl.alt = '';
-        Object.assign(faceEl.style, {
-            position: 'absolute',
-            left: '50%',
-            top: '38%',
-            transform: 'translate(-50%, 0)',
-            width: '128px',
-            height: '128px',
-            maxWidth: '55%',
-            filter: 'brightness(105.5) contrast(120) saturate(18)', // You can tweak this separately
-            mixBlendMode: 'overlay',
-            //borderRadius: '18%',
-            boxShadow: '0 12px 40px rgba(0,0,0,0.55)',
-            pointerEvents: 'none',
-            opacity: '1.7',
-            zIndex: '1' // On top of the sigil
-        });
-
-        return { sigilEl, faceEl };
-    }
-
-    function createStairsImg() {
-        const el = document.createElement('img');
-        el.src = stairsSrc;
-        el.alt = '';
-
-        el.style.position = 'absolute';
-        el.style.left = '50%';
-        el.style.bottom = '8%';
-        el.style.transform = 'translate(-50%, 0)';
-        el.style.width = '640px';
-        el.style.height = 'auto';
-        el.style.maxWidth = '45%';
-        el.style.zIndex = '1';
-
-        el.style.filter = 'brightness(4.90) contrast(10.15) saturate(10.2)';
-        el.style.mixBlendMode = 'overlay';
-        el.style.opacity = '0.85';
-        el.style.pointerEvents = 'none';
-
-        el.style.transform = 'translate(-50%, 0) perspective(600px) rotateX(12deg)';
-        return el;
-    }
+    // Set panel background
+    debugPanel.style.backgroundColor = DEFAULT_BACKGROUND;
 
     // Ensure header and buttons render above
     header.style.zIndex = '3';
@@ -301,28 +180,6 @@ export function initControlPanel() {
     debugPanel.appendChild(positionButton);
     debugPanel.appendChild(themeSelector);
     document.body.appendChild(debugPanel);
-
-    // Mount the main dashboard visuals as an independent box (not inside bunbit-debug-panel)
-    try {
-        initMainDashboard();
-    } catch (e) {
-        console.error('Failed to initMainDashboard:', e);
-    }
-
-    // Ensure visible in stacking contexts and preserve spanning (do not collapse to top-left)
-    setTimeout(() => {
-        const p = document.getElementById('bunbit-debug-panel');
-        if (!p) return;
-        p.style.zIndex = '2147483646';
-        p.style.display = 'flex';
-        p.style.visibility = 'visible';
-        p.style.pointerEvents = 'auto';
-        p.style.top = `${edgeGap}px`;
-        p.style.left = `${edgeGap}px`;
-        p.style.right = `${edgeGap}px`;
-        p.style.bottom = `${edgeGap}px`;
-        try { document.body.appendChild(p); } catch (e) { /* ignore */ }
-    }, 150);
 
     // Notify other systems that the control panel exists now (ThemeManager listens for this)
     try {
@@ -491,12 +348,12 @@ export function initControlPanel() {
     let ox = 0, oy = 0;
     let pointerId = null;
 
-    function onHeaderMouseDown(e) {
-        if (typeof e.button === 'number' && e.button !== 0) return;
+    function onHeaderPointerDown(e) {
+        if (e.type === 'mousedown' && typeof e.button === 'number' && e.button !== 0) return;
         if (dragging) return;
 
         dragging = true;
-        pointerId = (typeof e.pointerId !== 'undefined') ? e.pointerId : null;
+        pointerId = e.pointerId;
 
         sx = e.clientX;
         sy = e.clientY;
@@ -507,7 +364,7 @@ export function initControlPanel() {
         debugPanel.style.cursor = 'grabbing';
 
         e.preventDefault();
-        e.stopPropagation();
+        e.stopImmediatePropagation();
 
         // Capture pointer so other listeners (canvas/game) don't see drag move.
         if (typeof header.setPointerCapture === 'function' && pointerId !== null) {
@@ -515,12 +372,12 @@ export function initControlPanel() {
         }
     }
 
-    function onHeaderMouseMove(e) {
+    function onHeaderPointerMove(e) {
         if (!dragging) return;
 
         // Block bubbling so the game/canvas doesn't treat drag as camera move.
         e.preventDefault();
-        e.stopPropagation();
+        e.stopImmediatePropagation();
 
         const dx = e.clientX - sx;
         const dy = e.clientY - sy;
@@ -530,19 +387,24 @@ export function initControlPanel() {
         debugPanel.style.bottom = 'auto';
     }
 
-    function onHeaderMouseUp(e) {
+    function onHeaderPointerUp(e) {
         if (!dragging) return;
         dragging = false;
         pointerId = null;
         debugPanel.style.cursor = 'default';
 
         e.preventDefault();
-        e.stopPropagation();
+        e.stopImmediatePropagation();
     }
 
-    header.addEventListener('mousedown', onHeaderMouseDown);
-    document.addEventListener('mousemove', onHeaderMouseMove, { passive: false });
-    document.addEventListener('mouseup', onHeaderMouseUp, { passive: false });
+    // Use pointer events for better capture
+    header.addEventListener('pointerdown', onHeaderPointerDown);
+    document.addEventListener('pointermove', onHeaderPointerMove, { passive: false });
+    document.addEventListener('pointerup', onHeaderPointerUp, { passive: false });
+    // Also handle mouse events for compatibility
+    header.addEventListener('mousedown', onHeaderPointerDown);
+    document.addEventListener('mousemove', onHeaderPointerMove, { passive: false });
+    document.addEventListener('mouseup', onHeaderPointerUp, { passive: false });
 
 
     return debugPanel;
