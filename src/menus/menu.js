@@ -97,7 +97,7 @@ export function mainGameMenu() {
 function menuBackGround(engine) {
     if (!menuBackGround.img) {
         menuBackGround.img = new Image();
-        menuBackGround.img.src = "./img/menu/goon.png";
+        menuBackGround.img.src = "./img/menu/main-menu.png";
     }
 
     const canvas = engine.canvas;

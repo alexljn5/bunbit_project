@@ -131,9 +131,55 @@ export function initControlPanel() {
     });
     reloadButton.style.marginTop = `${10 * SCALE_Y}px`;
 
-    // Add an <img> element for the logo so we can brighten and smoothly mask it (no obvious square)
+    // Add an <img> element(s) for the logo so we can brighten and smoothly mask them (no obvious square)
+    const pillarSrc = 'img/menu/main/pillar.png';
+
+    // Center ASCII logo
     const _logoSrc = 'img/logo/logo-ascii-transparent.png';
     const logoEl = document.createElement('img');
+
+    // Also spawn identical pillars to the left and right of the ascii logo
+
+
+    // Pillars to the left and right of the logo (same sizing rules as the logo)
+    // Offset is relative to pillar width: match pillar width so the pillars sit flanking the logo.
+    // 0.35 * pillar width approximates “next to” spacing without overlaps.
+    const pillarOffsetFactor = 0.35;
+    const pillarElStyle = (el, side) => {
+        el.src = pillarSrc;
+        el.alt = '';
+        el.style.position = 'absolute';
+        el.style.top = '50%';
+        el.style.transform = 'translate(-50%, -50%)';
+        el.style.bottom = '0%';
+        el.style.width = '512px';
+        el.style.height = '512px';
+        el.style.maxWidth = '60%';
+
+        // same visual blending as logo
+        el.style.filter = 'brightness(4.90) contrast(10.15) saturate(10.2)';
+        el.style.mixBlendMode = 'overlay';
+        el.style.borderRadius = '18%';
+        el.style.clipPath = 'ellipse(48% 40% at 50% 50%)';
+        el.style.boxShadow = '0 12px 40px rgba(0,0,0,0.55)';
+        el.style.pointerEvents = 'none';
+        el.style.opacity = '0.94';
+        el.style.zIndex = '0';
+
+        // Place left/right using calc with percentage + pixel-ish proportion.
+        // Use 50% baseline (same as logo) plus/minus an offset that scales with viewport.
+        // Since pillar uses maxWidth:60%, we approximate the offset as 0.35 * 60vw.
+        // side: -1 => left, +1 => right
+        const direction = side === 'left' ? -1 : 1;
+        el.style.left = `calc(50% + (${direction} * ${pillarOffsetFactor} * 60vw))`;
+    };
+
+    const pillarLeftEl = document.createElement('img');
+    pillarElStyle(pillarLeftEl, 'left');
+
+    const pillarRightEl = document.createElement('img');
+    pillarElStyle(pillarRightEl, 'right');
+
     logoEl.src = _logoSrc;
     logoEl.alt = '';
     // Position and sizing
@@ -157,6 +203,9 @@ export function initControlPanel() {
     logoEl.style.opacity = '0.94';
     logoEl.style.zIndex = '0';
     debugPanel.appendChild(logoEl);
+    // Add these:
+    debugPanel.appendChild(pillarLeftEl);
+    debugPanel.appendChild(pillarRightEl);
     // Ensure header and buttons render above
     header.style.zIndex = '3';
     // Buttons already set to zIndex 2 above

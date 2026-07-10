@@ -60,7 +60,7 @@ function initOffscreenCanvas() {
 
 function drawStaticMenu() {
     const testSettingsBackGroundImage = new Image();
-    testSettingsBackGroundImage.src = "./img/menu/goon.png";
+    testSettingsBackGroundImage.src = "./img/menu/main-menu.png";
     initOffscreenCanvas();
     offscreenContext.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     // Use reusable overlay function with alpha 0.8
