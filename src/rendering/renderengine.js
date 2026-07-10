@@ -34,7 +34,12 @@ import { titleHandlerGodFunction } from "../ui/titlehandler.js";
 import { initLightingEngine, updateLights, applyLighting, cleanupLightingEngine } from "./lightengine/renderlight.js";
 import { tryLoadRenderHelpersWasm } from "../wasm/renderhelpers.js";
 
-const DEBUG_FRAME_TIMING = new URLSearchParams(window.location.search).get("debugFrameTiming") === "true";
+const DEBUG_FRAME_TIMING = (typeof window !== 'undefined' && window.location)
+    ? new URLSearchParams(window.location.search).get("debugFrameTiming") === "true"
+    : false;
+
+// Preload textures early so the first map-load has fewer missing assets.
+import "../mapdata/maptexturesloader.js";
 
 debugHandlerGodFunction();
 
@@ -110,11 +115,17 @@ async function initializeRenderHelpersWasm() {
     if (renderHelpersWasm) {
         renderHelpersWasmStatus = "ready";
         window.__renderHelpersWasm = renderHelpersWasm;
+        const rayAngleExport = (renderHelpersWasm && typeof renderHelpersWasm.rayAngle === 'function')
+            ? renderHelpersWasm.rayAngle(0, playerFOV, Math.floor(numCastRays / 2), numCastRays)
+            : undefined;
         console.info("[WASM] RenderHelpers ready", {
             source: "wasm",
             status: renderHelpersWasmStatus,
-            clampInt: renderHelpersWasm.clampInt(15, 0, 10),
-            rayAngle: renderHelpersWasm.rayAngle(0, playerFOV, Math.floor(numCastRays / 2), numCastRays)
+            clampInt: typeof renderHelpersWasm.clampInt === 'function'
+                ? renderHelpersWasm.clampInt(15, 0, 10)
+                : undefined,
+            rayAngle: rayAngleExport,
+            availableExports: renderHelpersWasm ? Object.keys(renderHelpersWasm) : []
         });
     } else {
         renderHelpersWasmStatus = "fallback";

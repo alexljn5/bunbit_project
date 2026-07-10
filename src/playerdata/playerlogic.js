@@ -1,44 +1,26 @@
-import { renderEngine } from "../rendering/renderengine.js";
 import { compiledTextStyle } from "../debugtools.js";
 import { staminaBarMeterOnCanvas, healthMeterOnCanvas } from "./playerui.js";
-import { playerMovementDisabled as catMovementDisabled } from "../ai/friendlycat.js";
-import { playerMovementDisabled as pickupMovementDisabled } from "../interactions/interactionlogic.js";
 import { wallCollision } from "../collissiondetection/collissionwalllogic.js";
-import { CANVAS_WIDTH, CANVAS_HEIGHT } from "../globals.js";
+import { CANVAS_WIDTH, CANVAS_HEIGHT, keys, playerPosition, previousPosition, playerMovement, playerStamina, playerHealth, playerHealthBar, gameOver, showTerminal, setGameOver, setPlayerMovementDisabled, setPlayerPosition, showDebugTools, playerMovementDisabled } from "../globals.js";
 import { drawRespawnMenu } from "../menus/menurespawn.js";
 
 export let playerVantagePointX = { playerVantagePointX: 0 };
 export let playerVantagePointY = { playerVantagePointY: 0 };
 
-export const keys = Object.fromEntries([
-    ["w", false], ["a", false], ["s", false], ["d", false],
-    ["q", false], ["e", false], [" ", false], ["shift", false],
-    ["alt", false], ["p", false], ["t", false], ["enter", false],
-    ["i", false], ["1", false], ["2", false], ["3", false], ["4", false],
-    ["5", false], ["6", false], ["7", false], ["8", false], ["9", false],
-    ["f3", false], ["f4", false], ["escape", false], ["y", false]
-]);
+// Re-export for backward compatibility
+export { keys, showDebugTools, playerPosition, previousPosition, playerMovement, playerStamina, playerHealth, playerHealthBar, gameOver, showTerminal, setGameOver, setPlayerMovementDisabled, setPlayerPosition, playerMovementDisabled };
 
 let playerMovementSpeed = 100;
 let playerRotationSpeed = Math.PI / 3;
 let mouseSensitivity = 0.002; // Adjust for mouse look sensitivity
 let lastTime = performance.now();
-export const playerStamina = { playerStaminaBar: 100 };
 let maxStamina = 100;
 let drainRate = 50;
 let regenRate = 20;
 let maxHealth = 100;
-export let playerHealthBar = 100;
-export const playerHealth = { playerHealth: 100 };
-export let gameOver = false;
-let showDebugTools = false;
 
 const canvas = document.getElementById('mainGameRender');
 canvas.requestPointerLock = canvas.requestPointerLock || canvas.mozRequestPointerLock;
-
-export let playerPosition = { x: 2.5 * 50 / 2, z: 2.5 * 50 / 2, angle: 0 };
-export let previousPosition = { x: playerPosition.x, z: playerPosition.z };
-export let playerMovement = { x: 0, z: 0 };
 
 // Expose globally for circular dependency avoidance
 window.__playerPosition = playerPosition;
@@ -102,16 +84,14 @@ canvas.addEventListener('click', () => {
     }
 });
 */
-// Import showTerminal from terminal.js
-import { showTerminal } from "../console/terminal/terminal.js";
 
 // Define the onRespawn function
 export function onRespawn() {
     playerHealth.playerHealth = maxHealth; // Reset health
-    playerHealthBar = maxHealth;
+    // playerHealthBar is now in globals.js
     playerStamina.playerStaminaBar = maxStamina; // Reset stamina
-    playerPosition = { x: 2.5 * 50 / 2, z: 2.5 * 50 / 2, angle: 0 }; // Reset position
-    gameOver = false; // Reset game over state
+    setPlayerPosition({ x: 2.5 * 50 / 2, z: 2.5 * 50 / 2, angle: 0 }); // Reset position
+    setGameOver(false); // Reset game over state
     canvas.onclick = null; // Clear click handler to avoid conflicts
 }
 
@@ -119,7 +99,7 @@ import { maybePlayConcreteFootstep } from "../audio/footstep_concrete.js";
 
 export function playerLogic() {
     // Block all movement if game over, terminal is open, or movement is disabled by cat or pickup
-    if (gameOver || showTerminal || catMovementDisabled || pickupMovementDisabled) return;
+    if (gameOver || showTerminal || playerMovementDisabled) return;
 
     const now = performance.now();
     const deltaTime = (now - lastTime) / 1000;
@@ -127,7 +107,7 @@ export function playerLogic() {
 
 
     // Health and stamina management
-    playerHealthBar = playerHealth.playerHealth;
+    // playerHealthBar is now in globals.js
     let isSprinting = false;
     if (keys.alt && (keys.w || keys.s || keys.q || keys.e) && playerStamina.playerStaminaBar > 0) {
         isSprinting = true;
@@ -194,7 +174,7 @@ export function playerLogic() {
     playerVantagePointY.playerVantagePointY = playerMovement.z * 0.02;
 
     if (playerHealth.playerHealth <= 0) {
-        gameOver = true;
+        setGameOver(true);
         // Draw death screen with canvas and onRespawn
         drawRespawnMenu(canvas, onRespawn);
         staminaBarMeterOnCanvas();
@@ -211,5 +191,3 @@ export function getPlayerBobbingOffset() {
 export function isInteractionKeyPressed() {
     return keys.t;
 }
-
-export { showDebugTools };

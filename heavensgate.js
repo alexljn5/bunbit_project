@@ -113,7 +113,7 @@ async function createWindow() {
             ? `?${gameQuery}`
             : gameQuery;
 
-        const url = `http://localhost:${PORT}/src/main_game.html${normalized}`;
+        const url = `http://localhost:${PORT}/src/intro.html${normalized}`;
 
         try {
             await mainWindow.loadURL(url);

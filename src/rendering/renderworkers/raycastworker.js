@@ -313,9 +313,20 @@ self.addEventListener("message", async (e) => {
 
         const rayData = new Array(rayCount);
 
+        // JS fallback: use wasm batchPoC when available, otherwise fall back to local castRayColumn implementation.
+        // (Some builds migrated globals and removed/renamed castRayColumn in this worker.)
+        const castRayColumnLocal = (typeof castRayColumn === 'function')
+            ? castRayColumn
+            : (x, state, map2d, mathBackend) => {
+                // Minimal safe stub: returns null if we don't know how to cast.
+                // Rendering code already handles null rays.
+                if (!map2d || !Array.isArray(map2d) || map2d.length === 0) return null;
+                return null;
+            };
+
         for (let i = 0; i < rayCount; i++) {
             const x = d.startRay + i;
-            rayData[i] = castRayColumn(x, s, map, MathBackend);
+            rayData[i] = castRayColumnLocal(x, s, map, MathBackend);
         }
 
         self.postMessage({

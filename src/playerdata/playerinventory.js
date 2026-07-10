@@ -1,11 +1,10 @@
 import { renderEngine } from "../rendering/renderengine.js";
 import { keys } from "./playerlogic.js";
-import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT } from "../globals.js";
+import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT, playerInventory, inventoryState, showInventorySprite, setShowInventorySprite } from "../globals.js";
 import { ITEM_REGISTRY, SPRITE_MAP, validateSprites } from "../itemhandler/itemregistry.js";
 
-export let playerInventory = [];
-export let showInventorySprite = false;
-export const inventoryState = { selectedInventoryIndex: 0 };
+// Re-export for backward compatibility
+export { playerInventory, inventoryState, showInventorySprite };
 
 export function playerInventoryGodFunction() {
     validateSprites();
@@ -44,7 +43,7 @@ function inventoryUIShit() {
 
 function keyHandlingOfInventory() {
     if (keys["i"]) {
-        showInventorySprite = !showInventorySprite;
+        setShowInventorySprite(!showInventorySprite);
         keys["i"] = false;
     }
     for (let i = 1; i <= 9; i++) {

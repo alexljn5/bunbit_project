@@ -7,7 +7,9 @@ import { fastCos, fastSin } from "../math/mathtables.js";
 import { renderEngine, drawQuad } from "./renderengine.js";
 import { playerFOV, numCastRays } from "./raycasting.js";
 
-const DEBUG_HORIZON_TIMING = new URLSearchParams(window.location.search).get("debugHorizonTiming") === "true";
+const DEBUG_HORIZON_TIMING = (typeof window !== 'undefined' && window.location)
+    ? new URLSearchParams(window.location.search).get("debugHorizonTiming") === "true"
+    : false;
 
 // Number of workers to use
 const NUM_WORKERS = 8;

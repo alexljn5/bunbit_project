@@ -1,5 +1,5 @@
 import { themeManager } from '../../themes/thememanager.js';
-import { SCALE_X, SCALE_Y, CANVAS_WIDTH, CANVAS_HEIGHT } from '../../globals.js';
+import { SCALE_X, SCALE_Y, CANVAS_WIDTH, CANVAS_HEIGHT, defaultDebugVisible, setDebugVisible } from '../../globals.js';
 import { setMenuActive, menuActive } from '../../gamestate.js';
 import { gameLoop } from '../../game_loop.js';
 import { setupMenuClickHandler } from '../../menus/menu.js';
@@ -9,14 +9,10 @@ import { debugHandlerGodFunction, stopDebugTerminal } from '../debughandler.js';
 import { initControlPanel } from '../controlpanel.js';
 
 // State flags
-let isDragging = false;
-let dragStartX = 0;
-let dragStartY = 0;
-let panelStartX = 0;
-let panelStartY = 0;
 let initialized = false;
-export let defaultDebugVisible = false; // Debug features hidden by default
-window.defaultDebugVisible = defaultDebugVisible; // expose globally
+
+// Expose defaultDebugVisible globally (imported from globals.js)
+window.defaultDebugVisible = defaultDebugVisible;
 
 // Initialize BunbitDebug panel
 export function initBunbitDebug() {
@@ -35,34 +31,6 @@ export function cleanupBunbitDebug() {
     initialized = false;
 }
 
-// Handle drag functions (need to be defined at module level)
-function handleDrag(e) {
-    if (!isDragging) return;
-
-    const debugPanel = document.getElementById('bunbit-debug-panel');
-    if (!debugPanel) return;
-
-    const dx = e.clientX - dragStartX;
-    const dy = e.clientY - dragStartY;
-
-    debugPanel.style.left = `${panelStartX + dx}px`;
-    debugPanel.style.top = `${panelStartY + dy}px`;
-    debugPanel.style.right = 'auto';
-    debugPanel.style.bottom = 'auto';
-}
-
-function stopDrag() {
-    isDragging = false;
-    const debugPanel = document.getElementById('bunbit-debug-panel');
-    if (debugPanel) {
-        debugPanel.style.cursor = 'default';
-        const header = debugPanel.querySelector('div');
-        if (header) {
-            header.style.cursor = 'move';
-        }
-    }
-}
-
 // Initialize debug panel on page load
 if (typeof document !== 'undefined') {
     const initDebugWithRetry = () => {
@@ -75,7 +43,7 @@ if (typeof document !== 'undefined') {
     };
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initDebugWithRetry);
+        document.addEventListener('DOMContentLoaded', () => initDebugWithRetry());
     } else {
         initDebugWithRetry();
     }

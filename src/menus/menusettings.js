@@ -1,16 +1,13 @@
 import { game, renderEngine } from "../rendering/renderengine.js";
 import { keys } from "../playerdata/playerlogic.js";
 import { volumeSlidersGodFunction, setupAudioSliderHandlers } from "../audio/audiohandler.js";
-import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT } from "../globals.js";
+import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT, menuActive, setMenuActive, playerMovementDisabled, setPlayerMovementDisabled } from "../globals.js";
 import { getMouseCanvasPos } from "../utils/inputTransform.js";
 
 import { saveGame, loadGame } from "../savedata/save_load_game.js";
 import { applyGraphicsPreset, getGraphicsSettings, drawGraphicsOverlay, handleGraphicsMenuClick } from "./graphicssettings.js";
 import { drawButton, drawMenuOverlay } from "./overlays.js";
 
-
-export let playerMovementDisabled = false;
-export let menuActive = false;
 let lastEscapeState = false;
 let showLoadPrompt = false;
 let offscreenCanvas = null;
@@ -255,8 +252,8 @@ async function handleSettingsMenuClick(e) {
         );
         if (button.hovered && e.type === 'click') {
             if (button.name === "Resume") {
-                menuActive = false;
-                playerMovementDisabled = false;
+                setMenuActive(false);
+                setPlayerMovementDisabled(false);
                 detachSettingsMenuHandlers();
             } else if (button.name === "Audio") {
                 showAudio = true;
@@ -357,8 +354,8 @@ function menuSettingsRender() {
 function menuSettings() {
     const currentEscapeState = keys["escape"];
     if (!lastEscapeState && currentEscapeState) {
-        menuActive = !menuActive;
-        playerMovementDisabled = menuActive;
+        setMenuActive(!menuActive);
+        setPlayerMovementDisabled(menuActive);
         needsRedraw = true;
         if (menuActive) {
             console.log("Settings menu opened, pausing game");

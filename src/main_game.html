@@ -8,13 +8,16 @@
     <script type="module" src="game_loop.js"></script>
     <script type="module" src="playerdata/playerlogic.js"></script>
     <script type="module" src="./rendering/renderengine.js"></script>
-    <script type="module" src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
     <link rel="shortcut icon" href="#">
     <title></title>
 </head>
 
 <body>
-    <canvas id="mainGameRender" width="0" height="0"></canvas>
+    <div class="game-container">
+        <canvas id="mainGameRender" width="0" height="0"></canvas>
+    </div>
+    <script type="module" src="menus/main_dashboard.js"></script>
+    <script type="module" src="debug/panels/bunbitdebug.js"></script>
 </body>
 
 </html>
