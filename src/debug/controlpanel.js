@@ -83,9 +83,15 @@ export function initControlPanel() {
     showDebugButton.id = 'bunbit-debug-toggle';
     showDebugButton.textContent = 'Show Debug';
 
+    // Debug-only: replay the intro ASCII animation without restarting the script
+    const replayIntroButton = document.createElement('button');
+    replayIntroButton.id = 'bunbit-replay-intro';
+    replayIntroButton.textContent = '↻ Replay Intro';
+
     const positionButton = document.createElement('button');
     positionButton.id = 'bunbit-position-toggle';
     positionButton.textContent = 'Scale';
+
 
     // Theme selector dropdown
     const themeSelector = document.createElement('select');
@@ -296,6 +302,7 @@ export function initControlPanel() {
     debugPanel.appendChild(playButton);
     debugPanel.appendChild(stopButton);
     debugPanel.appendChild(showDebugButton);
+    debugPanel.appendChild(replayIntroButton);
     debugPanel.appendChild(positionButton);
     debugPanel.appendChild(themeSelector);
     document.body.appendChild(debugPanel);
@@ -357,6 +364,37 @@ export function initControlPanel() {
             catch (e) { window.location.reload(); }
         } else if (window.location && typeof window.location.reload === 'function') {
             window.location.reload();
+        }
+    });
+
+    // Replay button: runs intro placeholder from src/intro.html-like logic
+    replayIntroButton.addEventListener('click', async () => {
+        try {
+            const mod = await import('../animations/introplaceholder.js');
+
+            // Reset intro placeholder state so it can run again.
+            // (The module uses internal `hasRun`, so we force a full reload by bypassing autorun and calling maybeShowIntroPlaceholders directly.)
+            if (typeof window !== 'undefined' && typeof window.setIntroActive === 'function') {
+                window.setIntroActive(true);
+            }
+            if (typeof window !== 'undefined') window.introActive = true;
+
+            // Load intro.html to get the correct fullscreen black page + intro script lifecycle,
+            // then load main_game.html again after the animation completes.
+            await new Promise(async (resolve, reject) => {
+                try {
+                    if (typeof window !== 'undefined') {
+                        // Ensure we don't reuse an already-loaded module instance
+                        // by doing a full page reload cycle.
+                        window.location.href = 'intro.html';
+                    }
+                    resolve();
+                } catch (e) {
+                    reject(e);
+                }
+            });
+        } catch (e) {
+            console.error('Replay Intro failed:', e);
         }
     });
 
