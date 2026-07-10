@@ -1,136 +1,106 @@
 # Bunbit Engine
 
 <p align="center">
-  <img src="img/logo/alexljn5_logo_merge_transparent.png" alt="Bunbit Engine transparent full logo" width="320" />
+  <img src="src/img/logo/alexljn5_logo_merge_transparent.png" alt="Bunbit Engine Logo" width="320"/>
 </p>
 
 **Version:** Alpha 0.0.5  
-**Type:** Experimental Raycasting Engine (Hobby / College Origin)  
-**Author:** alexljn5  
-
+**Type:** Experimental Raycasting Engine  
+**Author:** alexljn5
 
 ---
 
 ## Overview
 
-Bunbit Engine is a custom raycasting-based game engine originally developed as a college project and later expanded into a personal experimental engine.
+**Bunbit Engine** is a custom software raycasting engine originally created as a college project and later expanded into a personal experimental platform.
 
-It focuses on:
+It explores retro rendering techniques with modern optimizations, focusing on:
 
-- Software-based raycasting rendering
-- Multi-threaded worker pipelines (floor / ceiling / horizon rendering)
+- Pure CPU raycasting with multi-threaded worker pipelines
+- Floor, ceiling, and horizon rendering
 - WASM-accelerated performance paths
-- Modular map, sprite, and AI systems
+- Modular systems for maps, sprites, and AI
 - Real-time configurable graphics scaling
 
-The engine is still in active development and is not considered stable.
+The engine remains in active development and is **not stable**.
 
 ---
 
 ## Visual Identity
 
-Bunbit is built around a stylized “industrial rabbit” aesthetic — clean systems wrapped in an unsettling, minimal visual tone.
+Bunbit follows an **industrial rabbit** aesthetic — clean technical systems wrapped in a cold, slightly unsettling tone.
 
-The visual direction emphasizes:
-
-- Deep blacks and high contrast reds
-- Mechanical / synthetic presentation
+Core visual themes:
+- Deep blacks with high-contrast reds
+- Mechanical and synthetic presentation
 - Subtle distortion and low-level visual noise
-- A “cute but wrong” rabbit motif as a symbolic core identity
+- A “cute but wrong” rabbit motif as its symbolic core
 
-This is purely aesthetic and does not affect gameplay functionality.
+This aesthetic is purely visual and does not impact functionality.
 
 ---
 
 ## Features
 
 ### Rendering
-- Custom CPU raycasting renderer
-- Floor and ceiling horizon rendering via worker threads
-- Texture-mapped tile system
-- Dynamic resolution scaling system
-- Optional WASM acceleration for performance-critical paths
+- Custom CPU-based raycasting renderer
+- Multi-threaded floor, ceiling, and horizon rendering
+- Texture-mapped environments
+- Dynamic internal resolution scaling
+- Optional WASM acceleration for performance-critical sections
 
-### Engine Systems
-- Modular map loading system
-- Sprite manager with per-map registration
-- AI system decoupled from rendering layer
-- Event-driven input handling
-- Save / load system with file-based persistence
+### Systems
+- Modular map loading
+- Sprite management with per-map registration
+- Decoupled AI system
+- Event-driven input
+- File-based save/load system
 
-### Graphics
-- Adjustable ray count and render depth presets
-- Real-time resolution scaling (low-end to high-end profiles)
-- Debug scaling / positioning tools (experimental)
-
----
-
-## Architecture Notes
-
-The engine is structured around separation of concerns:
-
-- Main thread: game state, input, orchestration
-- Workers: heavy rendering (floor / ceiling / horizon)
-- WASM modules: performance-critical math / rendering components
-- DOM layer: menus, overlays, UI systems
-
-This hybrid architecture is intentionally experimental and prioritizes flexibility over strict engine purity.
+### Graphics & Debugging
+- Adjustable ray count and render depth
+- Multiple performance presets (low to high-end)
+- Debug tools for scaling and positioning (experimental)
 
 ---
 
-## Performance Model
+## Architecture
 
-The engine’s performance is primarily determined by:
+The engine uses a hybrid architecture:
 
-- Number of cast rays
-- Render resolution (internal canvas buffer size)
-- Worker tiling strategy
+- **Main thread**: Game state, input, and orchestration
+- **Worker threads**: Heavy rendering work (floor/ceiling/horizon)
+- **WASM modules**: Performance-critical math and rendering
+- **DOM layer**: UI, menus, and overlays
+
+This structure prioritizes flexibility and experimentation over traditional engine purity.
+
+---
+
+## Performance
+
+Performance is mainly affected by:
+- Number of rays cast
+- Internal render resolution
+- Worker thread strategy
 - Texture sampling density
 
-Higher presets significantly increase computational cost.
+Higher quality settings significantly increase CPU load.
 
 ---
-
-## Asset Credits
-
-### Icon / Logo
-This repository includes a **transparent full logo** intended for README/GitHub-page usage.
-
-- File: `img/logo/logo-ascii-transparent.png`
-- See: `docs/logo-display.md`
-
-If you previously removed or replaced any copyrighted imagery, `docs/logo-display.md` is meant to document that the clean transparent asset is the one used for public presentation.
-
----
-
 
 ## Status
 
-**Alpha Stage**
+**Alpha** — Expect:
+- Experimental and unstable behavior
+- Debug tooling that may break
+- Performance spikes
+- Frequent core refactors
 
-Expect:
-
-- Experimental behavior
-- Debug tooling instability
-- Performance spikes under load
-- Ongoing refactors of core systems
-
----
-
-## Notes
-
-Bunbit Engine is a long-term experimental project exploring:
-
-- Real-time software rendering constraints
-- Worker-based parallel rendering pipelines
-- Hybrid JS/WASM engine architecture
-- Retro-style raycasting techniques with modern optimization layers
-
-It is not intended to be a production engine.
+Bunbit Engine is a long-term hobby project exploring the limits of software rendering, parallel pipelines, and hybrid JS/WASM architecture. It is **not** intended as a production engine.
 
 ---
 
-## “Signal”
+## Signal
 
-> Something is always rendering beneath the surface.
+> Something is always rendering beneath the surface.  
 > The rabbit never stops moving.
