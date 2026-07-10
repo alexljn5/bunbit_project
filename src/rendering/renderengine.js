@@ -38,6 +38,9 @@ const DEBUG_FRAME_TIMING = (typeof window !== 'undefined' && window.location)
     ? new URLSearchParams(window.location.search).get("debugFrameTiming") === "true"
     : false;
 
+// Preload textures early so the first map-load has fewer missing assets.
+import "../mapdata/maptexturesloader.js";
+
 debugHandlerGodFunction();
 
 // --- DOM Elements ---

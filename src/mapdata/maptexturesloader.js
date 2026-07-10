@@ -324,10 +324,15 @@ async function _startTextureWorkerLoad() {
     }
 }
 
-// Try to start worker-based loading; fallback will continue to attach onload handlers below
-_startTextureWorkerLoad().then(ok => {
-    if (!ok) {
-        // fallback — existing onload handlers remain in place
-        console.info('[Textures] Worker not used; falling back to main-thread image loader');
-    }
-});
+// Worker-based loading is optional.
+// It can introduce path-resolution differences for relative URLs; keep it gated so
+// main-thread loader still guarantees textures and avoids error spam.
+const USE_TEXTURE_WORKER = false;
+if (USE_TEXTURE_WORKER) {
+    _startTextureWorkerLoad().then(ok => {
+        if (!ok) {
+            console.info('[Textures] Worker not used; falling back to main-thread image loader');
+        }
+    });
+}
+

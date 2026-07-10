@@ -7,7 +7,7 @@ import { mapHandler } from "../mapdata/maphandler.js";
 const mapTracks = new Map([
     ["map_01", new Audio("./audio/music/track_level01_new.mp3")],
     ["map_02", new Audio("./audio/music/track_level01_wtf.mp3")],
-    ["map_debug", new Audio("./audio/music/placeholder.mp3")]
+    ["map_debug", new Audio("./audio/music/track_level01.mp3")]
 ]);
 
 let demon_rumble01 = new Audio("./audio/sounds/demonrumble.mp3");
