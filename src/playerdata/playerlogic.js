@@ -115,6 +115,8 @@ export function onRespawn() {
     canvas.onclick = null; // Clear click handler to avoid conflicts
 }
 
+import { maybePlayConcreteFootstep } from "../audio/footstep_concrete.js";
+
 export function playerLogic() {
     // Block all movement if game over, terminal is open, or movement is disabled by cat or pickup
     if (gameOver || showTerminal || catMovementDisabled || pickupMovementDisabled) return;
@@ -122,6 +124,7 @@ export function playerLogic() {
     const now = performance.now();
     const deltaTime = (now - lastTime) / 1000;
     lastTime = now;
+
 
     // Health and stamina management
     playerHealthBar = playerHealth.playerHealth;
@@ -145,6 +148,14 @@ export function playerLogic() {
     const sprintMultiplier = isSprinting && playerStamina.playerStaminaBar > 0 ? 2 : 1;
     const slowMultiplier = keys.shift ? 0.5 : 1;
     let isMoving = keys.w || keys.s || keys.q || keys.e;
+
+    // Concrete footsteps (play 4-clip random set while walking on concrete)
+    try {
+        maybePlayConcreteFootstep({ isMoving });
+    } catch {
+        // ignore audio errors
+    }
+
     if (keys.w) {
         playerPosition.x += cosAngle * playerMovementSpeed * sprintMultiplier * slowMultiplier * deltaTime;
         playerPosition.z += sinAngle * playerMovementSpeed * sprintMultiplier * slowMultiplier * deltaTime;
@@ -153,6 +164,7 @@ export function playerLogic() {
         playerPosition.x -= cosAngle * playerMovementSpeed * sprintMultiplier * slowMultiplier * deltaTime;
         playerPosition.z -= sinAngle * playerMovementSpeed * sprintMultiplier * slowMultiplier * deltaTime;
     }
+
     if (keys.q) {
         playerPosition.x += sinAngle * playerMovementSpeed * sprintMultiplier * slowMultiplier * deltaTime;
         playerPosition.z -= cosAngle * playerMovementSpeed * sprintMultiplier * slowMultiplier * deltaTime;
