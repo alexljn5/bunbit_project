@@ -142,7 +142,7 @@ export function initControlPanel() {
     logoEl.style.top = '50%';
     logoEl.style.transform = 'translate(-50%, -50%)';
     logoEl.style.width = '512px';
-    logoEl.style.height = 'auto';
+    logoEl.style.height = '512px';
     logoEl.style.maxWidth = '60%';
     // Visual blending: brighten, increase contrast, and blend with panel color
     logoEl.style.filter = 'brightness(4.90) contrast(10.15) saturate(10.2)';
