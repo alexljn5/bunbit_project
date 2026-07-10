@@ -172,7 +172,7 @@ function debugHandlerMainFunction() {
 
     debugContainer = document.createElement('div');
     debugContainer.id = 'debugTerminalContainer';
-    debugContainer.style.position = 'absolute';
+    debugContainer.style.position = 'fixed';
     debugContainer.style.left = '0';
     debugContainer.style.bottom = '0';
     // Ensure debug terminal is above the control panel (one level above game canvas)
@@ -306,8 +306,15 @@ function debugHandlerMainFunction() {
 }
 
 // --- Draw debug logs with enhanced effects (using shared system) ---
+
+// --- Compatibility exports (some modules expect these named exports) ---
+export { DEBUG_WIDTH, DEBUG_HEIGHT, MIN_WIDTH, MIN_HEIGHT };
+export { HEADER_HEIGHT, buttons, resizeArea, debugCanvas, debugContainer };
+
+
 export function drawDebugTerminal() {
     if (!isDebugVisible || !debugCtx || !debugCanvas) return;
+
 
     const termWidth = debugCanvas.width;
     const termHeight = debugCanvas.height;
@@ -316,18 +323,14 @@ export function drawDebugTerminal() {
     const deltaTime = Math.min(100, now - lastDrawTime) / 1000;
     lastDrawTime = now;
 
-    // Throttle to ~60fps: skip if delta <16ms
-    if (deltaTime < 0.016) {
-        if (rafId) cancelAnimationFrame(rafId);
-        rafId = requestAnimationFrame(drawDebugTerminal);
-        return;
-    }
+    // Removed throttling to ensure logs update in real-time
+    // The throttling was causing "static and buggy" behavior
 
     // Reset transform each frame to prevent accumulated translate/scale from previous draws
     debugCtx.setTransform(1, 0, 0, 1, 0, 0);
 
-    // Apply flicker effect
-    debugCtx.globalAlpha = evilGlitchSystem.flicker;
+    // Apply flicker effect (but ensure minimum visibility)
+    debugCtx.globalAlpha = Math.max(0.7, evilGlitchSystem.flicker);
 
     // Apply shake effect
     const shakeX = evilGlitchSystem.shakeIntensity > 0 ?
@@ -336,27 +339,6 @@ export function drawDebugTerminal() {
         (Math.random() - 0.5) * evilGlitchSystem.shakeIntensity : 0;
 
     debugCtx.clearRect(0, 0, termWidth, termHeight);
-
-    // Draw smear trails if effect is active (conditional)
-    if (evilGlitchSystem.smearEffect > 0.5 && evilGlitchSystem.lastFrame) {
-        debugCtx.globalAlpha = 0.1 * evilGlitchSystem.smearEffect;
-        debugCtx.drawImage(evilGlitchSystem.lastFrame,
-            shakeX, shakeY,
-            termWidth, termHeight);
-        debugCtx.globalAlpha = evilGlitchSystem.flicker;
-    }
-
-    // Store current frame for smear effect
-    if (evilGlitchSystem.smearEffect > 0.5) {
-        if (!evilGlitchSystem.lastFrame) {
-            evilGlitchSystem.lastFrame = document.createElement('canvas');
-            evilGlitchSystem.lastFrame.width = termWidth;
-            evilGlitchSystem.lastFrame.height = termHeight;
-        }
-        const tempCtx = evilGlitchSystem.lastFrame.getContext('2d');
-        tempCtx.clearRect(0, 0, termWidth, termHeight);
-        tempCtx.drawImage(debugCanvas, 0, 0);
-    }
 
     // Draw background with shake offset
     debugCtx.fillStyle = themeManager.getCurrentTheme().background;
@@ -456,9 +438,14 @@ export function drawDebugTerminal() {
     debugCtx.translate(evilGlitchSystem.horizontalShift + shakeX,
         evilGlitchSystem.verticalShift + shakeY);
 
+    // Ensure all later draws happen in the base coordinate space
+    // (buttons + header use the un-translated coords)
+    debugCtx.setTransform(1, 0, 0, 1, 0, 0);
+
     for (let i = 0; i < visibleLines; i++) {
         const log = filteredLogs[firstLine + i];
         if (!log) continue;
+
 
         // Use shared log color
         debugCtx.fillStyle = themeManager.getLogColor(log.type);
