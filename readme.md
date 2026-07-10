@@ -1,106 +1,131 @@
 # Bunbit Engine
 
-<p align="center">
-  <img src="src/img/logo/alexljn5_logo_merge_transparent.png" alt="Bunbit Engine Logo" width="320"/>
-</p>
-
 **Version:** Alpha 0.0.5  
-**Type:** Experimental Raycasting Engine  
-**Author:** alexljn5
+**Type:** Experimental Raycasting Engine (Hobby / College Origin)  
+**Author:** alexljn5  
 
 ---
 
 ## Overview
 
-**Bunbit Engine** is a custom software raycasting engine originally created as a college project and later expanded into a personal experimental platform.
+Bunbit Engine is a custom raycasting-based game engine originally developed as a college project and later expanded into a personal experimental engine.
 
-It explores retro rendering techniques with modern optimizations, focusing on:
+It focuses on:
 
-- Pure CPU raycasting with multi-threaded worker pipelines
-- Floor, ceiling, and horizon rendering
+- Software-based raycasting rendering
+- Multi-threaded worker pipelines (floor / ceiling / horizon rendering)
 - WASM-accelerated performance paths
-- Modular systems for maps, sprites, and AI
+- Modular map, sprite, and AI systems
 - Real-time configurable graphics scaling
 
-The engine remains in active development and is **not stable**.
+The engine is still in active development and is not considered stable.
 
 ---
 
 ## Visual Identity
 
-Bunbit follows an **industrial rabbit** aesthetic — clean technical systems wrapped in a cold, slightly unsettling tone.
+Bunbit is built around a stylized “industrial rabbit” aesthetic — clean systems wrapped in an unsettling, minimal visual tone.
 
-Core visual themes:
-- Deep blacks with high-contrast reds
-- Mechanical and synthetic presentation
+The visual direction emphasizes:
+
+- Deep blacks and high contrast reds
+- Mechanical / synthetic presentation
 - Subtle distortion and low-level visual noise
-- A “cute but wrong” rabbit motif as its symbolic core
+- A “cute but wrong” rabbit motif as a symbolic core identity
 
-This aesthetic is purely visual and does not impact functionality.
+This is purely aesthetic and does not affect gameplay functionality.
 
 ---
 
 ## Features
 
 ### Rendering
-- Custom CPU-based raycasting renderer
-- Multi-threaded floor, ceiling, and horizon rendering
-- Texture-mapped environments
-- Dynamic internal resolution scaling
-- Optional WASM acceleration for performance-critical sections
+- Custom CPU raycasting renderer
+- Floor and ceiling horizon rendering via worker threads
+- Texture-mapped tile system
+- Dynamic resolution scaling system
+- Optional WASM acceleration for performance-critical paths
 
-### Systems
-- Modular map loading
-- Sprite management with per-map registration
-- Decoupled AI system
-- Event-driven input
-- File-based save/load system
+### Engine Systems
+- Modular map loading system
+- Sprite manager with per-map registration
+- AI system decoupled from rendering layer
+- Event-driven input handling
+- Save / load system with file-based persistence
 
-### Graphics & Debugging
-- Adjustable ray count and render depth
-- Multiple performance presets (low to high-end)
-- Debug tools for scaling and positioning (experimental)
-
----
-
-## Architecture
-
-The engine uses a hybrid architecture:
-
-- **Main thread**: Game state, input, and orchestration
-- **Worker threads**: Heavy rendering work (floor/ceiling/horizon)
-- **WASM modules**: Performance-critical math and rendering
-- **DOM layer**: UI, menus, and overlays
-
-This structure prioritizes flexibility and experimentation over traditional engine purity.
+### Graphics
+- Adjustable ray count and render depth presets
+- Real-time resolution scaling (low-end to high-end profiles)
+- Debug scaling / positioning tools (experimental)
 
 ---
 
-## Performance
+## Architecture Notes
 
-Performance is mainly affected by:
-- Number of rays cast
-- Internal render resolution
-- Worker thread strategy
+The engine is structured around separation of concerns:
+
+- Main thread: game state, input, orchestration
+- Workers: heavy rendering (floor / ceiling / horizon)
+- WASM modules: performance-critical math / rendering components
+- DOM layer: menus, overlays, UI systems
+
+This hybrid architecture is intentionally experimental and prioritizes flexibility over strict engine purity.
+
+---
+
+## Performance Model
+
+The engine’s performance is primarily determined by:
+
+- Number of cast rays
+- Render resolution (internal canvas buffer size)
+- Worker tiling strategy
 - Texture sampling density
 
-Higher quality settings significantly increase CPU load.
+Higher presets significantly increase computational cost.
+
+---
+
+## Asset Credits
+
+### Icon
+The project icon is based on a heavily modified version of:
+
+https://www.deviantart.com/nibroc-rock/art/Vector-Icon-Cream-version2-587334154
+
+All rights and original artwork belong to the original creator.
+
+Modifications were made for stylistic integration into the Bunbit Engine visual identity.
 
 ---
 
 ## Status
 
-**Alpha** — Expect:
-- Experimental and unstable behavior
-- Debug tooling that may break
-- Performance spikes
-- Frequent core refactors
+**Alpha Stage**
 
-Bunbit Engine is a long-term hobby project exploring the limits of software rendering, parallel pipelines, and hybrid JS/WASM architecture. It is **not** intended as a production engine.
+Expect:
+
+- Experimental behavior
+- Debug tooling instability
+- Performance spikes under load
+- Ongoing refactors of core systems
 
 ---
 
-## Signal
+## Notes
 
-> Something is always rendering beneath the surface.  
+Bunbit Engine is a long-term experimental project exploring:
+
+- Real-time software rendering constraints
+- Worker-based parallel rendering pipelines
+- Hybrid JS/WASM engine architecture
+- Retro-style raycasting techniques with modern optimization layers
+
+It is not intended to be a production engine.
+
+---
+
+## “Signal”
+
+> Something is always rendering beneath the surface.
 > The rabbit never stops moving.
