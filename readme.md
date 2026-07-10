@@ -1,8 +1,13 @@
 # Bunbit Engine
 
+<p align="center">
+  <img src="img/logo/alexljn5_logo_merge_transparent.png" alt="Bunbit Engine transparent full logo" width="320" />
+</p>
+
 **Version:** Alpha 0.0.5  
 **Type:** Experimental Raycasting Engine (Hobby / College Origin)  
 **Author:** alexljn5  
+
 
 ---
 
@@ -88,16 +93,16 @@ Higher presets significantly increase computational cost.
 
 ## Asset Credits
 
-### Icon
-The project icon is based on a heavily modified version of:
+### Icon / Logo
+This repository includes a **transparent full logo** intended for README/GitHub-page usage.
 
-https://www.deviantart.com/nibroc-rock/art/Vector-Icon-Cream-version2-587334154
+- File: `img/logo/logo-ascii-transparent.png`
+- See: `docs/logo-display.md`
 
-All rights and original artwork belong to the original creator.
-
-Modifications were made for stylistic integration into the Bunbit Engine visual identity.
+If you previously removed or replaced any copyrighted imagery, `docs/logo-display.md` is meant to document that the clean transparent asset is the one used for public presentation.
 
 ---
+
 
 ## Status
 
