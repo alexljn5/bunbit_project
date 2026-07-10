@@ -7,7 +7,10 @@ import { tileSectors } from "../mapdata/maps.js";
 import { renderEngine } from "../rendering/renderengine.js";
 import { playerInventory } from "../playerdata/playerinventory.js";
 import { isOccludedByWall } from "./aihandler.js";
-import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT } from "../globals.js";
+import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT, playerMovementDisabled, setPlayerMovementDisabled } from "../globals.js";
+
+// Re-export playerMovementDisabled for backward compatibility
+export { playerMovementDisabled, setPlayerMovementDisabled };
 import { drawNpcDialogue, drawGunPickupBox, basicPickUpMenuStyle } from "../menus/overlays.js";
 
 // Cleaned up friendly cat (boykisser) NPC AI logic for clarity and maintainability
@@ -17,7 +20,6 @@ export let dialogueActive = false;
 export let dialogueLines = [];
 export let currentDialogueIndex = 0;
 export let lastInteractionState = false;
-export let playerMovementDisabled = false;
 export let boyKisserEnemyHealth = 100; // Explicitly defined and exported
 export let justReceivedGun = false;
 export let showGunPickupBox = false;
@@ -46,10 +48,6 @@ export function setCurrentDialogueIndex(value) {
 
 export function setLastInteractionState(value) {
     lastInteractionState = value;
-}
-
-export function setPlayerMovementDisabled(value) {
-    playerMovementDisabled = value;
 }
 
 export function setJustReceivedGun(value) {
@@ -83,7 +81,7 @@ function startNpcDialogue(lines) {
     dialogueActive = true;
     dialogueLines = lines;
     currentDialogueIndex = 0;
-    playerMovementDisabled = true;
+    setPlayerMovementDisabled(true);
 }
 
 function advanceNpcDialogue() {
@@ -93,7 +91,7 @@ function advanceNpcDialogue() {
         dialogueActive = false;
         dialogueLines = [];
         currentDialogueIndex = 0;
-        playerMovementDisabled = false;
+        setPlayerMovementDisabled(false);
         npcLastTriggered = false;
         // Only show the pickup box if the player just got the gun (not if they already had it)
         if (showGunPickupBox === false && playerInventory.includes("generic_gun") && gunPickupTimer === 0 && justReceivedGun) {

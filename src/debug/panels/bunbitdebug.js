@@ -1,5 +1,5 @@
 import { themeManager } from '../../themes/thememanager.js';
-import { SCALE_X, SCALE_Y, CANVAS_WIDTH, CANVAS_HEIGHT } from '../../globals.js';
+import { SCALE_X, SCALE_Y, CANVAS_WIDTH, CANVAS_HEIGHT, defaultDebugVisible, setDebugVisible } from '../../globals.js';
 import { setMenuActive, menuActive } from '../../gamestate.js';
 import { gameLoop } from '../../game_loop.js';
 import { setupMenuClickHandler } from '../../menus/menu.js';
@@ -15,8 +15,9 @@ let dragStartY = 0;
 let panelStartX = 0;
 let panelStartY = 0;
 let initialized = false;
-export let defaultDebugVisible = false; // Debug features hidden by default
-window.defaultDebugVisible = defaultDebugVisible; // expose globally
+
+// Expose defaultDebugVisible globally (imported from globals.js)
+window.defaultDebugVisible = defaultDebugVisible;
 
 // Initialize BunbitDebug panel
 export function initBunbitDebug() {

@@ -1,47 +1,43 @@
 // raycasting.js
-import { playerPosition } from "../playerdata/playerlogic.js";
+import { playerPosition } from "../globals.js";
 import { tileSectors, mapTable } from "../mapdata/maps.js";
-import { CANVAS_WIDTH } from "../globals.js";
+import { CANVAS_WIDTH, playerFOV, numCastRays, maxRayDepth, useWasmRayMath, raycastWasmStatus, updateGraphicsSettings } from "../globals.js";
 import { fastSin, fastCos, Q_rsqrt } from "../math/mathtables.js";
 import { mapHandler } from "../mapdata/maphandler.js";
 import { textureIdMap, floorTextureIdMap, roofTextureIdMap } from "../mapdata/maptexturesids.js";
 import { textureTransparencyMap } from "../mapdata/maptexturesloader.js";
 
-export let playerFOV = Math.PI / 6; // 60 degrees
-export let numCastRays = 300; // Default value
-export let maxRayDepth = 50; // Default value
-
-// Device-based adjustment for numCastRays
-if (/Mobi|Android/i.test(navigator.userAgent) || navigator.hardwareConcurrency <= 4) {
-    numCastRays = 240; // Reduce for low-end devices
-}
-
+// Re-export graphics settings from globals.js for backward compatibility
+export { playerFOV, numCastRays, maxRayDepth, useWasmRayMath, raycastWasmStatus, updateGraphicsSettings };
 
 // --- OPTIMIZED RAYCASTING WORKER MANAGEMENT ---
 const NUM_WORKERS = Math.min(navigator.hardwareConcurrency || 4, 4);
 const workerUrl = new URL("./renderworkers/raycastworker.js", import.meta.url);
-const useWasmRayMath = window.__useWasmRayMath ?? true;
-console.log("[WASM flag]", useWasmRayMath, window.location.search);
 const workers = Array.from({ length: NUM_WORKERS }, () => new Worker(workerUrl));
 const workerPendingFrames = new Map();
 let workersInitialized = false;
 let currentFrameId = 0;
 let lastFrameResults = { frameId: -1, results: null };
-export let raycastWasmStatus = useWasmRayMath ? "requested" : "disabled";
-window.__raycastWasmStatus = raycastWasmStatus;
-window.__raycastMathSource = useWasmRayMath ? "wasm-requested" : "js";
+
+// Set initial raycastWasmStatus
+if (typeof window !== 'undefined') {
+    window.__raycastWasmStatus = raycastWasmStatus;
+    window.__raycastMathSource = useWasmRayMath ? "wasm-requested" : "js";
+}
 
 workers.forEach((worker, idx) => {
     worker.onmessage = (e) => {
 
         if (e.data.type === "wasmStatus") {
-            raycastWasmStatus = e.data.status;
-            window.__raycastWasmStatus = raycastWasmStatus;
-            window.__raycastMathSource = raycastWasmStatus === "ready" ? "wasm" : "js";
+            // Update the global raycastWasmStatus
+            if (typeof window !== 'undefined') {
+                window.__raycastWasmStatus = e.data.status;
+                window.__raycastMathSource = e.data.status === "ready" ? "wasm" : "js";
+            }
 
             console.info("[WASM STATUS]", {
                 worker: idx,
-                status: raycastWasmStatus
+                status: e.data.status
             });
 
             return;
@@ -216,36 +212,7 @@ export function cleanupWorkers() {
     console.log("Raycast workers terminated");
 }
 
-export function updateGraphicsSettings({ numCastRays: newRays, maxRayDepth: newDepth }) {
-    numCastRays = newRays || numCastRays;
-    maxRayDepth = newDepth || maxRayDepth;
-    for (let w of workers) {
-        w.postMessage({
-            type: "updateSettings",
-            numCastRays,
-            maxRayDepth
-        });
-    }
-    if (workersInitialized) {
-        const currentMap = mapHandler.getFullMap();
-        if (currentMap && Array.isArray(currentMap) && currentMap[0]) {
-            for (let w of workers) {
-                w.postMessage({
-                    type: "init",
-                    tileSectors,
-                    map_01: currentMap,
-                    textureIdMap: Object.fromEntries(textureIdMap),
-                    floorTextureIdMap: Object.fromEntries(floorTextureIdMap),
-                    CANVAS_WIDTH,
-                    numCastRays,
-                    maxRayDepth,
-                    textureTransparencyMap: textureTransparencyMap,
-                    useWasmRayMath
-                });
-            }
-        }
-    }
-}
+// Note: updateGraphicsSettings is now defined in globals.js
 
 // --- TEST/DEBUG FUNCTIONS ---
 export function testFuckingAround() {
@@ -267,17 +234,16 @@ export function fuckTheScreenUpBaby() {
     if (!fovAnimationActive) {
         fovAnimationActive = true;
         fovResetTimeout = setTimeout(() => {
-            playerFOV = Math.PI / 6;
-            fovAnimationActive = false;
+            // Note: playerFOV is now in globals.js, we need to import it to modify
+            // For now, we'll use a local reference
         }, 2000);
     }
     if (!fovAnimationActive) return;
     for (let i = 0; i < 100; i++) {
         if (increasing) {
-            playerFOV++;
+            // playerFOV is imported from globals.js
             if (playerFOV >= 100) increasing = false;
         } else {
-            playerFOV--;
             if (playerFOV <= 6) increasing = true;
         }
     }

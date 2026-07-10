@@ -5,13 +5,16 @@ import { corpse1WorldPos } from "../rendering/sprites/rendersprites.js";
 import { drawMetalPipePickupBox, drawRustyKeyPickupBox } from "../menus/overlays.js";
 import { spriteManager } from "../rendering/sprites/rendersprites.js";
 import { spriteState } from "../rendering/sprites/spritetextures.js";
+import { playerMovementDisabled, setPlayerMovementDisabled } from "../globals.js";
 
 const spriteRadius = 100; // Match nineMMAmmoCollission and simpleCollissionTest
 let rustyKeyPickupBoxShown = false;
 let metalPipePickupBoxShown = false;
 let lastCorpseTState = false;
 let lastMetalPipeTState = false;
-export let playerMovementDisabled = false; // Exported for playerlogic.js
+
+// Re-export playerMovementDisabled for backward compatibility
+export { playerMovementDisabled, setPlayerMovementDisabled };
 
 export function corpseSpriteRustyKeyInteraction() {
     const dx = playerPosition.x - corpse1WorldPos.x;
@@ -21,14 +24,14 @@ export function corpseSpriteRustyKeyInteraction() {
     // If player already has the rusty key, nothing to do
     if (playerInventory.includes("rusty_key")) {
         rustyKeyPickupBoxShown = false;
-        playerMovementDisabled = false;
+        setPlayerMovementDisabled(false);
         return;
     }
 
     // On T press (rising edge) toggle the pickup box and lock/unlock movement
     if (distance < spriteRadius && keys.t && !lastCorpseTState) {
         rustyKeyPickupBoxShown = !rustyKeyPickupBoxShown;
-        playerMovementDisabled = rustyKeyPickupBoxShown;
+        setPlayerMovementDisabled(rustyKeyPickupBoxShown);
     }
 
     // Auto-pickup when walked very close to corpse (walk-over behavior)
@@ -36,7 +39,7 @@ export function corpseSpriteRustyKeyInteraction() {
     if (distance < WALK_PICKUP_THRESHOLD && !playerInventory.includes("rusty_key")) {
         playerInventory.push("rusty_key");
         rustyKeyPickupBoxShown = false;
-        playerMovementDisabled = false;
+        setPlayerMovementDisabled(false);
         console.log("You picked up the rusty key by walking over the corpse! *giggles*");
     }
 
@@ -62,25 +65,25 @@ export function metalPipeSpriteInteraction() {
 
     // Show pickup box and handle pickup with 'T' key
     if (distance < spriteRadius && !playerInventory.includes("metal_pipe")) {
-        playerMovementDisabled = true;
+        setPlayerMovementDisabled(true);
         drawMetalPipePickupBox();
         if (keys.t && !lastMetalPipeTState) {
             playerInventory.push("metal_pipe");
             spriteState.isMetalPipeCollected = true;
             if (typeof spriteManager.removeSprite === 'function') {
                 spriteManager.removeSprite("metalPipe"); // Remove sprite from rendering
-                console.log("Yay, I picked up the metal pipe! *giggles* It’s kinda heavy, but Cheese thinks it’s cool!");
+                console.log("Yay, I picked up the metal pipe! *giggles* It's kinda heavy, but Cheese thinks it's cool!");
             } else {
                 console.error("spriteManager.removeSprite is not a function. Sprite not removed.");
             }
             metalPipePickupBoxShown = false;
-            playerMovementDisabled = false;
+            setPlayerMovementDisabled(false);
             return true;
         }
     } else if (playerInventory.includes("metal_pipe")) {
         metalPipePickupBoxShown = false;
-        playerMovementDisabled = false;
-        console.log("Oh, I already have the metal pipe, Cheese! *smiles* Let’s keep exploring!");
+        setPlayerMovementDisabled(false);
+        console.log("Oh, I already have the metal pipe, Cheese! *smiles* Let's keep exploring!");
     }
     lastMetalPipeTState = keys.t;
     return false;

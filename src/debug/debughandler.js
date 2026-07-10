@@ -1,6 +1,6 @@
 // File: src/debug/debughandler.js
 
-import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y } from '../globals.js';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, MAX_LOGS, DEBUG_WIDTH, DEBUG_HEIGHT, MIN_WIDTH, MIN_HEIGHT, MAX_CHARS_PER_LINE, logBuffer, logFilters, isDebugVisible, scrollOffsetX, virtualScrollY, autoScroll, buttons, resizeArea, HEADER_HEIGHT, ENABLE_DEBUG_TERMINAL, setDebugVisible } from '../globals.js';
 import { evilGlitchSystem, EvilUIState } from '../themes/eviltheme.js';
 import { themeManager } from '../themes/thememanager.js';
 import { initBunbitDebug } from './panels/bunbitdebug.js';
@@ -15,49 +15,18 @@ const consoleOriginal = {
 };
 
 // --- CONFIG ---
-// Maximum logs to keep in buffer
-export let MAX_LOGS = 50000;
+// Note: MAX_LOGS, DEBUG_WIDTH, DEBUG_HEIGHT, MIN_WIDTH, MIN_HEIGHT, logBuffer, logFilters,
+// isDebugVisible, scrollOffsetX, virtualScrollY, autoScroll, buttons, resizeArea, HEADER_HEIGHT
+// are now imported from globals.js
 
-// Default canvas size (relative to main game canvas)
-export let DEBUG_WIDTH = CANVAS_WIDTH * 0.75;   // 75% of game width
-export let DEBUG_HEIGHT = CANVAS_HEIGHT * 0.5;  // 50% of game height
-
-// Minimum size limits
-export const MIN_WIDTH = 300;
-export const MIN_HEIGHT = 200;
-
-// Maximum characters per line (horizontal clipping)
-export let MAX_CHARS_PER_LINE = 120; // tweak this
-
-export let logBuffer = [];
-export let isDebugVisible = false;
-export let debugCanvas = null;
-export let debugCtx = null;
-export let debugContainer = null;
-
-export let scrollOffsetX = 0;
-export let virtualScrollY = 0;
-export let autoScroll = true;
-
-export let logFilters = { log: true, error: true, warn: true, info: true, debug: true };
-export let filteredLogs = [];
-
-// Button definitions
-export let buttons = [];
-export let resizeArea = { x: 0, y: 0, w: 15 * SCALE_X, h: 15 * SCALE_Y, hovered: false };
+let debugCanvas = null;
+let debugCtx = null;
+let debugContainer = null;
+let filteredLogs = [];
 
 let glitchInterval = null;
 let lastDrawTime = 0;
 let rafId = null;  // For throttling RAF
-
-export const ENABLE_DEBUG_TERMINAL = (() => {
-    const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
-    const debugTerminalParam = urlParams ? urlParams.get('debugTerminal') : null;
-    if (debugTerminalParam === 'false') return false;
-    return !(window.debugAPI && window.debugAPI.isProduction && window.debugAPI.isProduction());
-})();
-
-export const HEADER_HEIGHT = 30 * SCALE_Y;
 
 //God Function
 export function debugHandlerGodFunction() {
@@ -168,17 +137,16 @@ function updateButtonPositions() {
 
 // --- Manual resize helper ---
 export function resizeDebugCanvas(width, height) {
-    DEBUG_WIDTH = width;
-    DEBUG_HEIGHT = height;
-
+    // Note: DEBUG_WIDTH/DEBUG_HEIGHT are now in globals.js, but we need to update them
+    // This function is kept for compatibility
     if (!debugCanvas || !debugContainer) return;
 
-    const totalHeight = DEBUG_HEIGHT + HEADER_HEIGHT;
-    debugCanvas.width = DEBUG_WIDTH;
+    const totalHeight = height + HEADER_HEIGHT;
+    debugCanvas.width = width;
     debugCanvas.height = totalHeight;
 
     // Update container size to match canvas
-    debugContainer.style.width = `${DEBUG_WIDTH}px`;
+    debugContainer.style.width = `${width}px`;
     debugContainer.style.height = `${totalHeight}px`;
 
     updateButtonPositions();
@@ -227,7 +195,7 @@ function debugHandlerMainFunction() {
     debugCtx = debugCanvas.getContext('2d');
     debugCtx.imageSmoothingEnabled = false;
 
-    isDebugVisible = true;
+    setDebugVisible(true);
 
     // Initialize size
     resizeDebugCanvas(DEBUG_WIDTH, DEBUG_HEIGHT);
@@ -499,79 +467,26 @@ export function drawDebugTerminal() {
         debugCtx.fillText(
             text,
             10 * SCALE_X - scrollOffsetX,
-            HEADER_HEIGHT + buttons[0].h + 4 * SCALE_Y + (i + 1) * lineHeight - yOffset
+            HEADER_HEIGHT + (i + 0.5) * lineHeight - yOffset
         );
-
     }
-
-    // Reset translation
-    debugCtx.translate(-evilGlitchSystem.horizontalShift - shakeX,
-        -evilGlitchSystem.verticalShift - shakeY);
-
-    // Draw scroll indicators with shake
-    const maxScrollY = Math.max(0, filteredLogs.length * lineHeight - logAreaHeight);
-    if (maxScrollY > 0) {
-        const scrollbarHeight = Math.max(20 * SCALE_Y, logAreaHeight * (logAreaHeight / (filteredLogs.length * lineHeight)));
-        const scrollbarPosition = (virtualScrollY / maxScrollY) * (logAreaHeight - scrollbarHeight);
-
-        debugCtx.fillStyle = `rgba(${themeManager.getCurrentTheme().border.slice(1, 3)}, ${themeManager.getCurrentTheme().border.slice(3, 5)}, ${themeManager.getCurrentTheme().border.slice(5, 7)}, 0.3)`;
-        debugCtx.fillRect(termWidth - 8 * SCALE_X + shakeX,
-            HEADER_HEIGHT + scrollbarPosition + shakeY,
-            6 * SCALE_X, scrollbarHeight);
-    }
-
-    if (scrollOffsetX > 0) {
-        debugCtx.fillStyle = `rgba(${themeManager.getCurrentTheme().border.slice(1, 3)}, ${themeManager.getCurrentTheme().border.slice(3, 5)}, ${themeManager.getCurrentTheme().border.slice(5, 7)}, 0.5)`;
-        debugCtx.fillRect(shakeX, termHeight - 4 * SCALE_Y + shakeY, termWidth, 2 * SCALE_Y);
-        debugCtx.fillRect(termWidth * (scrollOffsetX / 1000) + shakeX,
-            termHeight - 6 * SCALE_Y + shakeY,
-            4 * SCALE_X, 6 * SCALE_Y);
-    }
-
-    // Draw static effect with shake (optimized)
-    if (evilGlitchSystem.staticEffect > 0) {
-        debugCtx.fillStyle = `rgba(${themeManager.getCurrentTheme().border.slice(1, 3)}, ${themeManager.getCurrentTheme().border.slice(3, 5)}, ${themeManager.getCurrentTheme().border.slice(5, 7)}, ${evilGlitchSystem.staticEffect * 0.1})`;
-        const particleCount = termWidth * termHeight * 0.01;
-        for (let i = 0; i < particleCount; i++) {
-            const x = Math.floor(Math.random() * termWidth) + shakeX;
-            const y = Math.floor(Math.random() * termHeight) + shakeY;
-            debugCtx.fillRect(x, y, 1, 1);
-        }
-    }
-
-    // Reset alpha
-    debugCtx.globalAlpha = 1;
-
-    // Schedule next frame
-    if (rafId) cancelAnimationFrame(rafId);
-    rafId = requestAnimationFrame(drawDebugTerminal);
 }
 
-// --- Expose manual resize globally ---
-window.resizeDebugCanvas = resizeDebugCanvas;
-
-// --- Cleanup ---
+// --- Stop debug terminal ---
 export function stopDebugTerminal() {
-    isDebugVisible = false;
+    setDebugVisible(false);
     if (glitchInterval) {
         clearInterval(glitchInterval);
         glitchInterval = null;
-    }
-    if (rafId) {
-        cancelAnimationFrame(rafId);
-        rafId = null;
     }
     if (debugContainer) {
         debugContainer.remove();
         debugContainer = null;
     }
-    debugCanvas = null;
-    debugCtx = null;
-
-    // Reset shared systems
-    evilGlitchSystem.reset();
-    EvilUIState.reset();
+    if (debugCanvas) {
+        debugCanvas = null;
+    }
+    if (debugCtx) {
+        debugCtx = null;
+    }
 }
-
-// --- Initialize ---
-// NOTE: automatic initialization disabled. Call startDebugFeatures() from the control panel when the user toggles debug.

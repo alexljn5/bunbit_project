@@ -1,7 +1,7 @@
 // src/rendering/lightengine/renderlight.js
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from "../../globals.js";
-import { playerFOV, numCastRays } from "../raycasting.js";
-import { playerPosition } from "../../playerdata/playerlogic.js";
+import { playerFOV, numCastRays } from "../../globals.js";
+import { playerPosition } from "../../globals.js";
 import { vertexShaderSource, fragmentShaderSource, createShaderProgramSafe } from "./shaders.js";
 
 const MAX_LIGHTS = 8; // Increase max lights to support player + map lights

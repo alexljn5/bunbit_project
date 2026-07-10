@@ -1,58 +1,11 @@
-import { SCALE_X, SCALE_Y, CANVAS_WIDTH, CANVAS_HEIGHT } from '../globals.js';
+import { SCALE_X, SCALE_Y, CANVAS_WIDTH, CANVAS_HEIGHT, MENU_FONTS, BUTTON_PRESETS, DIALOG_PRESETS, ANIMATION_PRESETS } from '../globals.js';
 import { themeManager } from '../themes/thememanager.js';
 import { evilGlitchSystem } from '../themes/eviltheme.js';
 
-// Font configurations (unchanged)
-export const MENU_FONTS = {
-    title: () => `${32 * Math.min(SCALE_X, SCALE_Y)}px Arial`,
-    subtitle: () => `${24 * Math.min(SCALE_X, SCALE_Y)}px Arial`,
-    button: () => `${18 * Math.min(SCALE_X, SCALE_Y)}px Arial`,
-    body: () => `${16 * Math.min(SCALE_X, SCALE_Y)}px Arial`,
-    small: () => `${14 * Math.min(SCALE_X, SCALE_Y)}px Arial`
-};
+// Re-export presets from globals.js for backward compatibility
+export { MENU_FONTS, BUTTON_PRESETS, DIALOG_PRESETS, ANIMATION_PRESETS };
 
-// Standard button dimensions (unchanged)
-export const BUTTON_PRESETS = {
-    standard: {
-        width: 100 * SCALE_X,
-        height: 40 * SCALE_Y,
-        textOffsetX: 20 * SCALE_X,
-        textOffsetY: 25 * SCALE_Y
-    },
-    wide: {
-        width: 200 * SCALE_X,
-        height: 40 * SCALE_Y,
-        textOffsetX: 30 * SCALE_X,
-        textOffsetY: 25 * SCALE_Y
-    },
-    small: {
-        width: 80 * SCALE_X,
-        height: 30 * SCALE_Y,
-        textOffsetX: 15 * SCALE_X,
-        textOffsetY: 20 * SCALE_Y
-    }
-};
-
-// Dialog box presets (unchanged)
-export const DIALOG_PRESETS = {
-    standard: {
-        width: 400 * SCALE_X,
-        height: 150 * SCALE_Y,
-        padding: 20 * SCALE_X
-    },
-    wide: {
-        width: 600 * SCALE_X,
-        height: 200 * SCALE_Y,
-        padding: 30 * SCALE_X
-    },
-    notification: {
-        width: 300 * SCALE_X,
-        height: 100 * SCALE_Y,
-        padding: 15 * SCALE_X
-    }
-};
-
-// Menu layouts (unchanged)
+// Note: MENU_LAYOUTS uses dynamic SCALE_X/Y, so we keep it here
 export const MENU_LAYOUTS = {
     centerColumn: (items, startY = CANVAS_HEIGHT / 3) => {
         return items.map((item, index) => ({
@@ -172,26 +125,6 @@ export function centerText(context, text, y, font = MENU_FONTS.body()) {
         y: y
     };
 }
-
-// Animation presets (unchanged)
-export const ANIMATION_PRESETS = {
-    fadeIn: {
-        duration: 500,
-        steps: 20,
-        initialAlpha: 0,
-        finalAlpha: 1
-    },
-    fadeOut: {
-        duration: 500,
-        steps: 20,
-        initialAlpha: 1,
-        finalAlpha: 0
-    },
-    slideIn: {
-        duration: 300,
-        distance: 100 * SCALE_X
-    }
-};
 
 // Redraw UI elements when theme changes
 function redrawUI() {

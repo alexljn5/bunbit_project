@@ -1,63 +1,18 @@
-import { updateGraphicsSettings, numCastRays, maxRayDepth } from "../rendering/raycasting.js";
-import { CANVAS_WIDTH, CANVAS_HEIGHT } from "../globals.js";
-import { updateCanvasResolution } from "../globals.js";
+import { updateGraphicsSettings } from "../rendering/raycasting.js";
+import { CANVAS_WIDTH, CANVAS_HEIGHT, updateCanvasResolution, graphicsPresets, currentGraphicsPreset, applyGraphicsPreset, numCastRays, maxRayDepth } from "../globals.js";
 import { drawButton, drawMenuOverlay } from "./overlays.js";
 import { getMouseCanvasPos } from "../utils/inputTransform.js";
 
+// Re-export graphicsPresets and currentGraphicsPreset for backward compatibility
+export { graphicsPresets, currentGraphicsPreset, applyGraphicsPreset };
 
-export const graphicsPresets = {
-    potato: {
-        numCastRays: 100,
-        maxRayDepth: 20
-    },
-    very_low: {
-        numCastRays: 150,
-        maxRayDepth: 25
-    },
-    low: {
-        numCastRays: 200,
-        maxRayDepth: 30
-    },
-    medium: {
-        numCastRays: 300,
-        maxRayDepth: 40
-    },
-    high: {
-        numCastRays: 400,
-        maxRayDepth: 50
-    },
-    extreme: {
-        numCastRays: 500,
-        maxRayDepth: 60
-    },
-    nasa: {
-        numCastRays: 600,
-        maxRayDepth: 70
-    }
-};
-
-export let currentGraphicsPreset = "low";
-
-export function applyGraphicsPreset(preset) {
-    if (!graphicsPresets[preset]) return false;
-    currentGraphicsPreset = preset;
-    updateGraphicsSettings(graphicsPresets[preset]);
-    const lowResPresets = ["potato", "very_low", "low"];
-    const highResPresets = ["medium", "high", "extreme", "nasa"];
-    if (lowResPresets.includes(preset)) {
-        updateCanvasResolution(false);
-        // Canvas dimensions / CSS scaling changed: refresh menu hit-testing.
-        try { refreshMenuClickHandlers(); } catch (_) { }
-    } else if (highResPresets.includes(preset)) {
-        updateCanvasResolution(true);
-    }
-    return true;
-}
+// Note: applyGraphicsPreset is now defined in globals.js
+// This file now only contains the UI rendering functions
 
 export function getGraphicsSettings() {
     return {
-        numCastRays,
-        maxRayDepth,
+        numCastRays: typeof numCastRays !== 'undefined' ? numCastRays : 300,
+        maxRayDepth: typeof maxRayDepth !== 'undefined' ? maxRayDepth : 50,
         preset: currentGraphicsPreset
     };
 }

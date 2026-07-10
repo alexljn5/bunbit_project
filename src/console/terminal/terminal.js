@@ -1,9 +1,11 @@
 import { keys } from "../../playerdata/playerlogic.js";
-import { SCALE_X, SCALE_Y, CANVAS_WIDTH, CANVAS_HEIGHT } from "../../globals.js";
+import { SCALE_X, SCALE_Y, CANVAS_WIDTH, CANVAS_HEIGHT, showTerminal, setShowTerminal } from "../../globals.js";
 import { renderEngine } from "../../rendering/renderengine.js";
 import { terminalGodFunction } from "./terminalhandler.js";
 
-export let showTerminal = false;
+// Re-export showTerminal for backward compatibility
+export { showTerminal };
+
 let lastYState = false;
 let currentCommand = "";
 let inputActive = false;
@@ -24,7 +26,7 @@ export function displayTheTerminal() {
 
     // Toggle terminal only when key is newly pressed
     if (keys[key] && !lastYState && !inputActive) {
-        showTerminal = !showTerminal;
+        setShowTerminal(!showTerminal);
 
         if (!showTerminal) {
             inputActive = false;
