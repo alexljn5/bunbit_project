@@ -40,7 +40,7 @@ export function initControlPanel() {
     debugPanel.style.padding = `${12 * SCALE_Y}px ${12 * SCALE_X}px`;
     debugPanel.style.border = `${2 * SCALE_X}px solid ${DEFAULT_BORDER}`;
     debugPanel.style.borderRadius = `${8 * SCALE_X}px`;
-    debugPanel.style.zIndex = '2147483646';
+    debugPanel.style.zIndex = '2147483648';
     debugPanel.style.display = 'flex';
     debugPanel.style.flexDirection = 'column';
     debugPanel.style.alignItems = 'flex-start';
