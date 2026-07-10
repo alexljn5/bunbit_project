@@ -187,8 +187,8 @@ export function initControlPanel() {
     logoEl.style.left = '50%';
     logoEl.style.top = '50%';
     logoEl.style.transform = 'translate(-50%, -50%)';
-    logoEl.style.width = '512px';
-    logoEl.style.height = '512px';
+    logoEl.style.width = '256px';
+    logoEl.style.height = '256px';
     logoEl.style.maxWidth = '60%';
     // Visual blending: brighten, increase contrast, and blend with panel color
     logoEl.style.filter = 'brightness(4.90) contrast(10.15) saturate(10.2)';
@@ -221,7 +221,7 @@ export function initControlPanel() {
     stairsEl.style.left = '50%';
     stairsEl.style.bottom = '8%';                    // How far from the bottom
     stairsEl.style.transform = 'translate(-50%, 0)';
-    stairsEl.style.width = '420px';                  // Adjust width to taste
+    stairsEl.style.width = '640px';                  // Adjust width to taste
     stairsEl.style.height = 'auto';
     stairsEl.style.maxWidth = '45%';
     stairsEl.style.zIndex = '1';                     // Between pillars (0) and logo/buttons
