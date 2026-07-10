@@ -6,7 +6,12 @@ import { gameRenderEngine, initializeRenderWorkers, cleanupRenderWorkers } from 
 import { memCpuGodFunction, stopMemCpuMonitor } from './panels/memcpu.js';
 import { debugHandlerGodFunction, stopDebugTerminal } from './debughandler.js';
 import { themeManager } from '../themes/thememanager.js';
+import { defaultThemeName, DEBUG_START_INTRO_ANIMATION } from '../globals.js';
+
+
 import { togglePositionPanel } from './panels/positionpanel.js';
+
+
 
 // Local defaults to avoid importing theme manager (prevents load-order/circular issues)
 const DEFAULT_BORDER = '#FC0000';
@@ -100,18 +105,25 @@ export function initControlPanel() {
     themeSelector.style.zIndex = '2';
 
     // Populate theme options
+    window.defaultThemeName = window.defaultThemeName || defaultThemeName;
     ['calm', 'hacky', 'highcontrast', 'evil'].forEach(themeName => {
         const option = document.createElement('option');
+
         option.value = themeName;
         option.textContent = themeName.charAt(0).toUpperCase() + themeName.slice(1);
-        option.selected = themeName === 'calm'; // calm is default
+        option.selected = themeName === (window.defaultThemeName || 'evil');
         themeSelector.appendChild(option);
     });
+
 
     // Handle theme changes
     themeSelector.addEventListener('change', (e) => {
         themeManager.setTheme(e.target.value);
     });
+
+    // Apply default theme immediately
+    try { themeManager.setTheme(defaultThemeName); } catch (e) { /* ignore */ }
+
 
     // basic styling for readability
     [reloadButton, playButton, stopButton, showDebugButton, positionButton].forEach(btn => {
@@ -368,8 +380,13 @@ export function initControlPanel() {
                     }
                     if (window.game && typeof window.game.start === 'function') {
                         window.game.start();
+
+                        // (Removed) Intro placeholder trigger here; game-load should be handled elsewhere.
+
+
                         return true;
                     }
+
                 } catch (e) { console.error('Play button error:', e); }
             }
             retries++;
@@ -382,22 +399,29 @@ export function initControlPanel() {
 
     function tryStopGame() {
         try {
+            // Stop active game loop first
             if (window.game && typeof window.game.stop === 'function') {
                 window.game.stop();
-                setMenuActive(true);
-                const canvas = document.getElementById('mainGameRender');
-                if (canvas && canvas.getContext) {
-                    if (canvas.width === 0 || canvas.height === 0) {
-                        canvas.width = CANVAS_WIDTH;
-                        canvas.height = CANVAS_HEIGHT;
-                    }
-                    const renderEngine = canvas.getContext('2d');
-                    if (renderEngine) renderEngine.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-                    cleanupRenderWorkers();
-                }
             }
+
+            // Always reset menu state + UI
+            setMenuActive(true);
+
+            const canvas = document.getElementById('mainGameRender');
+            if (canvas && canvas.getContext) {
+                if (canvas.width === 0 || canvas.height === 0) {
+                    canvas.width = CANVAS_WIDTH;
+                    canvas.height = CANVAS_HEIGHT;
+                }
+                const ctx = canvas.getContext('2d');
+                if (ctx) ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            }
+
+            // Cleanup workers + lighting regardless of whether game.stop() existed
+            cleanupRenderWorkers();
         } catch (e) { console.error('Stop button error:', e); }
     }
+
     stopButton.addEventListener('click', () => tryStopGame());
 
     // Show Debug toggles other debug features but keeps the control panel visible

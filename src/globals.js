@@ -103,6 +103,10 @@ export let showTerminal = false; // Terminal visibility
 
 // Debug terminal configuration
 export let MAX_LOGS = 50000;
+
+// Developer-only start/intro animation toggles
+export let DEBUG_START_INTRO_ANIMATION = true;
+export let RUN_INTRO_ON_START = true; // Run intro animation automatically on app start
 export let logBuffer = [];
 export let logFilters = { log: true, error: true, warn: true, info: true, debug: true };
 
@@ -117,8 +121,12 @@ export const ENABLE_DEBUG_TERMINAL = (() => {
 })();
 
 // --- THEME FLAGS ---
+// Default theme selection (control via single string)
+export let defaultThemeName = 'evil';
+
 // Note: Theme objects are defined in their respective files in src/themes/
 // Theme manager is exported from src/themes/thememanager.js
+
 
 // --- GRAPHICS SETTINGS ---
 export let currentGraphicsPreset = "low";
@@ -140,6 +148,11 @@ export let menuActive = true;
 export let isPaused = false;
 export let gameOver = false;
 export let introActive = true;
+
+// Initialize window.introActive for autorun check
+if (typeof window !== 'undefined') {
+    window.introActive = introActive;
+}
 
 // --- INPUT STATE ---
 export const keys = Object.fromEntries([
@@ -259,6 +272,9 @@ export function setGameOver(val) {
 
 export function setIntroActive(val) {
     introActive = val;
+    if (typeof window !== 'undefined') {
+        window.introActive = val;
+    }
 }
 
 export function setPlayerMovementDisabled(val) {
