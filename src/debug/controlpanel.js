@@ -10,8 +10,7 @@ import { defaultThemeName, DEBUG_START_INTRO_ANIMATION } from '../globals.js';
 
 
 import { togglePositionPanel } from './panels/positionpanel.js';
-
-
+import { initMainDashboard } from '../menus/main_dashboard.js';
 
 
 // Local defaults to avoid importing theme manager (prevents load-order/circular issues)
@@ -29,9 +28,9 @@ export function initControlPanel() {
 
     const debugPanel = document.createElement('div');
     debugPanel.id = 'bunbit-debug-panel';
-    // Compact panel: 220x260px self-contained box
+    // Compact panel: 220x300px self-contained box
     const panelWidth = 220;
-    const panelHeight = 260;
+    const panelHeight = 300;
     const edgeGap = 20; // px from viewport edges
     debugPanel.style.position = 'fixed';
     debugPanel.style.top = `${edgeGap}px`;
@@ -181,6 +180,9 @@ export function initControlPanel() {
     debugPanel.appendChild(positionButton);
     debugPanel.appendChild(themeSelector);
     document.body.appendChild(debugPanel);
+
+    // Initialize the main dashboard (decorative background with pillars/sigil/stairs)
+    try { initMainDashboard(); } catch (e) { console.warn('Main dashboard init failed:', e); }
 
     // Notify other systems that the control panel exists now (ThemeManager listens for this)
     try {
