@@ -327,8 +327,12 @@ export function maybeShowIntroPlaceholders({ onComplete } = {}) {
         return;
     }
 
+
     const ctx = canvas.getContext("2d");
     const { w, h } = setupFullscreenCanvas(canvas);
+
+    // Ensure drawing uses CSS-pixel coordinates even though the backing store is DPR-scaled.
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
 
     preloadImages(FRAME_SOURCES).then((imgs) => {
         const startTime = performance.now();
