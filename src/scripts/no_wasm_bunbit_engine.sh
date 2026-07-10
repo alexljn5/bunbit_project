@@ -143,13 +143,18 @@ if ! docker image inspect "$IMAGE_NAME" >/dev/null 2>&1; then
 log_info "Docker image not found."
 log_info "Building image: $IMAGE_NAME"
 
-docker build -t "$IMAGE_NAME" .
+# Some Docker setups fail when Buildx is configured but a builder isn't registered.
+# We explicitly avoid Buildx by using classic `docker build`.
+# If your Dockerfile or environment forces buildx anyway, this fallback still helps.
+
+docker build --pull -t "$IMAGE_NAME" .
 
 log_ok "Docker image built."
 
 else
 log_ok "Using existing image: $IMAGE_NAME"
 fi
+
 
 # Optional Java tests
 
