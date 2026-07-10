@@ -218,9 +218,10 @@ function debugHandlerMainFunction() {
             if (e.shiftKey) {
                 setScrollOffsetX(Math.max(0, Math.min(scrollOffsetX + e.deltaY, 1000)));
             } else {
-                setVirtualScrollY(Math.max(-10000, virtualScrollY + e.deltaY));
+                const newScrollY = Math.max(-10000, virtualScrollY + e.deltaY);
+                setVirtualScrollY(newScrollY);
                 const logAreaHeight = debugCanvas.height - HEADER_HEIGHT;
-                setAutoScroll(virtualScrollY >= Math.max(0, filteredLogs.length * lineHeight - logAreaHeight));
+                setAutoScroll(newScrollY >= Math.max(0, filteredLogs.length * lineHeight - logAreaHeight));
             }
 
             drawDebugTerminal();
@@ -233,34 +234,41 @@ function debugHandlerMainFunction() {
             const logAreaHeight = debugCanvas.height - HEADER_HEIGHT;
             const maxScrollY = Math.max(0, filteredLogs.length * lineHeight - logAreaHeight);
 
+            let newScrollY = virtualScrollY;
             switch (e.key) {
                 case 'ArrowUp':
-                    setVirtualScrollY(Math.max(0, virtualScrollY - lineHeight));
+                    newScrollY = Math.max(0, virtualScrollY - lineHeight);
+                    setVirtualScrollY(newScrollY);
                     e.preventDefault();
                     break;
                 case 'ArrowDown':
-                    setVirtualScrollY(Math.min(maxScrollY, virtualScrollY + lineHeight));
+                    newScrollY = Math.min(maxScrollY, virtualScrollY + lineHeight);
+                    setVirtualScrollY(newScrollY);
                     e.preventDefault();
                     break;
                 case 'PageUp':
-                    setVirtualScrollY(Math.max(0, virtualScrollY - logAreaHeight));
+                    newScrollY = Math.max(0, virtualScrollY - logAreaHeight);
+                    setVirtualScrollY(newScrollY);
                     e.preventDefault();
                     break;
                 case 'PageDown':
-                    setVirtualScrollY(Math.min(maxScrollY, virtualScrollY + logAreaHeight));
+                    newScrollY = Math.min(maxScrollY, virtualScrollY + logAreaHeight);
+                    setVirtualScrollY(newScrollY);
                     e.preventDefault();
                     break;
                 case 'Home':
-                    setVirtualScrollY(0);
+                    newScrollY = 0;
+                    setVirtualScrollY(newScrollY);
                     e.preventDefault();
                     break;
                 case 'End':
-                    setVirtualScrollY(maxScrollY);
+                    newScrollY = maxScrollY;
+                    setVirtualScrollY(newScrollY);
                     e.preventDefault();
                     break;
             }
 
-            setAutoScroll(virtualScrollY >= maxScrollY);
+            setAutoScroll(newScrollY >= maxScrollY);
             drawDebugTerminal();
         });
     }).catch(err => {
@@ -429,13 +437,15 @@ export function drawDebugTerminal() {
     const lineHeight = 18 * SCALE_Y;
 
     // Auto-scroll
+    let currentScrollY = virtualScrollY;
     if (autoScroll) {
         const maxScrollY = Math.max(0, filteredLogs.length * lineHeight - logAreaHeight);
         setVirtualScrollY(maxScrollY);
+        currentScrollY = maxScrollY;
     }
 
-    const firstLine = Math.floor(virtualScrollY / lineHeight);
-    const yOffset = virtualScrollY % lineHeight;
+    const firstLine = Math.floor(currentScrollY / lineHeight);
+    const yOffset = currentScrollY % lineHeight;
     const visibleLines = Math.min(filteredLogs.length - firstLine, Math.ceil(logAreaHeight / lineHeight) + 1);
 
     const charLimit = MAX_CHARS_PER_LINE;
