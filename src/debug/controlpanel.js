@@ -30,49 +30,51 @@ export function initControlPanel() {
 
     const debugPanel = document.createElement('div');
     debugPanel.id = 'bunbit-debug-panel';
-    // Make the panel span most of the viewport with a padding margin so the border looks "cool"
+    // Compact panel: 220x260px self-contained box
+    const panelWidth = 220;
+    const panelHeight = 260;
     const edgeGap = 20; // px from viewport edges
     debugPanel.style.position = 'fixed';
     debugPanel.style.top = `${edgeGap}px`;
     debugPanel.style.left = `${edgeGap}px`;
-    //debugPanel.style.right = `${edgeGap}px`;
-    //debugPanel.style.bottom = `${edgeGap}px`;
-    // Span almost the entire viewport (edgeGap inset) so the panel visually stretches across the screen
-    debugPanel.style.right = `${edgeGap}px`;
-    debugPanel.style.bottom = `${edgeGap}px`;
-    debugPanel.style.padding = `${12 * SCALE_Y}px ${20 * SCALE_X}px`;
+    debugPanel.style.width = `${panelWidth * SCALE_X}px`;
+    debugPanel.style.height = `${panelHeight * SCALE_Y}px`;
+    debugPanel.style.padding = `${12 * SCALE_Y}px ${12 * SCALE_X}px`;
     debugPanel.style.border = `${2 * SCALE_X}px solid ${DEFAULT_BORDER}`;
     debugPanel.style.borderRadius = `${8 * SCALE_X}px`;
     debugPanel.style.zIndex = '2147483646';
     debugPanel.style.display = 'flex';
     debugPanel.style.flexDirection = 'column';
-    // Keep buttons stacked at top-left of the panel so their positions remain familiar
     debugPanel.style.alignItems = 'flex-start';
     debugPanel.style.justifyContent = 'flex-start';
     debugPanel.style.cursor = 'default';
     debugPanel.style.pointerEvents = 'auto';
     debugPanel.style.minWidth = 'auto';
-    debugPanel.style.minHeight = `${60 * SCALE_Y}px`;
+    debugPanel.style.minHeight = 'auto';
     debugPanel.style.userSelect = 'none';
-
-    // Prevent this panel from swallowing pointer interactions meant for other overlays.
-    // We only treat clicks on the panel's header/button bar as drag/click targets.
-    debugPanel.style.backgroundColor = DEFAULT_BACKGROUND;
-    // Slightly translucent themed background so you can still see the game behind it
-    debugPanel.style.backgroundColor = DEFAULT_BACKGROUND;
-    debugPanel.style.color = DEFAULT_TEXT;
-    debugPanel.style.boxShadow = `0 6px 30px ${DEFAULT_BORDER}`;
-    // Make scaling predictable when using SCALE_X/Y elsewhere
-    debugPanel.style.transformOrigin = 'top left';
-    debugPanel.style.transform = `scale(1)`;
+    // Prevent transform inheritance from fullscreen scaling
+    debugPanel.style.isolation = 'isolate';
+    debugPanel.style.overflow = 'hidden';
 
     const header = document.createElement('div');
     header.style.width = '100%';
-    header.style.height = `${20 * SCALE_Y}px`;
-    header.style.position = 'absolute';
-    header.style.top = '0';
-    header.style.left = '0';
+    header.style.height = `${24 * SCALE_Y}px`;
+    header.style.position = 'relative';
     header.style.cursor = 'move';
+    header.style.backgroundColor = '#1a0000';
+    header.style.borderBottom = `${1 * SCALE_X}px solid ${DEFAULT_BORDER}`;
+    header.style.marginBottom = `${8 * SCALE_Y}px`;
+    header.style.flexShrink = '0';
+    // Header title
+    const headerTitle = document.createElement('span');
+    headerTitle.textContent = 'DEBUG PANEL';
+    headerTitle.style.color = DEFAULT_TEXT;
+    headerTitle.style.fontSize = `${12 * SCALE_Y}px`;
+    headerTitle.style.fontWeight = 'bold';
+    headerTitle.style.display = 'block';
+    headerTitle.style.textAlign = 'center';
+    headerTitle.style.lineHeight = `${24 * SCALE_Y}px`;
+    header.appendChild(headerTitle);
 
     const reloadButton = document.createElement('button');
     reloadButton.id = 'bunbit-reload-button';
