@@ -18,7 +18,6 @@ let texScaleYRoof = 0;
 
 // WASM state
 let wasmExports = null;
-let wasmPromise = null;
 let wasmStatus = 'disabled';
 
 // Debug counters
@@ -54,11 +53,6 @@ function fastCosJs(a) {
     return cosTable[idx];
 }
 
-// --- MODULE-WORKER SAFE WASM LOADER ---
-const WASM_BASE = '/src/wasm/generated/wasm-gc';
-const WASM_RUNTIME = `${WASM_BASE}/bunbit-renderhelpers.wasm-runtime.js`;
-const WASM_BIN = `${WASM_BASE}/bunbit-renderhelpers.wasm`;
-
 function postWasmStatus(status) {
     wasmStatus = status;
     try {
@@ -66,52 +60,15 @@ function postWasmStatus(status) {
     } catch { }
 }
 
-async function loadWasmSinCos() {
-    if (wasmExports) return wasmExports;
-    if (wasmPromise) return wasmPromise;
-
-    wasmPromise = (async () => {
-        try {
-            postWasmStatus('loading');
-
-            // IMPORTANT: module worker safe import only
-            const mod = await import(WASM_RUNTIME);
-            void mod;
-
-            if (!self.TeaVM?.wasmGC) {
-                throw new Error('TeaVM runtime not initialized');
-            }
-
-            const res = await fetch(WASM_BIN);
-            if (!res.ok) throw new Error(`WASM fetch failed ${res.status}`);
-
-            const bytes = await res.arrayBuffer();
-
-            const instance = await self.TeaVM.wasmGC.load(bytes, {
-                stackDeobfuscator: { enabled: false }
-            });
-
-            const exp = instance.exports;
-
-            if (!exp.fastSin || !exp.fastCos) {
-                throw new Error('Missing WASM exports');
-            }
-
-            wasmExports = exp;
-            postWasmStatus('ready');
-            return exp;
-
-        } catch (e) {
-            wasmExports = null;
-            postWasmStatus('fallback');
-            console.warn('[WASM horizon]', e?.message || e);
-            return null;
-        } finally {
-            wasmPromise = null;
-        }
-    })();
-
-    return wasmPromise;
+function setWasmExports(exports) {
+    if (exports && typeof exports.fastSin === 'function' && typeof exports.fastCos === 'function') {
+        wasmExports = exports;
+        postWasmStatus('ready');
+        console.log('[WASM horizon] WASM exports received and ready');
+        return true;
+    }
+    console.warn('[WASM horizon] Invalid WASM exports received');
+    return false;
 }
 
 function fastSin(a) {
@@ -132,12 +89,15 @@ function fastCos(a) {
     return fastCosJs(a);
 }
 
-// start async (non-blocking)
-loadWasmSinCos();
-
 // --- worker setup ---
 self.onmessage = function (e) {
     const { type } = e.data;
+
+    // Handle WASM exports received from main thread
+    if (type === 'wasmExports') {
+        setWasmExports(e.data.wasmExports);
+        return;
+    }
 
     if (type === 'init') {
         CANVAS_WIDTH = e.data.CANVAS_WIDTH;

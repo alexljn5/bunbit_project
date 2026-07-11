@@ -6,6 +6,7 @@ import { CANVAS_HEIGHT, CANVAS_WIDTH } from "../globals.js";
 import { fastCos, fastSin } from "../math/mathtables.js";
 import { renderEngine, drawQuad } from "./renderengine.js";
 import { playerFOV, numCastRays } from "./raycasting.js";
+import { tryLoadRenderHelpersWasm } from "../wasm/renderhelpers.js";
 
 const DEBUG_HORIZON_TIMING = (typeof window !== 'undefined' && window.location)
     ? new URLSearchParams(window.location.search).get("debugHorizonTiming") === "true"
@@ -25,9 +26,9 @@ const horizonWorkerUrl = isTauri
 // Number of workers to use
 const NUM_WORKERS = 8;
 
-// Array to hold workers
+// Array to hold workers (non-module workers, like raycast workers)
 const horizonWorkers = Array.from({ length: NUM_WORKERS }, () =>
-    new Worker(horizonWorkerUrl, { type: "module" })
+    new Worker(horizonWorkerUrl)
 );
 
 // Debug: forward worker WASM status/trig stats to main-thread console.
@@ -78,13 +79,27 @@ const textureCtx = textureCanvas.getContext("2d", { willReadFrequently: true });
 let finalBuffer = null;
 let finalImageData = null;
 
-function initializeWorkers() {
+async function initializeWorkers() {
     // Reuse final buffer and ImageData to avoid reallocations each frame
     finalBuffer = new Uint8ClampedArray(CANVAS_WIDTH * CANVAS_HEIGHT * 4);
     // Create ImageData once and reuse its underlying buffer
     finalImageData = new ImageData(finalBuffer, CANVAS_WIDTH, CANVAS_HEIGHT);
 
     const rowsPerWorker = Math.ceil(CANVAS_HEIGHT / NUM_WORKERS);
+
+    // Load WASM from main thread and pass to workers
+    let wasmExports = null;
+    try {
+        console.log("[Horizon] Loading WASM for workers...");
+        wasmExports = await tryLoadRenderHelpersWasm();
+        if (wasmExports) {
+            console.log("[Horizon] WASM loaded successfully for workers");
+        } else {
+            console.warn("[Horizon] WASM failed to load, workers will use JS fallback");
+        }
+    } catch (e) {
+        console.warn("[Horizon] WASM load error:", e.message);
+    }
 
     return Promise.all(
         horizonWorkers.map((worker, index) => {
@@ -104,6 +119,13 @@ function initializeWorkers() {
                     rowsPerWorker,
                     numWorkers: NUM_WORKERS
                 });
+                // Send WASM exports to worker
+                if (wasmExports) {
+                    worker.postMessage({
+                        type: 'wasmExports',
+                        wasmExports: wasmExports
+                    });
+                }
             });
         })
     ).then(() => {
