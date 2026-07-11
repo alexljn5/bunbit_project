@@ -385,7 +385,8 @@ export function runIntroPlaceholderAutorun() {
         maybeShowIntroPlaceholders({
             onComplete: () => {
                 setIntroActive(false);
-                window.location.href = "main_game.html";
+                // Redirect to index.html (main game) - in Tauri, use relative path
+                window.location.href = "index.html";
                 resolve();
             }
         });

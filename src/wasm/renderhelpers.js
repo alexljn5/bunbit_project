@@ -1,8 +1,22 @@
-const WASM_BASE = "/src/wasm/generated/wasm-gc";
+// Tauri uses asset: protocol for local files, fallback to relative path for dev
+const isTauri = typeof window !== 'undefined' && window.__TAURI__ !== undefined;
+// In Tauri, use the asset protocol; in dev, use relative path
+const WASM_BASE = isTauri
+    ? "asset:///wasm/generated/wasm-gc"
+    : "/src/wasm/generated/wasm-gc";
 const RUNTIME_URL = `${WASM_BASE}/bunbit-renderhelpers.wasm-runtime.js`;
 const WASM_URL = `${WASM_BASE}/bunbit-renderhelpers.wasm`;
 
 let helpersPromise = null;
+let tauriHttp = null;
+
+// Initialize Tauri HTTP API
+async function initTauriHttp() {
+    if (isTauri && !tauriHttp) {
+        const http = await import('@tauri-apps/api/http');
+        tauriHttp = http;
+    }
+}
 
 function loadScript(src) {
     return new Promise((resolve, reject) => {
@@ -22,6 +36,26 @@ function loadScript(src) {
     });
 }
 
+// Load WASM using Tauri API if available
+async function loadWasmBytes(url) {
+    if (isTauri) {
+        await initTauriHttp();
+        if (tauriHttp) {
+            const response = await tauriHttp.fetch(url, { method: 'GET' });
+            if (!response.ok) {
+                throw new Error(`Failed to fetch ${url}: ${response.status}`);
+            }
+            return await response.arrayBuffer();
+        }
+    }
+    // Fallback to standard fetch
+    const response = await fetch(url);
+    if (!response.ok) {
+        throw new Error(`Failed to fetch ${url}: ${response.status}`);
+    }
+    return await response.arrayBuffer();
+}
+
 export async function loadRenderHelpersWasm() {
     if (helpersPromise) return helpersPromise;
 
@@ -35,12 +69,7 @@ export async function loadRenderHelpersWasm() {
             throw new Error("TeaVM WasmGC runtime did not initialize");
         }
 
-        const response = await fetch(WASM_URL);
-        if (!response.ok) {
-            throw new Error(`Failed to fetch ${WASM_URL}: ${response.status}`);
-        }
-
-        const wasmBytes = await response.arrayBuffer();
+        const wasmBytes = await loadWasmBytes(WASM_URL);
         const teavm = await window.TeaVM.wasmGC.load(wasmBytes, {
             stackDeobfuscator: { enabled: false }
         });

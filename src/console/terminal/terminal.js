@@ -11,18 +11,25 @@ let currentCommand = "";
 let inputActive = false;
 let lastKeyStates = {};
 
-//Helper function to check if on electron or not
+//Helper function to check if on electron or tauri
 function isElectron() {
     return typeof window !== "undefined"
         && typeof window.process === "object"
         && !!window.process.versions?.electron;
 }
 
+//Helper function to check if on tauri
+function isTauri() {
+    return typeof window !== "undefined"
+        && window.__TAURI__ !== undefined;
+}
+
 export function displayTheTerminal() {
     const electron = isElectron();
+    const tauri = isTauri();
 
-    // Choose key depending on environment
-    const key = electron ? "t" : "y";
+    // Choose key depending on environment (Electron or Tauri uses "t", web uses "y")
+    const key = (electron || tauri) ? "t" : "y";
 
     // Toggle terminal only when key is newly pressed
     if (keys[key] && !lastYState && !inputActive) {
@@ -34,7 +41,7 @@ export function displayTheTerminal() {
         }
 
         console.log(
-            `Terminal toggled (${electron ? "Electron" : "Web"}):`,
+            `Terminal toggled (${electron ? "Electron" : tauri ? "Tauri" : "Web"}):`,
             showTerminal
         );
     }

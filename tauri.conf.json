@@ -1,0 +1,60 @@
+{
+    "$schema": "./node_modules/@tauri-apps/cli/schema.json",
+    "productName": "Bunbit",
+    "version": "0.0.5",
+    "build": {
+        "beforeBuildCommand": "npm run build",
+        "beforeDevCommand": "npm run dev",
+        "devPath": "./src",
+        "distDir": "./src"
+    },
+    "tauri": {
+        "bundle": {
+            "active": true,
+            "targets": "all",
+            "identifier": "com.alexljn5.bunbit"
+        },
+        "windows": [
+            {
+                "title": "Bunbit",
+                "width": 850,
+                "height": 850,
+                "resizable": true,
+                "fullscreen": false,
+                "icon": [
+                    "src/img/logo/favicon.ico"
+                ]
+            }
+        ],
+        "security": {
+            "csp": "default-src 'self' asset: 'unsafe-inline'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: asset:; connect-src 'self' http://localhost:3000"
+        },
+        "allowlist": {
+            "fs": {
+                "all": true,
+                "readFile": true,
+                "writeFile": true,
+                "readDir": true,
+                "copyFile": true,
+                "exists": true,
+                "renameFile": true
+            },
+            "shell": {
+                "all": true,
+                "open": true
+            },
+            "process": {
+                "all": true,
+                "relaunch": true,
+                "exit": true
+            },
+            "dialog": {
+                "all": true
+            },
+            "http": {
+                "all": true,
+                "request": true
+            }
+        }
+    }
+}
