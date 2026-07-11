@@ -4,9 +4,15 @@ const isTauri = typeof window !== 'undefined' && (window.__TAURI__ !== undefined
 // In Tauri, use the asset protocol; in dev, use relative path
 // renderhelpers.js is in src/wasm/, WASM files are in src/wasm/generated/wasm-gc/
 // Use absolute path for dev mode to work correctly with the dev server
+// Dev server URL base is not guaranteed to serve the project from /src/*.
+// Resolve relative to this module file so it works regardless of the dev-server root.
+const wasmBaseUrl = new URL("./generated/wasm-gc/", import.meta.url);
+const WASM_BASE_DEV = wasmBaseUrl.toString();
+
 const WASM_BASE = isTauri
     ? "asset:///wasm/generated/wasm-gc"
-    : "/src/wasm/generated/wasm-gc";
+    : WASM_BASE_DEV;
+
 const RUNTIME_URL = `${WASM_BASE}/bunbit-renderhelpers.wasm-runtime.js`;
 const WASM_URL = `${WASM_BASE}/bunbit-renderhelpers.wasm`;
 
