@@ -16,7 +16,8 @@
                 "width": 850,
                 "height": 850,
                 "resizable": true,
-                "fullscreen": false
+                "fullscreen": false,
+                "url": "intro.html"
             }
         ],
         "security": {

@@ -1,9 +1,4 @@
-import { newGameStartAnimation, introActive } from "./newgamestartanimation.js";
-
 export function animationHandler() {
-    // This is now handled in bunbitdebug.js which awaits the intro animation
-    // before showing the control panel. This function is kept for backward compatibility.
-    if (introActive) {
-        newGameStartAnimation();
-    }
+    // Animation handler - kept for backward compatibility
+    // The newgamestartanimation legacy system has been removed
 }

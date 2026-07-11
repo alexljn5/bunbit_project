@@ -1,6 +1,9 @@
 // Tauri uses asset: protocol for local files, fallback to relative path for dev
-const isTauri = typeof window !== 'undefined' && window.__TAURI__ !== undefined;
+// In Tauri v2, check for __TAURI__ or use a more robust check
+const isTauri = typeof window !== 'undefined' && (window.__TAURI__ !== undefined || window.location.protocol === 'tauri:');
 // In Tauri, use the asset protocol; in dev, use relative path
+// renderhelpers.js is in src/wasm/, WASM files are in src/wasm/generated/wasm-gc/
+// Use absolute path for dev mode to work correctly with the dev server
 const WASM_BASE = isTauri
     ? "asset:///wasm/generated/wasm-gc"
     : "/src/wasm/generated/wasm-gc";
@@ -18,14 +21,34 @@ async function initTauriHttp() {
     }
 }
 
-function loadScript(src) {
-    return new Promise((resolve, reject) => {
-        const existing = document.querySelector(`script[data-wasm-runtime="${src}"]`);
-        if (existing) {
-            resolve();
-            return;
-        }
+async function loadScript(src) {
+    // Check if script already loaded
+    const existing = document.querySelector(`script[data-wasm-runtime="${src}"]`);
+    if (existing) {
+        return;
+    }
 
+    // For asset:// protocol, fetch and eval instead of using script tag
+    if (src.startsWith("asset://")) {
+        try {
+            const response = await fetch(src);
+            if (!response.ok) {
+                throw new Error(`Failed to fetch ${src}: ${response.status}`);
+            }
+            const scriptText = await response.text();
+            // Create a script element to execute the code
+            const script = document.createElement("script");
+            script.textContent = scriptText;
+            script.dataset.wasmRuntime = src;
+            document.head.appendChild(script);
+        } catch (error) {
+            throw new Error(`Failed to load ${src}: ${error.message}`);
+        }
+        return;
+    }
+
+    // Standard script loading for non-asset URLs
+    return new Promise((resolve, reject) => {
         const script = document.createElement("script");
         script.src = src;
         script.async = true;
@@ -38,15 +61,14 @@ function loadScript(src) {
 
 // Load WASM using Tauri API if available
 async function loadWasmBytes(url) {
-    if (isTauri) {
-        await initTauriHttp();
-        if (tauriHttp) {
-            const response = await tauriHttp.fetch(url, { method: 'GET' });
-            if (!response.ok) {
-                throw new Error(`Failed to fetch ${url}: ${response.status}`);
-            }
-            return await response.arrayBuffer();
+    if (isTauri && url.startsWith("asset://")) {
+        // Use Tauri's http plugin to fetch asset:// URLs
+        const http = await import('@tauri-apps/api/http');
+        const response = await http.fetch(url, { method: 'GET' });
+        if (!response.ok) {
+            throw new Error(`Failed to fetch ${url}: ${response.status}`);
         }
+        return await response.arrayBuffer();
     }
     // Fallback to standard fetch
     const response = await fetch(url);

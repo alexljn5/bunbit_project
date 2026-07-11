@@ -147,7 +147,7 @@ export let raycastWasmStatus = useWasmRayMath ? "requested" : "disabled";
 export let menuActive = true;
 export let isPaused = false;
 export let gameOver = false;
-export let introActive = true;
+export let introActive = true; // Allow intro autorun to run on app start
 
 // Initialize window.introActive for autorun check
 if (typeof window !== 'undefined') {

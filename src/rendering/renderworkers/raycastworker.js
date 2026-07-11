@@ -115,10 +115,16 @@ function ensureBuffers(rayCount) {
 }
 
 /* =========================================================
-   WASM LOADER
+    WASM LOADER
 ========================================================= */
 
-const WASM_BASE = "/src/wasm/generated/wasm-gc";
+// Tauri uses asset: protocol for local files, fallback to relative path for dev
+// In a worker context, we use a relative path that works in both dev and production
+// The worker is in src/rendering/renderworkers/, so we need to go up 2 dirs to reach src/
+const isTauri = typeof self !== 'undefined' && self.__TAURI__ !== undefined;
+const WASM_BASE = isTauri
+    ? "asset:///wasm/generated/wasm-gc"
+    : "/src/wasm/generated/wasm-gc";
 const WASM_RUNTIME_URL = `${WASM_BASE}/bunbit-renderhelpers.wasm-runtime.js`;
 const WASM_URL = `${WASM_BASE}/bunbit-renderhelpers.wasm`;
 
@@ -138,7 +144,18 @@ async function loadWasm() {
 
             debug("Starting WASM load");
 
-            importScripts(WASM_RUNTIME_URL);
+            // For asset:// protocol, fetch and eval the runtime script
+            if (WASM_RUNTIME_URL.startsWith("asset://")) {
+                const runtimeResponse = await fetch(WASM_RUNTIME_URL);
+                if (!runtimeResponse.ok) {
+                    throw new Error(`Failed to fetch runtime: ${runtimeResponse.status}`);
+                }
+                const runtimeText = await runtimeResponse.text();
+                // Execute the runtime script in the worker context
+                eval(runtimeText);
+            } else {
+                importScripts(WASM_RUNTIME_URL);
+            }
 
             const res = await fetch(WASM_URL);
             const bytes = await res.arrayBuffer();
@@ -306,23 +323,93 @@ self.addEventListener("message", async (e) => {
         }
 
         /* =====================================================
-           JS FALLBACK (UNCHANGED)
-        ===================================================== */
+            JS FALLBACK (PROPER IMPLEMENTATION)
+         ===================================================== */
 
         const map = WorkerState.static.map;
 
         const rayData = new Array(rayCount);
 
-        // JS fallback: use wasm batchPoC when available, otherwise fall back to local castRayColumn implementation.
-        // (Some builds migrated globals and removed/renamed castRayColumn in this worker.)
-        const castRayColumnLocal = (typeof castRayColumn === 'function')
-            ? castRayColumn
-            : (x, state, map2d, mathBackend) => {
-                // Minimal safe stub: returns null if we don't know how to cast.
-                // Rendering code already handles null rays.
-                if (!map2d || !Array.isArray(map2d) || map2d.length === 0) return null;
-                return null;
+        // Proper JS raycasting implementation
+        const castRayColumnLocal = (rayIndex, state, map2d, mathBackend) => {
+            if (!map2d || !Array.isArray(map2d) || map2d.length === 0) return null;
+
+            const rayAngle = mathBackend.rayAngle(state.playerAngle, state.playerFOV, rayIndex, state.numCastRays);
+            const cosA = Math.cos(rayAngle);
+            const sinA = Math.sin(rayAngle);
+
+            const tileSize = state.tileSize;
+            const maxRayDepth = state.maxRayDepth;
+
+            // Initial position in map grid
+            let cellX = Math.floor(state.posX / tileSize);
+            let cellY = Math.floor(state.posZ / tileSize);
+
+            // Distance to next x and y grid lines
+            let distX = (cosA !== 0)
+                ? ((cosA > 0 ? cellX + 1 : cellX) * tileSize - state.posX) / cosA
+                : Number.POSITIVE_INFINITY;
+            let distY = (sinA !== 0)
+                ? ((sinA > 0 ? cellY + 1 : cellY) * tileSize - state.posZ) / sinA
+                : Number.POSITIVE_INFINITY;
+
+            // Delta distances
+            const deltaX = Math.abs(tileSize / cosA);
+            const deltaY = Math.abs(tileSize / sinA);
+
+            let hit = false;
+            let side = 0;
+            let distance = 0;
+            let steps = 0;
+
+            while (steps++ < maxRayDepth * 2 && !hit) {
+                if (distX < distY) {
+                    distance = distX;
+                    cellX += (cosA > 0 ? 1 : -1);
+                    distX += deltaX;
+                    side = 1;
+                } else {
+                    distance = distY;
+                    cellY += (sinA > 0 ? 1 : -1);
+                    distY += deltaY;
+                    side = 0;
+                }
+
+                // Check bounds
+                if (cellX < 0 || cellY < 0 || cellX >= map2d[0].length || cellY >= map2d.length) {
+                    break;
+                }
+
+                // Check for wall hit
+                const tile = map2d[cellY][cellX];
+                if (tile && tile.type === "wall") {
+                    hit = true;
+                }
+            }
+
+            if (!hit) return null;
+
+            // Correct distance for fish-eye effect
+            const angleDiff = rayAngle - state.playerAngle;
+            const correctedDistance = distance / Math.sqrt(1.0 + angleDiff * angleDiff);
+
+            // Get texture key
+            const tile = map2d[cellY][cellX];
+            let textureKey = "wall_creamlol";
+            if (tile) {
+                textureKey = state.textureMap[tile.textureId] ?? "wall_creamlol";
+            }
+
+            return {
+                column: rayIndex,
+                distance: correctedDistance,
+                hitSide: side === 1 ? "y" : "x",
+                textureKey,
+                textureX: 0,
+                floorTextureKey: "floor_concrete_01",
+                backend: "js"
             };
+        };
 
         for (let i = 0; i < rayCount; i++) {
             const x = d.startRay + i;

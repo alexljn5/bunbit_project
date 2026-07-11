@@ -6,20 +6,19 @@ import { drawRespawnMenu } from "../menus/menurespawn.js";
 import { playerInventoryGodFunction } from "../playerdata/playerinventory.js";
 import { compiledDevTools } from "../debugtools.js";
 import { tileSectors } from "../mapdata/maps.js";
-import { castRays, numCastRays, playerFOV } from "./raycasting.js";
+import { castRays, numCastRays, playerFOV, maxRayDepth } from "./raycasting.js";
 import { drawSprites } from "./sprites/rendersprites.js";
 import { mainGameMenu, setupMenuClickHandler } from "../menus/menu.js";
-import { texturesLoaded } from "../mapdata/maptexturesloader.js";
+import { texturesLoaded, textureTransparencyMap } from "../mapdata/maptexturesloader.js";
+import { textureIdMap, floorTextureIdMap } from "../mapdata/maptexturesids.js";
 import { playerUI } from "../playerdata/playerui.js";
 import { collissionGodFunction } from "../collissiondetection/collissionlogichandler.js";
 import { enemyAiGodFunction, friendlyAiGodFunction } from "../ai/aihandler.js";
 import { menuActive, setMenuActive, isPaused, setPaused } from "../gamestate.js";
 import { playMusicGodFunction } from "../audio/audiohandler.js";
 import { menuHandler } from "../menus/menuhandler.js";
-import { animationHandler } from "../animations/animationhandler.js";
-import { introActive, newGameStartAnimation } from "../animations/newgamestartanimation.js";
 import { itemHandlerGodFunction } from "../itemhandler/itemhandler.js";
-import { CANVAS_HEIGHT, CANVAS_WIDTH, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT } from "../globals.js";
+import { CANVAS_HEIGHT, CANVAS_WIDTH, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT, useWasmRayMath } from "../globals.js";
 import { eventHandler } from "../events/eventhandler.js";
 import { decorationHandlerGodFunction } from "../decorationhandler/decorationhandler.js";
 import { mapHandler } from "../mapdata/maphandler.js";
@@ -115,6 +114,7 @@ async function initializeRenderHelpersWasm() {
     if (renderHelpersWasm) {
         renderHelpersWasmStatus = "ready";
         window.__renderHelpersWasm = renderHelpersWasm;
+        // Note: rayAngle is not exported by the WASM module, use JS fallback
         const rayAngleExport = (renderHelpersWasm && typeof renderHelpersWasm.rayAngle === 'function')
             ? renderHelpersWasm.rayAngle(0, playerFOV, Math.floor(numCastRays / 2), numCastRays)
             : undefined;
@@ -130,6 +130,7 @@ async function initializeRenderHelpersWasm() {
     } else {
         renderHelpersWasmStatus = "fallback";
         window.__renderHelpersWasm = null;
+        console.info("[WASM] RenderHelpers fallback to JS (WASM unavailable or failed to load)");
     }
 
     window.__renderHelpersWasmStatus = renderHelpersWasmStatus;
@@ -148,7 +149,21 @@ export function getRenderHelpersWasmStatus() {
 // --- Render Workers initialization (keeps your behavior) ---
 function initializeRenderWorkers() {
     if (renderWorkersInitialized) return;
-    const staticData = { type: "init", tileSectors, CANVAS_HEIGHT, CANVAS_WIDTH };
+    // Get the current map for worker initialization
+    const currentMap = mapHandler.getFullMap() || [];
+    const staticData = {
+        type: "init",
+        tileSectors,
+        CANVAS_HEIGHT,
+        CANVAS_WIDTH,
+        map_01: currentMap,
+        textureIdMap: Object.fromEntries(textureIdMap),
+        floorTextureIdMap: Object.fromEntries(floorTextureIdMap),
+        numCastRays,
+        maxRayDepth,
+        useWasmRayMath,
+        textureTransparencyMap: textureTransparencyMap
+    };
     renderWorker1.postMessage(staticData);
     renderWorker2.postMessage(staticData);
     renderWorkersInitialized = true;
@@ -180,10 +195,6 @@ export async function gameRenderEngine(deltaTime) {
         const minScale = Math.min(SCALE_X, SCALE_Y);
         if (menuActive) {
             mainGameMenu();
-            return;
-        }
-        if (!introActive) {
-            newGameStartAnimation();
             return;
         }
         if (!showTerminal && (keys["Escape"] || keys["p"])) {
