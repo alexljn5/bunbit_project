@@ -185,10 +185,33 @@ export async function loadRenderHelpersWasm() {
 
             const resolved = instanceExports || exportsObj;
 
-            const hasRaycastColumnsBatch = typeof resolved?.raycastColumnsBatch === 'function';
-            const hasRenderHorizonSlice = typeof resolved?.renderHorizonSlice === 'function';
-            const hasFastSin = typeof resolved?.fastSin === 'function';
-            const hasFastCos = typeof resolved?.fastCos === 'function';
+            // Diagnostics: TeaVM sometimes exposes exports via getters; verify actual runtime types.
+            if (typeof resolved !== 'undefined' && typeof window !== 'undefined' && window.DEBUG_WASM) {
+                try {
+                    const fs = instanceExports?.fastSin;
+                    const fc = instanceExports?.fastCos;
+                    console.log('[WASM] export type probe:', {
+                        fromResolved_fastSin: typeof resolved?.fastSin,
+                        fromResolved_fastCos: typeof resolved?.fastCos,
+                        fromInstance_fastSin: typeof fs,
+                        fromInstance_fastCos: typeof fc,
+                        instance_fastSin_isFunction: fs instanceof Function,
+                        instance_fastCos_isFunction: fc instanceof Function,
+                        instance_fastSin_toString: Object.prototype.toString.call(fs),
+                        instance_fastCos_toString: Object.prototype.toString.call(fc),
+                        instanceExportsKeys: instanceExports ? Object.keys(instanceExports) : [],
+                    });
+                } catch { }
+            }
+
+            // TeaVM may expose some exports as non-`function` objects (wrappers).
+            // For gating, only require presence; workers will decide whether they can call them.
+            const hasRaycastColumnsBatch = resolved?.raycastColumnsBatch != null;
+            const hasRenderHorizonSlice = resolved?.renderHorizonSlice != null;
+            const hasFastSin = resolved?.fastSin != null;
+            const hasFastCos = resolved?.fastCos != null;
+
+
 
             debugLog('WASM module loaded successfully', {
                 teavmExports: Object.keys(exportsObj || {}),
@@ -216,7 +239,7 @@ export async function loadRenderHelpersWasm() {
                 }
             }
 
-            wasmExportsAvailable = typeof resolved?.fastSin === 'function' && typeof resolved?.fastCos === 'function';
+            wasmExportsAvailable = resolved?.fastSin != null && resolved?.fastCos != null;
             const ok = wasmExportsAvailable;
             logWasmState(ok ? 'ready' : 'failed', {
 

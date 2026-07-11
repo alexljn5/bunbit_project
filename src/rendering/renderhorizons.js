@@ -101,9 +101,8 @@ async function initializeWorkers() {
         wasmExports = await tryLoadRenderHelpersWasm();
 
         // Check if WASM exports have the required functions
-        const hasFastSin = wasmExports && typeof wasmExports.fastSin === 'function';
-        const hasFastCos = wasmExports && typeof wasmExports.fastCos === 'function';
-        const hasRenderHorizon = wasmExports && typeof wasmExports.renderHorizonSlice === 'function';
+        // TeaVM exports fastSin/fastCos as WebAssembly.Global objects (not JS functions)
+        const hasFastSin = wasmExports && wasmExports.fastSin != null;
 
         // Only consider WASM valid if it has the required trig functions
         wasmExportsValid = hasFastSin && hasFastCos;
