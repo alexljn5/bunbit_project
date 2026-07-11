@@ -21,7 +21,7 @@
             }
         ],
         "security": {
-            "csp": "default-src 'self' asset: 'unsafe-inline'; script-src 'self' 'unsafe-inline' http://127.0.0.1:1430; style-src 'self' 'unsafe-inline'; img-src 'self' data: asset:; connect-src 'self' http://localhost:3000 http://127.0.0.1:1430; worker-src 'self' asset: http://127.0.0.1:1430;",
+            "csp": "default-src 'self' asset: 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval' http://127.0.0.1:1430; style-src 'self' 'unsafe-inline'; img-src 'self' data: asset:; connect-src 'self' http://localhost:3000 http://127.0.0.1:1430; worker-src 'self' asset: http://127.0.0.1:1430;",
             "dangerousDisableAssetCspModification": true,
             "capabilities": [
                 "default"
