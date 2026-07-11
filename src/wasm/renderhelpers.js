@@ -19,15 +19,42 @@ const WASM_URL = `${WASM_BASE}/bunbit-renderhelpers.wasm`;
 let helpersPromise = null;
 let tauriHttp = null;
 
-// Debug helper
-const DEBUG_PREFIX = '[DEBUG]';
+// Debug state tracking
+let wasmLoadState = 'uninitialized';
+let wasmExportsAvailable = false;
+let lastError = null;
+
+// Consolidated debug log helper - only logs on state changes
 function debugLog(...args) {
-    if (window.DEBUG_TAURI) {
-        console.log(DEBUG_PREFIX, ...args);
+    if (typeof window !== 'undefined' && window.DEBUG_WASM) {
+        console.log('[WASM]', ...args);
     }
 }
 
-debugLog('renderhelpers.js loaded', { isTauri, WASM_BASE, RUNTIME_URL, WASM_URL });
+// Log WASM loading state changes
+function logWasmState(newState, details = {}) {
+    if (typeof window !== 'undefined' && window.DEBUG_WASM) {
+        console.groupCollapsed(`[WASM] State: ${wasmLoadState} → ${newState}`);
+        console.log('Details:', details);
+        console.log('WASM URLs:', { RUNTIME_URL, WASM_URL });
+        console.log('Environment:', { isTauri, protocol: window.location?.protocol });
+        console.groupEnd();
+    }
+    wasmLoadState = newState;
+}
+
+// Log errors (only once per error type)
+function logWasmError(error) {
+    if (typeof window !== 'undefined' && window.DEBUG_WASM) {
+        const errorKey = error?.message || 'unknown';
+        if (lastError !== errorKey) {
+            console.groupCollapsed(`[WASM] Error: ${errorKey}`);
+            console.error(error);
+            console.groupEnd();
+            lastError = errorKey;
+        }
+    }
+}
 
 // Initialize Tauri HTTP API
 async function initTauriHttp() {
@@ -64,7 +91,7 @@ async function loadScript(src) {
             document.head.appendChild(script);
             debugLog('Script executed');
         } catch (error) {
-            debugLog('loadScript failed', { error: error.message, stack: error.stack });
+            logWasmError(error);
             throw new Error(`Failed to load ${src}: ${error.message}`);
         }
         return;
@@ -81,7 +108,7 @@ async function loadScript(src) {
             resolve();
         };
         script.onerror = (e) => {
-            debugLog('Script load failed', { src, error: e });
+            logWasmError(new Error(`Failed to load ${src}`));
             reject(new Error(`Failed to load ${src}`));
         };
         document.head.appendChild(script);
@@ -123,40 +150,74 @@ export async function loadRenderHelpersWasm() {
     }
 
     helpersPromise = (async () => {
-        debugLog('WASM loading started');
+        logWasmState('loading', { step: 'start' });
 
         if (!("WebAssembly" in window)) {
-            debugLog('WebAssembly not available in this runtime');
+            logWasmState('failed', { reason: 'WebAssembly not available' });
             throw new Error("WebAssembly is not available in this runtime");
         }
 
-        debugLog('Loading WASM runtime script', { url: RUNTIME_URL });
-        await loadScript(RUNTIME_URL);
+        try {
+            debugLog('Loading WASM runtime script', { url: RUNTIME_URL });
+            await loadScript(RUNTIME_URL);
 
-        if (!window.TeaVM || !window.TeaVM.wasmGC) {
-            debugLog('TeaVM WasmGC runtime not initialized', {
-                hasTeaVM: !!window.TeaVM,
-                hasWasmGC: !!(window.TeaVM?.wasmGC)
+            if (!window.TeaVM || !window.TeaVM.wasmGC) {
+                logWasmState('failed', {
+                    reason: 'TeaVM WasmGC runtime not initialized',
+                    hasTeaVM: !!window.TeaVM,
+                    hasWasmGC: !!(window.TeaVM?.wasmGC)
+                });
+                throw new Error("TeaVM WasmGC runtime did not initialize");
+            }
+
+            logWasmState('loading', { step: 'wasm_binary' });
+            debugLog('TeaVM WasmGC runtime initialized, loading WASM binary', { url: WASM_URL });
+            const wasmBytes = await loadWasmBytes(WASM_URL);
+
+            debugLog('Loading WASM module with TeaVM');
+            const teavm = await window.TeaVM.wasmGC.load(wasmBytes, {
+                stackDeobfuscator: { enabled: false }
             });
-            throw new Error("TeaVM WasmGC runtime did not initialize");
+
+            // TeaVM runtime populates `teavm.exports` only for WebAssembly.Global exports.
+            // Your wasm-gc build exposes trig helpers as functions, so `teavm.exports` can be empty.
+            // Prefer `instance.exports` when available.
+            const exportsObj = teavm.exports;
+            const instanceExports = teavm?.instance?.exports;
+
+            // Prefer function exports from instanceExports (fastSin/fastCos expected)
+            const resolved = instanceExports || exportsObj;
+
+            // Check for expected exports
+            const hasRaycastColumnsBatch = typeof resolved?.raycastColumnsBatch === 'function';
+            const hasRenderHorizonSlice = typeof resolved?.renderHorizonSlice === 'function';
+            const hasFastSin = typeof resolved?.fastSin === 'function';
+            const hasFastCos = typeof resolved?.fastCos === 'function';
+
+            debugLog('WASM module loaded successfully', {
+                teavmExports: Object.keys(exportsObj || {}),
+                instanceExports: instanceExports ? Object.keys(instanceExports || {}) : [],
+                hasRaycastColumnsBatch,
+                hasRenderHorizonSlice,
+                hasFastSin,
+                hasFastCos
+            });
+
+            wasmExportsAvailable = hasFastSin && hasFastCos;
+            logWasmState('ready', {
+                hasRaycastColumnsBatch,
+                hasRenderHorizonSlice,
+                hasFastSin,
+                hasFastCos,
+                hasRequiredExports: wasmExportsAvailable
+            });
+
+            return resolved;
+        } catch (error) {
+            logWasmError(error);
+            logWasmState('failed', { error: error.message });
+            throw error;
         }
-
-        debugLog('TeaVM WasmGC runtime initialized, loading WASM binary', { url: WASM_URL });
-        const wasmBytes = await loadWasmBytes(WASM_URL);
-
-        debugLog('Loading WASM module with TeaVM');
-        const teavm = await window.TeaVM.wasmGC.load(wasmBytes, {
-            stackDeobfuscator: { enabled: false }
-        });
-
-        const exports = teavm.exports;
-        debugLog('WASM module loaded successfully', {
-            exports: Object.keys(exports || {}),
-            hasRayAngle: typeof exports?.rayAngle === 'function',
-            hasClampInt: typeof exports?.clampInt === 'function'
-        });
-
-        return exports;
     })();
 
     return helpersPromise;
@@ -174,4 +235,17 @@ export async function tryLoadRenderHelpersWasm() {
         helpersPromise = null;
         return null;
     }
+}
+
+// Export debug state for inspection
+export function getWasmDebugState() {
+    return {
+        wasmLoadState,
+        wasmExportsAvailable,
+        lastError,
+        isTauri,
+        WASM_BASE,
+        RUNTIME_URL,
+        WASM_URL
+    };
 }

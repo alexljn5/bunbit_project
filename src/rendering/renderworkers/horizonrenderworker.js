@@ -19,10 +19,13 @@ let texScaleYRoof = 0;
 // WASM state
 let wasmExports = null;
 let wasmStatus = 'disabled';
+let hasRaycast = false;
+let hasRenderHorizon = false;
 
 // Debug counters
 let __wasmSinCosCalls = 0;
 let __wasmFastSinFallbackCalls = 0;
+let frameCount = 0;
 
 let halfHeight = 0;
 let projectionDist = 0;
@@ -60,19 +63,45 @@ function postWasmStatus(status) {
     } catch { }
 }
 
+function debug(msg, extra = {}) {
+    if (typeof window !== 'undefined' && window.DEBUG_WASM) {
+        try {
+            self.postMessage({
+                type: "wasmDebug",
+                msg,
+                ...extra
+            });
+        } catch { }
+    }
+}
+
 function setWasmExports(exports) {
-    if (exports && typeof exports.fastSin === 'function' && typeof exports.fastCos === 'function') {
+    // TeaVM exports may not use fastSin/fastCos names; we only enable WASM trig
+    // when the required functions actually exist.
+    const hasFs = typeof exports?.fastSin === 'function';
+    const hasFc = typeof exports?.fastCos === 'function';
+    const hasRhs = typeof exports?.renderHorizonSlice === 'function';
+
+    if (exports && hasFs && hasFc) {
         wasmExports = exports;
+        hasRaycast = hasFs && hasFc;
+        hasRenderHorizon = hasRhs;
         postWasmStatus('ready');
-        console.log('[WASM horizon] WASM exports received and ready');
+        debug('[WASM horizon] WASM trig ready', { hasRaycast, hasRenderHorizon });
         return true;
     }
-    console.warn('[WASM horizon] Invalid WASM exports received');
+
+    // Expected in environments where WASM doesn't export trig helpers with these names.
+    wasmExports = null;
+    hasRaycast = false;
+    hasRenderHorizon = false;
+    postWasmStatus('fallback');
+    debug('[WASM horizon] Using JS fallback - missing exports', { hasFastSin: hasFs, hasFastCos: hasFc, hasRenderHorizon: hasRhs });
     return false;
 }
 
 function fastSin(a) {
-    if (wasmExports) {
+    if (wasmExports && hasRaycast) {
         __wasmSinCosCalls++;
         return wasmExports.fastSin(a);
     }
@@ -81,7 +110,7 @@ function fastSin(a) {
 }
 
 function fastCos(a) {
-    if (wasmExports) {
+    if (wasmExports && hasRaycast) {
         __wasmSinCosCalls++;
         return wasmExports.fastCos(a);
     }
@@ -220,5 +249,6 @@ self.onmessage = function (e) {
         }, [horizonBuffer32.buffer]);
 
         horizonBuffer32 = new Uint32Array(CANVAS_WIDTH * rowCount);
+        frameCount++;
     }
 };

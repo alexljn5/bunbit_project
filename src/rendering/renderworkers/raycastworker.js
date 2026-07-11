@@ -6,14 +6,19 @@
 ========================================================= */
 let wasmExports = null; // Will be set from main thread
 
+// Frame counter for debugging
+let frameCount = 0;
+
 function debug(msg, extra = {}) {
-    try {
-        self.postMessage({
-            type: "wasmDebug",
-            msg,
-            ...extra
-        });
-    } catch { }
+    if (typeof window !== 'undefined' && window.DEBUG_WASM) {
+        try {
+            self.postMessage({
+                type: "wasmDebug",
+                msg,
+                ...extra
+            });
+        } catch { }
+    }
 }
 
 self.addEventListener("error", (e) => {
@@ -181,15 +186,32 @@ self.addEventListener("message", async (e) => {
 
             // ===========================================================
             // FIX: Receive WASM exports from the main thread
+            // Check for required exports before enabling WASM
             // ===========================================================
             if (d.wasmExports) {
-                wasmExports = d.wasmExports;
-                WorkerState.wasm = wasmExports;
-                WorkerState.batchPoC = wasmExports.raycastColumnsBatch;
-                postWasmStatus("ready");
-                debug("WASM exports received from main thread", {
-                    hasRaycast: typeof wasmExports.raycastColumnsBatch === "function"
-                });
+                const hasRaycast = typeof d.wasmExports.raycastColumnsBatch === 'function';
+                const hasFastSin = typeof d.wasmExports.fastSin === 'function';
+                const hasFastCos = typeof d.wasmExports.fastCos === 'function';
+
+                if (hasRaycast && hasFastSin && hasFastCos) {
+                    wasmExports = d.wasmExports;
+                    WorkerState.wasm = wasmExports;
+                    WorkerState.batchPoC = wasmExports.raycastColumnsBatch;
+                    postWasmStatus("ready");
+                    debug("WASM exports received from main thread", {
+                        hasRaycast,
+                        hasFastSin,
+                        hasFastCos,
+                        hasRaycastColumnsBatch: hasRaycast
+                    });
+                } else {
+                    debug("WASM exports missing required functions, using JS fallback", {
+                        hasRaycast,
+                        hasFastSin,
+                        hasFastCos
+                    });
+                    postWasmStatus("fallback");
+                }
             } else {
                 debug("No WASM exports received, using JS fallback");
                 postWasmStatus("disabled");
@@ -203,6 +225,7 @@ self.addEventListener("message", async (e) => {
 
         if (d.frameId < WorkerState.latestFrameId) return;
         WorkerState.latestFrameId = d.frameId;
+        frameCount++;
 
         const s = {
             ...WorkerState.static,

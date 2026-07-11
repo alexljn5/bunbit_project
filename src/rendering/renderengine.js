@@ -274,8 +274,14 @@ export async function gameRenderEngine(deltaTime) {
                 else if (r.backend === "js") window.__raycastBackendStats.js++;
                 else window.__raycastBackendStats.unknown++;
             }
-            //Clogs console, readd if need wasm check
-            console.log("[Raycast backend check]", window.__raycastBackendStats);
+            // Raycast backend check spam prevention: log only occasionally
+            if (!window.__raycastBackendStatsLastLogFrame) window.__raycastBackendStatsLastLogFrame = -1;
+            const f = window.__raycastBackendStatsLastLogFrame;
+            const shouldLog = (f < 0) || ((performance.now() % 2000) < 16);
+            if (shouldLog) {
+                window.__raycastBackendStatsLastLogFrame = performance.now();
+                console.log("[Raycast backend check]", window.__raycastBackendStats);
+            }
         }
 
         // Check for invalid rayData - only log once per state change

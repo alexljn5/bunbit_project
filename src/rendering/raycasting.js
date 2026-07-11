@@ -6,18 +6,10 @@ import { fastSin, fastCos, Q_rsqrt } from "../math/mathtables.js";
 import { mapHandler } from "../mapdata/maphandler.js";
 import { textureIdMap, floorTextureIdMap, roofTextureIdMap } from "../mapdata/maptexturesids.js";
 import { textureTransparencyMap } from "../mapdata/maptexturesloader.js";
-import { loadRenderHelpersWasm } from "../wasm/renderhelpers.js";
+import { loadRenderHelpersWasm, getWasmDebugState } from "../wasm/renderhelpers.js";
 
 // Re-export graphics settings from globals.js for backward compatibility
 export { playerFOV, numCastRays, maxRayDepth, useWasmRayMath, raycastWasmStatus, updateGraphicsSettings };
-
-// Debug helper
-const DEBUG_PREFIX = '[DEBUG]';
-function debugLog(...args) {
-    if (window.DEBUG_TAURI) {
-        console.log(DEBUG_PREFIX, ...args);
-    }
-}
 
 // --- OPTIMIZED RAYCASTING WORKER MANAGEMENT ---
 const NUM_WORKERS = Math.min(navigator.hardwareConcurrency || 4, 4);
@@ -43,6 +35,10 @@ let lastFrameResults = { frameId: -1, results: null };
 let cachedWasmExports = null;
 let wasmLoadAttempted = false;
 
+// Track WASM state changes
+let lastWasmState = 'unknown';
+let hasRaycastColumnsBatch = false;
+
 // Set initial raycastWasmStatus
 if (typeof window !== 'undefined') {
     window.__raycastWasmStatus = raycastWasmStatus;
@@ -56,24 +52,49 @@ async function getWasmExports() {
 
     wasmLoadAttempted = true;
     try {
-        debugLog("Loading WASM from main thread...");
+        console.groupCollapsed(`[WASM] Loading WASM from main thread`);
         cachedWasmExports = await loadRenderHelpersWasm();
+
         if (cachedWasmExports) {
-            debugLog("WASM loaded successfully, exports available:", Object.keys(cachedWasmExports));
+            // Check for required exports
+            hasRaycastColumnsBatch = typeof cachedWasmExports.raycastColumnsBatch === 'function';
+            const hasFastSin = typeof cachedWasmExports.fastSin === 'function';
+            const hasFastCos = typeof cachedWasmExports.fastCos === 'function';
+
+            console.log('[WASM] Exports available:', {
+                hasRaycastColumnsBatch,
+                hasFastSin,
+                hasFastCos,
+                allExports: Object.keys(cachedWasmExports)
+            });
+
+            // Log state change
+            if (lastWasmState !== 'ready') {
+                console.log(`[WASM] State: ${lastWasmState} → ready`);
+                lastWasmState = 'ready';
+            }
         } else {
-            debugLog("WASM load returned null or undefined");
+            console.warn('[WASM] Load returned null or undefined');
+            if (lastWasmState !== 'failed') {
+                console.log(`[WASM] State: ${lastWasmState} → failed`);
+                lastWasmState = 'failed';
+            }
         }
+        console.groupEnd();
         return cachedWasmExports;
     } catch (e) {
         console.error("[Raycasting] WASM load failed:", e);
         cachedWasmExports = null;
+        if (lastWasmState !== 'failed') {
+            console.log(`[WASM] State: ${lastWasmState} → failed`);
+            lastWasmState = 'failed';
+        }
+        console.groupEnd();
         return null;
     }
 }
 
 workers.forEach((worker, idx) => {
-    debugLog(`Worker ${idx} created, setting up message handlers`);
-
     worker.onmessage = (e) => {
         const { frameId } = e.data;
 
@@ -84,16 +105,19 @@ workers.forEach((worker, idx) => {
                 window.__raycastMathSource = e.data.status === "ready" ? "wasm" : "js";
             }
 
-            console.info("[WASM STATUS]", {
-                worker: idx,
-                status: e.data.status
-            });
+            // Only log state changes
+            if (lastWasmState !== e.data.status) {
+                console.info(`[WASM] Worker ${idx} status: ${lastWasmState} → ${e.data.status}`);
+                lastWasmState = e.data.status;
+            }
 
             return;
         }
 
         if (e.data.type === "wasmDebug") {
-            console.log("[WASM DEBUG]", e.data);
+            if (window.DEBUG_WASM) {
+                console.log(`[WASM DEBUG] Worker ${idx}:`, e.data.msg, e.data);
+            }
             return;
         }
 
@@ -111,7 +135,6 @@ workers.forEach((worker, idx) => {
         const cb = workerPendingFrames.get(key);
 
         if (cb) {
-            debugLog(`Worker ${idx} response received for frame ${frameId}`);
             cb(e.data);
             workerPendingFrames.delete(key);
         }
@@ -137,8 +160,8 @@ export async function initializeWorkers() {
 
     if (!wasmExports) {
         console.warn("[Workers] WASM failed to load in main thread, workers will use JS fallback");
-    } else {
-        debugLog("WASM exports being sent to workers");
+    } else if (!hasRaycastColumnsBatch) {
+        console.warn("[Workers] WASM exports missing raycastColumnsBatch, workers will use JS fallback");
     }
 
     // Use map_01 directly (not currentMap which is undefined)
@@ -151,9 +174,9 @@ export async function initializeWorkers() {
         CANVAS_WIDTH,
         numCastRays,
         maxRayDepth,
-        useWasmRayMath,
         textureTransparencyMap: textureTransparencyMap,
-        wasmExports: wasmExports // Pass the exports to workers
+        useWasmRayMath,
+        wasmExports: wasmExports && hasRaycastColumnsBatch ? wasmExports : null // Pass exports only if valid
     };
 
     let resolved = false;
@@ -172,7 +195,6 @@ export async function initializeWorkers() {
     for (let w of workers) w.postMessage(staticData);
     const success = await initPromise;
     workersInitialized = success;
-    debugLog(`Workers initialized: ${success}`);
     return workersInitialized;
 }
 
@@ -265,17 +287,13 @@ function jsFallbackRaycast() {
 }
 
 export async function castRays() {
-    debugLog('castRays() invoked', { frameId: currentFrameId + 1 });
-
     const currentMap = mapHandler.getFullMap();
     if (!currentMap || !Array.isArray(currentMap) || !currentMap[0] || !Array.isArray(currentMap[0])) {
-        debugLog('castRays: no valid map, using last results or fallback');
         const fallbackData = jsFallbackRaycast();
         return fallbackData || lastFrameResults.results || new Array(numCastRays).fill(null);
     }
 
     if (!workersInitialized) {
-        debugLog('castRays: initializing workers');
         const wasmExports = await getWasmExports();
         for (let w of workers) w.postMessage({
             type: "init",
@@ -288,7 +306,7 @@ export async function castRays() {
             maxRayDepth,
             textureTransparencyMap: textureTransparencyMap,
             useWasmRayMath,
-            wasmExports: wasmExports
+            wasmExports: wasmExports && hasRaycastColumnsBatch ? wasmExports : null
         });
         workersInitialized = true;
     }
@@ -298,6 +316,11 @@ export async function castRays() {
     const playerAngle = playerPosition.angle;
     currentFrameId++;
     const frameId = currentFrameId;
+
+    // Log frame count when debugging
+    if (window.DEBUG_WASM && frameId % 60 === 0) {
+        console.log(`[WASM] Frame count: ${frameId}`);
+    }
 
     if (posX < 0 || posZ < 0 || posX > currentMap[0].length * tileSectors || posZ > currentMap.length * tileSectors) {
         playerPosition.x = 5 * tileSectors;
@@ -320,15 +343,12 @@ export async function castRays() {
             startRay: start,
             endRay: end
         };
-        debugLog(`castRays: posting frame ${frameId} to worker ${idx}`);
         return new Promise((resolve) => {
             const key = `${frameId}_${idx}`;
             workerPendingFrames.set(key, (data) => {
                 if (data.error) {
-                    debugLog(`Worker ${idx} error for frame ${frameId}:`, data.error);
                     resolve({ startRay: start, rayData: new Array(end - start).fill(null), frameId });
                 } else if (data.frameId === frameId) {
-                    debugLog(`Worker ${idx} response received for frame ${frameId}`);
                     resolve(data);
                 }
             });
@@ -338,9 +358,7 @@ export async function castRays() {
 
     // Safety timeout: 500ms to prevent hanging forever
     const timeoutMs = 500;
-    debugLog(`castRays: waiting for workers with ${timeoutMs}ms timeout`);
     const timeoutPromise = new Promise((resolve) => setTimeout(() => {
-        debugLog(`castRays: TIMEOUT after ${timeoutMs}ms`);
         resolve(null);
     }, timeoutMs));
 
@@ -350,13 +368,10 @@ export async function castRays() {
     ]);
 
     if (!results || results.some(r => !r || r.frameId !== frameId)) {
-        debugLog('castRays: workers failed or timeout, using fallback');
         try {
             const fallbackData = jsFallbackRaycast();
-            debugLog('castRays: fallback raycast successful');
             return fallbackData;
         } catch (e) {
-            debugLog('castRays: fallback failed, returning nulls');
             return lastFrameResults.results || new Array(numCastRays).fill(null);
         }
     }
@@ -371,14 +386,11 @@ export async function castRays() {
         }
     }
 
-    // Log ray data summary
-    const validCount = rayData.filter(r => r !== null).length;
-    debugLog('castRays: returning', {
-        frameId,
-        rayCount: rayData.length,
-        validCount,
-        firstRay: rayData[0]
-    });
+    // Log ray data summary (only when debugging)
+    if (window.DEBUG_WASM) {
+        const validCount = rayData.filter(r => r !== null).length;
+        console.log(`[WASM] castRays: frame ${frameId}, valid rays: ${validCount}/${rayData.length}`);
+    }
 
     lastFrameResults = { frameId, results: rayData };
     return rayData;
