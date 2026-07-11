@@ -1,0 +1,15 @@
+{
+    "identifier": "default",
+    "description": "Default capability for Bunbit Game Engine",
+    "windows": [
+        "*"
+    ],
+    "permissions": [
+        "core:default",
+        "fs:default",
+        "shell:default",
+        "process:default",
+        "dialog:default",
+        "http:default"
+    ]
+}

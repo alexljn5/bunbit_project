@@ -27,6 +27,11 @@ struct PlayerLog {
 
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_http::init())
         .setup(|app| {
             // Create crash logs directory
             let log_dir = app
@@ -63,7 +68,7 @@ fn main() {
 
 // Command to reload the window
 #[tauri::command]
-async fn reload_window(window: tauri::Window) -> Result<(), String> {
+async fn reload_window(window: tauri::WebviewWindow) -> Result<(), String> {
     window.eval("window.location.reload()").map_err(|e| e.to_string())
 }
 
