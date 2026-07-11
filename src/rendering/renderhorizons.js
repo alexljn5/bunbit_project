@@ -103,6 +103,9 @@ async function initializeWorkers() {
         // Check if WASM exports have the required functions
         // TeaVM exports fastSin/fastCos as WebAssembly.Global objects (not JS functions)
         const hasFastSin = wasmExports && wasmExports.fastSin != null;
+        const hasFastCos = wasmExports && wasmExports.fastCos != null;
+        const hasRenderHorizon = wasmExports && wasmExports.renderHorizonSlice != null;
+
 
         // Only consider WASM valid if it has the required trig functions
         wasmExportsValid = hasFastSin && hasFastCos;
@@ -149,14 +152,20 @@ async function initializeWorkers() {
                     numWorkers: NUM_WORKERS
                 });
 
-                // Send WASM exports to worker (only if they include fastSin/fastCos)
-                // Main-thread only; worker must not try to load WASM itself.
-                if (wasmExportsValid && wasmExports) {
+                // Send WASM exports to worker.
+                // NOTE: TeaVM exports here include WebAssembly.Global objects / wrappers
+                // which are NOT always structured-cloneable. Sending them can throw:
+                // DataCloneError: function ... could not be cloned.
+                // Raycasting workers use a different calling path and are already working.
+                // For horizons, we will only enable WASM trig if we can safely pass exports.
+                // If you want full horizon WASM execution, we need a clone-safe approach.
+                if (false && wasmExportsValid && wasmExports) {
                     worker.postMessage({
                         type: 'wasmExports',
                         wasmExports: wasmExports
                     });
                 }
+
 
             });
         })
