@@ -150,11 +150,12 @@ export async function loadRenderHelpersWasm() {
     }
 
     helpersPromise = (async () => {
+
         logWasmState('loading', { step: 'start' });
 
         if (!("WebAssembly" in window)) {
             logWasmState('failed', { reason: 'WebAssembly not available' });
-            throw new Error("WebAssembly is not available in this runtime");
+            return null;
         }
 
         try {
@@ -167,7 +168,7 @@ export async function loadRenderHelpersWasm() {
                     hasTeaVM: !!window.TeaVM,
                     hasWasmGC: !!(window.TeaVM?.wasmGC)
                 });
-                throw new Error("TeaVM WasmGC runtime did not initialize");
+                return null;
             }
 
             logWasmState('loading', { step: 'wasm_binary' });
@@ -179,16 +180,11 @@ export async function loadRenderHelpersWasm() {
                 stackDeobfuscator: { enabled: false }
             });
 
-            // TeaVM runtime populates `teavm.exports` only for WebAssembly.Global exports.
-            // Your wasm-gc build exposes trig helpers as functions, so `teavm.exports` can be empty.
-            // Prefer `instance.exports` when available.
             const exportsObj = teavm.exports;
             const instanceExports = teavm?.instance?.exports;
 
-            // Prefer function exports from instanceExports (fastSin/fastCos expected)
             const resolved = instanceExports || exportsObj;
 
-            // Check for expected exports
             const hasRaycastColumnsBatch = typeof resolved?.raycastColumnsBatch === 'function';
             const hasRenderHorizonSlice = typeof resolved?.renderHorizonSlice === 'function';
             const hasFastSin = typeof resolved?.fastSin === 'function';
@@ -203,25 +199,51 @@ export async function loadRenderHelpersWasm() {
                 hasFastCos
             });
 
-            wasmExportsAvailable = hasFastSin && hasFastCos;
-            logWasmState('ready', {
+            // TeaVM instance exports are sometimes populated slightly after load() returns.
+            // Do a single post-load recheck to avoid returning null too early.
+            if (!hasFastSin || !hasFastCos) {
+                await new Promise(r => setTimeout(r, 0));
+                const reResolved = (teavm?.instance?.exports) || exportsObj;
+                const reHasFastSin = typeof reResolved?.fastSin === 'function';
+                const reHasFastCos = typeof reResolved?.fastCos === 'function';
+                if (reHasFastSin && reHasFastCos) {
+                    resolved.fastSin = reResolved.fastSin;
+                    resolved.fastCos = reResolved.fastCos;
+                    // also refresh other function checks
+                    hasRaycastColumnsBatch = typeof reResolved?.raycastColumnsBatch === 'function';
+                    hasRenderHorizonSlice = typeof reResolved?.renderHorizonSlice === 'function';
+                    // update local flags
+                }
+            }
+
+            wasmExportsAvailable = typeof resolved?.fastSin === 'function' && typeof resolved?.fastCos === 'function';
+            const ok = wasmExportsAvailable;
+            logWasmState(ok ? 'ready' : 'failed', {
+
                 hasRaycastColumnsBatch,
                 hasRenderHorizonSlice,
                 hasFastSin,
                 hasFastCos,
-                hasRequiredExports: wasmExportsAvailable
+                hasRequiredExports: ok
             });
 
-            return resolved;
+            const result = ok ? resolved : null;
+            // If TeaVM/exports validation failed, allow later calls to retry.
+            if (!result) {
+                helpersPromise = null;
+            }
+            return result;
         } catch (error) {
             logWasmError(error);
-            logWasmState('failed', { error: error.message });
-            throw error;
+            logWasmState('failed', { error: error?.message || String(error) });
+            helpersPromise = null;
+            return null;
         }
     })();
 
     return helpersPromise;
 }
+
 
 export async function tryLoadRenderHelpersWasm() {
     try {

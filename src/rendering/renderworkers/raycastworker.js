@@ -184,11 +184,9 @@ self.addEventListener("message", async (e) => {
                 WorkerState.flatMap = flattenMap(d.map_01);
             }
 
-            // ===========================================================
-            // FIX: Receive WASM exports from the main thread
-            // Check for required exports before enabling WASM
-            // ===========================================================
-            if (d.wasmExports) {
+            // Receive WASM exports from the main thread and only enable WASM when complete.
+            // If anything is missing, always use JS fallback.
+            if (d.wasmExports && typeof d.wasmExports === 'object') {
                 const hasRaycast = typeof d.wasmExports.raycastColumnsBatch === 'function';
                 const hasFastSin = typeof d.wasmExports.fastSin === 'function';
                 const hasFastCos = typeof d.wasmExports.fastCos === 'function';
@@ -205,6 +203,9 @@ self.addEventListener("message", async (e) => {
                         hasRaycastColumnsBatch: hasRaycast
                     });
                 } else {
+                    wasmExports = null;
+                    WorkerState.wasm = null;
+                    WorkerState.batchPoC = null;
                     debug("WASM exports missing required functions, using JS fallback", {
                         hasRaycast,
                         hasFastSin,
@@ -213,6 +214,9 @@ self.addEventListener("message", async (e) => {
                     postWasmStatus("fallback");
                 }
             } else {
+                wasmExports = null;
+                WorkerState.wasm = null;
+                WorkerState.batchPoC = null;
                 debug("No WASM exports received, using JS fallback");
                 postWasmStatus("disabled");
             }
@@ -220,6 +224,7 @@ self.addEventListener("message", async (e) => {
             self.postMessage({ type: "init", success: true });
             return;
         }
+
 
         if (!WorkerState.static) throw new Error("Not initialized");
 

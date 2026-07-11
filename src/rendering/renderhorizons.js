@@ -61,9 +61,8 @@ function attachHorizonWorkerDebug(worker, index) {
 
 horizonWorkers.forEach((w, i) => attachHorizonWorkerDebug(w, i));
 
-
-
 let isInitialized = Array(NUM_WORKERS).fill(false);
+let horizonWorkersWasmMode = 'unknown';
 let lastFloorTextureKey = "";
 let lastRoofTextureKey = "";
 let textureWidthFloor = 0;
@@ -109,6 +108,8 @@ async function initializeWorkers() {
         // Only consider WASM valid if it has the required trig functions
         wasmExportsValid = hasFastSin && hasFastCos;
 
+        horizonWorkersWasmMode = wasmExportsValid ? 'wasm' : 'js-fallback';
+
         // Log state change
         if (wasmExportsValid !== (lastWasmState === 'ready')) {
             if (window.DEBUG_WASM) {
@@ -123,6 +124,7 @@ async function initializeWorkers() {
         if (!wasmExportsValid) {
             console.warn("[HORIZON] WASM exports missing or invalid, workers will use JS fallback");
         }
+
     } catch (e) {
         console.warn("[HORIZON] WASM load error:", e.message);
         wasmExportsValid = false;
@@ -147,13 +149,16 @@ async function initializeWorkers() {
                     rowsPerWorker,
                     numWorkers: NUM_WORKERS
                 });
+
                 // Send WASM exports to worker (only if they include fastSin/fastCos)
-                if (wasmExports && typeof wasmExports.fastSin === 'function' && typeof wasmExports.fastCos === 'function') {
+                // Main-thread only; worker must not try to load WASM itself.
+                if (wasmExportsValid && wasmExports) {
                     worker.postMessage({
                         type: 'wasmExports',
                         wasmExports: wasmExports
                     });
                 }
+
             });
         })
     ).then(() => {

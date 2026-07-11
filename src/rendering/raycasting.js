@@ -155,7 +155,7 @@ export async function initializeWorkers() {
     const map_01 = mapTable.get("map_01");
     if (!map_01 || !Array.isArray(map_01) || !map_01[0]) return false;
 
-    // Load WASM from main thread
+    // Strict ordering: ensure WASM exports attempt finishes before any worker gets init.
     const wasmExports = await getWasmExports();
 
     if (!wasmExports) {
@@ -164,7 +164,6 @@ export async function initializeWorkers() {
         console.warn("[Workers] WASM exports missing raycastColumnsBatch, workers will use JS fallback");
     }
 
-    // Use map_01 directly (not currentMap which is undefined)
     const staticData = {
         type: "init",
         tileSectors,
@@ -176,7 +175,7 @@ export async function initializeWorkers() {
         maxRayDepth,
         textureTransparencyMap: textureTransparencyMap,
         useWasmRayMath,
-        wasmExports: wasmExports && hasRaycastColumnsBatch ? wasmExports : null // Pass exports only if valid
+        wasmExports: wasmExports && hasRaycastColumnsBatch ? wasmExports : null
     };
 
     let resolved = false;
@@ -197,6 +196,7 @@ export async function initializeWorkers() {
     workersInitialized = success;
     return workersInitialized;
 }
+
 
 export function initializeMap() {
     if (!mapHandler.activeMapKey) {
