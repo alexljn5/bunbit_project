@@ -118,15 +118,27 @@ function ensureBuffers(rayCount) {
     WASM LOADER
 ========================================================= */
 
-// Tauri uses asset: protocol for local files, fallback to relative path for dev
-// In a worker context, we use a relative path that works in both dev and production
-// The worker is in src/rendering/renderworkers/, so we need to go up 2 dirs to reach src/
+// Tauri uses asset: protocol for local files.
+// For dev/worker contexts, resolve URLs relative to this worker script so we don't depend on a hardcoded web root.
 const isTauri = typeof self !== 'undefined' && self.__TAURI__ !== undefined;
-const WASM_BASE = isTauri
-    ? "asset:///wasm/generated/wasm-gc"
-    : "/src/wasm/generated/wasm-gc";
-const WASM_RUNTIME_URL = `${WASM_BASE}/bunbit-renderhelpers.wasm-runtime.js`;
-const WASM_URL = `${WASM_BASE}/bunbit-renderhelpers.wasm`;
+
+let WASM_RUNTIME_URL;
+let WASM_URL;
+
+if (isTauri) {
+    const WASM_BASE = "asset:///wasm/generated/wasm-gc";
+    WASM_RUNTIME_URL = `${WASM_BASE}/bunbit-renderhelpers.wasm-runtime.js`;
+    WASM_URL = `${WASM_BASE}/bunbit-renderhelpers.wasm`;
+} else {
+    // raycastworker.js lives at: src/rendering/renderworkers/raycastworker.js
+    // wasm artifacts live at: src/wasm/generated/wasm-gc/
+    // Worker scripts are not guaranteed to be treated as ES modules, so import.meta.url may be unavailable.
+    // Use relative URLs from the app's origin (dev server should serve /src/... like the renderer expects).
+    // This avoids the crash: "Cannot use 'import.meta' outside a module".
+    WASM_RUNTIME_URL = "/src/wasm/generated/wasm-gc/bunbit-renderhelpers.wasm-runtime.js";
+    WASM_URL = "/src/wasm/generated/wasm-gc/bunbit-renderhelpers.wasm";
+}
+
 
 function postWasmStatus(status) {
     WorkerState.wasmStatus = status;

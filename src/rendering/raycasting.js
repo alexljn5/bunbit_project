@@ -12,7 +12,10 @@ export { playerFOV, numCastRays, maxRayDepth, useWasmRayMath, raycastWasmStatus,
 
 // --- OPTIMIZED RAYCASTING WORKER MANAGEMENT ---
 const NUM_WORKERS = Math.min(navigator.hardwareConcurrency || 4, 4);
-const workerUrl = new URL("./renderworkers/raycastworker.js", import.meta.url);
+// Cache-bust the worker URL to avoid the browser serving a stale worker bundle.
+const workerUrlBase = new URL("./renderworkers/raycastworker.js", import.meta.url);
+// In raycasting.js, use a relative path that Tauri can serve
+const workerUrl = new URL("/wasm/generated/wasm-gc/bunbit-renderhelpers.wasm-runtime.js", import.meta.url);
 const workers = Array.from({ length: NUM_WORKERS }, () => new Worker(workerUrl));
 const workerPendingFrames = new Map();
 let workersInitialized = false;
