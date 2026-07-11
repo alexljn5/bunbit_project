@@ -120,7 +120,7 @@ function ensureBuffers(rayCount) {
 
 // Tauri uses asset: protocol for local files.
 // For dev/worker contexts, resolve URLs relative to this worker script so we don't depend on a hardcoded web root.
-const isTauri = typeof self !== 'undefined' && self.__TAURI__ !== undefined;
+const isTauri = typeof self !== 'undefined' && (self.__TAURI__ !== undefined || self.location?.protocol === 'tauri:');
 
 let WASM_RUNTIME_URL;
 let WASM_URL;
@@ -139,50 +139,72 @@ if (isTauri) {
     WASM_URL = "/src/wasm/generated/wasm-gc/bunbit-renderhelpers.wasm";
 }
 
+debug("Worker starting", { isTauri, WASM_RUNTIME_URL, WASM_URL });
 
 function postWasmStatus(status) {
     WorkerState.wasmStatus = status;
+    debug("WASM status updated", { status });
     try {
         self.postMessage({ type: "wasmStatus", status });
     } catch { }
 }
 
 async function loadWasm() {
-    if (WorkerState.wasm) return WorkerState.wasm;
-    if (WorkerState.wasmPromise) return WorkerState.wasmPromise;
+    if (WorkerState.wasm) {
+        debug("WASM already loaded, returning cached module");
+        return WorkerState.wasm;
+    }
+    if (WorkerState.wasmPromise) {
+        debug("WASM load in progress, returning existing promise");
+        return WorkerState.wasmPromise;
+    }
 
     WorkerState.wasmPromise = (async () => {
         try {
 
-            debug("Starting WASM load");
+            debug("Starting WASM load", { runtimeUrl: WASM_RUNTIME_URL, wasmUrl: WASM_URL });
 
             // For asset:// protocol, fetch and eval the runtime script
             if (WASM_RUNTIME_URL.startsWith("asset://")) {
+                debug("Fetching WASM runtime via asset:// protocol");
                 const runtimeResponse = await fetch(WASM_RUNTIME_URL);
                 if (!runtimeResponse.ok) {
                     throw new Error(`Failed to fetch runtime: ${runtimeResponse.status}`);
                 }
                 const runtimeText = await runtimeResponse.text();
+                debug("WASM runtime fetched, length:", runtimeText.length);
                 // Execute the runtime script in the worker context
                 eval(runtimeText);
+                debug("WASM runtime eval complete");
             } else {
+                debug("Using importScripts for WASM runtime");
                 importScripts(WASM_RUNTIME_URL);
             }
 
+            debug("Fetching WASM binary", { url: WASM_URL });
             const res = await fetch(WASM_URL);
+            if (!res.ok) {
+                throw new Error(`Failed to fetch WASM: ${res.status}`);
+            }
             const bytes = await res.arrayBuffer();
+            debug("WASM binary fetched", { byteLength: bytes.byteLength });
 
+            debug("Loading WASM module with TeaVM");
             const module = await self.TeaVM.wasmGC.load(bytes, {
                 stackDeobfuscator: { enabled: false }
             });
+
+            debug("WASM module loaded, available exports:", Object.keys(module?.exports || {}));
 
             WorkerState.wasm = module;
             WorkerState.batchPoC = module.exports.raycastColumnsBatch;
 
             postWasmStatus("ready");
+            debug("WASM load complete, status: ready");
             return module;
 
         } catch (err) {
+            debug("WASM load failed", { error: err?.message, stack: err?.stack });
             postWasmStatus("failed");
             throw err;
         }

@@ -6,17 +6,34 @@ import { fastSin, fastCos, Q_rsqrt } from "../math/mathtables.js";
 import { mapHandler } from "../mapdata/maphandler.js";
 import { textureIdMap, floorTextureIdMap, roofTextureIdMap } from "../mapdata/maptexturesids.js";
 import { textureTransparencyMap } from "../mapdata/maptexturesloader.js";
+import { jsFallbackRaycast } from "./renderengine.js";
 
 // Re-export graphics settings from globals.js for backward compatibility
 export { playerFOV, numCastRays, maxRayDepth, useWasmRayMath, raycastWasmStatus, updateGraphicsSettings };
 
+// Debug helper
+const DEBUG_PREFIX = '[DEBUG]';
+function debugLog(...args) {
+    if (window.DEBUG_TAURI) {
+        console.log(DEBUG_PREFIX, ...args);
+    }
+}
+
 // --- OPTIMIZED RAYCASTING WORKER MANAGEMENT ---
 const NUM_WORKERS = Math.min(navigator.hardwareConcurrency || 4, 4);
-// Cache-bust the worker URL to avoid the browser serving a stale worker bundle.
-const workerUrlBase = new URL("./renderworkers/raycastworker.js", import.meta.url);
-// In raycasting.js, use a relative path that Tauri can serve
-const workerUrl = new URL("/wasm/generated/wasm-gc/bunbit-renderhelpers.wasm-runtime.js", import.meta.url);
-const workers = Array.from({ length: NUM_WORKERS }, () => new Worker(workerUrl));
+
+// Tauri detection for worker path
+const isTauri = typeof window !== 'undefined' && (
+    window.__TAURI__ !== undefined ||
+    window.location.protocol === 'tauri:'
+);
+
+// Use asset:// protocol for Tauri, relative path for dev
+const workerScriptPath = isTauri
+    ? "asset:///rendering/renderworkers/raycastworker.js"
+    : new URL("./renderworkers/raycastworker.js", import.meta.url).toString();
+
+const workers = Array.from({ length: NUM_WORKERS }, () => new Worker(workerScriptPath));
 const workerPendingFrames = new Map();
 let workersInitialized = false;
 let currentFrameId = 0;
@@ -29,7 +46,10 @@ if (typeof window !== 'undefined') {
 }
 
 workers.forEach((worker, idx) => {
+    debugLog(`Worker ${idx} created, setting up message handlers`);
+
     worker.onmessage = (e) => {
+        const { frameId } = e.data;
 
         if (e.data.type === "wasmStatus") {
             // Update the global raycastWasmStatus
@@ -61,17 +81,18 @@ workers.forEach((worker, idx) => {
             return;
         }
 
-        const { frameId } = e.data;
         const key = `${frameId}_${idx}`;
         const cb = workerPendingFrames.get(key);
 
         if (cb) {
+            debugLog(`Worker ${idx} response received for frame ${frameId}`);
             cb(e.data);
             workerPendingFrames.delete(key);
         }
     };
 
     worker.onerror = (error) => {
+        console.error(`[WORKER ${idx}] Error:`, error);
         for (const [key, resolve] of workerPendingFrames.entries()) {
             if (key.endsWith(`_${idx}`)) {
                 resolve({ startRay: 0, rayData: [], frameId: -1 });
@@ -125,12 +146,16 @@ export function initializeMap() {
 }
 
 export async function castRays() {
+    debugLog('castRays() invoked', { frameId: currentFrameId + 1 });
+
     const currentMap = mapHandler.getFullMap();
     if (!currentMap || !Array.isArray(currentMap) || !currentMap[0] || !Array.isArray(currentMap[0])) {
+        debugLog('castRays: no valid map, using last results or fallback');
         return lastFrameResults.results || new Array(numCastRays).fill(null);
     }
 
     if (!workersInitialized) {
+        debugLog('castRays: initializing workers');
         // FIX: include textureTransparencyMap here too (lazy init path)
         for (let w of workers) w.postMessage({
             type: "init",
@@ -141,7 +166,7 @@ export async function castRays() {
             CANVAS_WIDTH,
             numCastRays,
             maxRayDepth,
-            textureTransparencyMap: textureTransparencyMap,  // was missing
+            textureTransparencyMap: textureTransparencyMap,
             useWasmRayMath
         });
         workersInitialized = true;
@@ -173,12 +198,15 @@ export async function castRays() {
             startRay: start,
             endRay: end
         };
+        debugLog(`castRays: posting frame ${frameId} to worker ${idx}`);
         return new Promise((resolve) => {
             const key = `${frameId}_${idx}`;
             workerPendingFrames.set(key, (data) => {
                 if (data.error) {
+                    debugLog(`Worker ${idx} error for frame ${frameId}:`, data.error);
                     resolve({ startRay: start, rayData: new Array(end - start).fill(null), frameId });
                 } else if (data.frameId === frameId) {
+                    debugLog(`Worker ${idx} response received for frame ${frameId}`);
                     resolve(data);
                 }
             });
@@ -186,14 +214,30 @@ export async function castRays() {
         });
     });
 
-    const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve(null), 24));
+    // Safety timeout: 500ms to prevent hanging forever
+    const timeoutMs = 500;
+    debugLog(`castRays: waiting for workers with ${timeoutMs}ms timeout`);
+    const timeoutPromise = new Promise((resolve) => setTimeout(() => {
+        debugLog(`castRays: TIMEOUT after ${timeoutMs}ms`);
+        resolve(null);
+    }, timeoutMs));
+
     const results = await Promise.race([
         Promise.all(promises),
         timeoutPromise
     ]);
 
     if (!results || results.some(r => !r || r.frameId !== frameId)) {
-        return lastFrameResults.results || new Array(numCastRays).fill(null);
+        debugLog('castRays: workers failed or timeout, using fallback');
+        // Use JS fallback raycast instead of returning all nulls
+        try {
+            const fallbackData = jsFallbackRaycast();
+            debugLog('castRays: fallback raycast successful');
+            return fallbackData;
+        } catch (e) {
+            debugLog('castRays: fallback failed, returning nulls');
+            return lastFrameResults.results || new Array(numCastRays).fill(null);
+        }
     }
 
     const rayData = new Array(numCastRays);
@@ -203,6 +247,15 @@ export async function castRays() {
             rayData[startRay + j] = segData[j];
         }
     }
+
+    // Log ray data summary
+    const validCount = rayData.filter(r => r !== null).length;
+    debugLog('castRays: returning', {
+        frameId,
+        rayCount: rayData.length,
+        validCount,
+        firstRay: rayData[0]
+    });
 
     lastFrameResults = { frameId, results: rayData };
     return rayData;

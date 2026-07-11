@@ -73,8 +73,32 @@ let renderHelpersWasmPromise = null;
 let renderHelpersWasmStatus = "idle";
 let defaultMapLoadWarned = false;
 
-const renderWorker1 = new Worker("/src/rendering/renderworkers/renderengineworker.js", { type: "module" });
-const renderWorker2 = new Worker("/src/rendering/renderworkers/renderengineworker.js", { type: "module" });
+// Debug state for rayData spam prevention
+let rayDataInvalidCount = 0;
+let lastRayDataValid = true;
+const DEBUG_PREFIX = '[DEBUG]';
+
+function debugLog(...args) {
+    if (window.DEBUG_TAURI) {
+        console.log(DEBUG_PREFIX, ...args);
+    }
+}
+
+// Tauri detection for worker paths
+const isTauri = typeof window !== 'undefined' && (
+    window.__TAURI__ !== undefined ||
+    window.location.protocol === 'tauri:'
+);
+
+// Use asset:// protocol for Tauri, relative path for dev
+const renderWorkerUrl = isTauri
+    ? "asset:///rendering/renderworkers/renderengineworker.js"
+    : new URL("./renderworkers/renderengineworker.js", import.meta.url).toString();
+
+debugLog('Creating render workers', { isTauri, renderWorkerUrl });
+
+const renderWorker1 = new Worker(renderWorkerUrl, { type: "module" });
+const renderWorker2 = new Worker(renderWorkerUrl, { type: "module" });
 
 // --- Game Loop Setup ---
 export function mainGameRender() {
@@ -186,6 +210,7 @@ window.__initializeRenderHelpersWasm = initializeRenderHelpersWasm;
 
 // --- Main game render loop (mostly unchanged) ---
 export async function gameRenderEngine(deltaTime) {
+    debugLog('gameRenderEngine START', { deltaTime: deltaTime.toFixed(4) });
     titleHandlerGodFunction();
     drawDebugTerminal();
     if (isRenderingFrame) return;
@@ -194,6 +219,7 @@ export async function gameRenderEngine(deltaTime) {
     try {
         const minScale = Math.min(SCALE_X, SCALE_Y);
         if (menuActive) {
+            debugLog('Rendering menu (menuActive=true)');
             mainGameMenu();
             return;
         }
@@ -222,7 +248,14 @@ export async function gameRenderEngine(deltaTime) {
             renderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
             return;
         }
+
+        debugLog('castRays() called');
         const rayData = await castRays();
+        debugLog('castRays() returned', {
+            rayCount: rayData?.length,
+            validCount: rayData?.filter(r => r !== null).length,
+            firstRay: rayData?.[0]
+        });
 
         window.__raycastBackendStats = {
             wasm: 0,
@@ -245,12 +278,25 @@ export async function gameRenderEngine(deltaTime) {
             console.log("[Raycast backend check]", window.__raycastBackendStats);
         }
 
-        if (!rayData || rayData.every(ray => ray === null)) {
-            console.warn(`Invalid rayData: ${JSON.stringify(rayData)} *pouts*`);
-            renderEngine.fillStyle = "gray";
+        // Check for invalid rayData - only log once per state change
+        const isRayDataValid = rayData && rayData.some(ray => ray !== null);
+        if (!isRayDataValid) {
+            if (lastRayDataValid) {
+                // State changed from valid to invalid
+                rayDataInvalidCount = 0;
+            }
+            rayDataInvalidCount++;
+            if (rayDataInvalidCount <= 5 || rayDataInvalidCount % 100 === 0) {
+                console.warn(`[RayData] Invalid (all null) frame #${rayDataInvalidCount}`);
+            }
+            lastRayDataValid = false;
+
+            // Fallback: render a simple colored screen to avoid gray screen
+            renderEngine.fillStyle = "#222";
             renderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
             return;
         }
+        lastRayDataValid = true;
         // CPU rendering into offscreen 2D canvas
         offscreenCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
         await renderRaycastHorizons(rayData, offscreenCtx);
@@ -293,7 +339,34 @@ export async function gameRenderEngine(deltaTime) {
     } finally {
         isRenderingFrame = false;
         if (DEBUG_FRAME_TIMING) console.timeEnd('fullRender');
+        debugLog('gameRenderEngine END');
     }
+}
+
+// --- JS-Only Fallback Raycast (for debugging) ---
+// This generates minimal ray data when WASM/workers are broken
+export function jsFallbackRaycast() {
+    debugLog('jsFallbackRaycast called');
+    const rayData = new Array(numCastRays);
+
+    for (let i = 0; i < numCastRays; i++) {
+        // Generate a simple wall at a fixed distance
+        const distance = 100;
+        const angle = (i / numCastRays) * playerFOV - playerFOV / 2;
+
+        rayData[i] = {
+            column: i,
+            distance: distance,
+            hitSide: 'x',
+            textureKey: 'wall_creamlol',
+            textureX: 0,
+            floorTextureKey: 'floor_concrete_01',
+            backend: 'js-fallback'
+        };
+    }
+
+    debugLog('jsFallbackRaycast returning', { rayCount: rayData.length });
+    return rayData;
 }
 
 // --- Draw Quad helper ---
@@ -323,4 +396,3 @@ export function drawQuad({ topX, topY, leftX, leftY, rightX, rightY, color, text
 
     ctx.restore();
 }
-
