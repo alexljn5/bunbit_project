@@ -6,7 +6,7 @@ import { fastSin, fastCos, Q_rsqrt } from "../math/mathtables.js";
 import { mapHandler } from "../mapdata/maphandler.js";
 import { textureIdMap, floorTextureIdMap, roofTextureIdMap } from "../mapdata/maptexturesids.js";
 import { textureTransparencyMap } from "../mapdata/maptexturesloader.js";
-import { jsFallbackRaycast } from "./renderengine.js";
+import { loadRenderHelpersWasm } from "../wasm/renderhelpers.js";
 
 // Re-export graphics settings from globals.js for backward compatibility
 export { playerFOV, numCastRays, maxRayDepth, useWasmRayMath, raycastWasmStatus, updateGraphicsSettings };
@@ -33,16 +33,42 @@ const workerScriptPath = isTauri
     ? "asset:///rendering/renderworkers/raycastworker.js"
     : new URL("./renderworkers/raycastworker.js", import.meta.url).toString();
 
+console.log("[Raycasting] Worker script path:", workerScriptPath);
+
 const workers = Array.from({ length: NUM_WORKERS }, () => new Worker(workerScriptPath));
 const workerPendingFrames = new Map();
 let workersInitialized = false;
 let currentFrameId = 0;
 let lastFrameResults = { frameId: -1, results: null };
+let cachedWasmExports = null;
+let wasmLoadAttempted = false;
 
 // Set initial raycastWasmStatus
 if (typeof window !== 'undefined') {
     window.__raycastWasmStatus = raycastWasmStatus;
     window.__raycastMathSource = useWasmRayMath ? "wasm-requested" : "js";
+}
+
+// Load WASM once and cache it
+async function getWasmExports() {
+    if (cachedWasmExports) return cachedWasmExports;
+    if (wasmLoadAttempted) return null;
+
+    wasmLoadAttempted = true;
+    try {
+        debugLog("Loading WASM from main thread...");
+        cachedWasmExports = await loadRenderHelpersWasm();
+        if (cachedWasmExports) {
+            debugLog("WASM loaded successfully, exports available:", Object.keys(cachedWasmExports));
+        } else {
+            debugLog("WASM load returned null or undefined");
+        }
+        return cachedWasmExports;
+    } catch (e) {
+        console.error("[Raycasting] WASM load failed:", e);
+        cachedWasmExports = null;
+        return null;
+    }
 }
 
 workers.forEach((worker, idx) => {
@@ -106,18 +132,28 @@ export async function initializeWorkers() {
     const map_01 = mapTable.get("map_01");
     if (!map_01 || !Array.isArray(map_01) || !map_01[0]) return false;
 
-    // FIX: include textureTransparencyMap so workers can do transparent-wall checks
+    // Load WASM from main thread
+    const wasmExports = await getWasmExports();
+
+    if (!wasmExports) {
+        console.warn("[Workers] WASM failed to load in main thread, workers will use JS fallback");
+    } else {
+        debugLog("WASM exports being sent to workers");
+    }
+
+    // Use map_01 directly (not currentMap which is undefined)
     const staticData = {
         type: "init",
         tileSectors,
-        map_01,
+        map_01: map_01,
         textureIdMap: Object.fromEntries(textureIdMap),
         floorTextureIdMap: Object.fromEntries(floorTextureIdMap),
         CANVAS_WIDTH,
         numCastRays,
         maxRayDepth,
         useWasmRayMath,
-        textureTransparencyMap: textureTransparencyMap  // was missing
+        textureTransparencyMap: textureTransparencyMap,
+        wasmExports: wasmExports // Pass the exports to workers
     };
 
     let resolved = false;
@@ -136,6 +172,7 @@ export async function initializeWorkers() {
     for (let w of workers) w.postMessage(staticData);
     const success = await initPromise;
     workersInitialized = success;
+    debugLog(`Workers initialized: ${success}`);
     return workersInitialized;
 }
 
@@ -145,18 +182,101 @@ export function initializeMap() {
     }
 }
 
+// JS Fallback raycast function (to be used if workers fail)
+function jsFallbackRaycast() {
+    const posX = playerPosition.x;
+    const posZ = playerPosition.z;
+    const playerAngle = playerPosition.angle;
+
+    const rayData = new Array(numCastRays);
+    const tileSize = tileSectors;
+    const maxDepth = maxRayDepth;
+
+    for (let i = 0; i < numCastRays; i++) {
+        const rayAngle = playerAngle + (-playerFOV / 2 + (i / numCastRays) * playerFOV);
+        const cosA = Math.cos(rayAngle);
+        const sinA = Math.sin(rayAngle);
+
+        let cellX = Math.floor(posX / tileSize);
+        let cellY = Math.floor(posZ / tileSize);
+
+        let distX = (cosA !== 0)
+            ? ((cosA > 0 ? cellX + 1 : cellX) * tileSize - posX) / cosA
+            : Number.POSITIVE_INFINITY;
+        let distY = (sinA !== 0)
+            ? ((sinA > 0 ? cellY + 1 : cellY) * tileSize - posZ) / sinA
+            : Number.POSITIVE_INFINITY;
+
+        const deltaX = Math.abs(tileSize / cosA);
+        const deltaY = Math.abs(tileSize / sinA);
+
+        let hit = false;
+        let side = 0;
+        let distance = 0;
+        let steps = 0;
+        const map = mapHandler.getFullMap();
+
+        while (steps++ < maxDepth * 2 && !hit) {
+            if (distX < distY) {
+                distance = distX;
+                cellX += (cosA > 0 ? 1 : -1);
+                distX += deltaX;
+                side = 1;
+            } else {
+                distance = distY;
+                cellY += (sinA > 0 ? 1 : -1);
+                distY += deltaY;
+                side = 0;
+            }
+
+            if (cellX < 0 || cellY < 0 || cellX >= map[0].length || cellY >= map.length) break;
+
+            const tile = map[cellY]?.[cellX];
+            if (tile && tile.type === "wall") hit = true;
+        }
+
+        if (!hit) {
+            rayData[i] = null;
+            continue;
+        }
+
+        const angleDiff = rayAngle - playerAngle;
+        const correctedDistance = distance / Math.sqrt(1.0 + angleDiff * angleDiff);
+
+        const tile = map[cellY]?.[cellX];
+        let textureKey = "wall_creamlol";
+        if (tile) {
+            const texMap = Object.fromEntries(textureIdMap);
+            textureKey = texMap[tile.textureId] ?? "wall_creamlol";
+        }
+
+        rayData[i] = {
+            column: i,
+            distance: correctedDistance,
+            hitSide: side === 1 ? "y" : "x",
+            textureKey: textureKey,
+            textureX: 0,
+            floorTextureKey: "floor_concrete_01",
+            backend: "js"
+        };
+    }
+
+    return rayData;
+}
+
 export async function castRays() {
     debugLog('castRays() invoked', { frameId: currentFrameId + 1 });
 
     const currentMap = mapHandler.getFullMap();
     if (!currentMap || !Array.isArray(currentMap) || !currentMap[0] || !Array.isArray(currentMap[0])) {
         debugLog('castRays: no valid map, using last results or fallback');
-        return lastFrameResults.results || new Array(numCastRays).fill(null);
+        const fallbackData = jsFallbackRaycast();
+        return fallbackData || lastFrameResults.results || new Array(numCastRays).fill(null);
     }
 
     if (!workersInitialized) {
         debugLog('castRays: initializing workers');
-        // FIX: include textureTransparencyMap here too (lazy init path)
+        const wasmExports = await getWasmExports();
         for (let w of workers) w.postMessage({
             type: "init",
             tileSectors,
@@ -167,7 +287,8 @@ export async function castRays() {
             numCastRays,
             maxRayDepth,
             textureTransparencyMap: textureTransparencyMap,
-            useWasmRayMath
+            useWasmRayMath,
+            wasmExports: wasmExports
         });
         workersInitialized = true;
     }
@@ -181,7 +302,8 @@ export async function castRays() {
     if (posX < 0 || posZ < 0 || posX > currentMap[0].length * tileSectors || posZ > currentMap.length * tileSectors) {
         playerPosition.x = 5 * tileSectors;
         playerPosition.z = 5 * tileSectors;
-        return lastFrameResults.results || new Array(numCastRays).fill(null);
+        const fallbackData = jsFallbackRaycast();
+        return fallbackData || lastFrameResults.results || new Array(numCastRays).fill(null);
     }
 
     const seg = Math.ceil(numCastRays / NUM_WORKERS);
@@ -229,7 +351,6 @@ export async function castRays() {
 
     if (!results || results.some(r => !r || r.frameId !== frameId)) {
         debugLog('castRays: workers failed or timeout, using fallback');
-        // Use JS fallback raycast instead of returning all nulls
         try {
             const fallbackData = jsFallbackRaycast();
             debugLog('castRays: fallback raycast successful');
@@ -243,8 +364,10 @@ export async function castRays() {
     const rayData = new Array(numCastRays);
     for (let i = 0; i < NUM_WORKERS; ++i) {
         const { startRay, rayData: segData } = results[i];
-        for (let j = 0, n = segData.length; j < n; ++j) {
-            rayData[startRay + j] = segData[j];
+        if (segData) {
+            for (let j = 0, n = segData.length; j < n; ++j) {
+                rayData[startRay + j] = segData[j];
+            }
         }
     }
 

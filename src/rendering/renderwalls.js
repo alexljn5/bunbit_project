@@ -5,6 +5,17 @@ import { numCastRays, playerFOV } from "./raycasting.js";
 import { tileSectors } from "../mapdata/maps.js";
 import { playerPosition } from "../playerdata/playerlogic.js";
 
+// Tauri detection for worker paths
+const isTauri = typeof window !== 'undefined' && (
+    window.__TAURI__ !== undefined ||
+    window.location.protocol === 'tauri:'
+);
+
+// Use asset:// protocol for Tauri, relative path for dev
+const wallPrecomputeWorkerUrl = isTauri
+    ? "asset:///rendering/renderworkers/wallprecomputeworker.js"
+    : new URL("./renderworkers/wallprecomputeworker.js", import.meta.url).toString();
+
 // Heap-based cache for wall rendering data
 const wallRenderCache = new Map();
 
@@ -21,7 +32,7 @@ const reusableQuad = {
     ctx: null
 };
 
-const wallPrecomputeWorker = new Worker('/src/rendering/renderworkers/wallprecomputeworker.js', { type: 'module' });
+const wallPrecomputeWorker = new Worker(wallPrecomputeWorkerUrl, { type: 'module' });
 wallPrecomputeWorker.onmessage = function (e) {
     if (!e.data) return;
     if (e.data.type === 'precomputed') {

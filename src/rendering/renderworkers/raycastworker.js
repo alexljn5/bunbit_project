@@ -1,8 +1,10 @@
+// raycastworker.js
 "use strict";
 
 /* =========================================================
    DEBUG + CRASH HANDLING
 ========================================================= */
+let wasmExports = null; // Will be set from main thread
 
 function debug(msg, extra = {}) {
     try {
@@ -44,10 +46,10 @@ const WorkerState = {
     static: null,
     latestFrameId: -1,
 
+    // WASM exports will be stored here (received from main thread)
     wasm: null,
-    wasmPromise: null,
-    wasmStatus: "disabled",
     batchPoC: null,
+    wasmStatus: "disabled",
 
     cpuAccum: 0,
     workerId: null,
@@ -115,105 +117,6 @@ function ensureBuffers(rayCount) {
 }
 
 /* =========================================================
-    WASM LOADER
-========================================================= */
-
-// Tauri uses asset: protocol for local files.
-// For dev/worker contexts, resolve URLs relative to this worker script so we don't depend on a hardcoded web root.
-const isTauri = typeof self !== 'undefined' && (self.__TAURI__ !== undefined || self.location?.protocol === 'tauri:');
-
-let WASM_RUNTIME_URL;
-let WASM_URL;
-
-if (isTauri) {
-    const WASM_BASE = "asset:///wasm/generated/wasm-gc";
-    WASM_RUNTIME_URL = `${WASM_BASE}/bunbit-renderhelpers.wasm-runtime.js`;
-    WASM_URL = `${WASM_BASE}/bunbit-renderhelpers.wasm`;
-} else {
-    // raycastworker.js lives at: src/rendering/renderworkers/raycastworker.js
-    // wasm artifacts live at: src/wasm/generated/wasm-gc/
-    // Worker scripts are not guaranteed to be treated as ES modules, so import.meta.url may be unavailable.
-    // Use relative URLs from the app's origin (dev server should serve /src/... like the renderer expects).
-    // This avoids the crash: "Cannot use 'import.meta' outside a module".
-    WASM_RUNTIME_URL = "/src/wasm/generated/wasm-gc/bunbit-renderhelpers.wasm-runtime.js";
-    WASM_URL = "/src/wasm/generated/wasm-gc/bunbit-renderhelpers.wasm";
-}
-
-debug("Worker starting", { isTauri, WASM_RUNTIME_URL, WASM_URL });
-
-function postWasmStatus(status) {
-    WorkerState.wasmStatus = status;
-    debug("WASM status updated", { status });
-    try {
-        self.postMessage({ type: "wasmStatus", status });
-    } catch { }
-}
-
-async function loadWasm() {
-    if (WorkerState.wasm) {
-        debug("WASM already loaded, returning cached module");
-        return WorkerState.wasm;
-    }
-    if (WorkerState.wasmPromise) {
-        debug("WASM load in progress, returning existing promise");
-        return WorkerState.wasmPromise;
-    }
-
-    WorkerState.wasmPromise = (async () => {
-        try {
-
-            debug("Starting WASM load", { runtimeUrl: WASM_RUNTIME_URL, wasmUrl: WASM_URL });
-
-            // For asset:// protocol, fetch and eval the runtime script
-            if (WASM_RUNTIME_URL.startsWith("asset://")) {
-                debug("Fetching WASM runtime via asset:// protocol");
-                const runtimeResponse = await fetch(WASM_RUNTIME_URL);
-                if (!runtimeResponse.ok) {
-                    throw new Error(`Failed to fetch runtime: ${runtimeResponse.status}`);
-                }
-                const runtimeText = await runtimeResponse.text();
-                debug("WASM runtime fetched, length:", runtimeText.length);
-                // Execute the runtime script in the worker context
-                eval(runtimeText);
-                debug("WASM runtime eval complete");
-            } else {
-                debug("Using importScripts for WASM runtime");
-                importScripts(WASM_RUNTIME_URL);
-            }
-
-            debug("Fetching WASM binary", { url: WASM_URL });
-            const res = await fetch(WASM_URL);
-            if (!res.ok) {
-                throw new Error(`Failed to fetch WASM: ${res.status}`);
-            }
-            const bytes = await res.arrayBuffer();
-            debug("WASM binary fetched", { byteLength: bytes.byteLength });
-
-            debug("Loading WASM module with TeaVM");
-            const module = await self.TeaVM.wasmGC.load(bytes, {
-                stackDeobfuscator: { enabled: false }
-            });
-
-            debug("WASM module loaded, available exports:", Object.keys(module?.exports || {}));
-
-            WorkerState.wasm = module;
-            WorkerState.batchPoC = module.exports.raycastColumnsBatch;
-
-            postWasmStatus("ready");
-            debug("WASM load complete, status: ready");
-            return module;
-
-        } catch (err) {
-            debug("WASM load failed", { error: err?.message, stack: err?.stack });
-            postWasmStatus("failed");
-            throw err;
-        }
-    })();
-
-    return WorkerState.wasmPromise;
-}
-
-/* =========================================================
    MAP FLATTEN
 ========================================================= */
 
@@ -237,8 +140,16 @@ function flattenMap(map) {
     return { grid, texGrid, w, h };
 }
 
+function postWasmStatus(status) {
+    WorkerState.wasmStatus = status;
+    debug("WASM status updated", { status });
+    try {
+        self.postMessage({ type: "wasmStatus", status });
+    } catch { }
+}
+
 /* =========================================================
-   RAYCAST CORE (JS FALLBACK ONLY)
+   RAYCAST CORE (JS FALLBACK + WASM via main thread exports)
 ========================================================= */
 
 self.addEventListener("message", async (e) => {
@@ -268,8 +179,20 @@ self.addEventListener("message", async (e) => {
                 WorkerState.flatMap = flattenMap(d.map_01);
             }
 
-            if (WorkerState.static.useWasm) {
-                await loadWasm();
+            // ===========================================================
+            // FIX: Receive WASM exports from the main thread
+            // ===========================================================
+            if (d.wasmExports) {
+                wasmExports = d.wasmExports;
+                WorkerState.wasm = wasmExports;
+                WorkerState.batchPoC = wasmExports.raycastColumnsBatch;
+                postWasmStatus("ready");
+                debug("WASM exports received from main thread", {
+                    hasRaycast: typeof wasmExports.raycastColumnsBatch === "function"
+                });
+            } else {
+                debug("No WASM exports received, using JS fallback");
+                postWasmStatus("disabled");
             }
 
             self.postMessage({ type: "init", success: true });
@@ -292,14 +215,15 @@ self.addEventListener("message", async (e) => {
         const rayCount = d.endRay - d.startRay;
 
         /* =====================================================
-           WASM PATH (FIXED)
+           WASM PATH (Using exports from main thread)
         ===================================================== */
 
-        if (WorkerState.wasm && WorkerState.batchPoC) {
+        // Use the globally stored wasmExports
+        if (wasmExports && typeof wasmExports.raycastColumnsBatch === "function") {
 
             ensureBuffers(rayCount);
 
-            WorkerState.batchPoC(
+            wasmExports.raycastColumnsBatch(
                 s.posX, s.posZ, s.playerAngle, s.playerFOV,
                 d.startRay, d.endRay, s.numCastRays,
                 s.tileSize,
