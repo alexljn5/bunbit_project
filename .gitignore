@@ -20,3 +20,5 @@ todo.md
 DEBUG.md
 /src-tauri/target
 /src-tauri/gen
+output_all.sh
+out/code_dump.json
