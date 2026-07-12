@@ -12,24 +12,17 @@ const DEBUG_HORIZON_TIMING = (typeof window !== 'undefined' && window.location)
     ? new URLSearchParams(window.location.search).get("debugHorizonTiming") === "true"
     : false;
 
-// Tauri detection for worker paths
-const isTauri = typeof window !== 'undefined' && (
-    window.__TAURI__ !== undefined ||
-    window.location.protocol === 'tauri:'
-);
-
-// Use asset:// protocol for Tauri, relative path for dev
-const horizonWorkerUrl = isTauri
-    ? "asset:///rendering/renderworkers/horizonrenderworker.js"
-    : new URL("./renderworkers/horizonrenderworker.js", import.meta.url).toString();
+// Tauri-only worker URL
+const horizonWorkerURL = new URL("./renderworkers/horizonrenderworker.js", import.meta.url);
 
 // Number of workers to use
 const NUM_WORKERS = 8;
 
-// Array to hold workers (non-module workers, like raycast workers)
+// Array to hold workers
 const horizonWorkers = Array.from({ length: NUM_WORKERS }, () =>
-    new Worker(horizonWorkerUrl)
+    new Worker(horizonWorkerURL, { type: 'classic' })
 );
+
 
 // Debug: forward worker WASM status/trig stats to main-thread console.
 function attachHorizonWorkerDebug(worker, index) {

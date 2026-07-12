@@ -1,20 +1,10 @@
-// Tauri uses asset: protocol for local files, fallback to relative path for dev
-// In Tauri v2, check for __TAURI__ or use a more robust check
-const isTauri = typeof window !== 'undefined' && (window.__TAURI__ !== undefined || window.location.protocol === 'tauri:');
-// In Tauri, use the asset protocol; in dev, use relative path
-// renderhelpers.js is in src/wasm/, WASM files are in src/wasm/generated/wasm-gc/
-// Use absolute path for dev mode to work correctly with the dev server
-// Dev server URL base is not guaranteed to serve the project from /src/*.
-// Resolve relative to this module file so it works regardless of the dev-server root.
+// Tauri-only WASM URLs.
+// We resolve URLs relative to this module so bundling works consistently.
 const wasmBaseUrl = new URL("./generated/wasm-gc/", import.meta.url);
-const WASM_BASE_DEV = wasmBaseUrl.toString();
 
-const WASM_BASE = isTauri
-    ? "asset:///wasm/generated/wasm-gc"
-    : WASM_BASE_DEV;
+const RUNTIME_URL = new URL("./bunbit-renderhelpers.wasm-runtime.js", wasmBaseUrl).toString();
+const WASM_URL = new URL("./bunbit-renderhelpers.wasm", wasmBaseUrl).toString();
 
-const RUNTIME_URL = `${WASM_BASE}/bunbit-renderhelpers.wasm-runtime.js`;
-const WASM_URL = `${WASM_BASE}/bunbit-renderhelpers.wasm`;
 
 let helpersPromise = null;
 let tauriHttp = null;
@@ -37,7 +27,8 @@ function logWasmState(newState, details = {}) {
         console.groupCollapsed(`[WASM] State: ${wasmLoadState} → ${newState}`);
         console.log('Details:', details);
         console.log('WASM URLs:', { RUNTIME_URL, WASM_URL });
-        console.log('Environment:', { isTauri, protocol: window.location?.protocol });
+        console.log('Environment:', { protocol: window.location?.protocol });
+
         console.groupEnd();
     }
     wasmLoadState = newState;
@@ -56,15 +47,14 @@ function logWasmError(error) {
     }
 }
 
-// Initialize Tauri HTTP API
 async function initTauriHttp() {
-    if (isTauri && !tauriHttp) {
-        const http = await import('@tauri-apps/api/http');
-        tauriHttp = http;
-    }
+    // Tauri-only. Keep hook for future if we decide to fetch via @tauri-apps/api/http.
+    // Currently we use normal fetch for same-origin packaged URLs.
+    return;
 }
 
 async function loadScript(src) {
+
     debugLog('loadScript called', { src });
 
     // Check if script already loaded
@@ -119,20 +109,10 @@ async function loadScript(src) {
 async function loadWasmBytes(url) {
     debugLog('loadWasmBytes called', { url });
 
-    if (isTauri && url.startsWith("asset://")) {
-        // Use Tauri's http plugin to fetch asset:// URLs
-        debugLog('Using Tauri HTTP plugin for asset:// URL');
-        const http = await import('@tauri-apps/api/http');
-        const response = await http.fetch(url, { method: 'GET' });
-        if (!response.ok) {
-            throw new Error(`Failed to fetch ${url}: ${response.status}`);
-        }
-        debugLog('WASM bytes fetched via Tauri HTTP', { byteLength: response.data?.byteLength });
-        return await response.arrayBuffer();
-    }
-    // Fallback to standard fetch
+    // Tauri-only: URLs are same-origin packaged URLs; plain fetch is sufficient.
     debugLog('Using standard fetch for WASM');
     const response = await fetch(url);
+
     if (!response.ok) {
         throw new Error(`Failed to fetch ${url}: ${response.status}`);
     }
@@ -268,6 +248,14 @@ export async function loadRenderHelpersWasm() {
 }
 
 
+export async function getWasmExports() {
+    // Back-compat helper: callers expect a direct WASM exports object.
+    // This wraps the existing loader and returns the TeaVM instance exports
+    // (or null if unavailable).
+    const exportsObj = await loadRenderHelpersWasm();
+    return exportsObj;
+}
+
 export async function tryLoadRenderHelpersWasm() {
     try {
         debugLog('tryLoadRenderHelpersWasm called');
@@ -288,9 +276,8 @@ export function getWasmDebugState() {
         wasmLoadState,
         wasmExportsAvailable,
         lastError,
-        isTauri,
-        WASM_BASE,
         RUNTIME_URL,
         WASM_URL
     };
+
 }

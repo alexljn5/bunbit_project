@@ -84,21 +84,14 @@ function debugLog(...args) {
     }
 }
 
-// Tauri detection for worker paths
-const isTauri = typeof window !== 'undefined' && (
-    window.__TAURI__ !== undefined ||
-    window.location.protocol === 'tauri:'
-);
+// Tauri-only worker URL
+const renderWorkerURL = new URL("./renderworkers/renderengineworker.js", import.meta.url);
 
-// Use asset:// protocol for Tauri, relative path for dev
-const renderWorkerUrl = isTauri
-    ? "asset:///rendering/renderworkers/renderengineworker.js"
-    : new URL("./renderworkers/renderengineworker.js", import.meta.url).toString();
+debugLog('Creating render workers', { renderWorkerURL: renderWorkerURL.toString() });
 
-debugLog('Creating render workers', { isTauri, renderWorkerUrl });
+const renderWorker1 = new Worker(renderWorkerURL, { type: "module" });
+const renderWorker2 = new Worker(renderWorkerURL, { type: "module" });
 
-const renderWorker1 = new Worker(renderWorkerUrl, { type: "module" });
-const renderWorker2 = new Worker(renderWorkerUrl, { type: "module" });
 
 // --- Game Loop Setup ---
 export function mainGameRender() {

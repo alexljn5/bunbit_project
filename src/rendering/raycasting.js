@@ -6,96 +6,32 @@ import { fastSin, fastCos, Q_rsqrt } from "../math/mathtables.js";
 import { mapHandler } from "../mapdata/maphandler.js";
 import { textureIdMap, floorTextureIdMap, roofTextureIdMap } from "../mapdata/maptexturesids.js";
 import { textureTransparencyMap } from "../mapdata/maptexturesloader.js";
-import { loadRenderHelpersWasm, getWasmDebugState } from "../wasm/renderhelpers.js";
+import { getWasmExports, loadRenderHelpersWasm, getWasmDebugState } from "../wasm/renderhelpers.js";
 
 // Re-export graphics settings from globals.js for backward compatibility
 export { playerFOV, numCastRays, maxRayDepth, useWasmRayMath, raycastWasmStatus, updateGraphicsSettings };
 
-// --- OPTIMIZED RAYCASTING WORKER MANAGEMENT ---
+// --- RAYCASTING WORKERS (Tauri-only) ---
+// Bunbit is a Tauri application by design.
+// Production: remove runtime detection and browser fallback.
+
 const NUM_WORKERS = Math.min(navigator.hardwareConcurrency || 4, 4);
 
-// Tauri detection for worker path
-const isTauri = typeof window !== 'undefined' && (
-    window.__TAURI__ !== undefined ||
-    window.location.protocol === 'tauri:'
-);
+// Always create worker URLs from the current module file.
+// This keeps bundlers/tauri packaging consistent.
+const workerURL = new URL("./renderworkers/raycastworker.js", import.meta.url);
 
-// Use asset:// protocol for Tauri, relative path for dev
-const workerScriptPath = isTauri
-    ? "asset:///rendering/renderworkers/raycastworker.js"
-    : new URL("./renderworkers/raycastworker.js", import.meta.url).toString();
-
-console.log("[Raycasting] Worker script path:", workerScriptPath);
-
-const workers = Array.from({ length: NUM_WORKERS }, () => new Worker(workerScriptPath));
+const workers = Array.from({ length: NUM_WORKERS }, () => new Worker(workerURL, { type: 'module' }));
 const workerPendingFrames = new Map();
 let workersInitialized = false;
 let currentFrameId = 0;
 let lastFrameResults = { frameId: -1, results: null };
-let cachedWasmExports = null;
-let wasmLoadAttempted = false;
+let lastWasmState = undefined;
 
-// Track WASM state changes
-let lastWasmState = 'unknown';
-let hasRaycastColumnsBatch = false;
-
-// Set initial raycastWasmStatus
-if (typeof window !== 'undefined') {
-    window.__raycastWasmStatus = raycastWasmStatus;
-    window.__raycastMathSource = useWasmRayMath ? "wasm-requested" : "js";
-}
-
-// Load WASM once and cache it
-async function getWasmExports() {
-    if (cachedWasmExports) return cachedWasmExports;
-    if (wasmLoadAttempted) return null;
-
-    wasmLoadAttempted = true;
-    try {
-        console.groupCollapsed(`[WASM] Loading WASM from main thread`);
-        cachedWasmExports = await loadRenderHelpersWasm();
-
-        if (cachedWasmExports) {
-            // Check for required exports
-            hasRaycastColumnsBatch = typeof cachedWasmExports.raycastColumnsBatch === 'function';
-            const hasFastSin = typeof cachedWasmExports.fastSin === 'function';
-            const hasFastCos = typeof cachedWasmExports.fastCos === 'function';
-
-            console.log('[WASM] Exports available:', {
-                hasRaycastColumnsBatch,
-                hasFastSin,
-                hasFastCos,
-                allExports: Object.keys(cachedWasmExports)
-            });
-
-            // Log state change
-            if (lastWasmState !== 'ready') {
-                console.log(`[WASM] State: ${lastWasmState} → ready`);
-                lastWasmState = 'ready';
-            }
-        } else {
-            console.warn('[WASM] Load returned null or undefined');
-            if (lastWasmState !== 'failed') {
-                console.log(`[WASM] State: ${lastWasmState} → failed`);
-                lastWasmState = 'failed';
-            }
-        }
-        console.groupEnd();
-        return cachedWasmExports;
-    } catch (e) {
-        console.error("[Raycasting] WASM load failed:", e);
-        cachedWasmExports = null;
-        if (lastWasmState !== 'failed') {
-            console.log(`[WASM] State: ${lastWasmState} → failed`);
-            lastWasmState = 'failed';
-        }
-        console.groupEnd();
-        return null;
-    }
-}
-
+// Workers use the JS fallback raycaster only (no structured-clone TeaVM exports).
 workers.forEach((worker, idx) => {
     worker.onmessage = (e) => {
+
         const { frameId } = e.data;
 
         if (e.data.type === "wasmStatus") {
@@ -157,12 +93,14 @@ export async function initializeWorkers() {
 
     // Strict ordering: ensure WASM exports attempt finishes before any worker gets init.
     const wasmExports = await getWasmExports();
+    const hasRaycastColumnsBatch = typeof wasmExports?.raycastColumnsBatch === "function";
 
     if (!wasmExports) {
         console.warn("[Workers] WASM failed to load in main thread, workers will use JS fallback");
     } else if (!hasRaycastColumnsBatch) {
         console.warn("[Workers] WASM exports missing raycastColumnsBatch, workers will use JS fallback");
     }
+
 
     const staticData = {
         type: "init",
@@ -295,6 +233,7 @@ export async function castRays() {
 
     if (!workersInitialized) {
         const wasmExports = await getWasmExports();
+        const hasRaycastColumnsBatch = typeof wasmExports?.raycastColumnsBatch === "function";
         for (let w of workers) w.postMessage({
             type: "init",
             tileSectors,
