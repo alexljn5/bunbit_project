@@ -185,6 +185,7 @@ self.addEventListener("message", async (e) => {
 
             WorkerState.workerId = d.workerId;
             wd.setName('raycast-worker-' + (d.workerId != null ? d.workerId : '?'));
+            wd.heartbeat();
 
             if (Array.isArray(d.map_01)) {
                 WorkerState.flatMap = flattenMap(d.map_01);

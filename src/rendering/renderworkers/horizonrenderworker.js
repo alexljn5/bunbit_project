@@ -166,6 +166,7 @@ self.onmessage = function (e) {
         projectionDist = (CANVAS_WIDTH * 0.5) / Math.tan(playerFOV * 0.5);
 
         __wdSetName('horizon-worker-' + (e.data.workerId != null ? e.data.workerId : '?'));
+        __wdHeartbeat();
         __wdLog('started');
         self.postMessage({ type: 'init_done' });
         return;

@@ -1,7 +1,7 @@
 // Worker to precompute wall rendering quads for a sector
 // Worker CPU sampling (accumulate busy time and report periodically)
 import { createWorkerDebug } from '../../debug/workerdebug.js';
-const wd = createWorkerDebug('wallprecompute');
+const wd = createWorkerDebug('wallprecompute-worker');
 let __wdStarted = false;
 let __wdTaskCount = 0;
 let __workerCpuAccum = 0;
@@ -34,7 +34,6 @@ self.onmessage = function (e) {
     const data = e.data;
     if (!data || data.type !== 'precompute') return;
     __workerId = data.workerId || data.sectorKey || __workerId;
-    wd.setName(__workerId || 'wallprecompute');
     if (!__wdStarted) {
         __wdStarted = true;
         wd.log('started');

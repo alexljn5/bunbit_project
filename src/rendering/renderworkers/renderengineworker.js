@@ -8,6 +8,7 @@ self.addEventListener("message", (e) => {
     // Handle init message
     if (d.type === "init") {
         wd.setName('renderengine-worker-' + (d.workerId != null ? d.workerId : '?'));
+        wd.heartbeat();
         wd.log('started');
         self.postMessage({ type: "init", success: true });
         return;

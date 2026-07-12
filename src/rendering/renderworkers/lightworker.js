@@ -5,7 +5,7 @@ import { CANVAS_WIDTH, CANVAS_HEIGHT } from "../../globals.js";
 import { vertexShaderSource, fragmentShaderSource, createShaderProgramSafe } from "../lightengine/shaders.js";
 import { createWorkerDebug } from "../../debug/workerdebug.js";
 
-const wd = createWorkerDebug('lightworker');
+const wd = createWorkerDebug('light-worker');
 let __wdLightCount = 0;
 
 let gl = null;

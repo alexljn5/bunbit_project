@@ -52,6 +52,7 @@ let performanceData = {
     fps: 0,
     frameTime: 0,
     renderWorkerLoad: null, // null = unknown / no data
+    workerStats: { active: false, count: 0, totalCount: 0, tasksPerSec: 0, list: [] }, // measured worker activity
     networkLatency: 0,
     frameCount: 0,
     lastFpsUpdate: 0,
@@ -88,6 +89,30 @@ const TARGET_FRAME_TIME = 1000 / 60; // 16.67ms for 60 FPS
 // Worker CPU tracking
 let workerCpuUsages = [];
 
+// Worker activity tracking (from worker_heartbeat messages on the perf_monitor channel)
+const workerActivity = new Map(); // name -> { tasksProcessed, lastHeartbeat, lastTasksProcessed, tasksPerSec, alive, lastExecutionInterval, firstSeen }
+let lastPerfDebugLog = 0;
+
+function recordWorkerHeartbeat(hb) {
+    const now = Date.now();
+    let entry = workerActivity.get(hb.name);
+    if (!entry) {
+        entry = { firstSeen: now, lastTasksProcessed: 0, tasksPerSec: 0, lastHeartbeat: 0 };
+        workerActivity.set(hb.name, entry);
+        console.log('[PERF DEBUG] New worker registered:', hb.name);
+    }
+    const dt = (now - entry.lastHeartbeat) / 1000;
+    if (entry.lastHeartbeat) {
+        const dTasks = (hb.tasksProcessed || 0) - entry.lastTasksProcessed;
+        entry.tasksPerSec = dt > 0 ? dTasks / dt : 0;
+    }
+    entry.lastTasksProcessed = hb.tasksProcessed || 0;
+    entry.tasksProcessed = hb.tasksProcessed || 0;
+    entry.lastHeartbeat = now;
+    entry.alive = true;
+    entry.lastExecutionInterval = (hb.lastExecutionInterval != null) ? hb.lastExecutionInterval : null;
+}
+
 // Use BroadcastChannel so workers can post their usage directly (works from workers and main)
 const perfChannel = (typeof BroadcastChannel !== 'undefined') ? new BroadcastChannel('perf_monitor') : null;
 if (perfChannel) {
@@ -95,6 +120,8 @@ if (perfChannel) {
         try {
             if (e.data && e.data.type === 'worker_cpu') {
                 workerCpuUsages = Array.isArray(e.data.usages) ? e.data.usages : [];
+            } else if (e.data && e.data.type === 'worker_heartbeat') {
+                recordWorkerHeartbeat(e.data);
             }
         } catch (err) {
             console.error('Error in perfChannel message handler:', err);
@@ -106,6 +133,8 @@ if (perfChannel) {
         try {
             if (e.data && e.data.type === 'worker_cpu') {
                 workerCpuUsages = Array.isArray(e.data.usages) ? e.data.usages : [];
+            } else if (e.data && e.data.type === 'worker_heartbeat') {
+                recordWorkerHeartbeat(e.data);
             }
         } catch (err) {
             console.error('Error in worker CPU message handler:', err);
@@ -481,6 +510,49 @@ function updatePerformanceData() {
             performanceData.smoothed.renderWorkerLoad = 0;
         }
 
+        // Worker activity from heartbeats (measured, never faked)
+        {
+            const nowW = Date.now();
+            let activeWorkers = 0;
+            let totalTasksPerSec = 0;
+            const workerList = [];
+            for (const [name, entry] of workerActivity.entries()) {
+                const sinceHeartbeat = nowW - entry.lastHeartbeat;
+                const isActive = sinceHeartbeat <= 3000;
+                if (!isActive) {
+                    entry.alive = false;
+                    entry.tasksPerSec = 0;
+                } else {
+                    activeWorkers++;
+                    totalTasksPerSec += entry.tasksPerSec || 0;
+                }
+                workerList.push({
+                    name,
+                    active: isActive,
+                    tasksProcessed: entry.tasksProcessed || 0,
+                    tasksPerSec: isActive ? (entry.tasksPerSec || 0) : 0,
+                    lastExecutionInterval: entry.lastExecutionInterval,
+                    lastHeartbeat: entry.lastHeartbeat
+                });
+            }
+            workerList.sort((a, b) => a.name.localeCompare(b.name));
+            performanceData.workerStats = {
+                active: activeWorkers > 0,
+                count: activeWorkers,
+                totalCount: workerActivity.size,
+                tasksPerSec: totalTasksPerSec,
+                list: workerList
+            };
+
+            if (workerActivity.size > 0 && nowW - lastPerfDebugLog >= 2000) {
+                lastPerfDebugLog = nowW;
+                console.log(`[PERF DEBUG] Active workers: ${activeWorkers}/${workerActivity.size} | Tasks/sec: ${totalTasksPerSec.toFixed(1)}`);
+                for (const w of workerList) {
+                    console.log(`[PERF DEBUG]   ${w.name}: ${w.active ? 'ACTIVE' : 'IDLE'} tasks=${w.tasksProcessed} tps=${w.tasksPerSec.toFixed(1)} lastExec=${w.lastExecutionInterval != null ? w.lastExecutionInterval + 'ms' : 'n/a'}`);
+                }
+            }
+        }
+
         // JS Heap
         if (hasMemoryAPI) {
             const mem = performance.memory;
@@ -634,6 +706,28 @@ function drawPerfMonitor(time) {
         perfCtx.fillStyle = themeManager.getPerformanceColor?.(performanceData.renderWorkerLoad || 0, [80, 50]) || '#FFFFFF';
         perfCtx.fillText(workerText, 10, y);
         y += 15;
+
+        // Worker activity (measured via heartbeats on perf_monitor)
+        const ws = performanceData.workerStats || { active: false, count: 0, totalCount: 0, tasksPerSec: 0, list: [] };
+        let workerActiveText = `Worker Active: ${ws.active ? 'YES' : 'NO'}`;
+        if (evilGlitchSystem.textGlitch) workerActiveText = evilGlitchSystem.applyTextGlitch(workerActiveText);
+        perfCtx.fillStyle = ws.active ? '#00FF66' : '#FF5555';
+        perfCtx.fillText(workerActiveText, 10, y);
+        y += 15;
+
+        let workerCountText = `Worker Count: ${ws.count}/${ws.totalCount}  Tasks/sec: ${ws.tasksPerSec.toFixed(1)}`;
+        if (evilGlitchSystem.textGlitch) workerCountText = evilGlitchSystem.applyTextGlitch(workerCountText);
+        perfCtx.fillStyle = themeManager.getPerformanceColor?.(0) || '#FFFFFF';
+        perfCtx.fillText(workerCountText, 10, y);
+        y += 15;
+
+        for (const w of (ws.list || [])) {
+            const line = `  ${w.name}: ${w.active ? 'ACT' : 'idle'} t=${w.tasksProcessed} ${w.tasksPerSec.toFixed(1)}/s`;
+            const glitchLine = evilGlitchSystem.textGlitch ? evilGlitchSystem.applyTextGlitch(line) : line;
+            perfCtx.fillStyle = w.active ? '#88FF88' : '#888888';
+            perfCtx.fillText(glitchLine, 10, y);
+            y += 13;
+        }
 
         let latencyText = `Latency: ${performanceData.networkLatency.toFixed(1)}ms`;
         if (evilGlitchSystem.textGlitch) {
@@ -807,3 +901,4 @@ export function resizePerfMonitor(width, height) {
 // Expose globally
 window.resizePerfMonitor = resizePerfMonitor;
 window.togglePerfMonitor = togglePerfMonitor;
+window.__workerActivity = workerActivity; // inspect live worker heartbeats from console
