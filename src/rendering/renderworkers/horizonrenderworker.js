@@ -18,12 +18,39 @@ let texScaleYRoof = 0;
 
 // WASM state
 let wasmExports = null;
-let wasmPromise = null;
 let wasmStatus = 'disabled';
+let hasRaycast = false;
+let hasRenderHorizon = false;
 
 // Debug counters
 let __wasmSinCosCalls = 0;
 let __wasmFastSinFallbackCalls = 0;
+let frameCount = 0;
+
+// === WORKER DEBUG HEARTBEAT (instrumentation, classic worker) ===
+// Inlined because this is a classic worker and cannot `import` ES modules.
+// Mirrors src/debug/workerdebug.js. Posts on the existing BroadcastChannel('perf_monitor').
+var __WD_NAME = 'horizon-worker';
+var __WD_TASKS = 0;
+var __WD_LAST_EXEC = 0;
+var __WD_CHANNEL = (typeof BroadcastChannel !== 'undefined') ? new BroadcastChannel('perf_monitor') : null;
+function __wdSetName(n) { __WD_NAME = n; }
+function __wdMarkTask() { __WD_TASKS++; __WD_LAST_EXEC = (typeof performance !== 'undefined') ? performance.now() : Date.now(); }
+function __wdHeartbeat() {
+    try {
+        var now = (typeof performance !== 'undefined') ? performance.now() : Date.now();
+        var interval = __WD_LAST_EXEC ? Math.round(now - __WD_LAST_EXEC) : null;
+        var payload = { type: 'worker_heartbeat', name: __WD_NAME, alive: true, tasksProcessed: __WD_TASKS, timestamp: Date.now(), lastExecutionInterval: interval };
+        if (__WD_CHANNEL) __WD_CHANNEL.postMessage(payload);
+        else if (typeof self !== 'undefined' && self.postMessage) self.postMessage(payload);
+    } catch (e) { /* best effort */ }
+}
+setInterval(__wdHeartbeat, 1000);
+function __wdLog() { try { var a = Array.prototype.slice.call(arguments); console.log.apply(console, ['[WORKER DEBUG]', __WD_NAME + ':'].concat(a)); } catch (e) { } }
+function __wdLogErr() { try { var a = Array.prototype.slice.call(arguments); console.error.apply(console, ['[WORKER DEBUG]', __WD_NAME + ' ERROR:'].concat(a)); } catch (e) { } }
+
+self.addEventListener('error', function (e) { try { __wdLogErr('worker error', e.message, e.filename, e.lineno + ':' + e.colno); } catch (err) { } });
+self.addEventListener('unhandledrejection', function (e) { try { __wdLogErr('unhandled rejection', e.reason && e.reason.message ? e.reason.message : String(e.reason)); } catch (err) { } });
 
 let halfHeight = 0;
 let projectionDist = 0;
@@ -54,11 +81,6 @@ function fastCosJs(a) {
     return cosTable[idx];
 }
 
-// --- MODULE-WORKER SAFE WASM LOADER ---
-const WASM_BASE = '/src/wasm/generated/wasm-gc';
-const WASM_RUNTIME = `${WASM_BASE}/bunbit-renderhelpers.wasm-runtime.js`;
-const WASM_BIN = `${WASM_BASE}/bunbit-renderhelpers.wasm`;
-
 function postWasmStatus(status) {
     wasmStatus = status;
     try {
@@ -66,56 +88,45 @@ function postWasmStatus(status) {
     } catch { }
 }
 
-async function loadWasmSinCos() {
-    if (wasmExports) return wasmExports;
-    if (wasmPromise) return wasmPromise;
-
-    wasmPromise = (async () => {
+function debug(msg, extra = {}) {
+    if (typeof window !== 'undefined' && window.DEBUG_WASM) {
         try {
-            postWasmStatus('loading');
-
-            // IMPORTANT: module worker safe import only
-            const mod = await import(WASM_RUNTIME);
-            void mod;
-
-            if (!self.TeaVM?.wasmGC) {
-                throw new Error('TeaVM runtime not initialized');
-            }
-
-            const res = await fetch(WASM_BIN);
-            if (!res.ok) throw new Error(`WASM fetch failed ${res.status}`);
-
-            const bytes = await res.arrayBuffer();
-
-            const instance = await self.TeaVM.wasmGC.load(bytes, {
-                stackDeobfuscator: { enabled: false }
+            self.postMessage({
+                type: "wasmDebug",
+                msg,
+                ...extra
             });
+        } catch { }
+    }
+}
 
-            const exp = instance.exports;
+function setWasmExports(exports) {
+    // TeaVM exports may not use fastSin/fastCos names; we only enable WASM trig
+    // when the required functions actually exist.
+    const hasFs = typeof exports?.fastSin === 'function';
+    const hasFc = typeof exports?.fastCos === 'function';
+    const hasRhs = typeof exports?.renderHorizonSlice === 'function';
 
-            if (!exp.fastSin || !exp.fastCos) {
-                throw new Error('Missing WASM exports');
-            }
+    if (exports && hasFs && hasFc) {
+        wasmExports = exports;
+        hasRaycast = hasFs && hasFc;
+        hasRenderHorizon = hasRhs;
+        postWasmStatus('ready');
+        debug('[WASM horizon] WASM trig ready', { hasRaycast, hasRenderHorizon });
+        return true;
+    }
 
-            wasmExports = exp;
-            postWasmStatus('ready');
-            return exp;
-
-        } catch (e) {
-            wasmExports = null;
-            postWasmStatus('fallback');
-            console.warn('[WASM horizon]', e?.message || e);
-            return null;
-        } finally {
-            wasmPromise = null;
-        }
-    })();
-
-    return wasmPromise;
+    // Expected in environments where WASM doesn't export trig helpers with these names.
+    wasmExports = null;
+    hasRaycast = false;
+    hasRenderHorizon = false;
+    postWasmStatus('fallback');
+    debug('[WASM horizon] Using JS fallback - missing exports', { hasFastSin: hasFs, hasFastCos: hasFc, hasRenderHorizon: hasRhs });
+    return false;
 }
 
 function fastSin(a) {
-    if (wasmExports) {
+    if (wasmExports && hasRaycast) {
         __wasmSinCosCalls++;
         return wasmExports.fastSin(a);
     }
@@ -124,7 +135,7 @@ function fastSin(a) {
 }
 
 function fastCos(a) {
-    if (wasmExports) {
+    if (wasmExports && hasRaycast) {
         __wasmSinCosCalls++;
         return wasmExports.fastCos(a);
     }
@@ -132,12 +143,15 @@ function fastCos(a) {
     return fastCosJs(a);
 }
 
-// start async (non-blocking)
-loadWasmSinCos();
-
 // --- worker setup ---
 self.onmessage = function (e) {
     const { type } = e.data;
+
+    // Handle WASM exports received from main thread
+    if (type === 'wasmExports') {
+        setWasmExports(e.data.wasmExports);
+        return;
+    }
 
     if (type === 'init') {
         CANVAS_WIDTH = e.data.CANVAS_WIDTH;
@@ -151,6 +165,9 @@ self.onmessage = function (e) {
         halfHeight = CANVAS_HEIGHT * 0.5;
         projectionDist = (CANVAS_WIDTH * 0.5) / Math.tan(playerFOV * 0.5);
 
+        __wdSetName('horizon-worker-' + (e.data.workerId != null ? e.data.workerId : '?'));
+        __wdHeartbeat();
+        __wdLog('started');
         self.postMessage({ type: 'init_done' });
         return;
     }
@@ -251,6 +268,8 @@ self.onmessage = function (e) {
             }
         }
 
+        __wdMarkTask();
+        if (frameCount % 60 === 0) __wdLog('processed task', __WD_TASKS);
         self.postMessage({
             type: 'render_done',
             horizonBuffer: horizonBuffer32.buffer,
@@ -260,5 +279,6 @@ self.onmessage = function (e) {
         }, [horizonBuffer32.buffer]);
 
         horizonBuffer32 = new Uint32Array(CANVAS_WIDTH * rowCount);
+        frameCount++;
     }
 };

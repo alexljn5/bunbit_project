@@ -3,12 +3,14 @@ import { CANVAS_WIDTH, CANVAS_HEIGHT } from "../../globals.js";
 import { playerFOV, numCastRays } from "../../globals.js";
 import { playerPosition } from "../../globals.js";
 import { vertexShaderSource, fragmentShaderSource, createShaderProgramSafe } from "./shaders.js";
+import { wdMainEvent, wdMainMessage, wdMainError } from "../../debug/workermaindebug.js";
 
 const MAX_LIGHTS = 8; // Increase max lights to support player + map lights
 
 // ---------- Worker-based lighting ----------
 const lightWorkerUrl = new URL("../renderworkers/lightworker.js", import.meta.url);
 const lightWorker = new Worker(lightWorkerUrl, { type: "module" });
+wdMainEvent('light-worker', 'created (module)');
 let lightWorkerInitialized = false;
 let pendingLightingResolve = null;
 
@@ -34,15 +36,25 @@ export const mapLights = []; // stationary map lights
 // ---------- Worker message handling ----------
 lightWorker.onmessage = (e) => {
     const { type, imageBitmap } = e.data;
+    wdMainMessage('light-worker', type);
     if (type === 'init_response') {
         lightWorkerInitialized = e.data.success;
-        if (!lightWorkerInitialized) console.error("Light worker init failed:", e.data.error);
+        if (!lightWorkerInitialized) {
+            console.error("Light worker init failed:", e.data.error);
+            wdMainError('light-worker', e.data.error);
+        } else {
+            wdMainEvent('light-worker', 'started');
+        }
     } else if (type === 'lighting_applied' && pendingLightingResolve) {
         pendingLightingResolve(imageBitmap);
         pendingLightingResolve = null;
     } else if (type === 'cleanup_done') {
         console.log("Light worker cleanup done");
     }
+};
+lightWorker.onerror = (error) => {
+    console.error("Light worker error:", error);
+    wdMainError('light-worker', error);
 };
 
 // ---------- Utilities ----------

@@ -143,11 +143,19 @@ if (typeof navigator !== 'undefined' && (/Mobi|Android/i.test(navigator.userAgen
 export let useWasmRayMath = typeof window !== 'undefined' ? (window.__useWasmRayMath ?? true) : true;
 export let raycastWasmStatus = useWasmRayMath ? "requested" : "disabled";
 
+// --- DEBUG FLAGS ---
+// Enable detailed WASM loading logs via window.DEBUG_WASM = true
+// Can also be enabled via URL param ?debugWASM=1
+if (typeof window !== 'undefined') {
+    const urlParams = new URLSearchParams(window.location.search);
+    window.DEBUG_WASM = window.DEBUG_WASM ?? (urlParams.get('debugWASM') === '1');
+}
+
 // --- GAME STATE FLAGS ---
 export let menuActive = true;
 export let isPaused = false;
 export let gameOver = false;
-export let introActive = true;
+export let introActive = true; // Allow intro autorun to run on app start
 
 // Initialize window.introActive for autorun check
 if (typeof window !== 'undefined') {
@@ -189,6 +197,18 @@ export let MAX_CHARS_PER_LINE = 120;
 export let scrollOffsetX = 0;
 export let virtualScrollY = 0;
 export let autoScroll = true;
+
+export function setScrollOffsetX(val) {
+    scrollOffsetX = val;
+}
+
+export function setVirtualScrollY(val) {
+    virtualScrollY = val;
+}
+
+export function setAutoScroll(val) {
+    autoScroll = val;
+}
 
 // --- BUTTON STATE ---
 export let buttons = [];
@@ -298,30 +318,20 @@ export function updateGraphicsSettings({ numCastRays: newRays, maxRayDepth: newD
     maxRayDepth = newDepth || maxRayDepth;
 }
 
-export function applyGraphicsPreset(preset) {
-    if (!graphicsPresets[preset]) return false;
-    currentGraphicsPreset = preset;
-    updateGraphicsSettings(graphicsPresets[preset]);
-    return true;
+// Apply a graphics preset by name
+export function applyGraphicsPreset(presetName) {
+    const preset = graphicsPresets[presetName];
+    if (preset) {
+        currentGraphicsPreset = presetName;
+        numCastRays = preset.numCastRays;
+        maxRayDepth = preset.maxRayDepth;
+        if (typeof window !== 'undefined') {
+            window.__raycastMathSource = useWasmRayMath ? "wasm" : "js";
+        }
+    }
 }
 
-// --- SCROLL STATE SETTERS ---
-export function setVirtualScrollY(val) {
-    virtualScrollY = val;
-}
-
-export function setScrollOffsetX(val) {
-    scrollOffsetX = val;
-}
-
-export function setLogBuffer(newLogs) {
-    logBuffer = newLogs;
-}
-
-export function clearLogBuffer() {
-    logBuffer.length = 0;
-}
-
-export function setAutoScroll(val) {
-    autoScroll = val;
+// Set log buffer
+export function setLogBuffer(val) {
+    logBuffer = val;
 }

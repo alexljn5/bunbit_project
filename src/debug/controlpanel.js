@@ -213,15 +213,19 @@ export function initControlPanel() {
     observer.observe(document.body, { childList: true, subtree: false });
 
     // Button handlers
-    reloadButton.addEventListener('click', () => {
-        if (typeof window.__electron_bridge !== 'undefined' && window.__electron_bridge.reload) {
-            window.__electron_bridge.reload();
-        } else if (window.electronAPI && typeof window.electronAPI.send === 'function') {
-            window.electronAPI.send('reload-window');
-        } else if (window.require) {
-            try { const { ipcRenderer } = window.require('electron'); ipcRenderer.send('reload-window'); }
-            catch (e) { window.location.reload(); }
-        } else if (window.location && typeof window.location.reload === 'function') {
+    reloadButton.addEventListener('click', async () => {
+        // Try Tauri API first
+        if (typeof window !== 'undefined' && window.__TAURI__) {
+            try {
+                const { invoke } = await import('@tauri-apps/api/core');
+                await invoke('reload_window');
+                return;
+            } catch (e) {
+                console.warn('Tauri reload failed, falling back to window reload');
+            }
+        }
+        // Fallback to window reload
+        if (window.location && typeof window.location.reload === 'function') {
             window.location.reload();
         }
     });

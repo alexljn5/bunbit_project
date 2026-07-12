@@ -27,7 +27,7 @@ function playGameButton() {
 }
 
 function mainPageButton() {
-    window.location.href = "../index.html";
+    window.location.href = "../main_game.html";
 }
 
 function setSeedButton() {

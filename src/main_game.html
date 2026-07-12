@@ -5,9 +5,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="stylesgame.css">
-    <script type="module" src="game_loop.js"></script>
-    <script type="module" src="playerdata/playerlogic.js"></script>
-    <script type="module" src="./rendering/renderengine.js"></script>
     <link rel="shortcut icon" href="#">
     <title></title>
 </head>
@@ -16,8 +13,18 @@
     <div class="game-container">
         <canvas id="mainGameRender" width="0" height="0"></canvas>
     </div>
+    <!-- Tauri entry point -->
+    <script type="module" src="heavensgate.js"></script>
+    <script type="module" src="game_loop.js"></script>
+    <script type="module" src="playerdata/playerlogic.js"></script>
+    <script type="module" src="./rendering/renderengine.js"></script>
+    <script type="module" src="menus/menu.js"></script>
     <script type="module" src="menus/main_dashboard.js"></script>
     <script type="module" src="debug/panels/bunbitdebug.js"></script>
+    <script>
+        // Disable intro animation on main_game.html - it was already shown on intro.html
+        window.introActive = false;
+    </script>
 </body>
 
 </html>

@@ -6,47 +6,69 @@ import { CANVAS_HEIGHT, CANVAS_WIDTH } from "../globals.js";
 import { fastCos, fastSin } from "../math/mathtables.js";
 import { renderEngine, drawQuad } from "./renderengine.js";
 import { playerFOV, numCastRays } from "./raycasting.js";
+import { tryLoadRenderHelpersWasm, getWasmDebugState } from "../wasm/renderhelpers.js";
+import { wdMainEvent, wdMainMessage, wdMainError } from "../debug/workermaindebug.js";
 
 const DEBUG_HORIZON_TIMING = (typeof window !== 'undefined' && window.location)
     ? new URLSearchParams(window.location.search).get("debugHorizonTiming") === "true"
     : false;
+
+// Tauri-only worker URL
+const horizonWorkerURL = new URL("./renderworkers/horizonrenderworker.js", import.meta.url);
 
 // Number of workers to use
 const NUM_WORKERS = 8;
 
 // Array to hold workers
 const horizonWorkers = Array.from({ length: NUM_WORKERS }, () =>
-    new Worker('/src/rendering/renderworkers/horizonrenderworker.js', { type: "module" })
+    new Worker(horizonWorkerURL, { type: 'classic' })
 );
+wdMainEvent('horizon-worker', 'created ' + NUM_WORKERS + ' workers (classic)');
+
 
 // Debug: forward worker WASM status/trig stats to main-thread console.
 function attachHorizonWorkerDebug(worker, index) {
     worker.addEventListener('message', (e) => {
         const msg = e.data;
         if (!msg) return;
+        wdMainMessage('horizon-worker-' + index, msg.type);
+
+        if (msg.type === 'init_done') {
+            wdMainEvent('horizon-worker-' + index, 'started');
+            return;
+        }
 
         if (msg.type === 'wasmError') {
-            console.warn(`[HorizonWorker ${index}] wasmError`, msg);
+            console.warn(`[HORIZON] Worker ${index} wasmError`, msg);
+            wdMainError('horizon-worker-' + index, msg);
             return;
         }
 
-        if (msg.type === 'wasmStatus' || msg.type === 'wasmTrigStats') {
-            console.info(`[HorizonWorker ${index}] ${msg.type}`, msg);
+        if (msg.type === 'wasmStatus') {
+            if (window.DEBUG_WASM) {
+                console.info(`[HORIZON] Worker ${index} status:`, msg.status);
+            }
             return;
         }
 
-        if (msg.type === 'wasmTrigStats') {
-            console.info(`[HorizonWorker ${index}] wasm trig stats`, msg);
+        if (msg.type === 'wasmDebug') {
+            if (window.DEBUG_WASM) {
+                console.log(`[HORIZON] Worker ${index} debug:`, msg.msg, msg);
+            }
+            return;
         }
+    });
+    worker.addEventListener('error', (error) => {
+        console.error(`[HORIZON] Worker ${index} error:`, error);
+        wdMainError('horizon-worker-' + index, error);
     });
 }
 
 
 horizonWorkers.forEach((w, i) => attachHorizonWorkerDebug(w, i));
 
-
-
 let isInitialized = Array(NUM_WORKERS).fill(false);
+let horizonWorkersWasmMode = 'unknown';
 let lastFloorTextureKey = "";
 let lastRoofTextureKey = "";
 let textureWidthFloor = 0;
@@ -56,6 +78,10 @@ let textureHeightRoof = 0;
 let lastCanvasWidth = 0;
 let lastCanvasHeight = 0;
 let horizonWorkersReadyLogged = false;
+
+// Track WASM state changes
+let wasmExportsValid = false;
+let lastWasmState = 'unknown';
 
 // Heap-based cache for horizon data
 const horizonCache = new Map();
@@ -67,13 +93,51 @@ const textureCtx = textureCanvas.getContext("2d", { willReadFrequently: true });
 let finalBuffer = null;
 let finalImageData = null;
 
-function initializeWorkers() {
+async function initializeWorkers() {
     // Reuse final buffer and ImageData to avoid reallocations each frame
     finalBuffer = new Uint8ClampedArray(CANVAS_WIDTH * CANVAS_HEIGHT * 4);
     // Create ImageData once and reuse its underlying buffer
     finalImageData = new ImageData(finalBuffer, CANVAS_WIDTH, CANVAS_HEIGHT);
 
     const rowsPerWorker = Math.ceil(CANVAS_HEIGHT / NUM_WORKERS);
+
+    // Load WASM from main thread and pass to workers
+    let wasmExports = null;
+    try {
+        wasmExports = await tryLoadRenderHelpersWasm();
+
+        // Check if WASM exports have the required functions
+        // TeaVM exports fastSin/fastCos as WebAssembly.Global objects (not JS functions)
+        const hasFastSin = wasmExports && wasmExports.fastSin != null;
+        const hasFastCos = wasmExports && wasmExports.fastCos != null;
+        const hasRenderHorizon = wasmExports && wasmExports.renderHorizonSlice != null;
+
+
+        // Only consider WASM valid if it has the required trig functions
+        wasmExportsValid = hasFastSin && hasFastCos;
+
+        horizonWorkersWasmMode = wasmExportsValid ? 'wasm' : 'js-fallback';
+
+        // Log state change
+        if (wasmExportsValid !== (lastWasmState === 'ready')) {
+            if (window.DEBUG_WASM) {
+                console.groupCollapsed(`[HORIZON] WASM State: ${lastWasmState} → ${wasmExportsValid ? 'ready' : 'fallback'}`);
+                console.log('WASM exports check:', { hasFastSin, hasFastCos, hasRenderHorizon });
+                console.log('WASM debug state:', getWasmDebugState());
+                console.groupEnd();
+            }
+            lastWasmState = wasmExportsValid ? 'ready' : 'fallback';
+        }
+
+        if (!wasmExportsValid) {
+            console.warn("[HORIZON] WASM exports missing or invalid, workers will use JS fallback");
+        }
+
+    } catch (e) {
+        console.warn("[HORIZON] WASM load error:", e.message);
+        wasmExportsValid = false;
+        lastWasmState = 'failed';
+    }
 
     return Promise.all(
         horizonWorkers.map((worker, index) => {
@@ -91,8 +155,25 @@ function initializeWorkers() {
                     tileSectors,
                     playerFOV,
                     rowsPerWorker,
-                    numWorkers: NUM_WORKERS
+                    numWorkers: NUM_WORKERS,
+                    workerId: index
                 });
+
+                // Send WASM exports to worker.
+                // NOTE: TeaVM exports here include WebAssembly.Global objects / wrappers
+                // which are NOT always structured-cloneable. Sending them can throw:
+                // DataCloneError: function ... could not be cloned.
+                // Raycasting workers use a different calling path and are already working.
+                // For horizons, we will only enable WASM trig if we can safely pass exports.
+                // If you want full horizon WASM execution, we need a clone-safe approach.
+                if (false && wasmExportsValid && wasmExports) {
+                    worker.postMessage({
+                        type: 'wasmExports',
+                        wasmExports: wasmExports
+                    });
+                }
+
+
             });
         })
     ).then(() => {
@@ -100,14 +181,14 @@ function initializeWorkers() {
         lastCanvasHeight = CANVAS_HEIGHT;
         if (!horizonWorkersReadyLogged) {
             horizonWorkersReadyLogged = true;
-            console.info("[Horizon] workers ready", { workers: NUM_WORKERS });
+            console.info("[HORIZON] workers ready", { workers: NUM_WORKERS, wasmMode: wasmExportsValid ? 'wasm' : 'js-fallback' });
         }
     });
 }
 
 function updateTexture(texture, type) {
     if (!texture || !texture.complete) {
-        console.warn(`${type} texture not loaded or invalid, skipping update *pouts*`);
+        console.warn(`${type} texture not loaded or invalid, skipping update`);
         return;
     }
 
@@ -148,7 +229,6 @@ function updateTexture(texture, type) {
 export function precomputeHorizonData(sectorKey, rayData) {
     try {
         if (!texturesLoaded || !tileSectors[sectorKey] || !rayData) {
-            //console.warn(`Cannot precompute horizon for sector ${sectorKey}: missing data *pouts*`);
             return;
         }
 
@@ -158,7 +238,7 @@ export function precomputeHorizonData(sectorKey, rayData) {
         const roofTexture = tileTexturesMap.get(roofTextureKey);
 
         if (!floorTexture || !roofTexture) {
-            console.warn(`Textures missing for sector ${sectorKey} *tilts head*`);
+            console.warn(`Textures missing for sector ${sectorKey}`);
             return;
         }
 
@@ -191,7 +271,9 @@ export function precomputeHorizonData(sectorKey, rayData) {
         };
 
         horizonCache.set(sectorKey, cacheData);
-        console.log(`Precomputed horizon data for sector ${sectorKey}, cache size: ${horizonCache.size} *twirls*`);
+        if (window.DEBUG_WASM) {
+            console.log(`[HORIZON] Precomputed horizon data for sector ${sectorKey}, cache size: ${horizonCache.size}`);
+        }
     } catch (err) {
         console.error(`Error precomputing horizon data for ${sectorKey}:`, err);
     }
@@ -288,7 +370,7 @@ export function renderRaycastHorizons(rayData, targetCtx = renderEngine) {
         const roofTexture = tileTexturesMap.get(roofTextureKey);
 
         if (!texturesLoaded || !floorTexture || !floorTexture.complete || !roofTexture || !roofTexture.complete) {
-            console.warn("Textures not loaded or invalid, rendering fallback *hides*");
+            console.warn("Textures not loaded or invalid, rendering fallback");
             drawQuad({
                 topX: 0, topY: 0,
                 leftX: 0, leftY: CANVAS_HEIGHT / 2,
@@ -395,7 +477,7 @@ export function cleanupHorizonWorkers() {
         isInitialized.fill(false);
         finalBuffer = null;
         horizonCache.clear();
-        console.log("Horizon workers and cache terminated *chao chao*");
+        console.log("Horizon workers and cache terminated");
     } catch (err) {
         console.error('Error in cleanupHorizonWorkers:', err);
     }

@@ -1,7 +1,12 @@
 // textureloaderworker.js - runs in a worker to fetch and decode images as ImageBitmap
+import { createWorkerDebug } from '../debug/workerdebug.js';
+const wd = createWorkerDebug('textureloader-worker');
+let __wdStarted = false;
+let __wdCount = 0;
 self.onmessage = async function (e) {
     const data = e.data;
     if (!data || data.type !== 'load' || !Array.isArray(data.textures)) return;
+    if (!__wdStarted) { __wdStarted = true; wd.log('started'); }
 
     for (const item of data.textures) {
         const key = item.key;
@@ -60,6 +65,9 @@ self.onmessage = async function (e) {
             }
 
             // Post back the decoded ImageBitmap and metadata; transfer the bitmap
+            wd.markTask();
+            __wdCount++;
+            if (__wdCount % 50 === 0) wd.log('processed task', __wdCount);
             const transferList = [bitmap];
             const payload = { type: 'loaded', key, frameIndex: frameIndex, width: bitmap.width, height: bitmap.height, hasTransparency, imageBitmap: bitmap };
             if (sampledColumnBuffer) {
@@ -68,6 +76,7 @@ self.onmessage = async function (e) {
             }
             self.postMessage(payload, transferList);
         } catch (err) {
+            wd.logError('load error', key, err && err.message ? err.message : String(err));
             try { self.postMessage({ type: 'error', key, message: err && err.message ? err.message : String(err) }); } catch (e) { /* best effort */ }
         }
     }
