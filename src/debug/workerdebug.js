@@ -14,6 +14,8 @@
 
 const WD_CHANNEL_NAME = 'perf_monitor';
 
+import { WORKER_DEBUG_LOGS } from '../globals.js';
+
 function getPerfChannel() {
     if (typeof BroadcastChannel === 'undefined') return null;
     try {
@@ -32,7 +34,17 @@ export function createWorkerDebug(baseName) {
     let name = baseName || 'worker';
     let tasksProcessed = 0;
     let lastExecTime = 0;
+    let debugEnabled = WORKER_DEBUG_LOGS;
     const channel = getPerfChannel();
+
+    // Allow the performance monitor to toggle worker-side logs at runtime.
+    if (channel) {
+        channel.onmessage = (e) => {
+            try {
+                if (e.data && e.data.type === 'worker_debug_toggle') debugEnabled = !!e.data.enabled;
+            } catch (err) { /* ignore */ }
+        };
+    }
 
     function post(payload) {
         try {
@@ -44,12 +56,14 @@ export function createWorkerDebug(baseName) {
     }
 
     function log(...args) {
+        if (!debugEnabled) return;
         try {
             console.log('[WORKER DEBUG]', name + ':', ...args);
         } catch (e) { /* ignore */ }
     }
 
     function logError(...args) {
+        if (!debugEnabled) return;
         try {
             console.error('[WORKER DEBUG]', name + ' ERROR:', ...args);
         } catch (e) { /* ignore */ }

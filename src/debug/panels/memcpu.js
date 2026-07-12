@@ -1,4 +1,5 @@
 import { evilGlitchSystem, EvilUIState } from '../../themes/eviltheme.js';
+import { WORKER_DEBUG_LOGS, setWorkerDebugLogs } from '../../globals.js';
 import { themeManager } from '../../themes/thememanager.js';
 import { gameVersionNumber, gameName, CANVAS_WIDTH, CANVAS_HEIGHT } from '../../globals.js';
 
@@ -99,7 +100,7 @@ function recordWorkerHeartbeat(hb) {
     if (!entry) {
         entry = { firstSeen: now, lastTasksProcessed: 0, tasksPerSec: 0, lastHeartbeat: 0 };
         workerActivity.set(hb.name, entry);
-        console.log('[PERF DEBUG] New worker registered:', hb.name);
+        if (WORKER_DEBUG_LOGS) console.log('[PERF DEBUG] New worker registered:', hb.name);
     }
     const dt = (now - entry.lastHeartbeat) / 1000;
     if (entry.lastHeartbeat) {
@@ -544,7 +545,7 @@ function updatePerformanceData() {
                 list: workerList
             };
 
-            if (workerActivity.size > 0 && nowW - lastPerfDebugLog >= 2000) {
+            if (WORKER_DEBUG_LOGS && workerActivity.size > 0 && nowW - lastPerfDebugLog >= 2000) {
                 lastPerfDebugLog = nowW;
                 console.log(`[PERF DEBUG] Active workers: ${activeWorkers}/${workerActivity.size} | Tasks/sec: ${totalTasksPerSec.toFixed(1)}`);
                 for (const w of workerList) {
@@ -721,12 +722,14 @@ function drawPerfMonitor(time) {
         perfCtx.fillText(workerCountText, 10, y);
         y += 15;
 
-        for (const w of (ws.list || [])) {
-            const line = `  ${w.name}: ${w.active ? 'ACT' : 'idle'} t=${w.tasksProcessed} ${w.tasksPerSec.toFixed(1)}/s`;
-            const glitchLine = evilGlitchSystem.textGlitch ? evilGlitchSystem.applyTextGlitch(line) : line;
-            perfCtx.fillStyle = w.active ? '#88FF88' : '#888888';
-            perfCtx.fillText(glitchLine, 10, y);
-            y += 13;
+        if (WORKER_DEBUG_LOGS) {
+            for (const w of (ws.list || [])) {
+                const line = `  ${w.name}: ${w.active ? 'ACT' : 'idle'} t=${w.tasksProcessed} ${w.tasksPerSec.toFixed(1)}/s`;
+                const glitchLine = evilGlitchSystem.textGlitch ? evilGlitchSystem.applyTextGlitch(line) : line;
+                perfCtx.fillStyle = w.active ? '#88FF88' : '#888888';
+                perfCtx.fillText(glitchLine, 10, y);
+                y += 13;
+            }
         }
 
         let latencyText = `Latency: ${performanceData.networkLatency.toFixed(1)}ms`;
@@ -902,3 +905,10 @@ export function resizePerfMonitor(width, height) {
 window.resizePerfMonitor = resizePerfMonitor;
 window.togglePerfMonitor = togglePerfMonitor;
 window.__workerActivity = workerActivity; // inspect live worker heartbeats from console
+window.toggleWorkerDebugLogs = function () {
+    setWorkerDebugLogs(!WORKER_DEBUG_LOGS);
+    if (perfChannel) {
+        try { perfChannel.postMessage({ type: 'worker_debug_toggle', enabled: WORKER_DEBUG_LOGS }); } catch (e) { /* ignore */ }
+    }
+    console.log('[PERF DEBUG] worker debug logs', WORKER_DEBUG_LOGS ? 'ON' : 'OFF');
+};

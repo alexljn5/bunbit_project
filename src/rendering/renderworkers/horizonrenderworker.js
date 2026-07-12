@@ -33,6 +33,7 @@ let frameCount = 0;
 var __WD_NAME = 'horizon-worker';
 var __WD_TASKS = 0;
 var __WD_LAST_EXEC = 0;
+var __WD_DEBUG = false; // gated by WORKER_DEBUG_LOGS (sent via init + runtime toggle)
 var __WD_CHANNEL = (typeof BroadcastChannel !== 'undefined') ? new BroadcastChannel('perf_monitor') : null;
 function __wdSetName(n) { __WD_NAME = n; }
 function __wdMarkTask() { __WD_TASKS++; __WD_LAST_EXEC = (typeof performance !== 'undefined') ? performance.now() : Date.now(); }
@@ -46,8 +47,14 @@ function __wdHeartbeat() {
     } catch (e) { /* best effort */ }
 }
 setInterval(__wdHeartbeat, 1000);
-function __wdLog() { try { var a = Array.prototype.slice.call(arguments); console.log.apply(console, ['[WORKER DEBUG]', __WD_NAME + ':'].concat(a)); } catch (e) { } }
-function __wdLogErr() { try { var a = Array.prototype.slice.call(arguments); console.error.apply(console, ['[WORKER DEBUG]', __WD_NAME + ' ERROR:'].concat(a)); } catch (e) { } }
+// Allow the performance monitor to toggle worker-side logs at runtime.
+if (__WD_CHANNEL) {
+    __WD_CHANNEL.onmessage = function (e) {
+        try { if (e.data && e.data.type === 'worker_debug_toggle') __WD_DEBUG = !!e.data.enabled; } catch (err) { }
+    };
+}
+function __wdLog() { if (!__WD_DEBUG) return; try { var a = Array.prototype.slice.call(arguments); console.log.apply(console, ['[WORKER DEBUG]', __WD_NAME + ':'].concat(a)); } catch (e) { } }
+function __wdLogErr() { if (!__WD_DEBUG) return; try { var a = Array.prototype.slice.call(arguments); console.error.apply(console, ['[WORKER DEBUG]', __WD_NAME + ' ERROR:'].concat(a)); } catch (e) { } }
 
 self.addEventListener('error', function (e) { try { __wdLogErr('worker error', e.message, e.filename, e.lineno + ':' + e.colno); } catch (err) { } });
 self.addEventListener('unhandledrejection', function (e) { try { __wdLogErr('unhandled rejection', e.reason && e.reason.message ? e.reason.message : String(e.reason)); } catch (err) { } });
@@ -166,6 +173,7 @@ self.onmessage = function (e) {
         projectionDist = (CANVAS_WIDTH * 0.5) / Math.tan(playerFOV * 0.5);
 
         __wdSetName('horizon-worker-' + (e.data.workerId != null ? e.data.workerId : '?'));
+        __WD_DEBUG = !!e.data.workerDebugLogs;
         __wdHeartbeat();
         __wdLog('started');
         self.postMessage({ type: 'init_done' });

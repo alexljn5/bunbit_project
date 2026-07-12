@@ -40,6 +40,14 @@ if (typeof window !== 'undefined') {
     }
 }
 
+// Worker debug instrumentation toggle.
+// When false (default), [WORKER DEBUG] / [PERF DEBUG] console logs are suppressed.
+// The measured worker heartbeats still feed the performance monitor regardless.
+export let WORKER_DEBUG_LOGS = false;
+export function setWorkerDebugLogs(value) {
+    WORKER_DEBUG_LOGS = !!value;
+}
+
 export function updateCanvasResolution(highResEnabled) {
     HIGH_RES_ENABLED = highResEnabled;
     const renderResolution = highResEnabled ? 800 : 400;

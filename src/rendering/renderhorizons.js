@@ -2,7 +2,7 @@ import { mapHandler } from "../mapdata/maphandler.js";
 import { tileSectors } from "../mapdata/maps.js";
 import { tileTexturesMap, texturesLoaded } from "../mapdata/maptexturesloader.js";
 import { playerPosition } from "../playerdata/playerlogic.js";
-import { CANVAS_HEIGHT, CANVAS_WIDTH } from "../globals.js";
+import { CANVAS_HEIGHT, CANVAS_WIDTH, WORKER_DEBUG_LOGS } from "../globals.js";
 import { fastCos, fastSin } from "../math/mathtables.js";
 import { renderEngine, drawQuad } from "./renderengine.js";
 import { playerFOV, numCastRays } from "./raycasting.js";
@@ -156,7 +156,8 @@ async function initializeWorkers() {
                     playerFOV,
                     rowsPerWorker,
                     numWorkers: NUM_WORKERS,
-                    workerId: index
+                    workerId: index,
+                    workerDebugLogs: WORKER_DEBUG_LOGS
                 });
 
                 // Send WASM exports to worker.
