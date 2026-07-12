@@ -7,6 +7,7 @@ import { fastCos, fastSin } from "../math/mathtables.js";
 import { renderEngine, drawQuad } from "./renderengine.js";
 import { playerFOV, numCastRays } from "./raycasting.js";
 import { tryLoadRenderHelpersWasm, getWasmDebugState } from "../wasm/renderhelpers.js";
+import { wdMainEvent, wdMainMessage, wdMainError } from "../debug/workermaindebug.js";
 
 const DEBUG_HORIZON_TIMING = (typeof window !== 'undefined' && window.location)
     ? new URLSearchParams(window.location.search).get("debugHorizonTiming") === "true"
@@ -22,6 +23,7 @@ const NUM_WORKERS = 8;
 const horizonWorkers = Array.from({ length: NUM_WORKERS }, () =>
     new Worker(horizonWorkerURL, { type: 'classic' })
 );
+wdMainEvent('horizon-worker', 'created ' + NUM_WORKERS + ' workers (classic)');
 
 
 // Debug: forward worker WASM status/trig stats to main-thread console.
@@ -29,9 +31,16 @@ function attachHorizonWorkerDebug(worker, index) {
     worker.addEventListener('message', (e) => {
         const msg = e.data;
         if (!msg) return;
+        wdMainMessage('horizon-worker-' + index, msg.type);
+
+        if (msg.type === 'init_done') {
+            wdMainEvent('horizon-worker-' + index, 'started');
+            return;
+        }
 
         if (msg.type === 'wasmError') {
             console.warn(`[HORIZON] Worker ${index} wasmError`, msg);
+            wdMainError('horizon-worker-' + index, msg);
             return;
         }
 
@@ -48,6 +57,10 @@ function attachHorizonWorkerDebug(worker, index) {
             }
             return;
         }
+    });
+    worker.addEventListener('error', (error) => {
+        console.error(`[HORIZON] Worker ${index} error:`, error);
+        wdMainError('horizon-worker-' + index, error);
     });
 }
 
@@ -142,7 +155,8 @@ async function initializeWorkers() {
                     tileSectors,
                     playerFOV,
                     rowsPerWorker,
-                    numWorkers: NUM_WORKERS
+                    numWorkers: NUM_WORKERS,
+                    workerId: index
                 });
 
                 // Send WASM exports to worker.

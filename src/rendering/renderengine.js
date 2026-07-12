@@ -32,6 +32,7 @@ import { debugHandlerGodFunction, drawDebugTerminal } from "../debug/debughandle
 import { titleHandlerGodFunction } from "../ui/titlehandler.js";
 import { initLightingEngine, updateLights, applyLighting, cleanupLightingEngine } from "./lightengine/renderlight.js";
 import { tryLoadRenderHelpersWasm } from "../wasm/renderhelpers.js";
+import { wdMainEvent, wdMainError } from "../debug/workermaindebug.js";
 
 const DEBUG_FRAME_TIMING = (typeof window !== 'undefined' && window.location)
     ? new URLSearchParams(window.location.search).get("debugFrameTiming") === "true"
@@ -91,6 +92,9 @@ debugLog('Creating render workers', { renderWorkerURL: renderWorkerURL.toString(
 
 const renderWorker1 = new Worker(renderWorkerURL, { type: "module" });
 const renderWorker2 = new Worker(renderWorkerURL, { type: "module" });
+wdMainEvent('renderengine-worker', 'created 2 workers (module)');
+renderWorker1.onerror = (e) => { console.error('[RENDER WORKER 1] error:', e); wdMainError('renderengine-worker-0', e); };
+renderWorker2.onerror = (e) => { console.error('[RENDER WORKER 2] error:', e); wdMainError('renderengine-worker-1', e); };
 
 
 // --- Game Loop Setup ---
@@ -181,8 +185,8 @@ function initializeRenderWorkers() {
         useWasmRayMath,
         textureTransparencyMap: textureTransparencyMap
     };
-    renderWorker1.postMessage(staticData);
-    renderWorker2.postMessage(staticData);
+    renderWorker1.postMessage({ ...staticData, workerId: 0 });
+    renderWorker2.postMessage({ ...staticData, workerId: 1 });
     renderWorkersInitialized = true;
     // Init lighting here too (ensure GL program exists)
     initLightingEngine();

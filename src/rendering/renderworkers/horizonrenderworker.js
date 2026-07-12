@@ -27,6 +27,31 @@ let __wasmSinCosCalls = 0;
 let __wasmFastSinFallbackCalls = 0;
 let frameCount = 0;
 
+// === WORKER DEBUG HEARTBEAT (instrumentation, classic worker) ===
+// Inlined because this is a classic worker and cannot `import` ES modules.
+// Mirrors src/debug/workerdebug.js. Posts on the existing BroadcastChannel('perf_monitor').
+var __WD_NAME = 'horizon-worker';
+var __WD_TASKS = 0;
+var __WD_LAST_EXEC = 0;
+var __WD_CHANNEL = (typeof BroadcastChannel !== 'undefined') ? new BroadcastChannel('perf_monitor') : null;
+function __wdSetName(n) { __WD_NAME = n; }
+function __wdMarkTask() { __WD_TASKS++; __WD_LAST_EXEC = (typeof performance !== 'undefined') ? performance.now() : Date.now(); }
+function __wdHeartbeat() {
+    try {
+        var now = (typeof performance !== 'undefined') ? performance.now() : Date.now();
+        var interval = __WD_LAST_EXEC ? Math.round(now - __WD_LAST_EXEC) : null;
+        var payload = { type: 'worker_heartbeat', name: __WD_NAME, alive: true, tasksProcessed: __WD_TASKS, timestamp: Date.now(), lastExecutionInterval: interval };
+        if (__WD_CHANNEL) __WD_CHANNEL.postMessage(payload);
+        else if (typeof self !== 'undefined' && self.postMessage) self.postMessage(payload);
+    } catch (e) { /* best effort */ }
+}
+setInterval(__wdHeartbeat, 1000);
+function __wdLog() { try { var a = Array.prototype.slice.call(arguments); console.log.apply(console, ['[WORKER DEBUG]', __WD_NAME + ':'].concat(a)); } catch (e) { } }
+function __wdLogErr() { try { var a = Array.prototype.slice.call(arguments); console.error.apply(console, ['[WORKER DEBUG]', __WD_NAME + ' ERROR:'].concat(a)); } catch (e) { } }
+
+self.addEventListener('error', function (e) { try { __wdLogErr('worker error', e.message, e.filename, e.lineno + ':' + e.colno); } catch (err) { } });
+self.addEventListener('unhandledrejection', function (e) { try { __wdLogErr('unhandled rejection', e.reason && e.reason.message ? e.reason.message : String(e.reason)); } catch (err) { } });
+
 let halfHeight = 0;
 let projectionDist = 0;
 
@@ -140,6 +165,8 @@ self.onmessage = function (e) {
         halfHeight = CANVAS_HEIGHT * 0.5;
         projectionDist = (CANVAS_WIDTH * 0.5) / Math.tan(playerFOV * 0.5);
 
+        __wdSetName('horizon-worker-' + (e.data.workerId != null ? e.data.workerId : '?'));
+        __wdLog('started');
         self.postMessage({ type: 'init_done' });
         return;
     }
@@ -240,6 +267,8 @@ self.onmessage = function (e) {
             }
         }
 
+        __wdMarkTask();
+        if (frameCount % 60 === 0) __wdLog('processed task', __WD_TASKS);
         self.postMessage({
             type: 'render_done',
             horizonBuffer: horizonBuffer32.buffer,

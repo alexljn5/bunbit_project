@@ -4,6 +4,7 @@ import { CANVAS_WIDTH, CANVAS_HEIGHT } from "../globals.js";
 import { numCastRays, playerFOV } from "./raycasting.js";
 import { tileSectors } from "../mapdata/maps.js";
 import { playerPosition } from "../playerdata/playerlogic.js";
+import { wdMainEvent, wdMainMessage, wdMainError } from "../debug/workermaindebug.js";
 
 // Tauri-only worker URL
 const wallPrecomputeWorkerURL = new URL("./renderworkers/wallprecomputeworker.js", import.meta.url);
@@ -26,8 +27,10 @@ const reusableQuad = {
 };
 
 const wallPrecomputeWorker = new Worker(wallPrecomputeWorkerURL, { type: 'module' });
+wdMainEvent('wallprecompute-worker', 'created (module)');
 wallPrecomputeWorker.onmessage = function (e) {
     if (!e.data) return;
+    wdMainMessage('wallprecompute-worker', e.data.type);
     if (e.data.type === 'precomputed') {
         try {
             const { sectorKey, geometryBuffer, numRays, floatsPerRay, textureKeys } = e.data;
@@ -35,10 +38,16 @@ wallPrecomputeWorker.onmessage = function (e) {
             wallRenderCache.set(sectorKey, { geom, numRays, floatsPerRay, textureKeys });
         } catch (err) {
             console.error('Failed to set wall cache from worker:', err);
+            wdMainError('wallprecompute-worker', err);
         }
     } else if (e.data.type === 'error') {
         console.error('Wall precompute worker error for', e.data.sectorKey, e.data.message);
+        wdMainError('wallprecompute-worker', e.data);
     }
+};
+wallPrecomputeWorker.onerror = (error) => {
+    console.error('Wall precompute worker crashed:', error);
+    wdMainError('wallprecompute-worker', error);
 };
 
 export function precomputeWallRenderData(sectorKey) {

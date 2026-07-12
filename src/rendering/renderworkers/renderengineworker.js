@@ -1,9 +1,14 @@
 // renderWorker.js
+import { createWorkerDebug } from '../../debug/workerdebug.js';
+const wd = createWorkerDebug('renderengine-worker');
+let __wdCount = 0;
 self.addEventListener("message", (e) => {
     const d = e.data;
 
     // Handle init message
     if (d.type === "init") {
+        wd.setName('renderengine-worker-' + (d.workerId != null ? d.workerId : '?'));
+        wd.log('started');
         self.postMessage({ type: "init", success: true });
         return;
     }
@@ -36,5 +41,8 @@ self.addEventListener("message", (e) => {
         });
     }
 
+    wd.markTask();
+    __wdCount++;
+    if (__wdCount % 60 === 0) wd.log('processed task', __wdCount);
     self.postMessage({ startRay, wallData });
 });

@@ -3,6 +3,10 @@
 
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from "../../globals.js";
 import { vertexShaderSource, fragmentShaderSource, createShaderProgramSafe } from "../lightengine/shaders.js";
+import { createWorkerDebug } from "../../debug/workerdebug.js";
+
+const wd = createWorkerDebug('lightworker');
+let __wdLightCount = 0;
 
 let gl = null;
 let lightingProgram = null;
@@ -95,10 +99,10 @@ self.onmessage = function (e) {
     const { type, data } = e.data;
 
     switch (type) {
-        case 'init': initLightingEngine(data); break;
+        case 'init': initLightingEngine(data); wd.log('started'); break;
         case 'updateLights': updateLights(data); break;
         case 'applyLighting': applyLighting(data); break;
-        case 'cleanup': cleanupLightingEngine(); break;
+        case 'cleanup': cleanupLightingEngine(); wd.log('cleanup'); break;
     }
 };
 
@@ -108,10 +112,10 @@ function initLightingEngine(data) {
     offscreenCanvas = data.offscreenCanvas;
     gl = offscreenCanvas.getContext('webgl2', { premultipliedAlpha: false }) ||
         offscreenCanvas.getContext('webgl', { premultipliedAlpha: false });
-    if (!gl) return self.postMessage({ type: 'init_response', success: false, error: 'WebGL not supported' });
+    if (!gl) { wd.logError('init failed: WebGL not supported'); return self.postMessage({ type: 'init_response', success: false, error: 'WebGL not supported' }); }
 
     lightingProgram = createShaderProgramSafe(gl, vertexShaderSource, fragmentShaderSource);
-    if (!lightingProgram) return self.postMessage({ type: 'init_response', success: false, error: 'Shader failed' });
+    if (!lightingProgram) { wd.logError('init failed: Shader failed'); return self.postMessage({ type: 'init_response', success: false, error: 'Shader failed' }); }
 
     quadBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
@@ -164,6 +168,10 @@ function updateLights(data) {
 // ---------------- Apply Lighting ----------------
 function applyLighting(data) {
     if (!gl || !lightingProgram) return;
+
+    wd.markTask();
+    __wdLightCount++;
+    if (__wdLightCount % 60 === 0) wd.log('processed task', __wdLightCount);
 
     const { playerPos, sceneImageBitmap, playerFOV } = data;
 

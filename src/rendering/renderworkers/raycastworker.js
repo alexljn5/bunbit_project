@@ -1,6 +1,9 @@
 // raycastworker.js
 "use strict";
 
+import { createWorkerDebug } from '../../debug/workerdebug.js';
+const wd = createWorkerDebug('raycast-worker');
+
 /* =========================================================
    DEBUG + CRASH HANDLING
 ========================================================= */
@@ -23,6 +26,7 @@ function debug(msg, extra = {}) {
 
 self.addEventListener("error", (e) => {
     try {
+        wd.logError("worker error", e.message, e.filename, e.lineno + ":" + e.colno);
         self.postMessage({
             type: "workerError",
             message: e.message,
@@ -35,6 +39,7 @@ self.addEventListener("error", (e) => {
 
 self.addEventListener("unhandledrejection", (e) => {
     try {
+        wd.logError("unhandled rejection", e.reason?.message || String(e.reason));
         self.postMessage({
             type: "workerError",
             message: "UnhandledPromiseRejection",
@@ -179,6 +184,7 @@ self.addEventListener("message", async (e) => {
             };
 
             WorkerState.workerId = d.workerId;
+            wd.setName('raycast-worker-' + (d.workerId != null ? d.workerId : '?'));
 
             if (Array.isArray(d.map_01)) {
                 WorkerState.flatMap = flattenMap(d.map_01);
@@ -222,6 +228,7 @@ self.addEventListener("message", async (e) => {
             }
 
             self.postMessage({ type: "init", success: true });
+            wd.log('started');
             return;
         }
 
@@ -297,6 +304,8 @@ self.addEventListener("message", async (e) => {
                 };
             }
 
+            wd.markTask();
+            if (frameCount % 60 === 0) wd.log('processed task', frameCount);
             self.postMessage({
                 type: "frame",
                 frameId: d.frameId,
@@ -402,6 +411,8 @@ self.addEventListener("message", async (e) => {
             rayData[i] = castRayColumnLocal(x, s, map, MathBackend);
         }
 
+        wd.markTask();
+        if (frameCount % 60 === 0) wd.log('processed task', frameCount);
         self.postMessage({
             type: "frame",
             frameId: d.frameId,
@@ -412,6 +423,7 @@ self.addEventListener("message", async (e) => {
 
     } catch (err) {
 
+        wd.logError('task error', err?.message);
         self.postMessage({
             type: "error",
             error: err?.message || String(err),

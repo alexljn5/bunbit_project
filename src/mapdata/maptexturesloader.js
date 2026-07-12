@@ -1,5 +1,6 @@
 // game_engine/mapdata/maptextures.js
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from "../globals.js";
+import { wdMainEvent } from "../debug/workermaindebug.js";
 
 // Check if running in browser (for Image and document)
 const isBrowser = typeof document !== 'undefined' && typeof Image !== 'undefined';
@@ -249,6 +250,8 @@ async function _startTextureWorkerLoad() {
 
     try {
         const worker = new Worker('/src/mapdata/textureloaderworker.js', { type: 'module' });
+        wdMainEvent('textureloader-worker', 'created (module)');
+        worker.onerror = (error) => { console.error('Texture worker error:', error); wdMainError('textureloader-worker', error); };
         const texturesToSend = [];
         for (const [key, value] of Object.entries(tileTextures)) {
             if (key === 'wall_laughing_demon') {
@@ -264,6 +267,7 @@ async function _startTextureWorkerLoad() {
         worker.onmessage = function (e) {
             const data = e.data;
             if (!data) return;
+            wdMainMessage('textureloader-worker', data.type);
             if (data.type === 'loaded') {
                 try {
                     const key = data.key;
@@ -311,6 +315,7 @@ async function _startTextureWorkerLoad() {
                 }
             } else if (data.type === 'error') {
                 console.error('Texture worker error', data.key, data.message);
+                wdMainError('textureloader-worker', data);
             } else {
                 // ignore other messages
             }
@@ -334,5 +339,7 @@ if (USE_TEXTURE_WORKER) {
             console.info('[Textures] Worker not used; falling back to main-thread image loader');
         }
     });
+} else {
+    wdMainEvent('textureloader-worker', 'DISABLED: USE_TEXTURE_WORKER=false — worker is never started (main-thread loader used instead)');
 }
 

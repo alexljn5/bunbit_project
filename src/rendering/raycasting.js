@@ -1,5 +1,6 @@
 // raycasting.js
 import { playerPosition } from "../globals.js";
+import { wdMainEvent, wdMainMessage, wdMainError } from "../debug/workermaindebug.js";
 import { tileSectors, mapTable } from "../mapdata/maps.js";
 import { CANVAS_WIDTH, playerFOV, numCastRays, maxRayDepth, useWasmRayMath, raycastWasmStatus, updateGraphicsSettings } from "../globals.js";
 import { fastSin, fastCos, Q_rsqrt } from "../math/mathtables.js";
@@ -22,6 +23,7 @@ const NUM_WORKERS = Math.min(navigator.hardwareConcurrency || 4, 4);
 const workerURL = new URL("./renderworkers/raycastworker.js", import.meta.url);
 
 const workers = Array.from({ length: NUM_WORKERS }, () => new Worker(workerURL, { type: 'module' }));
+wdMainEvent('raycast-worker', 'created ' + NUM_WORKERS + ' workers (module)');
 const workerPendingFrames = new Map();
 let workersInitialized = false;
 let currentFrameId = 0;
@@ -31,6 +33,7 @@ let lastWasmState = undefined;
 // Workers use the JS fallback raycaster only (no structured-clone TeaVM exports).
 workers.forEach((worker, idx) => {
     worker.onmessage = (e) => {
+        wdMainMessage('raycast-worker-' + idx, e.data && e.data.type);
 
         const { frameId } = e.data;
 
@@ -59,12 +62,18 @@ workers.forEach((worker, idx) => {
 
         if (e.data.type === "error") {
             console.error("[WORKER ERROR]", e.data);
+            wdMainError('raycast-worker-' + idx, e.data);
             return;
         }
 
         if (e.data.type === "workerError") {
             console.error("[WORKER CRASH]", e.data);
+            wdMainError('raycast-worker-' + idx, e.data);
             return;
+        }
+
+        if (e.data.type === "init") {
+            wdMainEvent('raycast-worker-' + idx, 'started');
         }
 
         const key = `${frameId}_${idx}`;
@@ -78,6 +87,7 @@ workers.forEach((worker, idx) => {
 
     worker.onerror = (error) => {
         console.error(`[WORKER ${idx}] Error:`, error);
+        wdMainError('raycast-worker-' + idx, error);
         for (const [key, resolve] of workerPendingFrames.entries()) {
             if (key.endsWith(`_${idx}`)) {
                 resolve({ startRay: 0, rayData: [], frameId: -1 });
@@ -129,7 +139,7 @@ export async function initializeWorkers() {
         workers[0].addEventListener("error", () => resolve(false), { once: true });
     });
 
-    for (let w of workers) w.postMessage(staticData);
+    workers.forEach((w, idx) => w.postMessage({ ...staticData, workerId: idx }));
     const success = await initPromise;
     workersInitialized = success;
     return workersInitialized;
@@ -234,7 +244,7 @@ export async function castRays() {
     if (!workersInitialized) {
         const wasmExports = await getWasmExports();
         const hasRaycastColumnsBatch = typeof wasmExports?.raycastColumnsBatch === "function";
-        for (let w of workers) w.postMessage({
+        workers.forEach((w, idx) => w.postMessage({
             type: "init",
             tileSectors,
             map_01: currentMap,
@@ -245,8 +255,9 @@ export async function castRays() {
             maxRayDepth,
             textureTransparencyMap: textureTransparencyMap,
             useWasmRayMath,
-            wasmExports: wasmExports && hasRaycastColumnsBatch ? wasmExports : null
-        });
+            wasmExports: wasmExports && hasRaycastColumnsBatch ? wasmExports : null,
+            workerId: idx
+        }));
         workersInitialized = true;
     }
 

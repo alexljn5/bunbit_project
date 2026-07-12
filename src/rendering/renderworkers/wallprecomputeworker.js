@@ -1,5 +1,9 @@
 // Worker to precompute wall rendering quads for a sector
 // Worker CPU sampling (accumulate busy time and report periodically)
+import { createWorkerDebug } from '../../debug/workerdebug.js';
+const wd = createWorkerDebug('wallprecompute');
+let __wdStarted = false;
+let __wdTaskCount = 0;
 let __workerCpuAccum = 0;
 let __workerSampleStart = (typeof performance !== 'undefined') ? performance.now() : Date.now();
 let __workerId = null;
@@ -30,6 +34,11 @@ self.onmessage = function (e) {
     const data = e.data;
     if (!data || data.type !== 'precompute') return;
     __workerId = data.workerId || data.sectorKey || __workerId;
+    wd.setName(__workerId || 'wallprecompute');
+    if (!__wdStarted) {
+        __wdStarted = true;
+        wd.log('started');
+    }
     const { sectorKey, sector, numCastRays, CANVAS_WIDTH, CANVAS_HEIGHT, tileSectors } = data;
     try {
         const t0 = (typeof performance !== 'undefined') ? performance.now() : Date.now();
@@ -78,9 +87,14 @@ self.onmessage = function (e) {
         const t1 = (typeof performance !== 'undefined') ? performance.now() : Date.now();
         __workerCpuAccum += (t1 - t0);
 
+        wd.markTask();
+        __wdTaskCount++;
+        if (__wdTaskCount % 50 === 0) wd.log('processed task', __wdTaskCount);
+
         // Transfer the underlying buffer for zero-copy
         self.postMessage({ type: 'precomputed', sectorKey, numRays: numCastRays, floatsPerRay, geometryBuffer: geom.buffer, textureKeys }, [geom.buffer]);
     } catch (err) {
+        wd.logError('precompute error', err.message);
         self.postMessage({ type: 'error', sectorKey, message: err.message });
     }
 };
