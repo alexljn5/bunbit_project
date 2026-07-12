@@ -1,11 +1,16 @@
-setx JAVA_HOME "C:\Program Files\Eclipse Adoptium\jdk-17.0.8.7-hotspot"
-export JAVA_HOME="/c/Program Files/Eclipse Adoptium/jdk-17.0.8.7-hotspot"
+#!/usr/bin/env bash
+
+set -e
+
+if [ -z "$JAVA_HOME" ]; then
+    export JAVA_HOME="/usr/lib/jvm/java-17-openjdk"
+fi
+
 export PATH="$JAVA_HOME/bin:$PATH"
-# Run gradle from the project root so -p points to an existing directory.
-# (In some terminals/scripts the working directory ends up being src/scripts, which breaks -p.)
+
+echo "JAVA_HOME=$JAVA_HOME"
+
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-cd "$PROJECT_ROOT"
+cd "$PROJECT_ROOT/src/rendering/java"
 
-gradle -p src/rendering/java clean buildWasmGC --stacktrace --info
-
-
+./gradlew clean buildWasmGC --stacktrace --info

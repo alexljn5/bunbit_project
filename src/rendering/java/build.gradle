@@ -5,9 +5,12 @@ plugins {
 
 group 'com.bunbit'
 version '0.1.0'
-sourceCompatibility = '17'
-targetCompatibility = '17'
 
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
 repositories {
     mavenCentral()
 }
