@@ -235,7 +235,57 @@ Events follow the pattern `domain:action` using lowercase and colons:
 
 ---
 
-## 14. Document Maintenance
+## 14. Theme System
+
+### Available Themes
+
+| Theme | Description |
+|---|---|
+| `evil` | Default theme. Dark red/black palette with glitch effects. |
+| `highcontrast` | High-contrast theme for accessibility. Bright colours on dark background. |
+| `calm` | Softer colour palette for reduced eye strain. |
+| `hacky` | Retro hacker aesthetic with green-on-black. |
+
+### Evil Theme Colours
+
+| Token | Value | Usage |
+|---|---|---|
+| `--theme-primary` | `#FC0000` | Primary accent (borders, headings, buttons) |
+| `--theme-background` | `#0a0000` | Deep black-red background |
+| `--theme-text` | `#FC0000` | Primary text colour |
+| `--theme-button-bg` | `#1a0000` | Button background |
+| `--theme-button-text` | `#FC0000` | Button text colour |
+| `--theme-accent` | `#00FF00` | Secondary accent (DEBUG PLAY button) |
+| `--theme-border` | `#FC0000` | Border colour |
+| `--theme-glow` | `rgba(255,0,0,0.5)` | Text shadow / glow |
+
+### High Contrast Theme Colours
+
+| Token | Value | Usage |
+|---|---|---|
+| `--theme-primary` | `#FFFF00` | Yellow primary accent |
+| `--theme-background` | `#000000` | Pure black background |
+| `--theme-text` | `#FFFF00` | Yellow text |
+| `--theme-button-bg` | `#1a1a00` | Dark yellow button bg |
+| `--theme-button-text` | `#FFFF00` | Yellow button text |
+| `--theme-accent` | `#00FFFF` | Cyan secondary accent |
+| `--theme-border` | `#FFFF00` | Yellow border |
+| `--theme-glow` | `rgba(255,255,0,0.5)` | Yellow glow |
+
+### Theme Switching
+
+Themes are switched via the `ThemeManager.setTheme(themeName)` method. All UI components should use CSS custom properties (defined in the active theme) rather than hardcoded colours, ensuring that theme changes propagate automatically across the entire interface.
+
+### Accessibility
+
+- All UI components must be theme-aware.
+- Button colours must have sufficient contrast against the background in all themes.
+- The `highcontrast` theme exists specifically for users with visual impairments.
+- Future themes should follow the same CSS custom property pattern.
+
+---
+
+## 15. Document Maintenance
 
 - This document is considered **part of the codebase**.
 - It must be updated whenever architecture changes.

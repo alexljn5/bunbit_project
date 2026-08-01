@@ -178,12 +178,12 @@ function createDashboard() {
     createVisualAtmosphere(atmosphere);
     dashboard.appendChild(atmosphere);
 
-    // ─── Player Section ────────────────────────────────────
+    // ─── Player Section (TOP) ──────────────────────────────
     const playerSection = document.createElement('div');
     playerSection.dataset.engineSection = 'player';
     playerSection.style.pointerEvents = 'auto';
     playerSection.style.position = 'absolute';
-    playerSection.style.bottom = '40px';
+    playerSection.style.top = '40px';
     playerSection.style.left = '50%';
     playerSection.style.transform = 'translateX(-50%)';
     playerSection.style.display = 'flex';
@@ -257,12 +257,12 @@ function createDashboard() {
     playerSection.appendChild(newGameBtn);
     playerSection.appendChild(savedGameSection);
 
-    // ─── Developer Section ─────────────────────────────────
+    // ─── Developer Section (BOTTOM) ─────────────────────────
     const devSection = document.createElement('div');
     devSection.dataset.engineSection = 'developer';
     devSection.style.pointerEvents = 'auto';
     devSection.style.position = 'absolute';
-    devSection.style.top = '40px';
+    devSection.style.bottom = '40px';
     devSection.style.left = '50%';
     devSection.style.transform = 'translateX(-50%)';
     devSection.style.display = 'flex';

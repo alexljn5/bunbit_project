@@ -75,12 +75,14 @@ export async function newGamePlaceholderHandler(controller, sharedState, payload
 
     // Future content note
     const note = document.createElement('p');
-    note.textContent = 'Future intro sequence starts here.';
+    note.textContent = 'Future intro sequence, dialogue, and cinematic transitions will start here.';
     note.style.cssText = `
         color: #442222;
         font-size: 12px;
-        margin: 0;
+        margin: 0 0 16px 0;
         opacity: 0.5;
+        text-align: center;
+        max-width: 400px;
     `;
 
     // Return to dashboard button

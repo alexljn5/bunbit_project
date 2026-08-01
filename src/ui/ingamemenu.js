@@ -137,7 +137,9 @@ export async function ingameMenuHandler(controller, sharedState, payload = {}) {
         backBtn.style.color = '#FC0000';
     });
     backBtn.addEventListener('click', () => {
-        engineController.transitionTo(EngineState.DASHBOARD);
+        if (typeof window !== 'undefined' && window.engineController) {
+            window.engineController.transitionTo(EngineState.DASHBOARD);
+        }
     });
 
     buttonContainer.appendChild(playBtn);
