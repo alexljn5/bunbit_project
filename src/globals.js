@@ -109,6 +109,10 @@ export let isDebugVisible = false; // Debug terminal visibility
 export let showDebugTools = false; // Debug tools overlay visibility
 export let showTerminal = false; // Terminal visibility
 
+// DEBUG PLAY flag: when true, the debug panel is shown automatically
+// when transitioning to GAMEPLAY via DEBUG PLAY.
+export let debugPlayShowsPanel = true;
+
 // Debug terminal configuration
 export let MAX_LOGS = 50000;
 
@@ -310,6 +314,9 @@ export function setMenuActive(val) {
 export function setDebugVisible(val) {
     isDebugVisible = val;
     defaultDebugVisible = val;
+    if (typeof window !== 'undefined') {
+        window.defaultDebugVisible = val;
+    }
 }
 
 export function setShowDebugTools(val) {

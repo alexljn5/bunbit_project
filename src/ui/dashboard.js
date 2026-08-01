@@ -11,6 +11,9 @@
 import { EngineState } from '../engine/enginestate.js';
 import { engineController } from '../engine/engine.js';
 import { themeManager } from '../themes/thememanager.js';
+import { defaultDebugVisible, setDebugVisible, showDebugTools, setShowDebugTools } from '../globals.js';
+import { memCpuGodFunction, stopMemCpuMonitor } from '../debug/panels/memcpu.js';
+import { debugHandlerGodFunction, stopDebugTerminal } from '../debug/debughandler.js';
 
 // Self-register this state handler with the engine controller
 engineController.registerHandler(EngineState.DASHBOARD, dashboardHandler);
@@ -306,7 +309,19 @@ function createDashboard() {
         debugPlayBtn.style.color = '#00FF00';
     });
     debugPlayBtn.addEventListener('click', () => {
-        engineController.transitionTo(EngineState.GAMEPLAY);
+        // Show debug panel and monitoring when DEBUG PLAY is used
+        setDebugVisible(true);
+        setShowDebugTools(true);
+        try { memCpuGodFunction(); } catch (e) { /* memcpu may already be running */ }
+        try { debugHandlerGodFunction(); } catch (e) { /* debug terminal may already be running */ }
+
+        // Load map_01 so the main menu renders with the map ready
+        try {
+            const p = playerPosition;
+            mapHandler.loadMap('map_01', p);
+        } catch (e) {
+            console.error('[DEBUG PLAY] Failed to load map_01:', e);
+        }
     });
 
     devSection.appendChild(devLabel);

@@ -34,19 +34,19 @@ Creepy Intro Screen (INTRO)
 Main Dashboard (DASHBOARD)
    ├────────────┐
    ↓            ↓
-New Game     Developer Debug
+ New Game     Developer Debug
    ↓            │
    ▼            ▼
-New Game     Direct Game Launch
-Placeholder    (GAMEPLAY)
-   │            │
-   ▼            ▼
-In-Game Menu ◄───┘
-(INGAME_MENU)  │
+ New Game     DEBUG PLAY
+ Placeholder    → shows debug panels
+   │            → loads map_01 for main menu
+   ▼            → returns to main menu
+ In-Game Menu ◄───┘
+ (INGAME_MENU)  │
    │            │
    ├─ Play ─────┤
    │            ▼
-   ├─ Select Map  GAMEPLAY
+   ├─ Select Map  GAMEPLAY (map_01 already loaded)
    │            │
    └─ Return ───┘
         │
@@ -73,11 +73,11 @@ In-Game Menu ◄───┘
 - The engine transitions to `NEW_GAME_PLACEHOLDER`.
 - This screen reserves the future location for intro dialogue, patches, Vesper, save slot creation, and cinematic transitions.
 
-### 4. DASHBOARD → GAMEPLAY
+### 4. DASHBOARD → GAMEPLAY (via DEBUG PLAY)
 - Triggered when the developer clicks **"DEBUG PLAY"** in the Developer Section.
-- The engine transitions directly to `GAMEPLAY`.
-- This bypasses every future player-facing screen.
-- This route exists solely for development.
+- On click, DEBUG PLAY: (1) shows the debug panel and monitoring tools (memcpu, debug terminal, control panel), (2) loads `map_01` via `mapHandler.loadMap()` so the main menu renders with the map ready, (3) returns to the main menu.
+- The main menu (Play / Maps buttons) remains visible. The player clicks **Play** to start actual gameplay.
+- This route exists solely for development and bypasses the intro screen.
 
 ### 5. NEW_GAME_PLACEHOLDER → INGAME_MENU
 - Triggered when the placeholder screen is dismissed or times out.

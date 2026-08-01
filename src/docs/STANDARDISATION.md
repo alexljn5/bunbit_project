@@ -132,6 +132,7 @@ All runtime flags must be declared in `src/globals.js` with:
 - An `export let` declaration
 - A corresponding `setXxx()` setter function
 - A comment explaining the flag's purpose
+- If a flag is read via `window.xxx` in other modules, the setter must also update `window.xxx` to keep them in sync
 
 ---
 
@@ -170,7 +171,9 @@ Events follow the pattern `domain:action` using lowercase and colons:
 - The debug panel must remain **completely isolated** from player-facing UI.
 
 ### Debug Play Route
-- The `DEBUG PLAY` button bypasses all player-facing screens and launches gameplay directly.
+- The `DEBUG PLAY` button bypasses the intro screen and loads `map_01` for the main menu.
+- On click, it: (1) shows the debug panel and monitoring tools (memcpu, debug terminal, control panel), (2) loads `map_01` via `mapHandler.loadMap()` so the main menu renders with the map ready, (3) returns to the main menu.
+- The player then clicks **Play** in the main menu to start actual gameplay.
 - This route exists solely for development and must remain functional at all times.
 
 ### URL Parameters
