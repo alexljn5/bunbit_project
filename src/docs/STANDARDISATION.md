@@ -171,8 +171,9 @@ Events follow the pattern `domain:action` using lowercase and colons:
 - The debug panel must remain **completely isolated** from player-facing UI.
 
 ### Debug Play Route
-- The `DEBUG PLAY` button bypasses the intro screen and shows all debug panels.
-- On click, it: (1) shows the debug panel and monitoring tools (memcpu, debug terminal, control panel with Play/Reload/Stop buttons), (2) sets `defaultDebugVisible` and `showDebugTools` to `true`.
+- The `DEBUG PLAY` button toggles all debug panels on/off.
+- When pressed, it: (1) shows the control panel, memcpu performance monitor, and debug terminal, (2) sets `defaultDebugVisible` and `showDebugTools` to `true`.
+- When pressed again, it removes all debug panels and hides them.
 - The control panel's **Play** button is then used to start the game and load `map_01`.
 - This route exists solely for development and must remain functional at all times.
 - Both `intro.html` and `main_game.html` load `debug/panels/bunbitdebug.js`, which imports `controlpanel.js`.

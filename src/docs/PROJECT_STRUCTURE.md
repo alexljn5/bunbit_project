@@ -83,7 +83,10 @@ No module outside `src/database/` may directly import or use database drivers. A
 - `workermaindebug.js` — Main debug worker
 - `panels/` — Individual debug panels (memcpu, position, bunbitdebug)
 
-The debug panel must remain completely isolated from player-facing UI. The `DEBUG PLAY` route bypasses the intro screen and shows all debug panels (memcpu, debug terminal, control panel with Play/Reload/Stop buttons). The control panel's Play button is used to start the game and load `map_01`.
+The debug panel must remain completely isolated from player-facing UI. The `DEBUG PLAY` route toggles all debug panels on/off:
+- **First press**: shows the control panel, memcpu performance monitor, and debug terminal.
+- **Second press**: removes all debug panels and hides them.
+The control panel's Play button is used to start the game and load `map_01`.
 
 Both `intro.html` and `main_game.html` load `debug/panels/bunbitdebug.js`, which imports `controlpanel.js`.
 

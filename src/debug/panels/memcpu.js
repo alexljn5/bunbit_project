@@ -397,6 +397,7 @@ export function memCpuGodFunction() {
 
         window.addEventListener('themeChanged', () => {
             try {
+                if (!perfContainer || !perfHeader || !title || !closeButton || !perfResizeHandle) return;
                 perfContainer.style.backgroundColor = themeManager.getCurrentTheme()?.background || '#000000';
                 perfContainer.style.border = `2px solid ${themeManager.getCurrentTheme()?.border || '#FC0000'}`;
                 perfContainer.style.boxShadow = `0 0 15px ${themeManager.getCurrentTheme()?.border || '#FC0000'}`;

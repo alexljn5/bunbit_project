@@ -11,9 +11,7 @@
 import { EngineState } from '../engine/enginestate.js';
 import { engineController } from '../engine/engine.js';
 import { themeManager } from '../themes/thememanager.js';
-import { defaultDebugVisible, setDebugVisible, showDebugTools, setShowDebugTools } from '../globals.js';
-import { memCpuGodFunction, stopMemCpuMonitor } from '../debug/panels/memcpu.js';
-import { debugHandlerGodFunction, stopDebugTerminal } from '../debug/debughandler.js';
+import { toggleDebugPanels } from '../debug/panels/bunbitdebug.js';
 
 // Self-register this state handler with the engine controller
 engineController.registerHandler(EngineState.DASHBOARD, dashboardHandler);
@@ -309,11 +307,8 @@ function createDashboard() {
         debugPlayBtn.style.color = '#00FF00';
     });
     debugPlayBtn.addEventListener('click', () => {
-        // Show all debug panels and monitoring when DEBUG PLAY is used
-        setDebugVisible(true);
-        setShowDebugTools(true);
-        try { memCpuGodFunction(); } catch (e) { /* memcpu may already be running */ }
-        try { debugHandlerGodFunction(); } catch (e) { /* debug terminal may already be running */ }
+        // Toggle all debug panels on/off
+        toggleDebugPanels();
     });
 
     devSection.appendChild(devLabel);

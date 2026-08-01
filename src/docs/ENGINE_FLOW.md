@@ -75,7 +75,9 @@ Main Dashboard (DASHBOARD)
 
 ### 4. DASHBOARD → GAMEPLAY (via DEBUG PLAY)
 - Triggered when the developer clicks **"DEBUG PLAY"** in the Developer Section.
-- On click, DEBUG PLAY: (1) shows all debug panels (memcpu performance monitor, debug terminal, control panel with Play/Reload/Stop buttons), (2) sets `defaultDebugVisible` and `showDebugTools` to `true`.
+- DEBUG PLAY toggles all debug panels on/off:
+  - **First press**: shows the control panel, memcpu performance monitor, and debug terminal; sets `defaultDebugVisible` and `showDebugTools` to `true`.
+  - **Second press**: removes all debug panels and hides them.
 - The control panel's **Play** button is then used to start the game and load `map_01`.
 - This route exists solely for development and bypasses the intro screen.
 
