@@ -85,6 +85,8 @@ No module outside `src/database/` may directly import or use database drivers. A
 
 The debug panel must remain completely isolated from player-facing UI. The `DEBUG PLAY` route bypasses the intro screen and shows all debug panels (memcpu, debug terminal, control panel with Play/Reload/Stop buttons). The control panel's Play button is used to start the game and load `map_01`.
 
+Both `intro.html` and `main_game.html` load `debug/panels/bunbitdebug.js`, which imports `controlpanel.js`.
+
 ---
 
 ### `src/rendering/`

@@ -175,6 +175,7 @@ Events follow the pattern `domain:action` using lowercase and colons:
 - On click, it: (1) shows the debug panel and monitoring tools (memcpu, debug terminal, control panel with Play/Reload/Stop buttons), (2) sets `defaultDebugVisible` and `showDebugTools` to `true`.
 - The control panel's **Play** button is then used to start the game and load `map_01`.
 - This route exists solely for development and must remain functional at all times.
+- Both `intro.html` and `main_game.html` load `debug/panels/bunbitdebug.js`, which imports `controlpanel.js`.
 
 ### URL Parameters
 | Parameter | Effect |
