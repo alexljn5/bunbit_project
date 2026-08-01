@@ -7,6 +7,7 @@ import { gameRenderEngine, initializeRenderWorkers, cleanupRenderWorkers } from 
 import { memCpuGodFunction, stopMemCpuMonitor } from './memcpu.js';
 import { debugHandlerGodFunction, stopDebugTerminal } from '../debughandler.js';
 import { initControlPanel } from '../controlpanel.js';
+import { togglePositionPanel } from './positionpanel.js';
 
 // State flags
 let initialized = false;
@@ -38,6 +39,7 @@ export function toggleDebugPanels() {
         // Hide all panels — use CSS display:none so MutationObserver doesn't recreate them
         stopMemCpuMonitor();
         stopDebugTerminal();
+        togglePositionPanel();
         const panel = document.getElementById('bunbit-debug-panel');
         if (panel) panel.style.display = 'none';
         setDebugVisible(false);
@@ -53,6 +55,7 @@ export function toggleDebugPanels() {
         if (panel) panel.style.display = 'flex';
         try { memCpuGodFunction(); } catch (e) { /* may already be running */ }
         try { debugHandlerGodFunction(); } catch (e) { /* may already be running */ }
+        try { togglePositionPanel(); } catch (e) { /* position panel may already be running */ }
         panelsVisible = true;
     }
     return panelsVisible;

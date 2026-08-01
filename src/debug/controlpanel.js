@@ -277,8 +277,8 @@ export function initControlPanel() {
                             canvas.width = CANVAS_WIDTH;
                             canvas.height = CANVAS_HEIGHT;
                         }
-                        // Ensure canvas stacks above control panel
-                        try { canvas.style.zIndex = '2147483647'; } catch (e) { console.warn('Could not set canvas z-index', e); }
+                        // Ensure canvas stacks above all debug panels (z-index 2147483648-2147483649)
+                        try { canvas.style.zIndex = '2147483650'; } catch (e) { console.warn('Could not set canvas z-index', e); }
                     }
 
                     if (!window.game) {
