@@ -268,23 +268,25 @@ export function initControlPanel() {
                 try {
                     setMenuActive(true);
                     setupMenuClickHandler();
-                    if (!window.game) {
-                        const canvas = document.getElementById('mainGameRender');
-                        if (canvas && (canvas.width === 0 || canvas.height === 0)) {
+
+                    // Ensure canvas is visible (may be hidden by dashboard)
+                    const canvas = document.getElementById('mainGameRender');
+                    if (canvas) {
+                        canvas.style.display = '';
+                        if (canvas.width === 0 || canvas.height === 0) {
                             canvas.width = CANVAS_WIDTH;
                             canvas.height = CANVAS_HEIGHT;
                         }
                         // Ensure canvas stacks above control panel
-                        try { if (canvas) canvas.style.zIndex = '2147483647'; } catch (e) { console.warn('Could not set canvas z-index', e); }
+                        try { canvas.style.zIndex = '2147483647'; } catch (e) { console.warn('Could not set canvas z-index', e); }
+                    }
+
+                    if (!window.game) {
                         window.game = gameLoop(gameRenderEngine);
                         initializeRenderWorkers();
                     }
                     if (window.game && typeof window.game.start === 'function') {
                         window.game.start();
-
-                        // (Removed) Intro placeholder trigger here; game-load should be handled elsewhere.
-
-
                         return true;
                     }
 
