@@ -15,15 +15,28 @@
     </div>
     <!-- Tauri entry point -->
     <script type="module" src="heavensgate.js"></script>
+    <!-- Engine initialisation and state machine -->
+    <script type="module" src="engine/engine.js"></script>
+    <!-- Core game modules -->
     <script type="module" src="game_loop.js"></script>
     <script type="module" src="playerdata/playerlogic.js"></script>
     <script type="module" src="./rendering/renderengine.js"></script>
-    <script type="module" src="menus/menu.js"></script>
-    <script type="module" src="menus/main_dashboard.js"></script>
+    <!-- UI screens -->
+    <script type="module" src="ui/dashboard.js"></script>
+    <script type="module" src="ui/newgameplaceholder.js"></script>
+    <script type="module" src="ui/ingamemenu.js"></script>
+    <!-- Debug tooling (isolated from player-facing UI) -->
     <script type="module" src="debug/panels/bunbitdebug.js"></script>
     <script>
         // Disable intro animation on main_game.html - it was already shown on intro.html
         window.introActive = false;
+        // Start the engine lifecycle. The intro handler will detect that
+        // introActive is false and skip directly to DASHBOARD.
+        window.addEventListener('DOMContentLoaded', () => {
+            if (typeof window.engineController !== 'undefined') {
+                window.engineController.start();
+            }
+        });
     </script>
 </body>
 

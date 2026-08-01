@@ -132,6 +132,11 @@ export const ENABLE_DEBUG_TERMINAL = (() => {
 // Default theme selection (control via single string)
 export let defaultThemeName = 'evil';
 
+// Apply the default theme immediately on load
+if (typeof window !== 'undefined') {
+    window.defaultThemeName = defaultThemeName;
+}
+
 // Note: Theme objects are defined in their respective files in src/themes/
 // Theme manager is exported from src/themes/thememanager.js
 
@@ -168,6 +173,27 @@ export let introActive = true; // Allow intro autorun to run on app start
 // Initialize window.introActive for autorun check
 if (typeof window !== 'undefined') {
     window.introActive = introActive;
+}
+
+// --- ENGINE STATE FLAGS ---
+// Tracks the current state in the engine state machine.
+// Valid values are defined in src/engine/enginestate.js (EngineState enum).
+export let engineState = 'ENGINE_INIT';
+
+/**
+ * Updates the engine state and syncs to window for cross-module access.
+ * @param {string} newState - The target engine state name.
+ */
+export function setEngineState(newState) {
+    engineState = newState;
+    if (typeof window !== 'undefined') {
+        window.engineState = newState;
+    }
+}
+
+// Initialize window.engineState
+if (typeof window !== 'undefined') {
+    window.engineState = engineState;
 }
 
 // --- INPUT STATE ---

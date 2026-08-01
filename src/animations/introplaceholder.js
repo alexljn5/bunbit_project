@@ -385,8 +385,14 @@ export function runIntroPlaceholderAutorun() {
         maybeShowIntroPlaceholders({
             onComplete: () => {
                 setIntroActive(false);
-                // Redirect to main_game.html (main game) - in Tauri, use relative path
-                window.location.href = "main_game.html";
+                // Let the engine state machine handle the transition to DASHBOARD.
+                // The engine controller will manage the next screen.
+                if (typeof window !== 'undefined' && window.engineController) {
+                    window.engineController.transitionTo('DASHBOARD');
+                } else {
+                    // Fallback: redirect to main_game.html if engine controller is not available
+                    window.location.href = "main_game.html";
+                }
                 resolve();
             }
         });

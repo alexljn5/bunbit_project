@@ -23,9 +23,9 @@ export class ThemeManager {
             { name: 'calm', theme: CALM_THEME, getLogColor: getCalmLogColor, getPerformanceColor: getCalmPerformanceColor },
             { name: 'hacky', theme: HACKY_THEME, getLogColor: getHackyLogColor, getPerformanceColor: getHackyPerformanceColor }
         ];
-        // Default to 'calm' theme for nicer visuals
-        const calmIndex = this.themes.findIndex(t => t.name === 'calm');
-        this.currentThemeIndex = calmIndex !== -1 ? calmIndex : 0;
+        // Default to 'evil' theme
+        const evilIndex = this.themes.findIndex(t => t.name === 'evil');
+        this.currentThemeIndex = evilIndex !== -1 ? evilIndex : 0;
         this.currentTheme = this.themes[this.currentThemeIndex];
 
         // Defer applying theme until DOM is available to avoid timing issues

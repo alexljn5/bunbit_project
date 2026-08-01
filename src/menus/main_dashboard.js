@@ -187,19 +187,7 @@ export function initMainDashboard() {
     return box;
 }
 
-// Auto-initialize on page load
-if (typeof document !== 'undefined') {
-    const initWithRetry = () => {
-        if (!document.body) {
-            setTimeout(initWithRetry, 100);
-            return;
-        }
-        initMainDashboard();
-    };
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initWithRetry);
-    } else {
-        initWithRetry();
-    }
-}
+// Auto-initialization removed. The engine controller (src/engine/engine.js)
+// now manages dashboard lifecycle via the DASHBOARD state handler in src/ui/dashboard.js.
+// Call initMainDashboard() manually if needed outside the engine flow.
 
