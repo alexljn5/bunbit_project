@@ -38,15 +38,15 @@ Main Dashboard (DASHBOARD)
    ↓            │
    ▼            ▼
  New Game     DEBUG PLAY
- Placeholder    → shows debug panels
-   │            → loads map_01 for main menu
-   ▼            → returns to main menu
+ Placeholder    → shows all debug panels
+   │            (memcpu, debug terminal, control panel)
+   ▼            → use control panel Play/Reload to start game
  In-Game Menu ◄───┘
  (INGAME_MENU)  │
    │            │
    ├─ Play ─────┤
    │            ▼
-   ├─ Select Map  GAMEPLAY (map_01 already loaded)
+   ├─ Select Map  GAMEPLAY
    │            │
    └─ Return ───┘
         │
@@ -75,8 +75,8 @@ Main Dashboard (DASHBOARD)
 
 ### 4. DASHBOARD → GAMEPLAY (via DEBUG PLAY)
 - Triggered when the developer clicks **"DEBUG PLAY"** in the Developer Section.
-- On click, DEBUG PLAY: (1) shows the debug panel and monitoring tools (memcpu, debug terminal, control panel), (2) loads `map_01` via `mapHandler.loadMap()` so the main menu renders with the map ready, (3) returns to the main menu.
-- The main menu (Play / Maps buttons) remains visible. The player clicks **Play** to start actual gameplay.
+- On click, DEBUG PLAY: (1) shows all debug panels (memcpu performance monitor, debug terminal, control panel with Play/Reload/Stop buttons), (2) sets `defaultDebugVisible` and `showDebugTools` to `true`.
+- The control panel's **Play** button is then used to start the game and load `map_01`.
 - This route exists solely for development and bypasses the intro screen.
 
 ### 5. NEW_GAME_PLACEHOLDER → INGAME_MENU

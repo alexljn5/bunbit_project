@@ -40,7 +40,7 @@ Currently empty — gameplay logic is not yet implemented.
 
 Each screen gets its own file:
 - `intro.js` — Intro/title screen
-- `dashboard.js` — Main dashboard with player and developer sections; DEBUG PLAY button shows debug panels and loads `map_01` for the main menu
+- `dashboard.js` — Main dashboard with player and developer sections; DEBUG PLAY button shows all debug panels (memcpu, debug terminal, control panel)
 - `newgameplaceholder.js` — New game placeholder screen
 - `ingamemenu.js` — In-game pause/menu overlay
 
@@ -83,7 +83,7 @@ No module outside `src/database/` may directly import or use database drivers. A
 - `workermaindebug.js` — Main debug worker
 - `panels/` — Individual debug panels (memcpu, position, bunbitdebug)
 
-The debug panel must remain completely isolated from player-facing UI. The `DEBUG PLAY` route bypasses the intro screen, loads `map_01`, and shows all debug panels (memcpu, debug terminal, control panel) while returning to the main menu.
+The debug panel must remain completely isolated from player-facing UI. The `DEBUG PLAY` route bypasses the intro screen and shows all debug panels (memcpu, debug terminal, control panel with Play/Reload/Stop buttons). The control panel's Play button is used to start the game and load `map_01`.
 
 ---
 

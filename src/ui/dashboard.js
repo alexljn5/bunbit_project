@@ -309,19 +309,11 @@ function createDashboard() {
         debugPlayBtn.style.color = '#00FF00';
     });
     debugPlayBtn.addEventListener('click', () => {
-        // Show debug panel and monitoring when DEBUG PLAY is used
+        // Show all debug panels and monitoring when DEBUG PLAY is used
         setDebugVisible(true);
         setShowDebugTools(true);
         try { memCpuGodFunction(); } catch (e) { /* memcpu may already be running */ }
         try { debugHandlerGodFunction(); } catch (e) { /* debug terminal may already be running */ }
-
-        // Load map_01 so the main menu renders with the map ready
-        try {
-            const p = playerPosition;
-            mapHandler.loadMap('map_01', p);
-        } catch (e) {
-            console.error('[DEBUG PLAY] Failed to load map_01:', e);
-        }
     });
 
     devSection.appendChild(devLabel);

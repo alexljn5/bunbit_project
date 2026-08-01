@@ -171,9 +171,9 @@ Events follow the pattern `domain:action` using lowercase and colons:
 - The debug panel must remain **completely isolated** from player-facing UI.
 
 ### Debug Play Route
-- The `DEBUG PLAY` button bypasses the intro screen and loads `map_01` for the main menu.
-- On click, it: (1) shows the debug panel and monitoring tools (memcpu, debug terminal, control panel), (2) loads `map_01` via `mapHandler.loadMap()` so the main menu renders with the map ready, (3) returns to the main menu.
-- The player then clicks **Play** in the main menu to start actual gameplay.
+- The `DEBUG PLAY` button bypasses the intro screen and shows all debug panels.
+- On click, it: (1) shows the debug panel and monitoring tools (memcpu, debug terminal, control panel with Play/Reload/Stop buttons), (2) sets `defaultDebugVisible` and `showDebugTools` to `true`.
+- The control panel's **Play** button is then used to start the game and load `map_01`.
 - This route exists solely for development and must remain functional at all times.
 
 ### URL Parameters

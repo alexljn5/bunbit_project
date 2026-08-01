@@ -376,3 +376,8 @@ export function applyGraphicsPreset(presetName) {
 export function setLogBuffer(val) {
     logBuffer = val;
 }
+
+// Clear the log buffer
+export function clearLogBuffer() {
+    logBuffer.length = 0;
+}
