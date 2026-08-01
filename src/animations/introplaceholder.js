@@ -21,6 +21,7 @@ import {
 
 const injectStyles = () => {
     const style = document.createElement("style");
+    style.id = "bunbit-intro-styles";
     style.textContent = `
         /* ─── BASE RESET ─── */
         html, body {

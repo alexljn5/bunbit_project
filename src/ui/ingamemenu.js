@@ -137,6 +137,9 @@ export async function ingameMenuHandler(controller, sharedState, payload = {}) {
         backBtn.style.color = '#FC0000';
     });
     backBtn.addEventListener('click', () => {
+        // Returning to the dashboard means leaving gameplay, so clear the
+        // "game active" flag to allow the dashboard to be re-created.
+        if (typeof window !== 'undefined') window.__bunbitGameActive = false;
         if (typeof window !== 'undefined' && window.engineController) {
             window.engineController.transitionTo(EngineState.DASHBOARD);
         }

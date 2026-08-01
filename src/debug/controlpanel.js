@@ -273,12 +273,67 @@ export function initControlPanel() {
                     const canvas = document.getElementById('mainGameRender');
                     if (canvas) {
                         canvas.style.display = '';
-                        if (canvas.width === 0 || canvas.height === 0) {
-                            canvas.width = CANVAS_WIDTH;
-                            canvas.height = CANVAS_HEIGHT;
+
+                        // ─── HARD RESET CANVAS DISPLAY ─────────────────────
+                        // The intro animation (introplaceholder.js) resizes the
+                        // backing store to fullscreen and injects a `100vw/100vh
+                        // !important` stylesheet. Fix both so the render is
+                        // exactly CANVAS_WIDTH x CANVAS_HEIGHT and centered.
+                        //
+                        // 1) Remove the intro-injected fullscreen stylesheet.
+                        const introStyle = document.getElementById('bunbit-intro-styles');
+                        if (introStyle) introStyle.remove();
+                        // 2) Remove intro overlay elements.
+                        document.querySelectorAll('.intro-static, .intro-loading').forEach(el => el.remove());
+                        const introMarker = document.getElementById('intro-styles-injected');
+                        if (introMarker) introMarker.remove();
+
+                        // 3) Reset the backing store unconditionally.
+                        canvas.width = CANVAS_WIDTH;
+                        canvas.height = CANVAS_HEIGHT;
+
+                        // 4) Reset all inline display styles so no leftover
+                        //    transform/position/size from the intro or scaling
+                        //    panel can interfere.
+                        canvas.style.position = 'fixed';
+                        canvas.style.top = '50%';
+                        canvas.style.left = '50%';
+                        canvas.style.right = 'auto';
+                        canvas.style.bottom = 'auto';
+                        canvas.style.transform = 'translate(-50%, -50%)';
+                        canvas.style.transformOrigin = 'center';
+                        canvas.style.zIndex = '2147483650';
+                        canvas.style.width = CANVAS_WIDTH + 'px';
+                        canvas.style.height = CANVAS_HEIGHT + 'px';
+                        canvas.style.maxWidth = 'none';
+                        canvas.style.maxHeight = 'none';
+                        canvas.style.aspectRatio = 'auto';
+                        canvas.style.objectFit = 'contain';
+                        canvas.style.imageRendering = 'pixelated';
+                        canvas.style.border = 'none';
+                        canvas.style.boxShadow = 'none';
+                    }
+
+                    // Remove dashboard overlay so it doesn't cover the game canvas
+                    const dashboard = document.getElementById('bunbit-main-dashboard');
+                    if (dashboard) dashboard.remove();
+
+                    // Mark the game as active so the dashboard handler does not
+                    // re-create the pillars/sigil overlay while the game runs.
+                    if (typeof window !== 'undefined') window.__bunbitGameActive = true;
+
+                    // Also transition the engine to GAMEPLAY so the DASHBOARD
+                    // state handler cleanup runs properly.
+                    try {
+                        const engineMod = await import('../engine/engine.js');
+                        if (engineMod.engineController &&
+                            typeof engineMod.engineController.transitionTo === 'function' &&
+                            engineMod.engineController.currentState !== 'GAMEPLAY') {
+                            // Only transition if a valid transition exists.
+                            await engineMod.engineController.transitionTo('GAMEPLAY');
                         }
-                        // Ensure canvas stacks above all debug panels (z-index 2147483648-2147483649)
-                        try { canvas.style.zIndex = '2147483650'; } catch (e) { console.warn('Could not set canvas z-index', e); }
+                    } catch (e) {
+                        console.warn('Could not transition engine to GAMEPLAY:', e);
                     }
 
                     if (!window.game) {
@@ -306,6 +361,10 @@ export function initControlPanel() {
             if (window.game && typeof window.game.stop === 'function') {
                 window.game.stop();
             }
+
+            // Mark game as no longer active so the dashboard can be re-created
+            // when returning to the dashboard state.
+            if (typeof window !== 'undefined') window.__bunbitGameActive = false;
 
             // Always reset menu state + UI
             setMenuActive(true);

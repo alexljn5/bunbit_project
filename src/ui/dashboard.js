@@ -337,6 +337,15 @@ function createDashboard() {
 export async function dashboardHandler(controller, sharedState, payload = {}) {
     console.log('[Engine] Entering DASHBOARD state');
 
+    // If the game is currently running (started via DEBUG PLAY / control panel Play),
+    // do NOT re-create the dashboard overlay on top of the gameplay canvas.
+    if (typeof window !== 'undefined' && window.__bunbitGameActive) {
+        console.warn('[Dashboard] Game is active — skipping dashboard creation to avoid overlay.');
+        const el = document.getElementById(DASHBOARD_ID);
+        if (el) el.remove();
+        return () => { };
+    }
+
     // Hide the canvas during dashboard (dashboard is HTML overlay)
     const canvas = document.getElementById('mainGameRender');
     if (canvas) {
