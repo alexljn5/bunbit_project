@@ -84,6 +84,10 @@ In-Game Menu ◄───┘
 - The engine transitions to `INGAME_MENU`.
 - This is a temporary transition until the full new-game intro is implemented.
 
+### 5b. NEW_GAME_PLACEHOLDER → DASHBOARD
+- Triggered when the player clicks **"Return to Dashboard"** in the placeholder screen.
+- The engine transitions back to `DASHBOARD`.
+
 ### 6. INGAME_MENU → GAMEPLAY
 - Triggered when the player clicks **"Play"** in the in-game menu.
 - The engine transitions to `GAMEPLAY`.
