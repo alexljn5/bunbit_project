@@ -345,6 +345,24 @@ Dialogue nodes can trigger engine events when entered:
 | `INCREMENT_FLAG` | Increment a numeric flag | `flag` (string) |
 | `EMIT_EVENT` | Emit a custom event | `type` (string), `payload` (object) |
 
+### Cinematic Event Types
+
+Cinematic events trigger visual effects handled by the renderer/engine, not by dialogue text. These events dispatch `dialogue:cinematic` CustomEvents on the window event bus.
+
+| Type | Description | Properties |
+|---|---|---|
+| `FADE_OUT` | Fade the screen to black | `duration` (ms) |
+| `FADE_IN` | Fade the screen from black | `duration` (ms) |
+| `FADE_TO_BLACK` | Instant fade to black | `duration` (ms) |
+| `FADE_ENVIRONMENT` | Fade environment elements to black | `duration` (ms) |
+| `SHOW_SIGIL` | Show the ASCII sigil image | `target` (string) |
+| `SIGIL_EXPAND` | Scale the sigil to fill the screen | `duration` (ms) |
+| `HIDE_SIGIL` | Hide the sigil | — |
+| `SHOW_EXPRESSIONS` | Reveal character ASCII faces | `characters` (string[]) |
+| `HIDE_EXPRESSIONS` | Hide character ASCII faces | — |
+| `CAMERA_ZOOM` | Zoom the camera to a target | `target` (string), `duration` (ms) |
+| `PLAYER_RECOGNIZED` | Reveal character faces with surprised expressions | `characters` (string[]) |
+
 ### Custom Event Handlers
 
 Future event types can be registered at runtime:

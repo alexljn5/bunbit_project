@@ -69,6 +69,109 @@ const builtInHandlers = {
         }
         return flags;
     },
+
+    // --- Cinematic Event Handlers --------------------------
+
+    FADE_OUT(event, flags) {
+        if (typeof window !== 'undefined' && window.dispatchEvent) {
+            window.dispatchEvent(new CustomEvent('dialogue:cinematic', {
+                detail: { action: 'FADE_OUT', duration: event.duration || 1000 },
+            }));
+        }
+        return flags;
+    },
+
+    FADE_IN(event, flags) {
+        if (typeof window !== 'undefined' && window.dispatchEvent) {
+            window.dispatchEvent(new CustomEvent('dialogue:cinematic', {
+                detail: { action: 'FADE_IN', duration: event.duration || 1000 },
+            }));
+        }
+        return flags;
+    },
+
+    FADE_TO_BLACK(event, flags) {
+        if (typeof window !== 'undefined' && window.dispatchEvent) {
+            window.dispatchEvent(new CustomEvent('dialogue:cinematic', {
+                detail: { action: 'FADE_TO_BLACK', duration: event.duration || 1000 },
+            }));
+        }
+        return flags;
+    },
+
+    FADE_ENVIRONMENT(event, flags) {
+        if (typeof window !== 'undefined' && window.dispatchEvent) {
+            window.dispatchEvent(new CustomEvent('dialogue:cinematic', {
+                detail: { action: 'FADE_ENVIRONMENT', duration: event.duration || 1500 },
+            }));
+        }
+        return flags;
+    },
+
+    SHOW_SIGIL(event, flags) {
+        if (typeof window !== 'undefined' && window.dispatchEvent) {
+            window.dispatchEvent(new CustomEvent('dialogue:cinematic', {
+                detail: { action: 'SHOW_SIGIL', target: event.target || 'sigil_ancient' },
+            }));
+        }
+        return flags;
+    },
+
+    SIGIL_EXPAND(event, flags) {
+        if (typeof window !== 'undefined' && window.dispatchEvent) {
+            window.dispatchEvent(new CustomEvent('dialogue:cinematic', {
+                detail: { action: 'SIGIL_EXPAND', duration: event.duration || 1500 },
+            }));
+        }
+        return flags;
+    },
+
+    HIDE_SIGIL(event, flags) {
+        if (typeof window !== 'undefined' && window.dispatchEvent) {
+            window.dispatchEvent(new CustomEvent('dialogue:cinematic', {
+                detail: { action: 'HIDE_SIGIL' },
+            }));
+        }
+        return flags;
+    },
+
+    SHOW_EXPRESSIONS(event, flags) {
+        if (typeof window !== 'undefined' && window.dispatchEvent) {
+            window.dispatchEvent(new CustomEvent('dialogue:cinematic', {
+                detail: { action: 'SHOW_EXPRESSIONS', characters: event.characters || [] },
+            }));
+        }
+        return flags;
+    },
+
+    HIDE_EXPRESSIONS(event, flags) {
+        if (typeof window !== 'undefined' && window.dispatchEvent) {
+            window.dispatchEvent(new CustomEvent('dialogue:cinematic', {
+                detail: { action: 'HIDE_EXPRESSIONS' },
+            }));
+        }
+        return flags;
+    },
+
+    CAMERA_ZOOM(event, flags) {
+        if (typeof window !== 'undefined' && window.dispatchEvent) {
+            window.dispatchEvent(new CustomEvent('dialogue:cinematic', {
+                detail: { action: 'CAMERA_ZOOM', target: event.target || 'sigil', duration: event.duration || 2000 },
+            }));
+        }
+        return flags;
+    },
+
+    // --- Player Recognition Event --------------------------
+
+    PLAYER_RECOGNIZED(event, flags) {
+        if (typeof window !== 'undefined' && window.dispatchEvent) {
+            window.dispatchEvent(new CustomEvent('dialogue:cinematic', {
+                detail: { action: 'PLAYER_RECOGNIZED', characters: event.characters || ['patches', 'vesper'] },
+            }));
+        }
+        return { ...flags, playerRecognized: true, facesVisible: true };
+    },
 };
 
 /**

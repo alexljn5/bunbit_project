@@ -49,6 +49,15 @@ export async function dialogueHandler(controller, sharedState, payload = {}) {
     // Create dialogue renderer container
     dialogueRenderer.createContainer();
 
+    // Set cinematic state for intro sequence
+    if (dialogueId === 'new_game_intro') {
+        dialogueRenderer.setCinematicState({
+            introActive: true,
+            facesVisible: false,
+            playerRecognized: false,
+        });
+    }
+
     // Load character metadata for rendering
     await loadCharacterMetadataForDialogue();
 
@@ -67,8 +76,17 @@ export async function dialogueHandler(controller, sharedState, payload = {}) {
 
     // Listen for dialogue completion
     const unsubscribeComplete = dialogueManager.onComplete((state) => {
-        handleDialogueComplete(controller, onComplete);
+        handleDialogueComplete(controller, onComplete, currentDialogueId);
     });
+
+    // Listen for cinematic events (fade, sigil, face reveal, etc.)
+    const cinematicHandler = (e) => {
+        const { action, characters } = e.detail || {};
+        if (action === 'PLAYER_RECOGNIZED') {
+            dialogueRenderer.setCinematicState({ facesVisible: true, playerRecognized: true });
+        }
+    };
+    window.addEventListener('dialogue:cinematic', cinematicHandler);
 
     // Set up click handler for choices and continue
     const clickHandler = (e) => {
@@ -93,9 +111,15 @@ export async function dialogueHandler(controller, sharedState, payload = {}) {
     // Cleanup function
     cleanupFn = () => {
         document.removeEventListener('click', clickHandler);
+        window.removeEventListener('dialogue:cinematic', cinematicHandler);
         unsubscribeState();
         unsubscribeComplete();
         dialogueRenderer.destroyContainer();
+        dialogueRenderer.setCinematicState({
+            introActive: false,
+            facesVisible: true,
+            playerRecognized: false,
+        });
         if (canvas) canvas.style.display = '';
         currentDialogueId = null;
     };
@@ -171,11 +195,21 @@ async function handleContinue() {
  * @param {object} controller - The engine controller.
  * @param {Function} [onComplete] - Optional callback for when dialogue finishes.
  */
-function handleDialogueComplete(controller, onComplete) {
+function handleDialogueComplete(controller, onComplete, dialogueId) {
     dialogueRenderer.hide();
+
+    // Reset cinematic state
+    dialogueRenderer.setCinematicState({
+        introActive: false,
+        facesVisible: true,
+        playerRecognized: false,
+    });
 
     if (typeof onComplete === 'function') {
         onComplete();
+    } else if (dialogueId === 'new_game_intro' && dialogueManager.getFlags()['intro_complete']) {
+        // Intro dialogue completed - transition to gameplay
+        controller.transitionTo(EngineState.GAMEPLAY);
     } else {
         // Default: return to dashboard
         controller.transitionTo(EngineState.DASHBOARD);

@@ -34,7 +34,7 @@ export const ValidTransitions = Object.freeze({
         EngineState.GAMEPLAY,
     ],
     [EngineState.NEW_GAME_PLACEHOLDER]: [EngineState.DIALOGUE, EngineState.DASHBOARD],
-    [EngineState.DIALOGUE]: [EngineState.DASHBOARD, EngineState.INGAME_MENU],
+    [EngineState.DIALOGUE]: [EngineState.DASHBOARD, EngineState.INGAME_MENU, EngineState.GAMEPLAY],
     [EngineState.INGAME_MENU]: [
         EngineState.GAMEPLAY,
         EngineState.DASHBOARD,

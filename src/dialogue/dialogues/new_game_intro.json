@@ -4,29 +4,123 @@
         "language": "en",
         "version": 1
     },
-    "startNode": "patches_intro",
+    "startNode": "intro_start",
     "nodes": {
-        "patches_intro": {
+        "intro_start": {
             "speaker": "patches",
             "expression": "neutral",
-            "text": "Placeholder dialogue system online.",
+            "text": "Something feels different.",
+            "events": [
+                {
+                    "type": "FADE_OUT",
+                    "duration": 1000
+                }
+            ],
+            "next": "sigil_transition"
+        },
+        "sigil_transition": {
+            "speaker": "",
+            "expression": "neutral",
+            "text": "",
+            "events": [
+                {
+                    "type": "FADE_ENVIRONMENT",
+                    "duration": 1500
+                }
+            ],
+            "next": "sigil_expand"
+        },
+        "sigil_expand": {
+            "speaker": "",
+            "expression": "neutral",
+            "text": "",
+            "events": [
+                {
+                    "type": "SIGIL_EXPAND",
+                    "duration": 2000
+                }
+            ],
+            "next": "characters_intro"
+        },
+        "characters_intro": {
+            "speaker": "patches",
+            "expression": "neutral",
+            "text": "Wait... something is watching us.",
+            "events": [
+                {
+                    "type": "SET_FLAG",
+                    "flag": "characters_visible",
+                    "value": false
+                }
+            ],
             "next": "vesper_intro"
         },
         "vesper_intro": {
             "speaker": "vesper",
-            "expression": "curious",
-            "text": "Dialogue graph connection successful.",
-            "next": "intro_complete"
+            "expression": "neutral",
+            "text": "You are right. It feels like something is listening.",
+            "next": "player_realization"
         },
-        "intro_complete": {
+        "player_realization": {
             "speaker": "patches",
-            "expression": "happy",
-            "text": "Intro dialogue complete.",
+            "expression": "neutral",
+            "text": "Hold on. I can feel you there.",
+            "events": [
+                {
+                    "type": "SET_FLAG",
+                    "flag": "player_aware",
+                    "value": true
+                }
+            ],
+            "next": "player_recognized"
+        },
+        "player_recognized": {
+            "speaker": "",
+            "expression": "neutral",
+            "text": "",
+            "events": [
+                {
+                    "type": "PLAYER_RECOGNIZED"
+                }
+            ],
+            "next": "patches_surprised"
+        },
+        "patches_surprised": {
+            "speaker": "patches",
+            "expression": "surprised",
+            "text": "Oh! You can see us!",
+            "next": "vesper_welcome"
+        },
+        "vesper_welcome": {
+            "speaker": "vesper",
+            "expression": "neutral",
+            "text": "Welcome. Then the journey begins.",
             "events": [
                 {
                     "type": "SET_FLAG",
                     "flag": "intro_complete",
                     "value": true
+                },
+                {
+                    "type": "FADE_OUT",
+                    "duration": 800
+                }
+            ],
+            "next": "intro_complete"
+        },
+        "intro_complete": {
+            "speaker": "",
+            "expression": "neutral",
+            "text": "",
+            "events": [
+                {
+                    "type": "SET_FLAG",
+                    "flag": "cinematic_intro",
+                    "value": false
+                },
+                {
+                    "type": "FADE_IN",
+                    "duration": 500
                 }
             ]
         }

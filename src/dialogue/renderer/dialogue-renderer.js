@@ -49,6 +49,13 @@ export class DialogueRenderer {
 
         /** @type {function|null} Callback for continue clicks. */
         this._onContinue = null;
+
+        /** @type {object} Cinematic state for intro sequence. */
+        this._cinematicState = {
+            introActive: false,
+            facesVisible: true,
+            playerRecognized: false,
+        };
     }
 
     // ─── Container Management ──────────────────────
@@ -128,6 +135,39 @@ export class DialogueRenderer {
         return this._visible;
     }
 
+    // ─── Cinematic State ──────────────────────────
+
+    /**
+     * Sets the cinematic state for intro sequences.
+     * When facesVisible is false, character portraits are hidden.
+     * @param {object} state - Cinematic state object.
+     * @param {boolean} [state.facesVisible=true] - Whether character faces should be rendered.
+     * @param {boolean} [state.introActive=false] - Whether the intro cinematic is active.
+     * @param {boolean} [state.playerRecognized=false] - Whether the player has been recognized.
+     */
+    setCinematicState(state) {
+        if (state.facesVisible !== undefined) {
+            this._cinematicState.facesVisible = state.facesVisible;
+        }
+        if (state.introActive !== undefined) {
+            this._cinematicState.introActive = state.introActive;
+        }
+        if (state.playerRecognized !== undefined) {
+            this._cinematicState.playerRecognized = state.playerRecognized;
+        }
+
+        // Apply CSS class to container for face visibility
+        if (this._container) {
+            if (state.facesVisible === false) {
+                this._container.classList.add('cinematic-hide-faces');
+                this._container.classList.remove('cinematic-show-faces');
+            } else {
+                this._container.classList.remove('cinematic-hide-faces');
+                this._container.classList.add('cinematic-show-faces');
+            }
+        }
+    }
+
     // ─── Character Metadata ─────────────────────────
 
     /**
@@ -205,6 +245,11 @@ export class DialogueRenderer {
      * @returns {HTMLElement|null}
      */
     _createPortrait(node, metadata) {
+        // Hide faces during cinematic intro until player is recognized
+        if (!this._cinematicState.facesVisible) {
+            return null;
+        }
+
         if (!node.expression || !metadata || !metadata.expressionSprites) {
             return null;
         }
