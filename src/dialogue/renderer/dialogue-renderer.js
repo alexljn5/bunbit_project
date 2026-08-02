@@ -46,8 +46,8 @@ export class DialogueRenderer {
         /** @type {HTMLElement|null} The dialogue container element. */
         this._container = null;
 
-        /** @type {object|null} Loaded character metadata (expression sprites). */
-        this._characterMetadata = null;
+        /** @type {object<string, object>} Loaded character metadata keyed by character ID. */
+        this._characterMetadata = {};
 
         /** @type {string|null} Current character ID being displayed. */
         this._currentCharacterId = null;
@@ -131,12 +131,14 @@ export class DialogueRenderer {
 
     /**
      * Loads character metadata for expression rendering.
+     * Stores metadata per character ID so multiple characters can be rendered.
      * @param {object} characterDef - Character metadata object.
      * @returns {Promise<void>}
      */
     async loadCharacterMetadata(characterDef) {
-        this._characterMetadata = await loadCharacterSpriteMetadata(characterDef);
-        this._currentCharacterId = characterDef.id;
+        const resolved = await loadCharacterSpriteMetadata(characterDef);
+        this._characterMetadata[resolved.id] = resolved;
+        this._currentCharacterId = resolved.id;
     }
 
     /**
@@ -147,7 +149,7 @@ export class DialogueRenderer {
      */
     loadCharacterMetadataFromMarkdown(characterDef, markdownContent) {
         const expressionSprites = parseSpriteSheetMarkdown(markdownContent);
-        this._characterMetadata = {
+        this._characterMetadata[characterDef.id] = {
             id: characterDef.id,
             displayName: characterDef.displayName,
             defaultExpression: characterDef.defaultExpression,
@@ -170,7 +172,15 @@ export class DialogueRenderer {
             this.createContainer();
         }
 
-        const metadata = options.characterMetadata || this._characterMetadata;
+        // Look up metadata by speaker ID, or use override
+        let metadata = null;
+        if (options.characterMetadata) {
+            metadata = options.characterMetadata;
+        } else if (node.speaker && this._characterMetadata[node.speaker]) {
+            metadata = this._characterMetadata[node.speaker];
+        } else if (this._currentCharacterId && this._characterMetadata[this._currentCharacterId]) {
+            metadata = this._characterMetadata[this._currentCharacterId];
+        }
 
         // Clear container
         this._container.innerHTML = '';
@@ -179,9 +189,13 @@ export class DialogueRenderer {
         const content = document.createElement('div');
         content.style.padding = '0';
 
-        // Expression display (ASCII art)
+        // Determine if character should appear on the right (Vesper) or left (Patches/others)
+        const isRightSpeaker = node.speaker === 'vesper';
+
+        // Expression display (ASCII art) - positioned based on speaker
         if (node.expression && metadata && metadata.expressionSprites) {
-            const expressionSprite = metadata.expressionSprites[node.expression];
+            const expressionSprite = metadata.expressionSprites[node.expression]
+                || metadata.expressionSprites['default'];
             if (expressionSprite) {
                 const exprDiv = document.createElement('div');
                 exprDiv.style.whiteSpace = 'pre';
@@ -191,6 +205,9 @@ export class DialogueRenderer {
                 exprDiv.style.textAlign = 'center';
                 exprDiv.style.marginBottom = '8px';
                 exprDiv.style.color = this.config.textColor;
+                if (isRightSpeaker) {
+                    exprDiv.style.textAlign = 'right';
+                }
                 exprDiv.textContent = expressionSprite;
                 content.appendChild(exprDiv);
             }
@@ -202,7 +219,7 @@ export class DialogueRenderer {
             speakerDiv.style.fontSize = this.config.speakerFontSize;
             speakerDiv.style.fontWeight = 'bold';
             speakerDiv.style.marginBottom = '8px';
-            speakerDiv.style.textAlign = 'center';
+            speakerDiv.style.textAlign = isRightSpeaker ? 'right' : 'left';
             speakerDiv.textContent = node.speaker;
             content.appendChild(speakerDiv);
         }
@@ -214,6 +231,9 @@ export class DialogueRenderer {
             textDiv.style.lineHeight = '1.5';
             textDiv.style.marginBottom = '12px';
             textDiv.style.whiteSpace = 'pre-wrap';
+            if (isRightSpeaker) {
+                textDiv.style.textAlign = 'right';
+            }
             textDiv.textContent = node.text;
             content.appendChild(textDiv);
         }
