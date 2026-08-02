@@ -119,6 +119,32 @@ const FRAME_SOURCES = [
 
 let hasRun = false;
 
+// Tracks the resize handler installed for the intro so it can be removed
+// when the intro completes (prevents listener leaks on replay).
+let introResizeHandler = null;
+
+/**
+ * Cleans up the intro's black backdrop state once the intro ends:
+ *   - Removes the `data-bunbit-intro` attribute so the attribute-scoped
+ *     pure-black !important rule stops applying.
+ *   - Clears the inline black backgrounds so the theme manager's own
+ *     html/body background (evil red-black, etc.) takes over again.
+ *   - Removes the intro resize re-centering listener.
+ * Call this BEFORE the DASHBOARD state renders so the dashboard keeps its
+ * themed reddish hue.
+ */
+function clearIntroBackdrop() {
+    if (typeof document !== 'undefined') {
+        document.documentElement.removeAttribute('data-bunbit-intro');
+        document.documentElement.style.backgroundColor = '';
+        document.body.style.backgroundColor = '';
+    }
+    if (typeof window !== 'undefined' && introResizeHandler) {
+        window.removeEventListener('resize', introResizeHandler);
+        introResizeHandler = null;
+    }
+}
+
 // ─── EASE IN-OUT ──────────────────────────────────────────────
 function easeInOut(t) {
     return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
@@ -304,8 +330,8 @@ export function maybeShowIntroPlaceholders({ onComplete } = {}) {
     // Re-center the intro canvas whenever the viewport changes, so it never
     // gets stuck offset in a small/resized window. The display layer already
     // listens to resize; this guards the manual fallback too.
-    if (typeof window !== 'undefined') {
-        const onResize = () => {
+    if (typeof window !== 'undefined' && !introResizeHandler) {
+        introResizeHandler = () => {
             const c = getCanvas();
             if (!c) return;
             const display = window.__bunbitDisplay;
@@ -315,7 +341,7 @@ export function maybeShowIntroPlaceholders({ onComplete } = {}) {
                 centerCanvasManually(c);
             }
         };
-        window.addEventListener('resize', onResize);
+        window.addEventListener('resize', introResizeHandler);
     }
 
     const canvas = getCanvas();
@@ -383,6 +409,9 @@ export function runIntroPlaceholderAutorun() {
         maybeShowIntroPlaceholders({
             onComplete: () => {
                 setIntroActive(false);
+                // Restore the themed html/body background (evil red-black for the
+                // dashboard). The pure-black intro override must NOT persist.
+                clearIntroBackdrop();
                 // Let the engine state machine handle the transition to DASHBOARD.
                 // The engine controller will manage the next screen.
                 if (typeof window !== 'undefined' && window.engineController) {
