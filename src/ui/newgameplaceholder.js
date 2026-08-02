@@ -113,14 +113,20 @@ function runNewGameCinematic(controller) {
     // ── Phase 2: portal zoom on the EXISTING sigil ──
     const sigil = document.querySelector('[data-dashboard-sigil="1"]');
     if (sigil) {
-        // Move it to a fixed, centered position (it is currently in the
-        // dashboard atmosphere layer). Keep its existing spin animation.
+        // Capture the sigil's CURRENT centre so it does NOT snap when it is
+        // detached from the dashboard. We keep it in the exact same visual
+        // spot and only scale it toward the camera.
+        const rect = sigil.getBoundingClientRect();
+        const centreX = rect.left + rect.width / 2;
+        const centreY = rect.top + rect.height / 2;
+
         sigil.style.position = 'fixed';
-        sigil.style.left = '50%';
-        sigil.style.top = '50%';
+        sigil.style.left = `${centreX}px`;
+        sigil.style.top = `${centreY}px`;
+        sigil.style.margin = '0';
         sigil.style.transform = 'translate(-50%, -50%) scale(1)';
-        sigil.style.width = '340px';
-        sigil.style.height = '340px';
+        sigil.style.width = `${rect.width}px`;
+        sigil.style.height = `${rect.height}px`;
         sigil.style.maxWidth = '70vw';
         sigil.style.maxHeight = '70vh';
         sigil.style.zIndex = '2147483645';
@@ -134,13 +140,13 @@ function runNewGameCinematic(controller) {
         sigil.style.mixBlendMode = 'normal';
         sigil.style.boxShadow = '0 0 60px rgba(255, 255, 255, 0.35)';
 
-        // Keep a centered spin animation running while the portal-zoom
+        // Keep a centred spin animation running while the portal-zoom
         // delay elapses (before the environment has fully faded). The
         // cinematic spin uses translate(-50%, -50%) so the sigil stays
-        // perfectly centered at top:50%. When the zoom begins, its
-        // transform takes over — rotating while scaling.
-        const envFadeComplete = STAGGER_MS * 2 + ENV_FADE_MS; // 1500ms
-        sigil.style.animation = `bunbit-cinematic-spin 25s linear infinite, bunbit-portal-zoom 2400ms ease-in-out ${envFadeComplete}ms forwards`;
+        // pinned to its captured centre. When the zoom begins, its
+        // transform takes over — rotating while scaling in place.
+        const envFadeComplete = STAGGER_MS * 2 + ENV_FADE_MS; // 1900ms
+        sigil.style.animation = `bunbit-cinematic-spin 25s linear infinite, bunbit-portal-zoom 3000ms ease-in-out ${envFadeComplete}ms forwards`;
 
         // The dashboard container has overflow:hidden — detach the sigil
         // so it can scale beyond the dashboard frame.
