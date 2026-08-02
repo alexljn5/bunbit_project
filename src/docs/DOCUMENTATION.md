@@ -6,49 +6,211 @@
 
 ## Overview
 
-The `src` directory contains the core game engine code for Bunbit, a raycasting-based first-person game. This document provides an overview of the project structure and how the main components work together.
+The `src` directory contains the core game engine code for Bunbit, a raycasting-based first-person game. This document provides a comprehensive overview of the project structure and how all components work together.
 
 ## Project Structure
+
+### `src/` — Frontend (JavaScript/HTML/CSS)
 
 ```
 src/
 ├── ai/                    # Artificial Intelligence systems
+│   ├── aihandler.js
+│   ├── aimapmanager.js
+│   ├── airegistry.js
+│   ├── casperlesserdemon.js
+│   ├── enemyai.js
+│   ├── friendlycat.js
+│   ├── placeholderai.js
+│   └── computerai/         # Computer AI sub-system
+│       ├── computerai.js
+│       ├── computeraiglobals.js
+│       ├── mainframe/
+│       │   ├── canvashandler.js
+│       │   └── components/
+│       │       ├── button.js
+│       │       └── input.js
+│       └── ui/
+│           ├── loadascii.js
+│           ├── login.js
+│           ├── asciiart/
+│           │   └── bunbitos.txt
+│           └── desktop/
+│               ├── desktop.js
+│               ├── desktopbuttons.js
+│               └── desktopenvironment.js
+│           └── utils/
+│               ├── inputbox.js
+│               └── inputhandler.js
+│               └── keyboard.js
 ├── animations/            # Game animations and intro sequences
+│   ├── animationhandler.js
+│   ├── fuckthescreenup.js
+│   ├── introplaceholder.js
+│   └── newgamestartanimation.js
 ├── atmosphere/            # Atmospheric effects (fog, lighting, etc.)
+│   ├── ambiencehandler.js
+│   ├── flickerlogic.js
+│   ├── foghandler.js
+│   ├── lightninghandler.js
+│   ├── lightsources.js
+│   └── shadersim.js
 ├── audio/                 # Audio handling and sound effects
+│   ├── audiohandler.js
+│   ├── soundhandler.js
+│   ├── music/             # Music tracks
+│   └── sounds/            # Sound effect files
+│       ├── demonrumble.mp3
+│       └── footsteps/
+│           └── concrete/
+│               ├── footstep_concrete_01.mp3
+│               ├── footstep_concrete_02.mp3
+│               ├── footstep_concrete_03.mp3
+│               └── footstep_concrete_04.mp3
+│       └── guns/
+│           └── genericgun_shoot.mp3
+│       └── melee/
+│           └── metal_swing.mp3
 ├── collissiondetection/   # Collision detection logic
+│   ├── collissionlogic.js
+│   ├── collissionlogichandler.js
+│   ├── collissionwalllogic.js
+│   └── doorinteractionlogic.js
 ├── console/               # In-game console system
+│   ├── consolehandler.js
+│   └── terminal/
+│       ├── terminal.js
+│       ├── debugcommands.js
+│       └── terminalhandler.js
 ├── debug/                 # Debug tools and panels
-├── debugtools.js          # Developer tools overlay
+│   ├── controlpanel.js
+│   ├── debughandler.js
+│   ├── eventhandlers.js
+│   ├── fullscreenhandler.js
+│   ├── workerdebug.js
+│   ├── workermaindebug.js
+│   └── panels/
+│       ├── bunbitdebug.js
+│       ├── memcpu.js
+│       └── positionpanel.js
+├── debugtools.js          # Developer tools overlay (FPS, minimap, sprites)
 ├── decorationhandler/     # Map decorations
+│   ├── decorationhandler.js
+│   └── stairbuilder.js
 ├── dialogue/              # Data-driven dialogue system
 │   ├── dialogues/         # Dialogue graph JSON files
+│   │   ├── example.json
+│   │   └── new_game_intro.json
 │   ├── characters/        # Character metadata JSON files
+│   │   ├── patches.json
+│   │   └── vesper.json
 │   ├── loader/            # Data loading modules
+│   │   ├── dialogue-loader.js
+│   │   ├── character-loader.js
+│   │   └── sprite-metadata-loader.js
 │   ├── runtime/           # Core runtime (DialogueManager)
+│   │   └── dialogue-manager.js
 │   ├── renderer/          # UI rendering (DialogueRenderer)
+│   │   └── dialogue-renderer.js
 │   ├── conditions/        # Condition evaluation
+│   │   └── condition-manager.js
 │   └── events/            # Event trigger system
+│       └── dialogue-events.js
+├── docs/                  # Architecture documentation
+│   ├── DOCUMENTATION.md
+│   ├── ENGINE_FLOW.md
+│   ├── PROJECT_STRUCTURE.md
+│   └── STANDARDISATION.md
+├── engine/                # Core engine: state machine, lifecycle, controller
+│   ├── engine.js
+│   └── enginestate.js
 ├── events/                # Game event system
-├── game_loop.js           # Main game loop
-├── gamestate.js           # Game state re-exports
+│   ├── eventhandler.js
+│   ├── map_01_events.js
+│   └── map_debug_events.js
+├── gamestate.js           # Game state re-exports from globals.js
+├── game_loop.js           # Main game loop (requestAnimationFrame)
 ├── globals.js             # Global configuration and state
+├── heavensgate.js         # Tauri entry point and crash handling
 ├── img/                   # Image assets
-├── interactions/          # Player interactions
-├── itemhandler/           # Item system
+│   ├── characterhead/
+│   ├── gameoverlol.png
+│   ├── logo/
+│   ├── menu/
+│   ├── png/
+│   ├── sprites/
+│   │   ├── friendly/
+│   │   │   ├── patches/
+│   │   │   │   ├── patches-ascii-sheet.md
+│   │   │   │   └── (sprite files)
+│   │   │   ├── vesper/
+│   │   │   │   ├── vesper-ascii-sheet.md
+│   │   │   │   └── (sprite files)
+│   │   │   └── patches-vesper-shared/
+│   │   │       └── patches-vesper-expressions.md
+│   │   ├── computerai/
+│   │   └── (other sprite files)
+│   └── animation/
+├── interactions/          # Player-world interaction logic
+├── intro.html             # Intro page (ASCII animation)
+├── itemhandler/           # Item registry, guns, melee weapons
+├── main_game.html         # Main game page
 ├── mapdata/               # Map data and textures
+│   ├── maps.js
+│   ├── map_01.js through map_07.js
+│   ├── map_debug.js
+│   ├── map_bonus.js
+│   ├── maphandler.js
+│   ├── maptexturesloader.js
+│   ├── maptexturesids.js
+│   └── maputils.js
 ├── math/                  # Math utilities
 ├── menus/                 # UI menus
 ├── noisemap/              # Noise generation
 ├── playerdata/            # Player state and logic
+│   ├── playerlogic.js
+│   ├── playerinventory.js
+│   ├── playertextures.js
+│   └── playerui.js
 ├── rendering/             # Rendering engine
+│   ├── renderengine.js
+│   ├── raycasting.js
+│   ├── renderwalls.js
+│   ├── renderhorizons.js
+│   └── renderworkers/
+│       └── horizonrenderworker.js
 ├── savedata/              # Save/load system
 ├── scripts/               # Utility scripts
 ├── stylesgame.css         # Main game styles
-├── themes/                # Visual themes
+├── themes/                # Visual theme definitions and manager
+│   └── thememanager.js
 ├── ui/                    # User interface components
+│   ├── intro.js
+│   ├── dashboard.js
+│   ├── newgameplaceholder.js
+│   ├── ingamemenu.js
+│   └── dialogue.js        # Dialogue UI state handler
 ├── utils/                 # General utilities
 └── wasm/                  # WebAssembly modules
+```
+
+### `src-tauri/` — Backend (Rust/Tauri)
+
+```
+src-tauri/
+├── build.rs               # Tauri build script
+├── Cargo.toml             # Rust package manifest
+├── Cargo.lock             # Dependency lock file
+├── tauri.conf.json        # Tauri application configuration
+├── capabilities/          # Tauri capabilities
+├── gen/                   # Generated files
+├── src/
+│   └── main.rs            # Tauri backend entry point
+│       - Crash log writing
+│       - Player log management
+│       - Window reload command
+│       - Plugin initialization (fs, shell, process, dialog, http)
+└── target/                # Build output
 ```
 
 ## Core Files
