@@ -2,53 +2,14 @@
     "id": "new_game_intro",
     "metadata": {
         "language": "en",
-        "version": 1
+        "version": 2
     },
     "startNode": "intro_start",
     "nodes": {
         "intro_start": {
             "speaker": "patches",
             "expression": "neutral",
-            "text": "Something feels different.",
-            "events": [
-                {
-                    "type": "FADE_OUT",
-                    "duration": 1000
-                }
-            ],
-            "next": "sigil_transition"
-        },
-        "sigil_transition": {
-            "speaker": "",
-            "expression": "neutral",
-            "text": "",
-            "events": [
-                {
-                    "type": "FADE_ENVIRONMENT",
-                    "duration": 1500
-                },
-                {
-                    "type": "SHOW_SIGIL"
-                }
-            ],
-            "next": "sigil_expand"
-        },
-        "sigil_expand": {
-            "speaker": "",
-            "expression": "neutral",
-            "text": "",
-            "events": [
-                {
-                    "type": "SIGIL_EXPAND",
-                    "duration": 2000
-                }
-            ],
-            "next": "characters_intro"
-        },
-        "characters_intro": {
-            "speaker": "patches",
-            "expression": "neutral",
-            "text": "Wait... something is watching us.",
+            "text": "Something feels different tonight.",
             "next": "vesper_intro"
         },
         "vesper_intro": {
@@ -66,15 +27,7 @@
                     "type": "SET_FLAG",
                     "flag": "player_aware",
                     "value": true
-                }
-            ],
-            "next": "player_recognized"
-        },
-        "player_recognized": {
-            "speaker": "",
-            "expression": "neutral",
-            "text": "",
-            "events": [
+                },
                 {
                     "type": "PLAYER_RECOGNIZED"
                 }
@@ -85,33 +38,34 @@
             "speaker": "patches",
             "expression": "surprised",
             "text": "Oh! You can see us!",
+            "next": "vesper_surprised"
+        },
+        "vesper_surprised": {
+            "speaker": "vesper",
+            "expression": "surprised",
+            "text": "And you... you are watching us right now.",
+            "events": [
+                {
+                    "type": "SHOW_NAMES"
+                }
+            ],
+            "next": "patches_introduces"
+        },
+        "patches_introduces": {
+            "speaker": "patches",
+            "expression": "happy",
+            "text": "I am Patches. This is Vesper. We have been waiting for someone like you.",
             "next": "vesper_welcome"
         },
         "vesper_welcome": {
             "speaker": "vesper",
-            "expression": "surprised",
+            "expression": "happy",
             "text": "Welcome. Then the journey begins.",
             "events": [
                 {
                     "type": "SET_FLAG",
                     "flag": "intro_complete",
                     "value": true
-                },
-                {
-                    "type": "FADE_OUT",
-                    "duration": 800
-                }
-            ],
-            "next": "intro_complete"
-        },
-        "intro_complete": {
-            "speaker": "",
-            "expression": "neutral",
-            "text": "",
-            "events": [
-                {
-                    "type": "FADE_IN",
-                    "duration": 500
                 }
             ]
         }
