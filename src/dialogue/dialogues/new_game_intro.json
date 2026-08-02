@@ -121,7 +121,7 @@
         "intro_end": {
             "speaker": "patches",
             "expression": "happy",
-            "text": "Whatever happens next... welcome.",
+            "text": "Whatever you are... I think we'll find out soon enough.",
             "events": [
                 {
                     "type": "SET_FLAG",
