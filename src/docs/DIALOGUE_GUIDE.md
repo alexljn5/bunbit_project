@@ -58,6 +58,7 @@ Create a new file in `src/dialogue/dialogues/`, for example `src/dialogue/dialog
     "startNode": "quest_start",
     "nodes": {
         "quest_start": {
+            "speaker": "patches",
             "expression": "neutral",
             "text": "A new quest awaits.",
             "next": "quest_continue"
