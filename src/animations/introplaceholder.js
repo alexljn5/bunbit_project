@@ -70,6 +70,15 @@ const injectStyles = () => {
             0%, 100% { opacity: 0.6; }
             50% { opacity: 0.1; }
         }
+
+        /* ─── PURE BLACK OVERRIDE DURING INTRO ───────────
+           The theme manager injects a background-color !important rule on
+           html/body which would tint the page behind the intro (e.g. evil
+           red-black). This attribute-scoped rule has higher specificity and
+           forces pure black for the entire intro, defeating the theme. */
+        html[data-bunbit-intro], html[data-bunbit-intro] body {
+            background: #000000 !important;
+        }
     `;
     document.head.appendChild(style);
 };
@@ -287,6 +296,26 @@ export function maybeShowIntroPlaceholders({ onComplete } = {}) {
     if (typeof document !== 'undefined') {
         document.documentElement.style.backgroundColor = '#000000';
         document.body.style.backgroundColor = '#000000';
+        // Activate the attribute-scoped !important rule injected by injectStyles().
+        // This defeats the theme manager's html/body !important background.
+        document.documentElement.setAttribute('data-bunbit-intro', '');
+    }
+
+    // Re-center the intro canvas whenever the viewport changes, so it never
+    // gets stuck offset in a small/resized window. The display layer already
+    // listens to resize; this guards the manual fallback too.
+    if (typeof window !== 'undefined') {
+        const onResize = () => {
+            const c = getCanvas();
+            if (!c) return;
+            const display = window.__bunbitDisplay;
+            if (display && typeof display.applyDisplayScale === 'function') {
+                display.applyDisplayScale();
+            } else {
+                centerCanvasManually(c);
+            }
+        };
+        window.addEventListener('resize', onResize);
     }
 
     const canvas = getCanvas();

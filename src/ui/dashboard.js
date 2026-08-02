@@ -198,13 +198,13 @@ function createDashboard() {
     createVisualAtmosphere(atmosphere);
     dashboard.appendChild(atmosphere);
 
-    // ─── New Game Button (CENTER) ──────────────────────────
+    // ─── New Game Button (BOTTOM — keeps the spinning sigil visible) ──
     const newGameBtn = document.createElement('button');
     newGameBtn.id = 'bunbit-new-game-btn';
     newGameBtn.textContent = 'New Game';
     newGameBtn.style.cssText = `
         position: absolute;
-        top: 68%;
+        bottom: 7%;
         left: 50%;
         transform: translate(-50%, -50%);
         padding: 16px 48px;
