@@ -180,6 +180,22 @@ export class DialogueRenderer {
         return defaults[node.speaker] || SpeakerAlignment.LEFT;
     }
 
+    /**
+     * Returns the display name for a speaker.
+     * Uses the character metadata displayName if available,
+     * otherwise falls back to the speaker ID.
+     * @param {string} speakerId - The speaker character ID.
+     * @returns {string} The display name.
+     */
+    _getSpeakerDisplayName(speakerId) {
+        if (!speakerId) return speakerId;
+        const metadata = this._characterMetadata[speakerId];
+        if (metadata && metadata.displayName) {
+            return metadata.displayName;
+        }
+        return speakerId;
+    }
+
     // ─── Component Builders ─────────────────────────
 
     /**
@@ -233,7 +249,7 @@ export class DialogueRenderer {
         speakerDiv.style.marginBottom = theme.marginBottom;
         speakerDiv.style.color = theme.color;
         speakerDiv.style.fontFamily = theme.fontFamily;
-        speakerDiv.textContent = node.speaker;
+        speakerDiv.textContent = this._getSpeakerDisplayName(node.speaker);
 
         return speakerDiv;
     }
