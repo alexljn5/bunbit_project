@@ -21,7 +21,8 @@ import { loadCharacterSpriteMetadata, parseSpriteSheetMarkdown } from '../loader
  */
 const DEFAULT_CONFIG = {
     containerId: 'bunbit-dialogue-container',
-    width: '600px',
+    width: '90vw',
+    maxWidth: '900px',
     padding: '20px',
     borderColor: '#FC0000',
     backgroundColor: '#0a0000',
@@ -70,9 +71,11 @@ export class DialogueRenderer {
         container.dataset.dialogueRenderer = '1';
         container.style.position = 'fixed';
         container.style.bottom = '20px';
-        container.style.left = '50%';
-        container.style.transform = 'translateX(-50%)';
+        container.style.left = '0';
+        container.style.right = '0';
+        container.style.margin = '0 auto';
         container.style.width = this.config.width;
+        container.style.maxWidth = this.config.maxWidth;
         container.style.padding = this.config.padding;
         container.style.backgroundColor = this.config.backgroundColor;
         container.style.border = `2px solid ${this.config.borderColor}`;
@@ -83,6 +86,7 @@ export class DialogueRenderer {
         container.style.boxShadow = '0 4px 20px rgba(255,0,0,0.3)';
         container.style.display = 'none';
         container.style.pointerEvents = 'auto';
+        container.style.boxSizing = 'border-box';
 
         this._container = container;
         document.body.appendChild(container);
@@ -185,14 +189,23 @@ export class DialogueRenderer {
         // Clear container
         this._container.innerHTML = '';
 
+        // Determine if character should appear on the right (Vesper) or left (Patches/others)
+        const isRightSpeaker = node.speaker === 'vesper';
+
         // Build the dialogue content
         const content = document.createElement('div');
         content.style.padding = '0';
 
-        // Determine if character should appear on the right (Vesper) or left (Patches/others)
-        const isRightSpeaker = node.speaker === 'vesper';
+        // Use flex layout to position speaker on the correct side
+        content.style.display = 'flex';
+        content.style.flexDirection = 'column';
+        if (isRightSpeaker) {
+            content.style.alignItems = 'flex-end';
+        } else {
+            content.style.alignItems = 'flex-start';
+        }
 
-        // Expression display (ASCII art) - positioned based on speaker
+        // Expression display (ASCII art)
         if (node.expression && metadata && metadata.expressionSprites) {
             const expressionSprite = metadata.expressionSprites[node.expression]
                 || metadata.expressionSprites['default'];
@@ -205,9 +218,6 @@ export class DialogueRenderer {
                 exprDiv.style.textAlign = 'center';
                 exprDiv.style.marginBottom = '8px';
                 exprDiv.style.color = this.config.textColor;
-                if (isRightSpeaker) {
-                    exprDiv.style.textAlign = 'right';
-                }
                 exprDiv.textContent = expressionSprite;
                 content.appendChild(exprDiv);
             }
@@ -219,7 +229,6 @@ export class DialogueRenderer {
             speakerDiv.style.fontSize = this.config.speakerFontSize;
             speakerDiv.style.fontWeight = 'bold';
             speakerDiv.style.marginBottom = '8px';
-            speakerDiv.style.textAlign = isRightSpeaker ? 'right' : 'left';
             speakerDiv.textContent = node.speaker;
             content.appendChild(speakerDiv);
         }
@@ -231,9 +240,7 @@ export class DialogueRenderer {
             textDiv.style.lineHeight = '1.5';
             textDiv.style.marginBottom = '12px';
             textDiv.style.whiteSpace = 'pre-wrap';
-            if (isRightSpeaker) {
-                textDiv.style.textAlign = 'right';
-            }
+            textDiv.style.maxWidth = '80%';
             textDiv.textContent = node.text;
             content.appendChild(textDiv);
         }
@@ -242,6 +249,7 @@ export class DialogueRenderer {
         if (node.choices && node.choices.length > 0) {
             const choicesDiv = document.createElement('div');
             choicesDiv.style.marginTop = '8px';
+            choicesDiv.style.width = '100%';
 
             node.choices.forEach((choice, index) => {
                 const choiceBtn = document.createElement('button');
