@@ -2,50 +2,74 @@
     "id": "new_game_intro",
     "metadata": {
         "language": "en",
-        "version": 3
+        "version": 4
     },
     "startNode": "intro_start",
     "nodes": {
         "intro_start": {
             "speaker": "patches",
             "expression": "neutral",
-            "text": "Did you hear that?",
+            "text": "...Did you hear that?",
             "next": "vesper_intro"
         },
         "vesper_intro": {
             "speaker": "vesper",
             "expression": "neutral",
-            "text": "Hear what? You have been jumpy all night.",
-            "next": "patches_retort"
+            "text": "Hear what? You have been staring into the dark for hours.",
+            "next": "patches_response"
         },
-        "patches_retort": {
+        "patches_response": {
             "speaker": "patches",
-            "expression": "annoyed",
-            "text": "Jumpy? You are the one who knocked over the lantern.",
-            "next": "vesper_retort"
+            "expression": "neutral",
+            "text": "Something feels different. Like something changed when we weren't looking.",
+            "next": "vesper_tease"
         },
-        "vesper_retort": {
+        "vesper_tease": {
             "speaker": "vesper",
             "expression": "annoyed",
-            "text": "That was ONE time. And it was your tail's fault.",
-            "next": "patches_grumbles"
+            "text": "You said that last time before you knocked over the lantern.",
+            "next": "patches_defend"
         },
-        "patches_grumbles": {
+        "patches_defend": {
+            "speaker": "patches",
+            "expression": "annoyed",
+            "text": "The lantern was already unstable.",
+            "next": "vesper_reply"
+        },
+        "vesper_reply": {
+            "speaker": "vesper",
+            "expression": "annoyed",
+            "text": "You walked directly into it.",
+            "next": "patches_silence"
+        },
+        "patches_silence": {
             "speaker": "patches",
             "expression": "neutral",
-            "text": "...Something is watching us. I am not imagining it this time.",
-            "next": "vesper_reluctant"
+            "text": "...Wait.",
+            "next": "vesper_question"
         },
-        "vesper_reluctant": {
+        "vesper_question": {
             "speaker": "vesper",
             "expression": "neutral",
-            "text": "Fine. I feel it too. ...Right there.",
-            "next": "player_realization"
+            "text": "What is it?",
+            "next": "patches_feeling"
         },
-        "player_realization": {
+        "patches_feeling": {
             "speaker": "patches",
             "expression": "neutral",
-            "text": "Hold on. I can feel you there.",
+            "text": "I don't know. It feels like we're being watched.",
+            "next": "vesper_feeling"
+        },
+        "vesper_feeling": {
+            "speaker": "vesper",
+            "expression": "neutral",
+            "text": "...That's impossible.",
+            "next": "patches_realization"
+        },
+        "patches_realization": {
+            "speaker": "patches",
+            "expression": "neutral",
+            "text": "No... wait. I can actually feel something there.",
             "events": [
                 {
                     "type": "SET_FLAG",
@@ -56,35 +80,48 @@
                     "type": "PLAYER_RECOGNIZED"
                 }
             ],
-            "next": "patches_surprised"
+            "next": "patches_shock"
         },
-        "patches_surprised": {
+        "patches_shock": {
             "speaker": "patches",
             "expression": "surprised",
-            "text": "Oh! You can see us!",
-            "next": "vesper_surprised"
+            "text": "You can hear us?",
+            "next": "vesper_shock"
         },
-        "vesper_surprised": {
+        "vesper_shock": {
             "speaker": "vesper",
             "expression": "surprised",
-            "text": "And you... you are watching us right now.",
-            "events": [
-                {
-                    "type": "SHOW_NAMES"
-                }
-            ],
-            "next": "patches_after"
+            "text": "Wait... you're not just a feeling. You're actually there.",
+            "next": "patches_confused"
         },
-        "patches_after": {
+        "patches_confused": {
             "speaker": "patches",
-            "expression": "neutral",
-            "text": "Well. That explains the prickling in my ears.",
-            "next": "vesper_after"
+            "expression": "surprised",
+            "text": "How is that possible? We weren't supposed to have anyone else here.",
+            "next": "vesper_confused"
         },
-        "vesper_after": {
+        "vesper_confused": {
             "speaker": "vesper",
             "expression": "neutral",
-            "text": "Told you something felt off. But the journey begins now.",
+            "text": "Something about this world feels different now.",
+            "next": "patches_accept"
+        },
+        "patches_accept": {
+            "speaker": "patches",
+            "expression": "neutral",
+            "text": "I don't understand it... but I believe you are real.",
+            "next": "vesper_accept"
+        },
+        "vesper_accept": {
+            "speaker": "vesper",
+            "expression": "neutral",
+            "text": "Then I suppose we should find out why you're here.",
+            "next": "intro_end"
+        },
+        "intro_end": {
+            "speaker": "patches",
+            "expression": "happy",
+            "text": "Whatever happens next... welcome.",
             "events": [
                 {
                     "type": "SET_FLAG",
