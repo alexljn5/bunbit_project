@@ -124,14 +124,16 @@ function runNewGameCinematic(controller) {
         sigil.style.opacity = '1';
 
         // Clear the harsh red overlay filter and blend mode so the sigil
-        // reads as a clean white glowing portal during the zoom.
+        // reads as a clean glowing portal during the zoom instead of a
+        // blown-out red smear.
         sigil.style.filter = 'none';
         sigil.style.mixBlendMode = 'normal';
-        sigil.style.boxShadow = '0 0 80px rgba(252, 0, 0, 0.35)';
+        sigil.style.boxShadow = '0 0 60px rgba(255, 255, 255, 0.35)';
 
         // Combine spin + zoom in ONE animation so the transform isn't
-        // overwritten by the second animation in the list.
-        sigil.style.animation = 'bunbit-portal-zoom 2200ms ease-in-out forwards';
+        // overwritten by the second animation in the list. A short delay
+        // lets the environment start dissolving before the sigil grows.
+        sigil.style.animation = 'bunbit-portal-zoom 2200ms ease-in-out 300ms forwards';
 
         // The dashboard container has overflow:hidden — detach the sigil
         // so it can scale beyond the dashboard frame.
