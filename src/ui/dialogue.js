@@ -49,10 +49,9 @@ export async function dialogueHandler(controller, sharedState, payload = {}) {
     // Create dialogue renderer container
     dialogueRenderer.createContainer();
 
-    // Set cinematic state for intro sequence
+    // Set cinematic state for intro sequence — faces hidden until player is recognized
     if (dialogueId === 'new_game_intro') {
         dialogueRenderer.setCinematicState({
-            introActive: true,
             facesVisible: false,
             playerRecognized: false,
         });
@@ -79,11 +78,30 @@ export async function dialogueHandler(controller, sharedState, payload = {}) {
         handleDialogueComplete(controller, onComplete, currentDialogueId);
     });
 
-    // Listen for cinematic events (fade, sigil, face reveal, etc.)
+    // Listen for cinematic events (face reveal, expression changes, etc.)
     const cinematicHandler = (e) => {
         const { action, characters } = e.detail || {};
-        if (action === 'PLAYER_RECOGNIZED') {
-            dialogueRenderer.setCinematicState({ facesVisible: true, playerRecognized: true });
+
+        switch (action) {
+            case 'FADE_OUT':
+                dialogueRenderer.setCinematicState({ facesVisible: false });
+                break;
+
+            case 'FADE_IN':
+                dialogueRenderer.setCinematicState({ facesVisible: true });
+                break;
+
+            case 'SHOW_EXPRESSIONS':
+                dialogueRenderer.setCinematicState({ facesVisible: true });
+                break;
+
+            case 'HIDE_EXPRESSIONS':
+                dialogueRenderer.setCinematicState({ facesVisible: false });
+                break;
+
+            case 'PLAYER_RECOGNIZED':
+                dialogueRenderer.setCinematicState({ facesVisible: true, playerRecognized: true });
+                break;
         }
     };
     window.addEventListener('dialogue:cinematic', cinematicHandler);
@@ -116,7 +134,6 @@ export async function dialogueHandler(controller, sharedState, payload = {}) {
         unsubscribeComplete();
         dialogueRenderer.destroyContainer();
         dialogueRenderer.setCinematicState({
-            introActive: false,
             facesVisible: true,
             playerRecognized: false,
         });
@@ -200,7 +217,6 @@ function handleDialogueComplete(controller, onComplete, dialogueId) {
 
     // Reset cinematic state
     dialogueRenderer.setCinematicState({
-        introActive: false,
         facesVisible: true,
         playerRecognized: false,
     });
