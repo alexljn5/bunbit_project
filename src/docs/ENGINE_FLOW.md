@@ -103,14 +103,15 @@ GAMEPLAY
    - After the cinematic, transitions to `DIALOGUE` with `dialogueId: 'new_game_intro'`.
 4. `DialogueManager` loads `new_game_intro.json` and starts executing the node graph.
 5. The renderer displays dialogue nodes (speaker, expression, text, choices).
-   - During the intro, character ASCII faces ARE visible, positioned left/right
-     (Patches left, Vesper right via their `uiPosition`). Only the speaker NAMES
-     are hidden (`namesVisible: false`) — the player does not know who they are yet.
+   - During the intro, character ASCII faces are HIDDEN (`facesVisible: false`)
+     and speaker names are hidden (`namesVisible: false`) — the player does not
+     know who they are yet. Patches and Vesper simply exist as voices bickering.
    - The dialogue is two characters bickering before they notice the player.
    - When the dialogue system detects the player (`PLAYER_RECOGNIZED`), the
-     characters react with shocked/surprised expressions.
+     characters' shocked/surprised ASCII faces are revealed (`facesVisible: true`)
+     while names stay hidden — the player still does not know their names.
    - After the shock reaction, `SHOW_NAMES` reveals the speaker names and the
-     normal dialogue UI continues.
+     normal dialogue UI (names + faces) continues.
 6. Player advances through nodes by clicking choices or continue prompts.
 7. When the final node is reached, `intro_complete` is set and `DialogueFinished` is emitted.
 8. `handleDialogueComplete` in `dialogue.js` checks the `intro_complete` flag.

@@ -64,6 +64,8 @@ export class DialogueRenderer {
     /**
      * Creates the dialogue container in the DOM.
      * Uses theme values for all styling.
+     * Placement is theme-driven (center/top/bottom + offsets) so artists
+     * can re-position the textbox without touching renderer logic.
      */
     createContainer() {
         this.destroyContainer();
@@ -74,24 +76,55 @@ export class DialogueRenderer {
         container.dataset.dialogueRenderer = '1';
 
         // Apply textbox theme styles
+        const t = theme.textbox;
         container.style.position = 'fixed';
-        container.style.bottom = '20px';
         container.style.left = '0';
         container.style.right = '0';
         container.style.margin = '0 auto';
-        container.style.width = '90vw';
-        container.style.maxWidth = '900px';
-        container.style.padding = theme.textbox.padding;
-        container.style.backgroundColor = theme.textbox.backgroundColor;
-        container.style.border = `${theme.textbox.borderWidth} solid ${theme.textbox.borderColor}`;
-        container.style.borderRadius = theme.textbox.borderRadius;
-        container.style.color = theme.textbox.textColor;
-        container.style.fontFamily = theme.textbox.fontFamily;
-        container.style.zIndex = theme.textbox.zIndex;
-        container.style.boxShadow = theme.textbox.boxShadow;
+        container.style.padding = t.padding;
+        container.style.backgroundColor = t.backgroundColor;
+        container.style.border = `${t.borderWidth} solid ${t.borderColor}`;
+        container.style.borderRadius = t.borderRadius;
+        container.style.color = t.textColor;
+        container.style.fontFamily = t.fontFamily;
+        container.style.zIndex = t.zIndex;
+        container.style.boxShadow = t.boxShadow;
         container.style.display = 'none';
         container.style.pointerEvents = 'auto';
         container.style.boxSizing = 'border-box';
+
+        // Width: fixed width override, else maxWidth (bounded by viewport)
+        const width = t.width || t.maxWidth || '92vw';
+        container.style.width = width;
+        container.style.maxWidth = t.maxWidth || '92vw';
+        container.style.maxHeight = t.maxHeight || '65vh';
+
+        // Horizontal inset from viewport edges (e.g. '16px' or '5%').
+        if (t.horizontalMargin) {
+            container.style.left = t.horizontalMargin;
+            container.style.right = t.horizontalMargin;
+            container.style.margin = '0 auto';
+        }
+
+        // Vertical placement — anchored by the theme's placement value.
+        const placement = t.placement || 'bottom';
+        const vOffset = t.verticalOffset || '0px';
+        if (placement === 'center') {
+            container.style.top = '50%';
+            container.style.bottom = 'auto';
+            container.style.transform = 'translateY(-50%)';
+            if (vOffset && vOffset !== '0px') {
+                container.style.transform = `translateY(calc(-50% + ${vOffset}))`;
+            }
+        } else if (placement === 'top') {
+            container.style.top = vOffset;
+            container.style.bottom = 'auto';
+            container.style.transform = 'none';
+        } else { // 'bottom' (default)
+            container.style.bottom = vOffset;
+            container.style.top = 'auto';
+            container.style.transform = 'none';
+        }
 
         this._container = container;
         document.body.appendChild(container);

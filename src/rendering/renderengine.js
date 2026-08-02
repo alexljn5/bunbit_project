@@ -220,11 +220,11 @@ export async function gameRenderEngine(deltaTime) {
             mainGameMenu();
             return;
         }
-        if (!showTerminal && (keys["Escape"] || keys["p"])) {
-            setPaused(!isPaused);
-            keys["Escape"] = false;
-            keys["p"] = false;
-        }
+        // NOTE: ESC / P pause toggling is intentionally removed here.
+        // The legacy canvas settings menu (src/menus/menusettings.js) owns the
+        // ESC key via menuHandler() -> menuSettingsGodFunction() -> menuSettings().
+        // The engine state machine's INGAME_MENU is a separate DOM overlay used
+        // by dialogue-driven transitions; it does not consume ESC here.
         if (isPaused && keys["m"]) {
             setPaused(false);
             setMenuActive(true);

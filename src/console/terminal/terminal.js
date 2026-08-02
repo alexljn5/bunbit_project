@@ -1,5 +1,5 @@
 import { keys } from "../../playerdata/playerlogic.js";
-import { SCALE_X, SCALE_Y, CANVAS_WIDTH, CANVAS_HEIGHT, showTerminal, setShowTerminal } from "../../globals.js";
+import { SCALE_X, SCALE_Y, CANVAS_WIDTH, CANVAS_HEIGHT, showTerminal, setShowTerminal, defaultDebugVisible } from "../../globals.js";
 import { renderEngine } from "../../rendering/renderengine.js";
 import { terminalGodFunction } from "./terminalhandler.js";
 
@@ -31,8 +31,13 @@ export function displayTheTerminal() {
     // Choose key depending on environment (Electron or Tauri uses "t", web uses "y")
     const key = (electron || tauri) ? "t" : "y";
 
-    // Toggle terminal only when key is newly pressed
-    if (keys[key] && !lastYState && !inputActive) {
+    // Terminal is a developer tool — only accessible when debug options were
+    // selected on the main dashboard (defaultDebugVisible). If debug is not
+    // enabled, the key does nothing.
+    const debugEnabled = defaultDebugVisible || (typeof window !== 'undefined' && window.defaultDebugVisible);
+
+    // Toggle terminal only when key is newly pressed AND debug is enabled
+    if (keys[key] && !lastYState && !inputActive && debugEnabled) {
         setShowTerminal(!showTerminal);
 
         if (!showTerminal) {

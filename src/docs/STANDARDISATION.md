@@ -215,7 +215,66 @@ Dialogue is a state in the engine state machine (`DIALOGUE`). The engine transit
 Every dialogue file must include `metadata.language` and `metadata.version` fields for future translation support.
 
 ### Sprite Metadata
-Characters are separate from dialogue\. Sprite ASCII art is stored in markdown files within character sprite folders\. The renderer requests by `character` \+ `expression`; the metadata loader resolves the ASCII representation\. Do not hardcode filenames or paths in renderer logic\.\r?\n\r?\n### Dialogue UI Standards\r?\n\r?\nThe dialogue renderer uses a theme layer (`src/dialogue/theme/dialogue-theme.js`) for all visual styling\. This separates visual design from runtime logic, allowing artists to update colours, borders, and animations without touching code\.\r?\n\r?\n#### Theme Object Structure\r?\n| Property | Description |\r?\n|---|---|\r?\n| `textbox` | Container styling: background, border, text colour, font, padding |\r?\n| `portrait` | Expression ASCII art frame styling |\r?\n| `speakerName` | Speaker name text styling |\r?\n| `dialogueText` | Dialogue body text styling |\r?\n| `choice` | Choice button styling (default state) |\r?\n| `choiceHover` | Choice button styling (hover state) |\r?\n| `continuePrompt` | Continue prompt styling |\r?\n| `animations` | Fade/slide animation durations |\r?\n| `typography` | Font family and size settings |\r?\n\r?\n#### Speaker Alignment\r?\nSpeaker layout is data-driven, not hardcoded\. Each character JSON may include a `uiPosition` field (`"left"`, `"right"`, or `"center"`)\. The renderer reads this field to determine which side of the textbox the character appears on\. Characters without `uiPosition` default to left alignment\.\r?\n\r?\n#### Component Structure\r?\nThe renderer builds the dialogue UI from independent components:\r?\n- `DialogueWindow` � The outer container (textbox)\r?\n- `PortraitContainer` � Expression ASCII art display\r?\n- `SpeakerName` � Character name label\r?\n- `DialogueText` � The dialogue body text\r?\n- `ChoiceContainer` � Player choice buttons\r?\n- `ContinuePrompt` � `[Continue]` prompt for linear nodes\r?\n\r?\nEach component reads styling from the theme object and receives data from the dialogue node. No component contains game logic or state decisions.
+Characters are separate from dialogue. Sprite ASCII art is stored in markdown files within character sprite folders. The renderer requests by `character` + `expression`; the metadata loader resolves the ASCII representation. Do not hardcode filenames or paths in renderer logic.
+
+### Dialogue UI Standards
+
+The dialogue renderer uses a theme layer (`src/dialogue/theme/dialogue-theme.js`) for all visual styling. This separates visual design from runtime logic, allowing artists to update colours, borders, and animations without touching code.
+
+#### Textbox Placement
+
+The dialogue textbox is positioned purely through theme configuration — no renderer logic changes are required to move it.
+
+| Property | Type | Description |
+|---|---|---|
+| `textbox.placement` | string | Anchor point: `"center"`, `"top"`, or `"bottom"`. Defaults to `"bottom"` if omitted. |
+| `textbox.verticalOffset` | string | Extra vertical offset from the anchored edge (e.g. `"16px"`, `"5%"`). |
+| `textbox.horizontalMargin` | string | Horizontal inset from the viewport edges (e.g. `"16px"`, `"5%"`). |
+| `textbox.width` | string | Fixed width override (falls back to `maxWidth` when unset). |
+| `textbox.maxWidth` | string | Maximum width (default `92vw`). |
+| `textbox.maxHeight` | string | Maximum height (default `65vh`). |
+
+Examples:
+
+```js
+// Centered on screen (default for the new-game intro)
+textbox: { placement: 'center', verticalOffset: '0px' }
+
+// Pinned to the bottom with a 20px inset
+textbox: { placement: 'bottom', verticalOffset: '20px' }
+
+// Pinned to the top, slightly wider, inset from the edges
+textbox: { placement: 'top', verticalOffset: '32px', horizontalMargin: '5%', maxWidth: '80vw' }
+```
+
+This keeps the textbox easily re-positionable (top/bottom/center, offsets, width) without editing renderer or UI logic.
+
+#### Theme Object Structure
+| Property | Description |
+|---|---|
+| `textbox` | Container styling: background, border, text colour, font, padding |
+| `portrait` | Expression ASCII art frame styling |
+| `speakerName` | Speaker name text styling |
+| `dialogueText` | Dialogue body text styling |
+| `choice` | Choice button styling (default state) |
+| `choiceHover` | Choice button styling (hover state) |
+| `continuePrompt` | Continue prompt styling |
+| `animations` | Fade/slide animation durations |
+| `typography` | Font family and size settings |
+
+#### Speaker Alignment
+Speaker layout is data-driven, not hardcoded. Each character JSON may include a `uiPosition` field (`"left"`, `"right"`, or `"center"`). The renderer reads this field to determine which side of the textbox the character appears on. Characters without `uiPosition` default to left alignment.
+
+#### Component Structure
+The renderer builds the dialogue UI from independent components:
+- `DialogueWindow` — The outer container (textbox)
+- `PortraitContainer` — Expression ASCII art display
+- `SpeakerName` — Character name label
+- `DialogueText` — The dialogue body text
+- `ChoiceContainer` — Player choice buttons
+- `ContinuePrompt` — `[Continue]` prompt for linear nodes
+
+Each component reads styling from the theme object and receives data from the dialogue node. No component contains game logic or state decisions.
 
 ---
 

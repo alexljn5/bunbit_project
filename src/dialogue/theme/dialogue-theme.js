@@ -23,12 +23,25 @@ export const DialogueTheme = Object.freeze({
         borderRadius: '2px',
         textColor: '#cccccc',
         fontFamily: "'Courier New', monospace",
-        padding: '16px',
-        maxWidth: '90vw',
-        maxHeight: '60vh',
+        padding: '20px',
+        maxWidth: '92vw',
+        maxHeight: '65vh',
         overflow: 'auto',
         boxShadow: '0 2px 12px rgba(0,0,0,0.5)',
         zIndex: '2147483647',
+
+        // ─── Placement ────────────────────────────────────
+        // Where the textbox is anchored on screen.
+        //   'center' — vertically & horizontally centred
+        //   'top'    — centred horizontally, pinned near the top
+        //   'bottom' — centred horizontally, pinned near the bottom
+        placement: 'center',
+        // Extra vertical offset from the anchored edge (px or %).
+        verticalOffset: '0px',
+        // Horizontal inset from the viewport edges (px or %).
+        horizontalMargin: '0px',
+        // Fixed width override (falls back to maxWidth when unset).
+        width: '',
     },
 
     // ─── Portrait Frame ───────────────────────────
