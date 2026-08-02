@@ -17,13 +17,13 @@
 export const DialogueTheme = Object.freeze({
     // ─── Textbox ──────────────────────────────────
     textbox: {
-        backgroundColor: '#0a0a0a',
+        backgroundColor: 'rgba(0,0,0,0.92)',
         borderColor: '#555555',
         borderWidth: '1px',
         borderRadius: '2px',
-        textColor: '#cccccc',
+        textColor: '#e0e0e0',
         fontFamily: "'Courier New', monospace",
-        padding: '16px',
+        padding: '20px 24px',
         maxWidth: '90vw',
         maxHeight: '60vh',
         overflow: 'auto',
@@ -33,7 +33,7 @@ export const DialogueTheme = Object.freeze({
 
     // ─── Portrait Frame ───────────────────────────
     portrait: {
-                framePadding: '4px',
+        framePadding: '4px',
         frameMargin: '0 0 8px 0',
         maxWidth: '120px',
         maxHeight: '120px',
@@ -45,22 +45,24 @@ export const DialogueTheme = Object.freeze({
 
     // ─── Speaker Name ─────────────────────────────
     speakerName: {
-        fontSize: '16px',
+        fontSize: '20px',
         fontWeight: 'bold',
-        marginBottom: '8px',
-        color: '#dddddd',
+        marginBottom: '10px',
+        color: '#eeeeee',
         fontFamily: "'Courier New', monospace",
+        textAlign: 'center',
     },
 
     // ─── Dialogue Text ────────────────────────────
     dialogueText: {
-        fontSize: '14px',
-        lineHeight: '1.6',
-        marginBottom: '12px',
-        color: '#cccccc',
+        fontSize: '20px',
+        lineHeight: '1.7',
+        marginBottom: '16px',
+        color: '#dddddd',
         fontFamily: "'Courier New', monospace",
         whiteSpace: 'pre-wrap',
-        maxWidth: '80%',
+        maxWidth: '85%',
+        textAlign: 'center',
     },
 
     // ─── Choice Buttons ───────────────────────────
