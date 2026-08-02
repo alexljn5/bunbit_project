@@ -217,7 +217,6 @@ export class DialogueRenderer {
         const theme = this.config.portrait;
         const portrait = document.createElement('div');
         portrait.dataset.dialoguePortrait = '1';
-        portrait.style.border = `${theme.frameBorderWidth} solid ${theme.frameBorderColor}`;
         portrait.style.padding = theme.framePadding;
         portrait.style.margin = theme.frameMargin;
         portrait.style.maxWidth = theme.maxWidth;
