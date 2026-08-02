@@ -14,12 +14,18 @@
 
 /**
  * Parses a markdown sprite sheet file content into structured metadata.
- * The markdown format is:
+ * Supports two formats:
+ *
+ * Format 1 (with expression names):
  *   ExpressionName
  *   (line1)
  *   (line2)
- *   ...
- * Blank lines separate entries.
+ *
+ * Format 2 (bare ASCII art, no expression name):
+ *   (\_/)
+ *   (•ᴗ•)
+ *
+ * In Format 2, the entire content is treated as the default expression.
  *
  * @param {string} content - Raw markdown file content.
  * @returns {object} Parsed sprite metadata map keyed by expression name.
@@ -29,7 +35,31 @@ export function parseSpriteSheetMarkdown(content) {
     const lines = content.split('\n');
     let currentExpression = null;
     let currentLines = [];
+    let hasExpressionNames = false;
 
+    // First pass: detect if the file has expression name headers
+    for (const rawLine of lines) {
+        const line = rawLine.trim();
+        if (line === '') continue;
+        // If a line has no parentheses or backslashes, it's an expression name
+        if (!line.includes('(') && !line.includes(')') && !line.includes('\\')) {
+            hasExpressionNames = true;
+            break;
+        }
+    }
+
+    // If no expression names found, treat entire content as default expression
+    if (!hasExpressionNames) {
+        const artLines = lines
+            .map((l) => l.trim())
+            .filter((l) => l !== '');
+        if (artLines.length > 0) {
+            expressions['default'] = artLines.join('\n');
+        }
+        return expressions;
+    }
+
+    // Format 1: parse with expression name headers
     for (const rawLine of lines) {
         const line = rawLine.trim();
 
@@ -44,7 +74,6 @@ export function parseSpriteSheetMarkdown(content) {
         }
 
         // Check if this line is an expression name (no parentheses, no backslashes)
-        // Expression names are single words or two-word identifiers like "tiny grin"
         if (!line.includes('(') && !line.includes(')') && !line.includes('\\')) {
             // Save previous expression if any
             if (currentExpression && currentLines.length > 0) {
