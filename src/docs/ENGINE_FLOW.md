@@ -197,5 +197,35 @@ Future systems (save, dialogue, transitions, animated dashboard, map selection, 
 | Transitions | All state transitions | Hook points defined |
 | Animated dashboard | `DASHBOARD` | Placeholder reserved |
 | Map selection | `INGAME_MENU` | Hook point defined |
-| Character intros | `DIALOGUE` | Uses dialogue system |
+---
 
+## Event System
+
+### Built-in Events
+
+| Event | Description |
+|---|---|
+| `engine:stateChange` | Engine transitions between states |
+| `dialogue:stateChange` | Dialogue state changes (node advance, choice) |
+| `dialogue:complete` | Dialogue graph finishes execution |
+| `dialogue:choice` | Player makes a choice in a choice node |
+| `dialogue:cinematic` | Cinematic event (fade, sigil, camera, etc.) |
+
+### Custom Events
+
+Future event types can be registered at runtime via `DialogueEventSystem.registerHandler()`.
+
+---
+
+## Extension Points
+
+Future systems (save, dialogue, transitions, animated dashboard, map selection, character intros) must plug into existing states rather than replacing them.
+
+| Extension | Target State | Status |
+|---|---|---|
+| Save system | `DASHBOARD` | Placeholder reserved |
+| Dialogue system | `DIALOGUE` | Implemented |
+| Transitions | All state transitions | Hook points defined |
+| Animated dashboard | `DASHBOARD` | Placeholder reserved |
+| Map selection | `INGAME_MENU` | Hook point defined |
+| Character intros | `DIALOGUE` | Uses dialogue system |

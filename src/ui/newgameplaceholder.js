@@ -39,6 +39,10 @@ function ensureCinematicStyles() {
     const style = document.createElement('style');
     style.id = 'bunbit-newgame-cinematic-style';
     style.textContent = `
+@keyframes bunbit-cinematic-spin {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
 @keyframes bunbit-portal-zoom {
   0% {
     transform: translate(-50%, -50%) scale(1) rotate(0deg);
@@ -130,11 +134,13 @@ function runNewGameCinematic(controller) {
         sigil.style.mixBlendMode = 'normal';
         sigil.style.boxShadow = '0 0 60px rgba(255, 255, 255, 0.35)';
 
-        // Keep the dashboard spin animation running while the portal-zoom
-        // delay elapses (before the environment has fully faded). When the
-        // zoom begins, its transform takes over — rotating while scaling.
+        // Keep a centered spin animation running while the portal-zoom
+        // delay elapses (before the environment has fully faded). The
+        // cinematic spin uses translate(-50%, -50%) so the sigil stays
+        // perfectly centered at top:50%. When the zoom begins, its
+        // transform takes over — rotating while scaling.
         const envFadeComplete = STAGGER_MS * 2 + ENV_FADE_MS; // 1500ms
-        sigil.style.animation = `bunbit-sigil-spin 25s linear infinite, bunbit-portal-zoom 2400ms ease-in-out ${envFadeComplete}ms forwards`;
+        sigil.style.animation = `bunbit-cinematic-spin 25s linear infinite, bunbit-portal-zoom 2400ms ease-in-out ${envFadeComplete}ms forwards`;
 
         // The dashboard container has overflow:hidden — detach the sigil
         // so it can scale beyond the dashboard frame.
