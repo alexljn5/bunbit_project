@@ -23,9 +23,9 @@ import { engineController } from '../engine/engine.js';
 engineController.registerHandler(EngineState.NEW_GAME_PLACEHOLDER, newGamePlaceholderHandler);
 
 const PLACEHOLDER_ID = 'bunbit-newgame-placeholder';
-const CINEMATIC_MS = 4600;      // total time before entering DIALOGUE
-const ENV_FADE_MS = 800;        // per-element environment fade length
-const STAGGER_MS = 350;         // delay between each environment fade
+const CINEMATIC_MS = 6500;      // total time before entering DIALOGUE
+const ENV_FADE_MS = 1000;       // per-element environment fade length
+const STAGGER_MS = 450;         // delay between each environment fade
 
 let cleanupFn = null;
 
