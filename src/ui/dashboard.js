@@ -8,6 +8,16 @@
 // The New Game button starts the intro dialogue flow.
 // The debug button is hidden in the bottom-right corner
 // to avoid accidental clicks.
+//
+// Layout note:
+//   - The dashboard is a FULL-VIEWPORT overlay. The pillars and
+//     stairs are spread across the viewport using vw units to
+//     keep the original "wide perspective" look (pillars far
+//     apart, stairs receding into the centre).
+//   - NO neon border / glow is applied here. The glowing neon
+//     border is applied by the theme manager to the gameplay
+//     canvas ONLY when inside the actual game.
+//   - The New Game button and sigil are centred on the viewport.
 // ============================================================
 
 import { EngineState } from '../engine/enginestate.js';
@@ -39,7 +49,7 @@ function ensureKeyframes() {
 function createVisualAtmosphere(container) {
     const edgeGap = 20;
 
-    // Pillar textures
+    // Pillar textures — spread across the viewport for perspective
     const pillarSrc = 'img/menu/main/pillar.png';
     const pillarOffsetFactor = 0.35;
 
@@ -73,7 +83,7 @@ function createVisualAtmosphere(container) {
     const pillarRight = createPillarImg('right');
     pillarRight.dataset.dashboardPillar = 'right';
 
-    // Stairs texture
+    // Stairs texture — centred, receding for perspective
     const stairsSrc = 'img/menu/main/stairs.png';
     const stairsEl = document.createElement('img');
     stairsEl.src = stairsSrc;
@@ -92,7 +102,7 @@ function createVisualAtmosphere(container) {
     stairsEl.style.pointerEvents = 'none';
     stairsEl.dataset.dashboardStairs = '1';
 
-    // Spinning sigil
+    // Spinning sigil — centred
     const sigilSrc = 'img/logo/logo-ascii-transparent-sigil-blend.png';
     const sigilEl = document.createElement('img');
     sigilEl.src = sigilSrc;
@@ -115,7 +125,7 @@ function createVisualAtmosphere(container) {
     sigilEl.style.animation = 'bunbit-sigil-spin 25s linear infinite';
     sigilEl.dataset.dashboardSigil = '1';
 
-    // Face overlay
+    // Face overlay — centred
     const faceSrc = 'img/logo/logo-ascii.png';
     const faceEl = document.createElement('img');
     faceEl.src = faceSrc;
@@ -172,9 +182,11 @@ function createDashboard() {
     dashboard.style.userSelect = 'none';
     dashboard.style.zIndex = '2147483644';
     dashboard.style.overflow = 'hidden';
-    dashboard.style.borderRadius = '8px';
-    dashboard.style.border = '2px solid rgba(252,0,0,0.95)';
-    dashboard.style.boxShadow = '0 6px 30px rgba(252,0,0,0.35)';
+    // NO neon border here — the glowing neon border is applied by the
+    // theme manager to the gameplay canvas ONLY when inside the game.
+    dashboard.style.background = 'transparent';
+    dashboard.style.border = 'none';
+    dashboard.style.boxShadow = 'none';
     dashboard.style.isolation = 'isolate';
 
     // Visual atmosphere layer
@@ -314,3 +326,4 @@ export async function dashboardHandler(controller, sharedState, payload = {}) {
 }
 
 export default dashboardHandler;
+

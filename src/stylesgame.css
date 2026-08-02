@@ -31,30 +31,25 @@ body {
     align-items: center;
     width: 100%;
     height: 100%;
-    /* Responsive sizing: allow 1:1 aspect ratio and scale to fit viewport */
-    max-width: 90vw;
-    max-height: 90vh;
-    aspect-ratio: 1;
     padding: 0;
 }
 
+/* ─── Global display scaling ───────────────────────────────
+   The canvas backing store is ALWAYS 800x800 (logical). The
+   display layer (src/rendering/display.js) sets the canvas CSS
+   width/height + transform to fit the viewport with uniform
+   scale and letterboxing. This rule intentionally provides NO
+   viewport-derived sizing so the square logical buffer is never
+   stretched or repositioned by css. */
 canvas#mainGameRender {
     border: 0px solid black;
     display: block;
-    /* Responsive: fill container while preserving pixel-perfect rendering */
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    /* Prevent flex issues */
+    /* Crisp upscale — never smooth-stretch the 800x800 buffer */
     image-rendering: pixelated;
-    /* CRISP PIXELS - fixes blurry upscale! */
     image-rendering: -moz-crisp-edges;
     /* Firefox */
     image-rendering: crisp-edges;
     /* Safari/Chrome alternative */
-    position: fixed;
-    z-index: 1;
-    pointer-events: auto;
 }
 
 canvas#mainGameRender,
@@ -85,7 +80,12 @@ canvas.minimapCanvas {
     margin-bottom: 20px;
 }
 
-/* Ensure when the container is fullscreen the canvas fills the viewport and preserves rendering behavior */
+/* ─── Fullscreen scaling ───────────────────────────────────
+   Fullscreen only changes the AVAILABLE VIEWPORT. The display
+   layer re-runs the same uniform fit (GAME_WIDTH x GAME_HEIGHT
+   scaled + centred + letterboxed). We must NOT stretch the
+   canvas to 100vw/100vh here, otherwise the square logical
+   buffer becomes distorted. */
 .game-container:fullscreen,
 .game-container:-webkit-full-screen,
 .game-container:-moz-full-screen,
@@ -95,16 +95,21 @@ canvas.minimapCanvas {
     max-width: none !important;
     max-height: none !important;
     display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
 }
 
 .game-container:fullscreen canvas#mainGameRender,
 .game-container:-webkit-full-screen canvas#mainGameRender,
 .game-container:-moz-full-screen canvas#mainGameRender,
 .game-container:-ms-fullscreen canvas#mainGameRender {
-    width: 100vw !important;
-    height: 100vh !important;
+    /* The display layer's inline transform/width/height wins.
+       Remove any inherited width/height so nothing stretches. */
+    width: auto !important;
+    height: auto !important;
     max-width: none !important;
     max-height: none !important;
+    object-fit: contain;
 }
 
 /* Make sure overlays inside the container remain interactive */

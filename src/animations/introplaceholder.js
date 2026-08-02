@@ -12,7 +12,9 @@ import {
     DEBUG_START_INTRO_ANIMATION,
     RUN_INTRO_ON_START,
     introActive,
-    setIntroActive
+    setIntroActive,
+    GAME_WIDTH,
+    GAME_HEIGHT
 } from "../globals.js";
 
 // ─── CSS INJECTION ─────────────────────────────────────────────
@@ -34,96 +36,20 @@ const injectStyles = () => {
             font-family: 'Courier New', monospace;
         }
 
-        /* ─── CANVAS ─── */
+/* ─── CANVAS ─── */
         #mainGameRender {
             display: block;
-            width: 100vw !important;
-            height: 100vh !important;
-            max-width: none !important;
-            max-height: none !important;
-            aspect-ratio: auto !important;
 
-            background: #0a0a0a;
+            /* Pure black background — no glow, no scanlines, no vignette.
+               The canvas runs in 800x800 LOGICAL space. The global display
+               layer (rendering/display.js) sets its CSS size + transform to
+               fit the viewport with uniform scale + letterboxing. Never
+               stretch to 100vw/100vh — that would distort the square buffer. */
+            background: #000000;
             image-rendering: pixelated;
-
-            /* subtle CRT glow */
-            box-shadow: inset 0 0 100px rgba(255, 0, 0, 0.05);
         }
 
-        /* ─── SCARY OVERLAY (CRT SCANLINES) ─── */
-        #mainGameRender::after {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 10;
-            background: repeating-linear-gradient(
-                0deg,
-                rgba(0, 0, 0, 0.15) 0px,
-                rgba(0, 0, 0, 0.15) 2px,
-                transparent 2px,
-                transparent 4px
-            );
-            animation: scanline 0.1s infinite linear;
-        }
-
-        @keyframes scanline {
-            0% { transform: translateY(0); }
-            100% { transform: translateY(4px); }
-        }
-
-        /* ─── FLICKER VIGNETTE ─── */
-        #mainGameRender::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 11;
-            background: radial-gradient(
-                ellipse at center,
-                transparent 60%,
-                rgba(0, 0, 0, 0.8) 100%
-            );
-            animation: vignetteFlicker 2s infinite ease-in-out;
-        }
-
-        @keyframes vignetteFlicker {
-            0%, 100% { opacity: 0.7; }
-            50% { opacity: 0.9; }
-            25% { opacity: 0.6; }
-            75% { opacity: 0.85; }
-        }
-
-        /* ─── STATIC NOISE OVERLAY ─── */
-        .intro-static {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 12;
-            opacity: 0.03;
-            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" stitchTiles="stitch"/></filter><rect width="100" height="100" filter="url(%23n)" opacity="1"/></svg>');
-            background-size: 200px 200px;
-            animation: staticMove 0.5s infinite steps(4);
-        }
-
-        @keyframes staticMove {
-            0% { transform: translate(0, 0); }
-            25% { transform: translate(-5px, 3px); }
-            50% { transform: translate(7px, -2px); }
-            75% { transform: translate(-3px, 5px); }
-            100% { transform: translate(2px, -4px); }
-        }
-
-        /* ─── LOADING TEXT (for extra spook) ─── */
+        /* ─── LOADING TEXT ─── */
         .intro-loading {
             position: fixed;
             bottom: 40px;
@@ -138,28 +64,18 @@ const injectStyles = () => {
             opacity: 0.6;
             animation: loadingBlink 1.2s infinite step-start;
             pointer-events: none;
-            text-shadow: 0 0 10px rgba(255, 0, 0, 0.3);
         }
 
         @keyframes loadingBlink {
             0%, 100% { opacity: 0.6; }
             50% { opacity: 0.1; }
         }
-
-        /* ─── RESPONSIVE ─── */
-        @media (max-width: 600px) {
-            .intro-loading { font-size: 10px; bottom: 20px; }
-        }
     `;
     document.head.appendChild(style);
 };
 
 // ─── INJECT STATIC OVERLAY ────────────────────────────────────
-const injectStaticOverlay = () => {
-    const div = document.createElement("div");
-    div.className = "intro-static";
-    document.body.appendChild(div);
-};
+// (removed — intro is pure black + demon frames, no overlays)
 
 const injectLoadingText = () => {
     const div = document.createElement("div");
@@ -170,6 +86,16 @@ const injectLoadingText = () => {
 
 // ─── CONSTANTS ─────────────────────────────────────────────────
 const INTRO_DURATION = 5200; // ms
+
+// The intro runs in the SAME 800x800 logical world as the game.
+// Demons keep their original size/position in this space; the
+// global display layer (rendering/display.js) scales them visually.
+const INTRO_W = GAME_WIDTH;   // 800
+const INTRO_H = GAME_HEIGHT;  // 800
+
+// Demon size is defined in LOGICAL units (relative to 800x800),
+// not in viewport pixels. Changing the window/fullscreen never
+// recalculates these from window dimensions.
 const FRAME_START_SCALE = 0.15;
 const FRAME_END_SCALE = 0.65;
 const FRAME_FADE_START = 0.4;
@@ -214,20 +140,25 @@ function getCanvas() {
     return canvas;
 }
 
-function setupFullscreenCanvas(canvas) {
-    const w = window.innerWidth;
-    const h = window.innerHeight;
-    const dpr = window.devicePixelRatio || 1;
+function setupLogicalCanvas(canvas) {
+    // The intro uses the SAME 800x800 logical space as the game.
+    // We never read window.innerWidth/innerHeight here — the backing
+    // store stays GAME_WIDTH x GAME_HEIGHT and the display layer
+    // scales it visually.
+    canvas.width = INTRO_W;
+    canvas.height = INTRO_H;
+    canvas.style.width = `${INTRO_W}px`;
+    canvas.style.height = `${INTRO_H}px`;
 
-    // Keep drawing coordinates in CSS pixels.
-    canvas.style.width = `${w}px`;
-    canvas.style.height = `${h}px`;
+    // Ask the global display layer to re-fit the canvas to the viewport
+    // (uniform scale, centered, letterboxed). The demons are drawn in
+    // logical coordinates; the display layer handles all visual scaling.
+    const display = typeof window !== 'undefined' ? window.__bunbitDisplay : null;
+    if (display && typeof display.applyDisplayScale === 'function') {
+        display.applyDisplayScale();
+    }
 
-    // Scale the internal buffer for crisp rendering.
-    canvas.width = Math.floor(w * dpr);
-    canvas.height = Math.floor(h * dpr);
-
-    return { w, h, dpr };
+    return { w: INTRO_W, h: INTRO_H };
 }
 
 // ─── GLITCH / SCARY EFFECTS ──────────────────────────────────
@@ -268,7 +199,7 @@ function applyRedFilter(ctx, w, h, intensity) {
 
 // ─── DRAW FRAME ────────────────────────────────────────────────
 function drawFrame(ctx, img, w, h, progress) {
-    // Pure black background
+    // Pure black background (in 800x800 LOGICAL coordinates)
     ctx.fillStyle = "#000000ff";
     ctx.fillRect(0, 0, w, h);
 
@@ -276,7 +207,12 @@ function drawFrame(ctx, img, w, h, progress) {
 
     const eased = easeInOut(progress);
     const scale = FRAME_START_SCALE + (eased * (FRAME_END_SCALE - FRAME_START_SCALE));
-    const size = Math.min(w, h) * scale;
+
+    // The demon is CENTERED in the 800x800 logical world. Its size and
+    // position are relative to GAME_WIDTH/GAME_HEIGHT — never to the
+    // viewport — so resizing/fullscreen does not move or rescale it.
+    const base = Math.min(w, h); // w === h === 800 (square logical space)
+    const size = base * scale;
     const x = Math.round((w - size) / 2);
     const y = Math.round((h - size) / 2);
 
@@ -284,11 +220,8 @@ function drawFrame(ctx, img, w, h, progress) {
     const alpha = FRAME_FADE_START + (eased * (FRAME_FADE_END - FRAME_FADE_START));
     ctx.globalAlpha = Math.min(alpha, 1);
 
-    // Draw image with subtle red glow
-    ctx.shadowColor = "rgba(0, 0, 0, 0.75)";
-    ctx.shadowBlur = 40;
+    // Draw image — no glow, no shadow, just raw demon frame
     ctx.drawImage(img, x, y, size, size);
-    ctx.shadowBlur = 0;
     ctx.globalAlpha = 1;
 
     // Apply scary effects towards the end
@@ -318,7 +251,6 @@ export function maybeShowIntroPlaceholders({ onComplete } = {}) {
         marker.id = "intro-styles-injected";
         document.head.appendChild(marker);
         injectStyles();
-        injectStaticOverlay();
         injectLoadingText();
     }
 
@@ -330,9 +262,10 @@ export function maybeShowIntroPlaceholders({ onComplete } = {}) {
 
 
     const ctx = canvas.getContext("2d", { willReadFrequently: true });
-    const { w, h } = setupFullscreenCanvas(canvas);
+    const { w, h } = setupLogicalCanvas(canvas);
 
-    // Ensure drawing uses CSS-pixel coordinates even though the backing store is DPR-scaled.
+    // The canvas is exactly GAME_WIDTH x GAME_HEIGHT (800x800).
+    // Ensure the identity transform so we draw in logical coordinates.
     ctx.setTransform(1, 0, 0, 1, 0, 0);
 
     preloadImages(FRAME_SOURCES).then((imgs) => {
@@ -364,7 +297,7 @@ export function maybeShowIntroPlaceholders({ onComplete } = {}) {
                     } else {
                         ctx.clearRect(0, 0, w, h);
                         // Remove overlays
-                        document.querySelectorAll(".intro-static, .intro-loading").forEach(el => el.remove());
+                        document.querySelectorAll(".intro-loading").forEach(el => el.remove());
                         onComplete?.();
                     }
                 };

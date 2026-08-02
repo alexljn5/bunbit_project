@@ -20,8 +20,21 @@ export let CANVAS_HEIGHT;
 export let SCALE_X;
 export let SCALE_Y;
 
-export const REF_CANVAS_WIDTH = 800;
-export const REF_CANVAS_HEIGHT = 800;
+// ─── Canonical logical game resolution ─────────────────────
+// The game ALWAYS runs internally at GAME_WIDTH x GAME_HEIGHT.
+// The browser viewport / fullscreen size is NOT part of the game
+// coordinate space. A single global display layer (src/rendering/display.js)
+// scales this logical square visually and letterboxes it.
+export const GAME_WIDTH = 800;
+export const GAME_HEIGHT = 800;
+
+// When true, starting the dashboard requests browser fullscreen.
+// Fullscreen still uses the same 800x800 logical resolution — only
+// the visual scale changes. Kept false during development.
+export const AUTO_FULLSCREEN = false;
+
+export const REF_CANVAS_WIDTH = GAME_WIDTH;
+export const REF_CANVAS_HEIGHT = GAME_HEIGHT;
 
 // Debug toggle via URL param (?debug=true for high-res)
 if (typeof window !== 'undefined') {
@@ -50,18 +63,24 @@ export function setWorkerDebugLogs(value) {
 
 export function updateCanvasResolution(highResEnabled) {
     HIGH_RES_ENABLED = highResEnabled;
-    const renderResolution = highResEnabled ? 800 : 400;
+
+    // Canonical logical resolution is FIXED at 800x800. The canvas backing
+    // store is always GAME_WIDTH x GAME_HEIGHT; only the visual scale changes.
+    const renderResolution = GAME_WIDTH;
 
     // Update canvas properties in browser environment
     if (domElements.mainGameRender) {
         domElements.mainGameRender.width = renderResolution;
         domElements.mainGameRender.height = renderResolution;
-        // Allow CSS to scale the display canvas dynamically (not transform)
-        domElements.mainGameRender.style.width = '100%';
-        domElements.mainGameRender.style.height = '100%';
-        domElements.mainGameRender.style.maxWidth = '90vw';
-        domElements.mainGameRender.style.maxHeight = '90vh';
-        domElements.mainGameRender.style.aspectRatio = '1';
+
+        // The single global display layer owns all CSS sizing. If the module
+        // is present, let it recompute the scale (it also debounces resize).
+        try {
+            const display = window.__bunbitDisplay ?? null;
+            if (display && typeof display.applyDisplayScale === 'function') {
+                display.applyDisplayScale();
+            }
+        } catch (_) { /* display layer not loaded yet — globals run early */ }
     }
 
     // Update resolution values
@@ -71,17 +90,13 @@ export function updateCanvasResolution(highResEnabled) {
     SCALE_Y = renderResolution / REF_CANVAS_HEIGHT;
 }
 
-// Handle window resize to keep canvas responsive
+// Handle window resize to keep canvas responsive.
+// The canvas internal resolution stays the same (GAME_WIDTH x GAME_HEIGHT).
+// CSS scaling + centering + letterboxing is handled by the display layer.
 export function onWindowResize() {
-    if (domElements.mainGameRender && domElements.mainGameRender.parentElement) {
-        // Canvas internal resolution stays same (renderResolution), CSS scaling handles viewport
-        // Optionally adjust render resolution based on device pixel ratio for high-DPI displays
-        const dpr = window.devicePixelRatio || 1;
-        // If you want to support super high DPI, uncomment below and adjust render resolution
-        // const renderResolution = HIGH_RES_ENABLED ? 800 : 400;
-        // const newResolution = Math.ceil(renderResolution * Math.min(dpr, 2)); // Cap at 2x
-        // domElements.mainGameRender.width = newResolution;
-        // domElements.mainGameRender.height = newResolution;
+    const display = typeof window !== 'undefined' ? window.__bunbitDisplay : null;
+    if (display && typeof display.applyDisplayScale === 'function') {
+        display.applyDisplayScale();
     }
 }
 
@@ -89,15 +104,11 @@ if (typeof window !== 'undefined') {
     window.addEventListener('resize', onWindowResize);
 }
 
-// Initialize with default (low-res) in browser or Node.js
-if (domElements.mainGameRender) {
-    updateCanvasResolution(HIGH_RES_ENABLED);
-} else {
-    CANVAS_WIDTH = 400;
-    CANVAS_HEIGHT = 400;
-    SCALE_X = 400 / REF_CANVAS_WIDTH;
-    SCALE_Y = 400 / REF_CANVAS_HEIGHT;
-}
+// Initialize canonical resolution (always 800x800 logical).
+CANVAS_WIDTH = GAME_WIDTH;
+CANVAS_HEIGHT = GAME_HEIGHT;
+SCALE_X = GAME_WIDTH / REF_CANVAS_WIDTH;
+SCALE_Y = GAME_HEIGHT / REF_CANVAS_HEIGHT;
 
 // =============================================================================
 // GLOBAL FLAGS - Centralized configuration for the entire application

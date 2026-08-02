@@ -86,12 +86,12 @@ export async function dialogueHandler(controller, sharedState, payload = {}) {
 
     // Set cinematic state for intro sequence.
     // Patches and Vesper exist before the player is recognized. Their ASCII
-    // faces are visible left/right (Patches left, Vesper right via uiPosition),
-    // but their NAMES stay hidden until recognition reveals them.
+    // faces are NOT visible (they don't know the player is watching yet).
+    // On PLAYER_RECOGNIZED, shocked faces appear. On SHOW_NAMES, names appear.
     if (dialogueId === 'new_game_intro') {
         dialogueRenderer.setCinematicState({
             introActive: true,
-            facesVisible: true,
+            facesVisible: false,
             namesVisible: false,
             playerRecognized: false,
         });
