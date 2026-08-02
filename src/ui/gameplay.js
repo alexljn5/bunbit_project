@@ -109,6 +109,12 @@ export async function gameplayHandler(controller, sharedState, payload = {}) {
         window.__bunbitGameActive = true;
     }
 
+    // Add the gameplay marker class so the theme manager applies the glowing
+    // neon border to the canvas ONLY while the player is inside the game.
+    if (typeof document !== 'undefined' && document.body) {
+        document.body.classList.add('bunbit-gameplay');
+    }
+
     removeOverlays();
     prepareCanvas();
 
@@ -120,6 +126,11 @@ export async function gameplayHandler(controller, sharedState, payload = {}) {
 
     // Cleanup function — called when leaving GAMEPLAY.
     cleanupFn = () => {
+        // Remove the gameplay marker so the neon border disappears when the
+        // player leaves the actual game (pause menu, dashboard, dialogue).
+        if (typeof document !== 'undefined' && document.body) {
+            document.body.classList.remove('bunbit-gameplay');
+        }
         if (typeof window !== 'undefined' && window.game && typeof window.game.stop === 'function') {
             window.game.stop();
         }

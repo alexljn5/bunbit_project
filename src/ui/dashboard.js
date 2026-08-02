@@ -204,7 +204,7 @@ function createDashboard() {
     newGameBtn.textContent = 'New Game';
     newGameBtn.style.cssText = `
         position: absolute;
-        top: 50%;
+        top: 68%;
         left: 50%;
         transform: translate(-50%, -50%);
         padding: 16px 48px;

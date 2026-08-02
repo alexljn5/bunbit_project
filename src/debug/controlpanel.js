@@ -357,6 +357,12 @@ export function initControlPanel() {
 
     function tryStopGame() {
         try {
+            // Remove the gameplay marker so the neon border disappears when
+            // the debug Stop button halts the game.
+            if (typeof document !== 'undefined' && document.body) {
+                document.body.classList.remove('bunbit-gameplay');
+            }
+
             // Stop active game loop first
             if (window.game && typeof window.game.stop === 'function') {
                 window.game.stop();
