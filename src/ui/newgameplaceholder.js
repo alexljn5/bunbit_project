@@ -23,9 +23,9 @@ import { engineController } from '../engine/engine.js';
 engineController.registerHandler(EngineState.NEW_GAME_PLACEHOLDER, newGamePlaceholderHandler);
 
 const PLACEHOLDER_ID = 'bunbit-newgame-placeholder';
-const CINEMATIC_MS = 2800;      // total time before entering DIALOGUE
-const ENV_FADE_MS = 700;        // per-element environment fade length
-const STAGGER_MS = 250;         // delay between each environment fade
+const CINEMATIC_MS = 4600;      // total time before entering DIALOGUE
+const ENV_FADE_MS = 800;        // per-element environment fade length
+const STAGGER_MS = 350;         // delay between each environment fade
 
 let cleanupFn = null;
 
@@ -130,10 +130,11 @@ function runNewGameCinematic(controller) {
         sigil.style.mixBlendMode = 'normal';
         sigil.style.boxShadow = '0 0 60px rgba(255, 255, 255, 0.35)';
 
-        // Combine spin + zoom in ONE animation so the transform isn't
-        // overwritten by the second animation in the list. A short delay
-        // lets the environment start dissolving before the sigil grows.
-        sigil.style.animation = 'bunbit-portal-zoom 2200ms ease-in-out 300ms forwards';
+        // Keep the dashboard spin animation running while the portal-zoom
+        // delay elapses (before the environment has fully faded). When the
+        // zoom begins, its transform takes over — rotating while scaling.
+        const envFadeComplete = STAGGER_MS * 2 + ENV_FADE_MS; // 1500ms
+        sigil.style.animation = `bunbit-sigil-spin 25s linear infinite, bunbit-portal-zoom 2400ms ease-in-out ${envFadeComplete}ms forwards`;
 
         // The dashboard container has overflow:hidden — detach the sigil
         // so it can scale beyond the dashboard frame.
