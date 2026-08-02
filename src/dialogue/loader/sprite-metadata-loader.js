@@ -119,6 +119,7 @@ export async function loadCharacterSpriteMetadata(characterDef, fetchFn = null) 
         defaultExpression: characterDef.defaultExpression,
         expressions: characterDef.expressions,
         expressionSprites,
+        uiPosition: characterDef.uiPosition,
     };
 }
 
