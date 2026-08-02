@@ -2,20 +2,44 @@
     "id": "new_game_intro",
     "metadata": {
         "language": "en",
-        "version": 2
+        "version": 3
     },
     "startNode": "intro_start",
     "nodes": {
         "intro_start": {
             "speaker": "patches",
             "expression": "neutral",
-            "text": "Something feels different tonight.",
+            "text": "Did you hear that?",
             "next": "vesper_intro"
         },
         "vesper_intro": {
             "speaker": "vesper",
             "expression": "neutral",
-            "text": "You are right. It feels like something is listening.",
+            "text": "Hear what? You have been jumpy all night.",
+            "next": "patches_retort"
+        },
+        "patches_retort": {
+            "speaker": "patches",
+            "expression": "annoyed",
+            "text": "Jumpy? You are the one who knocked over the lantern.",
+            "next": "vesper_retort"
+        },
+        "vesper_retort": {
+            "speaker": "vesper",
+            "expression": "annoyed",
+            "text": "That was ONE time. And it was your tail's fault.",
+            "next": "patches_grumbles"
+        },
+        "patches_grumbles": {
+            "speaker": "patches",
+            "expression": "neutral",
+            "text": "...Something is watching us. I am not imagining it this time.",
+            "next": "vesper_reluctant"
+        },
+        "vesper_reluctant": {
+            "speaker": "vesper",
+            "expression": "neutral",
+            "text": "Fine. I feel it too. ...Right there.",
             "next": "player_realization"
         },
         "player_realization": {
@@ -44,23 +68,18 @@
             "speaker": "vesper",
             "expression": "surprised",
             "text": "And you... you are watching us right now.",
-            "events": [
-                {
-                    "type": "SHOW_NAMES"
-                }
-            ],
-            "next": "patches_introduces"
+            "next": "patches_after"
         },
-        "patches_introduces": {
+        "patches_after": {
             "speaker": "patches",
-            "expression": "happy",
-            "text": "I am Patches. This is Vesper. We have been waiting for someone like you.",
-            "next": "vesper_welcome"
+            "expression": "neutral",
+            "text": "Well. That explains the prickling in my ears.",
+            "next": "vesper_after"
         },
-        "vesper_welcome": {
+        "vesper_after": {
             "speaker": "vesper",
-            "expression": "happy",
-            "text": "Welcome. Then the journey begins.",
+            "expression": "neutral",
+            "text": "Told you something felt off. But the journey begins now.",
             "events": [
                 {
                     "type": "SET_FLAG",
