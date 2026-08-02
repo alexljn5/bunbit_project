@@ -8,6 +8,125 @@
 
 The `src` directory contains the core game engine code for Bunbit, a raycasting-based first-person game. This document provides a comprehensive overview of the project structure and how all components work together.
 
+## How the Game Works
+
+### Application Lifecycle
+
+The game follows a finite state machine lifecycle managed by the engine controller (`src/engine/engine.js`). Every screen is an isolated state defined in `src/engine/enginestate.js`. States transition only through the state machine — no direct screen switching is allowed.
+
+```
+Application Start
+    │
+    ▼
+ENGINE_INIT → INTRO → DASHBOARD
+                         │
+            ┌────────────┼────────────┐
+            ▼            ▼            ▼
+      NEW_GAME_    DEBUG_PLAY    (return later)
+      PLACEHOLDER                    │
+            │                        │
+            ▼                        ▼
+        DIALOGUE              INGAME_MENU
+            │                  ┌─────┴─────┐
+            ▼                  ▼           ▼
+        DASHBOARD         GAMEPLAY    DASHBOARD
+                                  (via Pause)
+```
+
+### Engine Controller (`src/engine/engine.js`)
+
+The `EngineController` is the central orchestrator. It:
+1. Maintains the current state and shared state (current map, debug mode, etc.)
+2. Validates transitions using `canTransition()` from `enginestate.js`
+3. Runs transition hooks before state changes
+4. Calls cleanup functions when leaving states
+5. Dispatches `engine:stateChange` events on the window event bus
+6. Provides convenience methods like `startNewGame()`, `startDialogue()`, `resumeGameplay()`
+
+### State Handlers
+
+Each state has a registered handler function that:
+1. Renders the appropriate UI (HTML overlay or canvas)
+2. Sets up input event listeners
+3. Returns a cleanup function that removes the UI and resets state
+
+State handlers are self-registering — they call `engineController.registerHandler()` at module load time.
+
+### Dialogue System Architecture
+
+The dialogue system is fully data-driven and follows a strict separation of concerns:
+
+```
+Engine (lifecycle)
+  │
+  ├── DIALOGUE state handler (src/ui/dialogue.js)
+  │     │
+  │     ├── DialogueManager (runtime)
+  │     │     ├── Loads dialogue graphs (O(1) node lookup via Map)
+  │     │     ├── Tracks current node ID
+  │     │     ├── Resolves next nodes (linear, choices, conditional)
+  │     │     ├── Evaluates conditions against game flags
+  │     │     └── Executes events (SET_FLAG, EMIT_EVENT, etc.)
+  │     │
+  │     ├── DialogueRenderer (UI)
+  │     │     ├── Draws dialogue box
+  │     │     ├── Displays ASCII expression art (from sprite metadata)
+  │     │     ├── Shows speaker name and dialogue text
+  │     │     └── Renders choice buttons
+  │     │
+  │     ├── CharacterLoader (data)
+  │     │     └── Loads character metadata JSON files
+  │     │
+  │     ├── DialogueLoader (data)
+  │     │     └── Loads and validates dialogue graph JSON files
+  │     │
+  │     ├── SpriteMetadataLoader (data)
+  │     │     └── Parses markdown sprite sheets into expression data
+  │     │
+  │     ├── ConditionManager (logic)
+  │     │     └── Evaluates conditions (eq, neq, gt, lt, has, etc.)
+  │     │
+  │     └── DialogueEventSystem (events)
+  │           └── Executes event triggers from dialogue nodes
+```
+
+**Key principle**: Dialogue is DATA, not code. The engine never knows "Patches says this." It only knows "a dialogue object is active." The dialogue data decides speaker, expression, text, next node, and events.
+
+### Game Loop (`src/game_loop.js`)
+
+The game loop runs at 60 FPS via `requestAnimationFrame`. It:
+1. Computes delta time in seconds
+2. Calls the render callback with delta time
+3. Handles start/stop control
+
+### Global State (`src/globals.js`)
+
+All runtime flags and configuration live in `globals.js` with:
+- `export let` declarations for reactive state
+- `setXxx()` setter functions that also update `window.xxx` for cross-module access
+- Centralized configuration (canvas size, graphics presets, debug flags, theme, etc.)
+
+### Tauri Backend (`src-tauri/`)
+
+The Rust backend handles:
+- Crash log writing to `crash_logs/` directory
+- Player log management in `scary_logs/` directory
+- Window reload command
+- Plugin initialization (filesystem, shell, process, dialog, HTTP)
+- CSP configuration for security
+
+### Component Interaction Patterns
+
+| Pattern | Example |
+|---|---|
+| UI → Engine | Dashboard button clicks call `engineController.transitionTo()` |
+| Engine → UI | Engine calls registered state handler functions |
+| UI → Runtime | Dialogue UI calls `dialogueManager.advance()` or `makeChoice()` |
+| Runtime → UI | DialogueManager emits state change events; UI re-renders |
+| Runtime → Engine | DialogueManager emits `DialogueFinished`; engine transitions state |
+| Data → Runtime | Loaders fetch JSON/Markdown files; runtime processes them |
+| Events → Cross-module | `window.dispatchEvent(new CustomEvent(...))` for decoupled communication |
+
 ## Project Structure
 
 ### `src/` — Frontend (JavaScript/HTML/CSS)
