@@ -32,7 +32,7 @@ const injectStyles = () => {
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background: #0a0a0a;
+            background: #000000;
             font-family: 'Courier New', monospace;
         }
 
@@ -147,18 +147,46 @@ function setupLogicalCanvas(canvas) {
     // scales it visually.
     canvas.width = INTRO_W;
     canvas.height = INTRO_H;
-    canvas.style.width = `${INTRO_W}px`;
-    canvas.style.height = `${INTRO_H}px`;
-
     // Ask the global display layer to re-fit the canvas to the viewport
     // (uniform scale, centered, letterboxed). The demons are drawn in
     // logical coordinates; the display layer handles all visual scaling.
+    // If the display layer is unavailable, center + scale manually so the
+    // intro is never stuck in the top-left corner.
     const display = typeof window !== 'undefined' ? window.__bunbitDisplay : null;
     if (display && typeof display.applyDisplayScale === 'function') {
         display.applyDisplayScale();
+    } else {
+        centerCanvasManually(canvas);
     }
 
     return { w: INTRO_W, h: INTRO_H };
+}
+
+/**
+ * Fallback: centers + uniform-scales the 800x800 intro canvas when the
+ * global display layer is unavailable, so the demons appear centred in the
+ * viewport (letterboxed) instead of being offset to the top-left.
+ */
+function centerCanvasManually(canvas) {
+    const viewportW = typeof window !== 'undefined' ? (window.innerWidth || INTRO_W) : INTRO_W;
+    const viewportH = typeof window !== 'undefined' ? (window.innerHeight || INTRO_H) : INTRO_H;
+    const scale = Math.min(viewportW / INTRO_W, viewportH / INTRO_H);
+    const dispW = Math.round(INTRO_W * scale);
+    const dispH = Math.round(INTRO_H * scale);
+    const offsetX = Math.round((viewportW - dispW) / 2);
+    const offsetY = Math.round((viewportH - dispH) / 2);
+
+    canvas.style.position = 'fixed';
+    canvas.style.top = '0';
+    canvas.style.left = '0';
+    canvas.style.width = `${dispW}px`;
+    canvas.style.height = `${dispH}px`;
+    canvas.style.maxWidth = 'none';
+    canvas.style.maxHeight = 'none';
+    canvas.style.aspectRatio = 'auto';
+    canvas.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+    canvas.style.transformOrigin = 'top left';
+    canvas.style.zIndex = '1';
 }
 
 // ─── GLITCH / SCARY EFFECTS ──────────────────────────────────
@@ -254,6 +282,13 @@ export function maybeShowIntroPlaceholders({ onComplete } = {}) {
         injectLoadingText();
     }
 
+    // Force a pure black backdrop for the entire intro — the theme manager
+    // may otherwise tint the page (e.g. evil red-black) around the canvas.
+    if (typeof document !== 'undefined') {
+        document.documentElement.style.backgroundColor = '#000000';
+        document.body.style.backgroundColor = '#000000';
+    }
+
     const canvas = getCanvas();
     if (!canvas) {
         onComplete?.();
@@ -289,7 +324,7 @@ export function maybeShowIntroPlaceholders({ onComplete } = {}) {
                 // Flicker out
                 let flickerCount = 0;
                 const flickerOut = () => {
-                    ctx.fillStyle = "#0a0a0a";
+                    ctx.fillStyle = "#000000";
                     ctx.fillRect(0, 0, w, h);
                     flickerCount++;
                     if (flickerCount < 6) {
