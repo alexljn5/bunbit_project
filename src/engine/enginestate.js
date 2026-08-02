@@ -15,6 +15,7 @@ export const EngineState = Object.freeze({
     ENGINE_INIT: 'ENGINE_INIT',
     INTRO: 'INTRO',
     DASHBOARD: 'DASHBOARD',
+    DIALOGUE: 'DIALOGUE',
     NEW_GAME_PLACEHOLDER: 'NEW_GAME_PLACEHOLDER',
     INGAME_MENU: 'INGAME_MENU',
     GAMEPLAY: 'GAMEPLAY',
@@ -32,7 +33,8 @@ export const ValidTransitions = Object.freeze({
         EngineState.NEW_GAME_PLACEHOLDER,
         EngineState.GAMEPLAY,
     ],
-    [EngineState.NEW_GAME_PLACEHOLDER]: [EngineState.INGAME_MENU, EngineState.DASHBOARD],
+    [EngineState.NEW_GAME_PLACEHOLDER]: [EngineState.DIALOGUE, EngineState.DASHBOARD],
+    [EngineState.DIALOGUE]: [EngineState.DASHBOARD, EngineState.INGAME_MENU],
     [EngineState.INGAME_MENU]: [
         EngineState.GAMEPLAY,
         EngineState.DASHBOARD,
@@ -55,6 +57,8 @@ export const TransitionEvent = Object.freeze({
     RESUME_GAME: 'RESUME_GAME',
     RETURN_TO_DASHBOARD: 'RETURN_TO_DASHBOARD',
     SELECT_MAP: 'SELECT_MAP',
+    START_DIALOGUE: 'START_DIALOGUE',
+    DIALOGUE_FINISHED: 'DIALOGUE_FINISHED',
 });
 
 /**

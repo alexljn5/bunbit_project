@@ -1,0 +1,55 @@
+{
+    "id": "example_dialogue",
+    "metadata": {
+        "language": "en",
+        "version": 1
+    },
+    "startNode": "intro_001",
+    "nodes": {
+        "intro_001": {
+            "speaker": "patches",
+            "expression": "neutral",
+            "text": "Placeholder dialogue system online.",
+            "next": "intro_002"
+        },
+        "intro_002": {
+            "speaker": "vesper",
+            "expression": "curious",
+            "text": "Dialogue graph connection successful.",
+            "choices": [
+                {
+                    "text": "Choice A",
+                    "next": "branch_a"
+                },
+                {
+                    "text": "Choice B",
+                    "next": "branch_b"
+                }
+            ]
+        },
+        "branch_a": {
+            "speaker": "patches",
+            "expression": "happy",
+            "text": "You chose path A.",
+            "next": "shared_ending"
+        },
+        "branch_b": {
+            "speaker": "vesper",
+            "expression": "smug",
+            "text": "You chose path B.",
+            "next": "shared_ending"
+        },
+        "shared_ending": {
+            "speaker": "patches",
+            "expression": "neutral",
+            "text": "Both paths lead here.",
+            "events": [
+                {
+                    "type": "SET_FLAG",
+                    "flag": "example_dialogue_complete",
+                    "value": true
+                }
+            ]
+        }
+    }
+}

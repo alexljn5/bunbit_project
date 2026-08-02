@@ -12,6 +12,14 @@ src/
 ├── engine/                # Core engine: state machine, lifecycle, controller
 ├── game/                  # Gameplay logic (when implemented)
 ├── ui/                    # All UI components and screens
+├── dialogue/              # Data-driven dialogue system
+│   ├── dialogues/         # Dialogue graph JSON files
+│   ├── characters/        # Character metadata JSON files
+│   ├── loader/            # Data loading modules
+│   ├── runtime/           # Core runtime (DialogueManager)
+│   ├── renderer/          # UI rendering (DialogueRenderer)
+│   ├── conditions/        # Condition evaluation
+│   └── events/            # Event trigger system
 ├── database/              # Data persistence layer
 │   ├── postgres/          # PostgreSQL-specific queries and migrations
 │   └── tasks/             # Async database tasks and jobs
@@ -72,7 +80,8 @@ Every screen must exist as its own isolated state. States are defined in `src/en
 | `ENGINE_INIT` | Engine initialisation, resource loading |
 | `INTRO` | Creepy intro / title screen |
 | `DASHBOARD` | Main menu dashboard with player and developer sections |
-| `NEW_GAME_PLACEHOLDER` | Placeholder for future new-game flow |
+| `DIALOGUE` | Data-driven dialogue graph runtime |
+| `NEW_GAME_PLACEHOLDER` | Transition point to DIALOGUE for new-game flow |
 | `INGAME_MENU` | Pause / in-game menu overlay |
 | `GAMEPLAY` | Active gameplay (raycasting, movement, combat) |
 
@@ -83,6 +92,130 @@ Every screen must exist as its own isolated state. States are defined in `src/en
 
 ### Extension Points
 Future systems (save, dialogue, transitions, animated dashboard, map selection, character intros) must plug into existing states rather than replacing them.
+
+---
+
+## 16. Dialogue Framework
+
+### Overview
+The dialogue system is fully data-driven. Dialogue content lives in JSON files under `src/dialogue/dialogues/`. No dialogue text is hardcoded in JavaScript.
+
+### Folder Structure
+```
+src/dialogue/
+├── dialogues/           # Dialogue graph JSON files
+│   ├── example.json
+│   └── new_game_intro.json
+├── characters/          # Character metadata JSON files
+│   ├── patches.json
+│   └── vesper.json
+├── loader/              # Data loading modules
+│   ├── dialogue-loader.js
+│   ├── character-loader.js
+│   └── sprite-metadata-loader.js
+├── runtime/             # Core runtime
+│   └── dialogue-manager.js
+├── renderer/            # UI rendering (separate from runtime)
+│   └── dialogue-renderer.js
+├── conditions/          # Condition evaluation
+│   └── condition-manager.js
+└── events/              # Event trigger system
+    └── dialogue-events.js
+```
+
+### Dialogue Architecture
+Dialogue uses a **node graph** architecture. Nodes are independent objects identified by unique IDs. Connections are references (strings), not nested objects.
+
+#### Node Graph Structure
+```json
+{
+    "id": "dialogue_id",
+    "metadata": { "language": "en", "version": 1 },
+    "startNode": "node_001",
+    "nodes": {
+        "node_001": {
+            "speaker": "patches",
+            "expression": "neutral",
+            "text": "Dialogue text.",
+            "next": "node_002",
+            "events": [
+                { "type": "SET_FLAG", "flag": "intro_complete", "value": true }
+            ]
+        },
+        "node_002": {
+            "speaker": "vesper",
+            "expression": "curious",
+            "choices": [
+                { "text": "Choice A", "next": "branch_a" },
+                { "text": "Choice B", "next": "branch_b" }
+            ]
+        }
+    }
+}
+```
+
+#### Node Properties
+| Property | Type | Description |
+|---|---|---|
+| `speaker` | string | Character ID referencing a character in `characters/` |
+| `expression` | string | Expression name for sprite rendering |
+| `text` | string | Dialogue text |
+| `next` | string | ID of the next node (linear progression) |
+| `choices` | array | Player choice options (each has `text` and `next`) |
+| `events` | array | Event triggers executed when node is entered |
+| `conditionalBranches` | array | Conditional next-node resolution |
+
+#### Event Structure
+```json
+{
+    "events": [
+        { "type": "SET_FLAG", "flag": "intro_complete", "value": true },
+        { "type": "EMIT_EVENT", "type": "dialogue:introComplete", "payload": {} }
+    ]
+}
+```
+
+Built-in event types: `SET_FLAG`, `REMOVE_FLAG`, `INCREMENT_FLAG`, `EMIT_EVENT`.
+Custom event types can be registered at runtime via `DialogueEventSystem.registerHandler()`.
+
+### Condition System
+Conditions are evaluated against game flags:
+| Operator | Description |
+|---|---|
+| `eq` | Flag equals value |
+| `neq` | Flag does not equal value |
+| `gt` | Flag greater than value |
+| `lt` | Flag less than value |
+| `gte` | Flag greater than or equal to value |
+| `lte` | Flag less than or equal to value |
+| `has` | Flag exists (not null/undefined) |
+| `notHas` | Flag does not exist |
+
+### Performance
+- O(1) node lookup using Map keyed by node ID
+- No traversal searching or array scanning
+- Lazy loading supported (dialogues loaded on demand)
+- Reusable nodes supported (multiple paths can reference the same node)
+
+### Separation of Concerns
+| Component | Responsibility |
+|---|---|
+| `DialogueManager` | Load graphs, track state, resolve nodes, evaluate conditions, execute events |
+| `DialogueRenderer` | Draw dialogue box, display speaker/expression/text/choices |
+| `DialogueEventSystem` | Execute event triggers from nodes |
+| `ConditionManager` | Evaluate conditions against flags |
+| `DialogueLoader` | Load and validate JSON dialogue files |
+| `CharacterLoader` | Load character metadata JSON files |
+| `SpriteMetadataLoader` | Parse markdown sprite sheets into expression data |
+
+### Engine Integration
+Dialogue is a state in the engine state machine (`DIALOGUE`). The engine transitions to `DIALOGUE` when a dialogue sequence begins. When dialogue completes, `DialogueFinished` is emitted and the engine decides what happens next. Dialogue does not force transitions.
+
+### Localisation
+Every dialogue file must include `metadata.language` and `metadata.version` fields for future translation support.
+
+### Sprite Metadata
+Characters are separate from dialogue. Sprite ASCII art is stored in markdown files within character sprite folders. The renderer requests by `character` + `expression`; the metadata loader resolves the ASCII representation. Do not hardcode filenames or paths in renderer logic.
 
 ---
 
@@ -150,6 +283,9 @@ Events follow the pattern `domain:action` using lowercase and colons:
 | `ingame:returnToDashboard` | Player returns to dashboard |
 | `ingame:selectMap` | Player opens map selection |
 | `theme:change` | Theme is switched |
+| `dialogue:stateChange` | Dialogue state changes (node advance, choice) |
+| `dialogue:complete` | Dialogue graph finishes execution |
+| `dialogue:choice` | Player makes a choice in a choice node |
 
 ---
 
@@ -232,11 +368,11 @@ Events follow the pattern `domain:action` using lowercase and colons:
 | Extension | Target State | Status |
 |---|---|---|
 | Save system | `DASHBOARD` | Placeholder reserved |
-| Dialogue system | `NEW_GAME_PLACEHOLDER` | Placeholder reserved |
+| Dialogue system | `DIALOGUE` | Implemented |
 | Transitions | All state transitions | Hook points defined |
 | Animated dashboard | `DASHBOARD` | Placeholder reserved |
 | Map selection | `INGAME_MENU` | Hook point defined |
-| Character introductions | `NEW_GAME_PLACEHOLDER` | Placeholder reserved |
+| Character introductions | `DIALOGUE` | Uses dialogue system |
 
 ---
 

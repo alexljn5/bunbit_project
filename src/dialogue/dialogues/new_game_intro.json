@@ -1,0 +1,34 @@
+{
+    "id": "new_game_intro",
+    "metadata": {
+        "language": "en",
+        "version": 1
+    },
+    "startNode": "patches_intro",
+    "nodes": {
+        "patches_intro": {
+            "speaker": "patches",
+            "expression": "neutral",
+            "text": "Placeholder dialogue system online.",
+            "next": "vesper_intro"
+        },
+        "vesper_intro": {
+            "speaker": "vesper",
+            "expression": "curious",
+            "text": "Dialogue graph connection successful.",
+            "next": "intro_complete"
+        },
+        "intro_complete": {
+            "speaker": "patches",
+            "expression": "happy",
+            "text": "Intro dialogue complete.",
+            "events": [
+                {
+                    "type": "SET_FLAG",
+                    "flag": "intro_complete",
+                    "value": true
+                }
+            ]
+        }
+    }
+}

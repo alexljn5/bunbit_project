@@ -13,7 +13,8 @@ The engine operates as a finite state machine with the following states:
 | `ENGINE_INIT` | Initialises engine subsystems, loads resources |
 | `INTRO` | Creepy intro / title screen with ASCII animation |
 | `DASHBOARD` | Main menu with Player and Developer sections |
-| `NEW_GAME_PLACEHOLDER` | Placeholder for future new-game intro sequence |
+| `DIALOGUE` | Dialogue graph runtime (data-driven) |
+| `NEW_GAME_PLACEHOLDER` | Transition point to DIALOGUE for new-game intro |
 | `INGAME_MENU` | Minimal in-game menu (Play, Select Map, Return) |
 | `GAMEPLAY` | Active raycasting gameplay |
 
@@ -37,21 +38,20 @@ Main Dashboard (DASHBOARD)
  New Game     Developer Debug
    ↓            │
    ▼            ▼
- New Game     DEBUG PLAY
- Placeholder    → shows all debug panels
+ NEW_GAME_    DEBUG PLAY
+ PLACEHOLDER    → shows all debug panels
    │            (memcpu, debug terminal, control panel)
    ▼            → use control panel Play/Reload to start game
- In-Game Menu ◄───┘
- (INGAME_MENU)  │
+ DIALOGUE     ◄───┘
    │            │
-   ├─ Play ─────┤
-   │            ▼
-   ├─ Select Map  GAMEPLAY
-   │            │
-   └─ Return ───┘
-        │
-        ▼
-   (returns to DASHBOARD)
+   ├─ Dialogue  ├─ Play
+   │  Complete  │
+   ▼            ▼
+ DASHBOARD  INGAME_MENU
+              │
+              ├─ Play → GAMEPLAY
+              │
+              └─ Return → DASHBOARD
 ```
 
 ---
@@ -71,9 +71,23 @@ Main Dashboard (DASHBOARD)
 ### 3. DASHBOARD → NEW_GAME_PLACEHOLDER
 - Triggered when the player clicks **"New Game"** in the Player Section.
 - The engine transitions to `NEW_GAME_PLACEHOLDER`.
-- This screen reserves the future location for intro dialogue, patches, Vesper, save slot creation, and cinematic transitions.
+- This is a brief transition point that immediately enters the dialogue system.
 
-### 4. DASHBOARD → GAMEPLAY (via DEBUG PLAY)
+### 4. NEW_GAME_PLACEHOLDER → DIALOGUE
+- Triggered automatically when `NEW_GAME_PLACEHOLDER` state is entered.
+- The engine transitions to `DIALOGUE` and loads `new_game_intro.json`.
+- The dialogue graph runs the intro sequence (Patches → Vesper).
+
+### 5. DIALOGUE → DASHBOARD
+- Triggered when the dialogue graph completes (no more nodes).
+- The engine transitions back to `DASHBOARD`.
+- The `DialogueFinished` event is emitted for the engine to handle.
+
+### 6. DIALOGUE → INGAME_MENU
+- Triggered when the player pauses during dialogue (if applicable).
+- The engine transitions to `INGAME_MENU`.
+
+### 7. DASHBOARD → GAMEPLAY (via DEBUG PLAY)
 - Triggered when the developer clicks **"DEBUG PLAY"** in the Developer Section.
 - DEBUG PLAY toggles all debug panels on/off:
   - **First press**: shows the control panel, memcpu performance monitor, and debug terminal; sets `defaultDebugVisible` and `showDebugTools` to `true`.
@@ -81,14 +95,20 @@ Main Dashboard (DASHBOARD)
 - The control panel's **Play** button is then used to start the game and load `map_01`.
 - This route exists solely for development and bypasses the intro screen.
 
-### 5. NEW_GAME_PLACEHOLDER → INGAME_MENU
-- Triggered when the placeholder screen is dismissed or times out.
-- The engine transitions to `INGAME_MENU`.
-- This is a temporary transition until the full new-game intro is implemented.
+### 8. INGAME_MENU → GAMEPLAY
+- Triggered when the player clicks **"Play"** in the in-game menu.
+- The engine transitions to `GAMEPLAY`.
+- The current map (default: `map_01`) is loaded.
 
-### 5b. NEW_GAME_PLACEHOLDER → DASHBOARD
-- Triggered when the player clicks **"Return to Dashboard"** in the placeholder screen.
+### 9. INGAME_MENU → DASHBOARD
+- Triggered when the player clicks **"Return to Dashboard"**.
 - The engine transitions back to `DASHBOARD`.
+- Gameplay is paused and cleaned up.
+
+### 10. GAMEPLAY → INGAME_MENU
+- Triggered when the player presses **Escape** or **P** to pause.
+- The engine transitions to `INGAME_MENU`.
+- The game loop is paused but not stopped.
 
 ### 6. INGAME_MENU → GAMEPLAY
 - Triggered when the player clicks **"Play"** in the in-game menu.
@@ -123,11 +143,11 @@ The following systems will plug into existing states without modifying the state
 | System | Plugs Into | How |
 |---|---|---|
 | Save system | `DASHBOARD` | Adds save slot UI to Player Section |
-| Dialogue system | `NEW_GAME_PLACEHOLDER` | Replaces placeholder with intro dialogue |
+| Dialogue system | `DIALOGUE` | Data-driven dialogue graphs |
 | Transitions | All state transitions | Adds fade/slide effects between states |
 | Animated dashboard | `DASHBOARD` | Enhances dashboard rendering |
 | Map selection | `INGAME_MENU` | Adds map picker to in-game menu |
-| Character introductions | `NEW_GAME_PLACEHOLDER` | Adds character intro sequence |
+| Character introductions | `DIALOGUE` | Uses dialogue system for intros |
 
 ---
 
@@ -139,6 +159,14 @@ The following systems will plug into existing states without modifying the state
 | `src/engine/engine.js` | Engine controller and lifecycle management |
 | `src/ui/intro.js` | Intro screen rendering and animation |
 | `src/ui/dashboard.js` | Dashboard layout with player/developer sections |
-| `src/ui/newgameplaceholder.js` | New game placeholder screen |
+| `src/ui/newgameplaceholder.js` | New game placeholder (transitions to DIALOGUE) |
+| `src/ui/dialogue.js` | Dialogue UI state handler |
 | `src/ui/ingamemenu.js` | In-game menu overlay |
+| `src/dialogue/runtime/dialogue-manager.js` | Dialogue graph runtime |
+| `src/dialogue/renderer/dialogue-renderer.js` | Dialogue UI rendering |
+| `src/dialogue/loader/dialogue-loader.js` | Dialogue JSON loading and validation |
+| `src/dialogue/loader/character-loader.js` | Character metadata loading |
+| `src/dialogue/loader/sprite-metadata-loader.js` | Sprite markdown parsing |
+| `src/dialogue/conditions/condition-manager.js` | Condition evaluation |
+| `src/dialogue/events/dialogue-events.js` | Event trigger system |
 | `src/globals.js` | Centralised state flags and transition triggers |

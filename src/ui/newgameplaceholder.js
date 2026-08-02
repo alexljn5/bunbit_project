@@ -7,7 +7,9 @@
 //   - Vesper
 //   - save slot creation
 //   - cinematic transitions
-// No gameplay or dialogue is implemented yet.
+//
+// On entry, immediately transitions to DIALOGUE state
+// to run the new_game_intro dialogue graph.
 // ============================================================
 
 import { EngineState } from '../engine/enginestate.js';
@@ -21,7 +23,7 @@ let cleanupFn = null;
 
 /**
  * Handler for the NEW_GAME_PLACEHOLDER state.
- * Renders a minimal placeholder screen.
+ * Immediately transitions to DIALOGUE to run the intro dialogue.
  * @param {object} controller - The engine controller.
  * @param {object} sharedState - Persistent shared state.
  * @param {object} payload - Optional transition payload.
@@ -40,86 +42,13 @@ export async function newGamePlaceholderHandler(controller, sharedState, payload
     const existing = document.getElementById(PLACEHOLDER_ID);
     if (existing) existing.remove();
 
-    const placeholder = document.createElement('div');
-    placeholder.id = PLACEHOLDER_ID;
-    placeholder.dataset.enginePlaceholder = '1';
-    placeholder.style.position = 'fixed';
-    placeholder.style.inset = '0';
-    placeholder.style.display = 'flex';
-    placeholder.style.flexDirection = 'column';
-    placeholder.style.alignItems = 'center';
-    placeholder.style.justifyContent = 'center';
-    placeholder.style.zIndex = '2147483644';
-    placeholder.style.backgroundColor = '#0a0000';
-    placeholder.style.fontFamily = "'Courier New', monospace";
-    placeholder.style.pointerEvents = 'auto';
-
-    // Title
-    const title = document.createElement('h1');
-    title.textContent = 'NEW GAME';
-    title.style.cssText = `
-        color: #FC0000;
-        font-size: 32px;
-        margin: 0 0 8px 0;
-        text-shadow: 0 0 20px rgba(255,0,0,0.5);
-    `;
-
-    // Subtitle
-    const subtitle = document.createElement('p');
-    subtitle.textContent = 'Placeholder';
-    subtitle.style.cssText = `
-        color: #663333;
-        font-size: 16px;
-        margin: 0 0 24px 0;
-    `;
-
-    // Future content note
-    const note = document.createElement('p');
-    note.textContent = 'Future intro sequence, dialogue, and cinematic transitions will start here.';
-    note.style.cssText = `
-        color: #442222;
-        font-size: 12px;
-        margin: 0 0 16px 0;
-        opacity: 0.5;
-        text-align: center;
-        max-width: 400px;
-    `;
-
-    // Return to dashboard button
-    const backBtn = document.createElement('button');
-    backBtn.id = 'bunbit-placeholder-back-btn';
-    backBtn.textContent = 'Return to Dashboard';
-    backBtn.style.cssText = `
-        margin-top: 32px;
-        padding: 10px 24px;
-        font-family: 'Courier New', monospace;
-        font-size: 14px;
-        color: #FC0000;
-        background: #1a0000;
-        border: 1px solid #FC0000;
-        border-radius: 4px;
-        cursor: pointer;
-    `;
-    backBtn.addEventListener('mouseenter', () => {
-        backBtn.style.background = '#FC0000';
-        backBtn.style.color = '#000';
-    });
-    backBtn.addEventListener('mouseleave', () => {
-        backBtn.style.background = '#1a0000';
-        backBtn.style.color = '#FC0000';
-    });
-    backBtn.addEventListener('click', () => {
-        engineController.transitionTo(EngineState.DASHBOARD);
+    // Immediately transition to DIALOGUE state to run the intro dialogue
+    controller.transitionTo(EngineState.DIALOGUE, {
+        dialogueId: 'new_game_intro',
+        flags: {},
     });
 
-    placeholder.appendChild(title);
-    placeholder.appendChild(subtitle);
-    placeholder.appendChild(note);
-    placeholder.appendChild(backBtn);
-
-    document.body.appendChild(placeholder);
-
-    // Cleanup function
+    // Cleanup function (minimal — dialogue handles its own lifecycle)
     cleanupFn = () => {
         const el = document.getElementById(PLACEHOLDER_ID);
         if (el) el.remove();

@@ -21,6 +21,14 @@ src/
 ├── debug/                 # Debug tools and panels
 ├── debugtools.js          # Developer tools overlay
 ├── decorationhandler/     # Map decorations
+├── dialogue/              # Data-driven dialogue system
+│   ├── dialogues/         # Dialogue graph JSON files
+│   ├── characters/        # Character metadata JSON files
+│   ├── loader/            # Data loading modules
+│   ├── runtime/           # Core runtime (DialogueManager)
+│   ├── renderer/          # UI rendering (DialogueRenderer)
+│   ├── conditions/        # Condition evaluation
+│   └── events/            # Event trigger system
 ├── events/                # Game event system
 ├── game_loop.js           # Main game loop
 ├── gamestate.js           # Game state re-exports
@@ -82,7 +90,31 @@ The main game page that loads:
 - `menus/main_dashboard.js` - Background dashboard visuals
 - `debug/panels/bunbitdebug.js` - Debug panel system
 
-## Key Systems
+## Dialogue System
+
+The dialogue system is fully data-driven. All dialogue content lives in JSON files under `src/dialogue/dialogues/`. No dialogue text is hardcoded in JavaScript.
+
+### Architecture
+- **Node Graph**: Nodes are independent objects identified by unique IDs. Connections are string references.
+- **Separation of Concerns**: Runtime (`DialogueManager`) is separate from rendering (`DialogueRenderer`).
+- **Data-Driven**: Dialogue, characters, expressions, and events are all defined in JSON/Markdown files.
+
+### Key Files
+| File | Responsibility |
+|---|---|
+| `src/dialogue/runtime/dialogue-manager.js` | Core runtime: load graphs, track state, resolve nodes, execute events |
+| `src/dialogue/renderer/dialogue-renderer.js` | UI rendering: dialogue box, speaker, expression, text, choices |
+| `src/dialogue/loader/dialogue-loader.js` | Loads and validates dialogue JSON files |
+| `src/dialogue/loader/character-loader.js` | Loads character metadata JSON files |
+| `src/dialogue/loader/sprite-metadata-loader.js` | Parses markdown sprite sheets into expression data |
+| `src/dialogue/conditions/condition-manager.js` | Evaluates conditions against game flags |
+| `src/dialogue/events/dialogue-events.js` | Executes event triggers from dialogue nodes |
+| `src/ui/dialogue.js` | Dialogue UI state handler (connects renderer to runtime) |
+
+### Dialogue State
+The engine has a `DIALOGUE` state. When a dialogue completes, `DialogueFinished` is emitted and the engine decides what happens next.
+
+### Key Systems
 
 ### Game Loop (`game_loop.js`)
 ```javascript

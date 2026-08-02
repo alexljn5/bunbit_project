@@ -180,9 +180,14 @@ class EngineController {
         return this.transitionTo(EngineState.DASHBOARD);
     }
 
-    /** Dismiss the new game placeholder (NEW_GAME_PLACEHOLDER → INGAME_MENU). */
+    /** Dismiss the new game placeholder and enter dialogue (NEW_GAME_PLACEHOLDER → DIALOGUE). */
     dismissPlaceholder() {
-        return this.transitionTo(EngineState.INGAME_MENU);
+        return this.transitionTo(EngineState.DIALOGUE);
+    }
+
+    /** Start a dialogue sequence (DIALOGUE state). */
+    startDialogue(dialogueId, flags = {}) {
+        return this.transitionTo(EngineState.DIALOGUE, { dialogueId, flags });
     }
 
     // ─── Event Listeners ───────────────────────────────────

@@ -20,6 +20,24 @@ All source code lives under `src/`. This directory is the root of the Bunbit Eng
 
 Future game systems (save, dialogue, transitions) plug into the engine here without modifying the state machine structure.
 
+### `src/dialogue/`
+**Responsibility:** Fully data-driven dialogue system. All dialogue content lives in JSON files; no dialogue text is hardcoded in JavaScript.
+
+- `dialogues/` — Dialogue graph JSON files (e.g., `example.json`, `new_game_intro.json`)
+- `characters/` — Character metadata JSON files (e.g., `patches.json`, `vesper.json`)
+- `loader/` — Data loading modules
+  - `dialogue-loader.js` — Loads and validates dialogue graph JSON files
+  - `character-loader.js` — Loads character metadata JSON files
+  - `sprite-metadata-loader.js` — Parses markdown sprite sheets into expression data
+- `runtime/` — Core runtime
+  - `dialogue-manager.js` — Manages dialogue graph execution, state tracking, condition evaluation, and event execution
+- `renderer/` — UI rendering (separate from runtime)
+  - `dialogue-renderer.js` — Draws dialogue box, speaker, expression, text, and choices
+- `conditions/` — Condition evaluation
+  - `condition-manager.js` — Evaluates dialogue conditions against game flags
+- `events/` — Event trigger system
+  - `dialogue-events.js` — Executes event triggers from dialogue nodes (SET_FLAG, EMIT_EVENT, etc.)
+
 ---
 
 ### `src/game/`
