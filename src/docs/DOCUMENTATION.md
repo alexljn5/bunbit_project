@@ -255,7 +255,7 @@ The in-game menu is a minimal overlay with Play, Select Map, and Return buttons.
 - Uses CSS custom properties for theme awareness
 - Transitions back to GAMEPLAY or DASHBOARD
 
-#### Dialogue Text Box (`src/dialogue/renderer/dialogue-renderer.js`)
+#### Dialogue Text Box (`src/dialogue/renderer/dialogue-renderer.js` — uses DialogueTheme layer)
 
 The dialogue text box is a fixed-position HTML element at the bottom of the screen.
 
@@ -278,8 +278,20 @@ The dialogue text box is a fixed-position HTML element at the bottom of the scre
 5. Continue prompt (`[Continue]`, centered, `opacity: 0.7`, `cursor: pointer`)
 
 **Speaker Positioning**:
-- Patches and other characters: left-aligned
-- Vesper: right-aligned
+- Data-driven via character JSON `uiPosition` field ("left", "right", "center")
+- Characters without `uiPosition` default to left alignment
+- Default alignments can be set in `DefaultSpeakerAlignments` in the theme
+
+**Component Structure**:
+The renderer builds the dialogue UI from independent components:
+- `DialogueWindow` — The outer container (textbox)
+- `PortraitContainer` — Expression ASCII art display
+- `SpeakerName` — Character name label
+- `DialogueText` — The dialogue body text
+- `ChoiceContainer` — Player choice buttons
+- `ContinuePrompt` — `[Continue]` prompt for linear nodes
+
+Each component reads styling from the theme object and receives data from the dialogue node. No component contains game logic or state decisions.
 
 #### Dashboard Text Box (`src/ui/dashboard.js`)
 
@@ -409,6 +421,8 @@ src/
 │   │   └── dialogue-manager.js
 │   ├── renderer/          # UI rendering (DialogueRenderer)
 │   │   └── dialogue-renderer.js
+│   ├── theme/             # Dialogue theme layer
+│   │   └── dialogue-theme.js
 │   ├── conditions/        # Condition evaluation
 │   │   └── condition-manager.js
 │   └── events/            # Event trigger system

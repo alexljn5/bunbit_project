@@ -4,6 +4,7 @@
     "defaultExpression": "neutral",
     "spriteFolder": "img/sprites/friendly/patches",
     "spriteSheet": "patches-ascii-sheet.md",
+    "uiPosition": "left",
     "expressions": [
         "neutral",
         "happy",

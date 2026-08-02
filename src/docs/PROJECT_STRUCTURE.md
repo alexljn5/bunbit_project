@@ -33,6 +33,8 @@ Future game systems (save, dialogue, transitions) plug into the engine here with
   - `dialogue-manager.js` — Manages dialogue graph execution, state tracking, condition evaluation, and event execution
 - `renderer/` — UI rendering (separate from runtime)
   - `dialogue-renderer.js` — Draws dialogue box, speaker, expression, text, and choices
+  - `theme/` — Dialogue theme layer
+    - `dialogue-theme.js` — Dialogue-specific theme object (colours, borders, animations)
 - `conditions/` — Condition evaluation
   - `condition-manager.js` — Evaluates dialogue conditions against game flags
 - `events/` — Event trigger system

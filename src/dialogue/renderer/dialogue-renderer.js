@@ -12,37 +12,25 @@
 //   - Decide next node
 //   - Modify flags
 //   - Trigger gameplay
+//
+// Uses DialogueTheme for all styling.
+// Speaker layout is data-driven via character uiPosition.
 // ============================================================
 
+import { DialogueTheme, SpeakerAlignment } from '../theme/dialogue-theme.js';
 import { loadCharacterSpriteMetadata, parseSpriteSheetMarkdown } from '../loader/sprite-metadata-loader.js';
 
 /**
- * Default dialogue box configuration.
- */
-const DEFAULT_CONFIG = {
-    containerId: 'bunbit-dialogue-container',
-    width: '90vw',
-    maxWidth: '900px',
-    padding: '20px',
-    borderColor: '#FC0000',
-    backgroundColor: '#0a0000',
-    textColor: '#FC0000',
-    fontFamily: "'Courier New', monospace",
-    fontSize: '16px',
-    speakerFontSize: '18px',
-    expressionFontSize: '14px',
-    choiceFontSize: '14px',
-    zIndex: '2147483647',
-};
-
-/**
- * Dialogue renderer.
- * Renders dialogue data to the DOM.
+ * Dialogue renderer component.
+ * Renders dialogue data to the DOM using the DialogueTheme layer.
  */
 export class DialogueRenderer {
+    /**
+     * @param {object} [config={}] - Renderer configuration overrides.
+     */
     constructor(config = {}) {
-        /** @type {object} Renderer configuration. */
-        this.config = { ...DEFAULT_CONFIG, ...config };
+        /** @type {object} Merged renderer configuration. */
+        this.config = { ...DialogueTheme, ...config };
 
         /** @type {HTMLElement|null} The dialogue container element. */
         this._container = null;
@@ -55,35 +43,44 @@ export class DialogueRenderer {
 
         /** @type {boolean} Whether the renderer is currently visible. */
         this._visible = false;
+
+        /** @type {function|null} Callback for choice clicks. */
+        this._onChoice = null;
+
+        /** @type {function|null} Callback for continue clicks. */
+        this._onContinue = null;
     }
 
     // ─── Container Management ──────────────────────
 
     /**
      * Creates the dialogue container in the DOM.
+     * Uses theme values for all styling.
      */
     createContainer() {
-        // Remove existing container if present
         this.destroyContainer();
 
+        const theme = this.config;
         const container = document.createElement('div');
-        container.id = this.config.containerId;
+        container.id = 'bunbit-dialogue-container';
         container.dataset.dialogueRenderer = '1';
+
+        // Apply textbox theme styles
         container.style.position = 'fixed';
         container.style.bottom = '20px';
         container.style.left = '0';
         container.style.right = '0';
         container.style.margin = '0 auto';
-        container.style.width = this.config.width;
-        container.style.maxWidth = this.config.maxWidth;
-        container.style.padding = this.config.padding;
-        container.style.backgroundColor = this.config.backgroundColor;
-        container.style.border = `2px solid ${this.config.borderColor}`;
-        container.style.borderRadius = '4px';
-        container.style.color = this.config.textColor;
-        container.style.fontFamily = this.config.fontFamily;
-        container.style.zIndex = this.config.zIndex;
-        container.style.boxShadow = '0 4px 20px rgba(255,0,0,0.3)';
+        container.style.width = '90vw';
+        container.style.maxWidth = '900px';
+        container.style.padding = theme.textbox.padding;
+        container.style.backgroundColor = theme.textbox.backgroundColor;
+        container.style.border = `${theme.textbox.borderWidth} solid ${theme.textbox.borderColor}`;
+        container.style.borderRadius = theme.textbox.borderRadius;
+        container.style.color = theme.textbox.textColor;
+        container.style.fontFamily = theme.textbox.fontFamily;
+        container.style.zIndex = theme.textbox.zIndex;
+        container.style.boxShadow = theme.textbox.boxShadow;
         container.style.display = 'none';
         container.style.pointerEvents = 'auto';
         container.style.boxSizing = 'border-box';
@@ -163,13 +160,206 @@ export class DialogueRenderer {
         this._currentCharacterId = characterDef.id;
     }
 
-    // ─── Rendering ─────────────────────────────────
+    /**
+     * Returns the alignment for a speaker based on character metadata.
+     * Falls back to LEFT if no uiPosition is specified.
+     * @param {object} node - The dialogue node.
+     * @returns {string} SpeakerAlignment value.
+     */
+    _getSpeakerAlignment(node) {
+        if (!node.speaker) return SpeakerAlignment.LEFT;
+
+        const metadata = this._characterMetadata[node.speaker];
+        if (metadata && metadata.uiPosition) {
+            return metadata.uiPosition;
+        }
+
+        // Fallback to default alignments from theme
+        const defaults = this.config.defaultSpeakerAlignments || {};
+        return defaults[node.speaker] || SpeakerAlignment.LEFT;
+    }
+
+    // ─── Component Builders ─────────────────────────
+
+    /**
+     * Creates a portrait container element for a character's expression.
+     * @param {object} node - The dialogue node.
+     * @param {object} metadata - Character metadata with expression sprites.
+     * @returns {HTMLElement|null}
+     */
+    _createPortrait(node, metadata) {
+        if (!node.expression || !metadata || !metadata.expressionSprites) {
+            return null;
+        }
+
+        const expressionSprite = metadata.expressionSprites[node.expression]
+            || metadata.expressionSprites['default'];
+
+        if (!expressionSprite) return null;
+
+        const theme = this.config.portrait;
+        const portrait = document.createElement('div');
+        portrait.dataset.dialoguePortrait = '1';
+        portrait.style.border = `${theme.frameBorderWidth} solid ${theme.frameBorderColor}`;
+        portrait.style.padding = theme.framePadding;
+        portrait.style.margin = theme.frameMargin;
+        portrait.style.maxWidth = theme.maxWidth;
+        portrait.style.maxHeight = theme.maxHeight;
+        portrait.style.fontSize = theme.fontSize;
+        portrait.style.lineHeight = theme.lineHeight;
+        portrait.style.textAlign = theme.textAlign;
+        portrait.style.color = theme.color;
+        portrait.style.whiteSpace = 'pre';
+        portrait.style.fontFamily = 'monospace';
+        portrait.textContent = expressionSprite;
+
+        return portrait;
+    }
+
+    /**
+     * Creates a speaker name element.
+     * @param {object} node - The dialogue node.
+     * @returns {HTMLElement|null}
+     */
+    _createSpeakerName(node) {
+        if (!node.speaker) return null;
+
+        const theme = this.config.speakerName;
+        const speakerDiv = document.createElement('div');
+        speakerDiv.dataset.dialogueSpeaker = '1';
+        speakerDiv.style.fontSize = theme.fontSize;
+        speakerDiv.style.fontWeight = theme.fontWeight;
+        speakerDiv.style.marginBottom = theme.marginBottom;
+        speakerDiv.style.color = theme.color;
+        speakerDiv.style.fontFamily = theme.fontFamily;
+        speakerDiv.textContent = node.speaker;
+
+        return speakerDiv;
+    }
+
+    /**
+     * Creates a dialogue text element.
+     * @param {object} node - The dialogue node.
+     * @returns {HTMLElement|null}
+     */
+    _createDialogueText(node) {
+        if (!node.text) return null;
+
+        const theme = this.config.dialogueText;
+        const textDiv = document.createElement('div');
+        textDiv.dataset.dialogueText = '1';
+        textDiv.style.fontSize = theme.fontSize;
+        textDiv.style.lineHeight = theme.lineHeight;
+        textDiv.style.marginBottom = theme.marginBottom;
+        textDiv.style.color = theme.color;
+        textDiv.style.fontFamily = theme.fontFamily;
+        textDiv.style.whiteSpace = theme.whiteSpace;
+        textDiv.style.maxWidth = theme.maxWidth;
+        textDiv.textContent = node.text;
+
+        return textDiv;
+    }
+
+    /**
+     * Creates a choice container with choice buttons.
+     * @param {object} node - The dialogue node.
+     * @param {function} onChoice - Callback when a choice is clicked.
+     * @returns {HTMLElement|null}
+     */
+    _createChoices(node, onChoice) {
+        if (!node.choices || node.choices.length === 0) return null;
+
+        const theme = this.config.choice;
+        const hoverTheme = this.config.choiceHover;
+        const choicesDiv = document.createElement('div');
+        choicesDiv.dataset.dialogueChoices = '1';
+        choicesDiv.style.marginTop = '8px';
+        choicesDiv.style.width = '100%';
+
+        node.choices.forEach((choice, index) => {
+            const choiceBtn = document.createElement('button');
+            choiceBtn.textContent = choice.text;
+            choiceBtn.dataset.choiceIndex = index;
+            choiceBtn.dataset.choiceNext = choice.next || '';
+
+            // Apply theme styles
+            choiceBtn.style.display = theme.display;
+            choiceBtn.style.width = theme.width;
+            choiceBtn.style.margin = theme.margin;
+            choiceBtn.style.padding = theme.padding;
+            choiceBtn.style.fontSize = theme.fontSize;
+            choiceBtn.style.color = theme.color;
+            choiceBtn.style.backgroundColor = theme.backgroundColor;
+            choiceBtn.style.border = `${theme.borderWidth} solid ${theme.borderColor}`;
+            choiceBtn.style.borderRadius = theme.borderRadius;
+            choiceBtn.style.cursor = theme.cursor;
+            choiceBtn.style.textAlign = theme.textAlign;
+            choiceBtn.style.fontFamily = theme.fontFamily;
+
+            // Hover effects from theme
+            choiceBtn.addEventListener('mouseenter', () => {
+                choiceBtn.style.backgroundColor = hoverTheme.backgroundColor;
+                choiceBtn.style.color = hoverTheme.color;
+                choiceBtn.style.borderColor = hoverTheme.borderColor;
+            });
+            choiceBtn.addEventListener('mouseleave', () => {
+                choiceBtn.style.backgroundColor = theme.backgroundColor;
+                choiceBtn.style.color = theme.color;
+                choiceBtn.style.borderColor = theme.borderColor;
+            });
+
+            // Click handler
+            choiceBtn.addEventListener('click', () => {
+                if (typeof onChoice === 'function') {
+                    onChoice(choice);
+                }
+            });
+
+            choicesDiv.appendChild(choiceBtn);
+        });
+
+        return choicesDiv;
+    }
+
+    /**
+     * Creates a continue prompt element.
+     * @param {function} onContinue - Callback when continue is clicked.
+     * @returns {HTMLElement|null}
+     */
+    _createContinuePrompt(onContinue) {
+        const theme = this.config.continuePrompt;
+        const prompt = document.createElement('div');
+        prompt.dataset.dialogueContinue = '1';
+        prompt.style.textAlign = theme.textAlign;
+        prompt.style.marginTop = theme.marginTop;
+        prompt.style.fontSize = theme.fontSize;
+        prompt.style.opacity = theme.opacity;
+        prompt.style.cursor = theme.cursor;
+        prompt.style.color = theme.color;
+        prompt.style.fontFamily = theme.fontFamily;
+        prompt.textContent = '[Continue]';
+
+        prompt.addEventListener('click', () => {
+            if (typeof onContinue === 'function') {
+                onContinue();
+            }
+        });
+
+        return prompt;
+    }
+
+    // ─── Main Render ────────────────────────────────
 
     /**
      * Renders a dialogue node.
+     * Uses theme values for all styling.
+     * Speaker layout is determined by character metadata uiPosition field.
+     *
      * @param {object} node - The dialogue node data.
      * @param {object} [options={}] - Rendering options.
      * @param {object} [options.characterMetadata] - Optional character metadata override.
+     * @param {function} [options.onChoice] - Callback when a choice is clicked.
+     * @param {function} [options.onContinue] - Callback when continue is clicked.
      */
     renderNode(node, options = {}) {
         if (!this._container) {
@@ -189,99 +379,46 @@ export class DialogueRenderer {
         // Clear container
         this._container.innerHTML = '';
 
-        // Determine if character should appear on the right (Vesper) or left (Patches/others)
-        const isRightSpeaker = node.speaker === 'vesper';
+        // Determine speaker alignment from data (not hardcoded)
+        const alignment = this._getSpeakerAlignment(node);
 
         // Build the dialogue content
         const content = document.createElement('div');
         content.style.padding = '0';
-
-        // Use flex layout to position speaker on the correct side
         content.style.display = 'flex';
         content.style.flexDirection = 'column';
-        if (isRightSpeaker) {
+
+        // Apply alignment from data
+        if (alignment === SpeakerAlignment.RIGHT) {
             content.style.alignItems = 'flex-end';
+        } else if (alignment === SpeakerAlignment.CENTER) {
+            content.style.alignItems = 'center';
         } else {
             content.style.alignItems = 'flex-start';
         }
 
-        // Expression display (ASCII art)
-        if (node.expression && metadata && metadata.expressionSprites) {
-            const expressionSprite = metadata.expressionSprites[node.expression]
-                || metadata.expressionSprites['default'];
-            if (expressionSprite) {
-                const exprDiv = document.createElement('div');
-                exprDiv.style.whiteSpace = 'pre';
-                exprDiv.style.fontFamily = 'monospace';
-                exprDiv.style.fontSize = this.config.expressionFontSize;
-                exprDiv.style.lineHeight = '1';
-                exprDiv.style.textAlign = 'center';
-                exprDiv.style.marginBottom = '8px';
-                exprDiv.style.color = this.config.textColor;
-                exprDiv.textContent = expressionSprite;
-                content.appendChild(exprDiv);
-            }
+        // Component: Portrait (expression ASCII art)
+        const portrait = this._createPortrait(node, metadata);
+        if (portrait) {
+            content.appendChild(portrait);
         }
 
-        // Speaker name
-        if (node.speaker) {
-            const speakerDiv = document.createElement('div');
-            speakerDiv.style.fontSize = this.config.speakerFontSize;
-            speakerDiv.style.fontWeight = 'bold';
-            speakerDiv.style.marginBottom = '8px';
-            speakerDiv.textContent = node.speaker;
-            content.appendChild(speakerDiv);
+        // Component: Speaker name
+        const speakerName = this._createSpeakerName(node);
+        if (speakerName) {
+            content.appendChild(speakerName);
         }
 
-        // Dialogue text
-        if (node.text) {
-            const textDiv = document.createElement('div');
-            textDiv.style.fontSize = this.config.fontSize;
-            textDiv.style.lineHeight = '1.5';
-            textDiv.style.marginBottom = '12px';
-            textDiv.style.whiteSpace = 'pre-wrap';
-            textDiv.style.maxWidth = '80%';
-            textDiv.textContent = node.text;
-            content.appendChild(textDiv);
+        // Component: Dialogue text
+        const dialogueText = this._createDialogueText(node);
+        if (dialogueText) {
+            content.appendChild(dialogueText);
         }
 
-        // Choices
-        if (node.choices && node.choices.length > 0) {
-            const choicesDiv = document.createElement('div');
-            choicesDiv.style.marginTop = '8px';
-            choicesDiv.style.width = '100%';
-
-            node.choices.forEach((choice, index) => {
-                const choiceBtn = document.createElement('button');
-                choiceBtn.textContent = choice.text;
-                choiceBtn.dataset.choiceIndex = index;
-                choiceBtn.style.cssText = `
-                    display: block;
-                    width: 100%;
-                    margin: 4px 0;
-                    padding: 8px 12px;
-                    font-family: ${this.config.fontFamily};
-                    font-size: ${this.config.choiceFontSize};
-                    color: ${this.config.textColor};
-                    background: #1a0000;
-                    border: 1px solid ${this.config.borderColor};
-                    border-radius: 3px;
-                    cursor: pointer;
-                    text-align: left;
-                `;
-                choiceBtn.addEventListener('mouseenter', () => {
-                    choiceBtn.style.background = this.config.borderColor;
-                    choiceBtn.style.color = this.config.backgroundColor;
-                });
-                choiceBtn.addEventListener('mouseleave', () => {
-                    choiceBtn.style.background = '#1a0000';
-                    choiceBtn.style.color = this.config.textColor;
-                });
-
-                choicesDiv.appendChild(choiceBtn);
-            });
-
-            content.appendChild(choicesDiv);
+        // Component: Choices
+        const choices = this._createChoices(node, options.onChoice || null);
+        if (choices) {
+            content.appendChild(choices);
         }
 
         this._container.appendChild(content);
@@ -290,19 +427,15 @@ export class DialogueRenderer {
 
     /**
      * Renders a continue prompt (for linear dialogue nodes).
+     * @param {function} [onContinue] - Callback when continue is clicked.
      */
-    renderContinuePrompt() {
+    renderContinuePrompt(onContinue) {
         if (!this._container) return;
 
-        const prompt = document.createElement('div');
-        prompt.style.textAlign = 'center';
-        prompt.style.marginTop = '8px';
-        prompt.style.fontSize = this.config.fontSize;
-        prompt.style.opacity = '0.7';
-        prompt.style.cursor = 'pointer';
-        prompt.dataset.dialogueContinue = '1';
-        prompt.textContent = '[Continue]';
-        this._container.appendChild(prompt);
+        const prompt = this._createContinuePrompt(onContinue || null);
+        if (prompt) {
+            this._container.appendChild(prompt);
+        }
     }
 
     /**
@@ -312,6 +445,22 @@ export class DialogueRenderer {
         if (this._container) {
             this._container.innerHTML = '';
         }
+    }
+
+    /**
+     * Sets the choice click callback.
+     * @param {function} callback - Function called with the choice object.
+     */
+    setOnChoice(callback) {
+        this._onChoice = callback;
+    }
+
+    /**
+     * Sets the continue click callback.
+     * @param {function} callback - Function called when continue is clicked.
+     */
+    setOnContinue(callback) {
+        this._onContinue = callback;
     }
 }
 
