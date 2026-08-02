@@ -329,7 +329,7 @@ export function maybeShowIntroPlaceholders({ onComplete } = {}) {
     }
 
 
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
     const { w, h } = setupFullscreenCanvas(canvas);
 
     // Ensure drawing uses CSS-pixel coordinates even though the backing store is DPR-scaled.

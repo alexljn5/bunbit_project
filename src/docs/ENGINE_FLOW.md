@@ -62,7 +62,12 @@ DASHBOARD
     v (New Game button)
 NEW_GAME_PLACEHOLDER
     |
-    v (auto-transition)
+    |  Engine cinematic transition:
+    |  1. Fade out pillars/stairs/face + dashboard chrome
+    |  2. Reuse existing spinning dashboard sigil
+    |  3. Zoom sigil toward camera (portal)
+    |
+    v (after cinematic)
 DIALOGUE
     |
     v (loads new_game_intro.json)
@@ -70,6 +75,11 @@ DialogueManager starts
     |
     v (node graph execution)
 new_game_intro.json nodes execute
+    |
+    |  faces/names hidden until PLAYER_RECOGNIZED
+    |  → shocked faces revealed
+    |  → SHOW_NAMES (characters introduce themselves)
+    |  → SET_FLAG intro_complete
     |
     v (intro_complete flag set)
 DialogueFinished event
@@ -80,16 +90,41 @@ GAMEPLAY
 
 ### Dialogue Flow Details
 
-1. Player clicks "New Game" on the dashboard
-2. Engine transitions to `NEW_GAME_PLACEHOLDER`
-3. The placeholder handler immediately transitions to `DIALOGUE` with `dialogueId: 'new_game_intro'`
-4. `DialogueManager` loads `new_game_intro.json` and starts executing the node graph
-5. The renderer displays dialogue nodes (speaker, expression, text, choices)
-6. Player advances through nodes by clicking choices or continue prompts
-7. When the final node (`intro_complete`) is reached, `DialogueFinished` is emitted
-8. `handleDialogueComplete` in `dialogue.js` checks the `intro_complete` flag
-9. If the flag is set, the engine transitions to `GAMEPLAY`
-10. If not, the engine returns to `DASHBOARD`
+1. Player clicks "New Game" on the dashboard. The button is immediately disabled to
+   prevent a second click from firing an invalid transition.
+2. Engine transitions to `NEW_GAME_PLACEHOLDER`.
+3. The placeholder handler runs the **engine-driven cinematic** (this is engine
+   visuals, not dialogue data):
+   - Hides the New Game / debug buttons.
+   - Fades out the dashboard pillars, stairs, face overlay, and dashboard chrome
+     (border/shadow).
+   - Reuses the **existing** dashboard sigil element
+     (`logo-ascii-transparent-sigil-blend.png`), keeping its spinning CSS animation.
+   - Zooms the sigil toward the camera (`bunbit-portal-zoom`), like entering a portal.
+   - After the cinematic, transitions to `DIALOGUE` with `dialogueId: 'new_game_intro'`.
+4. `DialogueManager` loads `new_game_intro.json` and starts executing the node graph.
+5. The renderer displays dialogue nodes (speaker, expression, text, choices).
+   - During the intro, character faces AND names are hidden (`facesVisible: false`,
+     `namesVisible: false`).
+   - When the dialogue system detects the player (`PLAYER_RECOGNIZED`), ONLY the faces
+     are revealed, with shocked/surprised expressions.
+   - After the shock reaction, `SHOW_NAMES` reveals the speaker names and the normal
+     dialogue UI continues.
+6. Player advances through nodes by clicking choices or continue prompts.
+7. When the final node is reached, `intro_complete` is set and `DialogueFinished` is emitted.
+8. `handleDialogueComplete` in `dialogue.js` checks the `intro_complete` flag.
+9. If the flag is set, the engine transitions to `GAMEPLAY`.
+10. If not, the engine returns to `DASHBOARD`.
+
+### Cinematic vs Dialogue Separation
+
+The new-game cinematic is an **engine state transition**, not dialogue data:
+
+- `NEW_GAME_PLACEHOLDER` handles environment fades and the sigil portal zoom.
+- `DIALOGUE` handles face/name reveals and player recognition via cinematic events.
+- Dialogue JSON contains **only** dialogue data (speaker, text, expressions) plus
+  `PLAYER_RECOGNIZED` / `SHOW_NAMES` reveal triggers.
+- No dialogue node describes cinematic effects (no "fade to black" text, no fake sigils).
 
 ---
 
@@ -163,3 +198,4 @@ Future systems (save, dialogue, transitions, animated dashboard, map selection, 
 | Animated dashboard | `DASHBOARD` | Placeholder reserved |
 | Map selection | `INGAME_MENU` | Hook point defined |
 | Character intros | `DIALOGUE` | Uses dialogue system |
+

@@ -23,8 +23,9 @@ import { engineController } from '../engine/engine.js';
 engineController.registerHandler(EngineState.NEW_GAME_PLACEHOLDER, newGamePlaceholderHandler);
 
 const PLACEHOLDER_ID = 'bunbit-newgame-placeholder';
-const CINEMATIC_MS = 2600;
-const ENV_FADE_MS = 1500;
+const CINEMATIC_MS = 2800;      // total time before entering DIALOGUE
+const ENV_FADE_MS = 700;        // per-element environment fade length
+const STAGGER_MS = 250;         // delay between each environment fade
 
 let cleanupFn = null;
 
@@ -40,26 +41,33 @@ function ensureCinematicStyles() {
     style.textContent = `
 @keyframes bunbit-portal-zoom {
   0% {
-    transform: translate(-50%, -50%) scale(1);
+    transform: translate(-50%, -50%) scale(1) rotate(0deg);
     opacity: 1;
   }
   100% {
-    transform: translate(-50%, -50%) scale(22);
+    transform: translate(-50%, -50%) scale(22) rotate(360deg);
     opacity: 1;
   }
 }
-
-.bunbit-cinematic-dim {
-  transition: opacity ${ENV_FADE_MS}ms ease-in-out;
-  opacity: 0 !important;
-}
-
-.bunbit-cinematic-fade-element {
-  transition: opacity ${ENV_FADE_MS}ms ease-in-out;
-  opacity: 0;
-}
 `;
     document.head.appendChild(style);
+}
+
+/**
+ * Fades a dashboard element out using an inline opacity transition.
+ * Inline styles are required because the elements set their own
+ * inline `opacity` (e.g. 0.94 / 0.85 / 1.7) which would otherwise
+ * override any CSS class without !important.
+ * @param {HTMLElement} el - The element to fade.
+ * @param {number} delayMs - Delay before the fade starts.
+ */
+function fadeOutElement(el, delayMs) {
+    if (!el) return;
+    // Reset to the element's authored opacity so the transition has a start value.
+    el.style.transition = `opacity ${ENV_FADE_MS}ms ease-in-out ${delayMs}ms`;
+    // Force a reflow so the transition picks up from the current opacity.
+    void el.offsetWidth;
+    el.style.opacity = '0';
 }
 
 /**
@@ -79,21 +87,23 @@ function runNewGameCinematic(controller) {
     const debugBtn = document.getElementById('bunbit-debug-toggle-btn');
     if (debugBtn) debugBtn.style.display = 'none';
 
-    // ── Phase 1: dissolve the environment (pillars, stairs, face) ──
-    document.querySelectorAll('[data-dashboard-pillar]').forEach((el) => {
-        el.classList.add('bunbit-cinematic-fade-element');
-    });
-    const stairs = document.querySelector('[data-dashboard-stairs]');
-    if (stairs) stairs.classList.add('bunbit-cinematic-fade-element');
-    const face = document.querySelector('[data-dashboard-face]');
-    if (face) face.classList.add('bunbit-cinematic-fade-element');
+    // ── Phase 1: dissolve the environment (pillars → stairs → face) ──
+    // Staggered fade: pillars first, then stairs, then the face overlay.
+    const pillars = document.querySelectorAll('[data-dashboard-pillar]');
+    pillars.forEach((el) => fadeOutElement(el, 0));
 
-    // Drop the dashboard chrome so only the sigil remains visible
+    const stairs = document.querySelector('[data-dashboard-stairs]');
+    fadeOutElement(stairs, STAGGER_MS);
+
+    const face = document.querySelector('[data-dashboard-face]');
+    fadeOutElement(face, STAGGER_MS * 2);
+
+    // Drop the dashboard chrome so only the sigil remains visible.
+    // Fade the border/shadow in step with the face overlay.
     if (dashboard) {
-        dashboard.style.transition = `border-color ${ENV_FADE_MS}ms ease-in-out, box-shadow ${ENV_FADE_MS}ms ease-in-out`;
+        dashboard.style.transition = `border-color ${ENV_FADE_MS}ms ease-in-out ${STAGGER_MS * 2}ms, box-shadow ${ENV_FADE_MS}ms ease-in-out ${STAGGER_MS * 2}ms`;
         dashboard.style.borderColor = 'transparent';
         dashboard.style.boxShadow = 'none';
-        dashboard.classList.add('bunbit-cinematic-dim');
     }
 
     // ── Phase 2: portal zoom on the EXISTING sigil ──
@@ -112,8 +122,16 @@ function runNewGameCinematic(controller) {
         sigil.style.zIndex = '2147483645';
         sigil.style.pointerEvents = 'none';
         sigil.style.opacity = '1';
-        // Keep the dashboard spin animation running while we add the zoom
-        sigil.style.animation = 'bunbit-sigil-spin 25s linear infinite, bunbit-portal-zoom 2200ms ease-in-out forwards';
+
+        // Clear the harsh red overlay filter and blend mode so the sigil
+        // reads as a clean white glowing portal during the zoom.
+        sigil.style.filter = 'none';
+        sigil.style.mixBlendMode = 'normal';
+        sigil.style.boxShadow = '0 0 80px rgba(252, 0, 0, 0.35)';
+
+        // Combine spin + zoom in ONE animation so the transform isn't
+        // overwritten by the second animation in the list.
+        sigil.style.animation = 'bunbit-portal-zoom 2200ms ease-in-out forwards';
 
         // The dashboard container has overflow:hidden — detach the sigil
         // so it can scale beyond the dashboard frame.
