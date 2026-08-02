@@ -76,9 +76,8 @@ DialogueManager starts
     v (node graph execution)
 new_game_intro.json nodes execute
     |
-    |  faces/names hidden until PLAYER_RECOGNIZED
+    |  faces hidden until PLAYER_RECOGNIZED
     |  → shocked faces revealed
-    |  → SHOW_NAMES (characters introduce themselves)
     |  → SET_FLAG intro_complete
     |
     v (intro_complete flag set)
@@ -106,10 +105,11 @@ GAMEPLAY
 5. The renderer displays dialogue nodes (speaker, expression, text, choices).
    - During the intro, character faces AND names are hidden (`facesVisible: false`,
      `namesVisible: false`).
+   - The dialogue is two characters bickering before they notice the player.
    - When the dialogue system detects the player (`PLAYER_RECOGNIZED`), ONLY the faces
      are revealed, with shocked/surprised expressions.
-   - After the shock reaction, `SHOW_NAMES` reveals the speaker names and the normal
-     dialogue UI continues.
+   - Names remain hidden — the player does not learn the characters' names during the
+     intro. The normal dialogue UI continues after the shock reaction.
 6. Player advances through nodes by clicking choices or continue prompts.
 7. When the final node is reached, `intro_complete` is set and `DialogueFinished` is emitted.
 8. `handleDialogueComplete` in `dialogue.js` checks the `intro_complete` flag.
@@ -121,9 +121,11 @@ GAMEPLAY
 The new-game cinematic is an **engine state transition**, not dialogue data:
 
 - `NEW_GAME_PLACEHOLDER` handles environment fades and the sigil portal zoom.
-- `DIALOGUE` handles face/name reveals and player recognition via cinematic events.
+- `DIALOGUE` handles face reveals and player recognition via cinematic events.
 - Dialogue JSON contains **only** dialogue data (speaker, text, expressions) plus
-  `PLAYER_RECOGNIZED` / `SHOW_NAMES` reveal triggers.
+  `PLAYER_RECOGNIZED` reveal triggers.
+- Character names are never revealed during the intro — the player does not know
+  who they are yet.
 - No dialogue node describes cinematic effects (no "fade to black" text, no fake sigils).
 
 ---

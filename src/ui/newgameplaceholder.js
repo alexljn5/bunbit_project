@@ -14,6 +14,13 @@
 //
 // No second sigil element is created. No fake ASCII sigils.
 // The cinematic is engine visuals; dialogue remains pure data.
+//
+// IMPORTANT: The sigil is NEVER re-parented or re-animated. It
+// stays in its exact dashboard position (top: 30%, left: 50%)
+// with its original `bunbit-sigil-spin` animation running. The
+// zoom is driven by the separate CSS `scale` property, which
+// composes with `transform` and does NOT restart the spin, so
+// the sigil never snaps or jumps.
 // ============================================================
 
 import { EngineState } from '../engine/enginestate.js';
@@ -26,36 +33,9 @@ const PLACEHOLDER_ID = 'bunbit-newgame-placeholder';
 const CINEMATIC_MS = 6500;      // total time before entering DIALOGUE
 const ENV_FADE_MS = 1000;       // per-element environment fade length
 const STAGGER_MS = 450;         // delay between each environment fade
+const ZOOM_MS = 3000;           // sigil portal-zoom duration
 
 let cleanupFn = null;
-
-// ─── Cinematic Keyframes ─────────────────────────────────
-// Portal zoom: keeps the existing spin animation running via
-// the element's inline `animation` (bunbit-sigil-spin), while
-// the placeholder drives the scale toward the camera.
-function ensureCinematicStyles() {
-    if (document.getElementById('bunbit-newgame-cinematic-style')) return;
-
-    const style = document.createElement('style');
-    style.id = 'bunbit-newgame-cinematic-style';
-    style.textContent = `
-@keyframes bunbit-cinematic-spin {
-  from { transform: translate(-50%, -50%) rotate(0deg); }
-  to { transform: translate(-50%, -50%) rotate(360deg); }
-}
-@keyframes bunbit-portal-zoom {
-  0% {
-    transform: translate(-50%, -50%) scale(1) rotate(0deg);
-    opacity: 1;
-  }
-  100% {
-    transform: translate(-50%, -50%) scale(22) rotate(360deg);
-    opacity: 1;
-  }
-}
-`;
-    document.head.appendChild(style);
-}
 
 /**
  * Fades a dashboard element out using an inline opacity transition.
@@ -81,8 +61,6 @@ function fadeOutElement(el, delayMs) {
  * @param {object} controller - The engine controller.
  */
 function runNewGameCinematic(controller) {
-    ensureCinematicStyles();
-
     const dashboard = document.getElementById('bunbit-main-dashboard');
 
     // Hide interactive buttons during the cinematic
@@ -93,6 +71,7 @@ function runNewGameCinematic(controller) {
 
     // ── Phase 1: dissolve the environment (pillars → stairs → face) ──
     // Staggered fade: pillars first, then stairs, then the face overlay.
+    // The sigil is deliberately LAST — it is the only thing that remains.
     const pillars = document.querySelectorAll('[data-dashboard-pillar]');
     pillars.forEach((el) => fadeOutElement(el, 0));
 
@@ -108,27 +87,20 @@ function runNewGameCinematic(controller) {
         dashboard.style.transition = `border-color ${ENV_FADE_MS}ms ease-in-out ${STAGGER_MS * 2}ms, box-shadow ${ENV_FADE_MS}ms ease-in-out ${STAGGER_MS * 2}ms`;
         dashboard.style.borderColor = 'transparent';
         dashboard.style.boxShadow = 'none';
+
+        // The dashboard container has overflow:hidden. Make it visible so the
+        // sigil can scale beyond the dashboard frame WITHOUT moving the sigil
+        // out of the DOM (moving would restart its CSS spin animation).
+        dashboard.style.overflow = 'visible';
     }
 
     // ── Phase 2: portal zoom on the EXISTING sigil ──
     const sigil = document.querySelector('[data-dashboard-sigil="1"]');
     if (sigil) {
-        // Capture the sigil's CURRENT centre so it does NOT snap when it is
-        // detached from the dashboard. We keep it in the exact same visual
-        // spot and only scale it toward the camera.
-        const rect = sigil.getBoundingClientRect();
-        const centreX = rect.left + rect.width / 2;
-        const centreY = rect.top + rect.height / 2;
-
-        sigil.style.position = 'fixed';
-        sigil.style.left = `${centreX}px`;
-        sigil.style.top = `${centreY}px`;
-        sigil.style.margin = '0';
-        sigil.style.transform = 'translate(-50%, -50%) scale(1)';
-        sigil.style.width = `${rect.width}px`;
-        sigil.style.height = `${rect.height}px`;
-        sigil.style.maxWidth = '70vw';
-        sigil.style.maxHeight = '70vh';
+        // Keep the sigil EXACTLY where it is. Do not touch position, do not
+        // re-parent, do not restart the spin animation. The zoom uses the
+        // independent CSS `scale` property, which composes with the running
+        // `bunbit-sigil-spin` transform without resetting its timeline.
         sigil.style.zIndex = '2147483645';
         sigil.style.pointerEvents = 'none';
         sigil.style.opacity = '1';
@@ -140,19 +112,12 @@ function runNewGameCinematic(controller) {
         sigil.style.mixBlendMode = 'normal';
         sigil.style.boxShadow = '0 0 60px rgba(255, 255, 255, 0.35)';
 
-        // Keep a centred spin animation running while the portal-zoom
-        // delay elapses (before the environment has fully faded). The
-        // cinematic spin uses translate(-50%, -50%) so the sigil stays
-        // pinned to its captured centre. When the zoom begins, its
-        // transform takes over — rotating while scaling in place.
+        // Start the zoom AFTER all environment elements have fully faded.
+        // `scale` is a transition (not an animation), so the spin keeps
+        // running seamlessly and the sigil scales in place about its centre.
         const envFadeComplete = STAGGER_MS * 2 + ENV_FADE_MS; // 1900ms
-        sigil.style.animation = `bunbit-cinematic-spin 25s linear infinite, bunbit-portal-zoom 3000ms ease-in-out ${envFadeComplete}ms forwards`;
-
-        // The dashboard container has overflow:hidden — detach the sigil
-        // so it can scale beyond the dashboard frame.
-        if (dashboard && sigil.parentNode) {
-            dashboard.parentNode.appendChild(sigil);
-        }
+        sigil.style.transition = `scale ${ZOOM_MS}ms ease-in-out ${envFadeComplete}ms`;
+        sigil.style.scale = '22';
     }
 
     // ── Phase 3: enter dialogue after the portal zoom ──
