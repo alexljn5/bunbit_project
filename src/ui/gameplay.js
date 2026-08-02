@@ -53,6 +53,10 @@ function removeOverlays() {
     const sigil = document.querySelector('[data-dashboard-sigil="1"]');
     if (sigil) sigil.remove();
 
+    // Sigil portal wrapper (may linger after the new-game cinematic)
+    const sigilWrapper = document.querySelector('[data-sigil-wrapper]');
+    if (sigilWrapper) sigilWrapper.remove();
+
     // Dialogue container
     const dialogue = document.getElementById('bunbit-dialogue-container');
     if (dialogue) dialogue.remove();

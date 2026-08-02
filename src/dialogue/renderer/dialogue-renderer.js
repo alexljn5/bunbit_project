@@ -74,13 +74,11 @@ export class DialogueRenderer {
         container.dataset.dialogueRenderer = '1';
 
         // Apply textbox theme styles
-        // Centered on screen (both axes) so dialogue reads like a
-        // cinematic subtitle block, not a bottom-docked panel.
         container.style.position = 'fixed';
-        container.style.top = '50%';
-        container.style.left = '50%';
-        container.style.transform = 'translate(-50%, -50%)';
-        container.style.margin = '0';
+        container.style.bottom = '20px';
+        container.style.left = '0';
+        container.style.right = '0';
+        container.style.margin = '0 auto';
         container.style.width = '90vw';
         container.style.maxWidth = '900px';
         container.style.padding = theme.textbox.padding;
@@ -460,8 +458,15 @@ export class DialogueRenderer {
         content.style.display = 'flex';
         content.style.flexDirection = 'column';
         content.style.width = '100%';
-        content.style.alignItems = 'center';
-        content.style.textAlign = 'center';
+
+        // Apply alignment from data (Patches left, Vesper right, etc.)
+        if (alignment === SpeakerAlignment.RIGHT) {
+            content.style.alignItems = 'flex-end';
+        } else if (alignment === SpeakerAlignment.CENTER) {
+            content.style.alignItems = 'center';
+        } else {
+            content.style.alignItems = 'flex-start';
+        }
 
         // Component: Portrait (expression ASCII art)
         const portrait = this._createPortrait(node, metadata);

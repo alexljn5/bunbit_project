@@ -16,8 +16,37 @@ import { loadCharacter } from '../dialogue/loader/character-loader.js';
 engineController.registerHandler(EngineState.DIALOGUE, dialogueHandler);
 
 const DIALOGUE_CONTAINER_ID = 'bunbit-dialogue-container';
+const INTRO_BACKDROP_ID = 'bunbit-intro-backdrop';
 let cleanupFn = null;
 let currentDialogueId = null;
+
+/**
+ * Creates a full-screen pure black backdrop behind the intro dialogue.
+ * This guarantees a clean black stage after the sigil portal zooms and
+ * fades away — no dashboard remnants or stray elements peek through.
+ */
+function createIntroBackdrop() {
+    let backdrop = document.getElementById(INTRO_BACKDROP_ID);
+    if (!backdrop) {
+        backdrop = document.createElement('div');
+        backdrop.id = INTRO_BACKDROP_ID;
+        backdrop.style.position = 'fixed';
+        backdrop.style.inset = '0';
+        backdrop.style.background = '#000000';
+        backdrop.style.zIndex = '2147483646';
+        backdrop.style.pointerEvents = 'none';
+        document.body.appendChild(backdrop);
+    }
+    return backdrop;
+}
+
+/**
+ * Removes the intro black backdrop (if present).
+ */
+function removeIntroBackdrop() {
+    const backdrop = document.getElementById(INTRO_BACKDROP_ID);
+    if (backdrop) backdrop.remove();
+}
 
 /**
  * Handler for the DIALOGUE state.
@@ -49,13 +78,20 @@ export async function dialogueHandler(controller, sharedState, payload = {}) {
     // Create dialogue renderer container
     dialogueRenderer.createContainer();
 
+    // For the intro sequence, ensure a pure black stage behind the dialogue
+    // so no dashboard remnants peek through after the sigil portal zoom.
+    if (dialogueId === 'new_game_intro') {
+        createIntroBackdrop();
+    }
+
     // Set cinematic state for intro sequence.
-    // Patches and Vesper exist before the player is recognized, but their
-    // faces AND names stay hidden until recognition reveals them.
+    // Patches and Vesper exist before the player is recognized. Their ASCII
+    // faces are visible left/right (Patches left, Vesper right via uiPosition),
+    // but their NAMES stay hidden until recognition reveals them.
     if (dialogueId === 'new_game_intro') {
         dialogueRenderer.setCinematicState({
             introActive: true,
-            facesVisible: false,
+            facesVisible: true,
             namesVisible: false,
             playerRecognized: false,
         });
@@ -159,6 +195,9 @@ export async function dialogueHandler(controller, sharedState, payload = {}) {
         // Clean up cinematic DOM elements and dashboard
         const sigil = document.querySelector('[data-dashboard-sigil="1"]');
         if (sigil) sigil.remove();
+        const sigilWrapper = document.querySelector('[data-sigil-wrapper]');
+        if (sigilWrapper) sigilWrapper.remove();
+        removeIntroBackdrop();
         document.body.classList.remove('cinematic-dim-environment', 'dimmed');
 
         // Remove the dashboard so the gameplay canvas can take over
@@ -246,6 +285,9 @@ function handleDialogueComplete(controller, onComplete, dialogueId) {
     // Clean up cinematic DOM elements and dashboard
     const sigil = document.querySelector('[data-dashboard-sigil="1"]');
     if (sigil) sigil.remove();
+    const sigilWrapper = document.querySelector('[data-sigil-wrapper]');
+    if (sigilWrapper) sigilWrapper.remove();
+    removeIntroBackdrop();
     document.body.classList.remove('cinematic-dim-environment', 'dimmed');
 
     // Remove the dashboard so the gameplay canvas can take over

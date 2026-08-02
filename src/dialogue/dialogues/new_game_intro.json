@@ -74,6 +74,11 @@
             "speaker": "patches",
             "expression": "neutral",
             "text": "Well. That explains the prickling in my ears.",
+            "events": [
+                {
+                    "type": "SHOW_NAMES"
+                }
+            ],
             "next": "vesper_after"
         },
         "vesper_after": {

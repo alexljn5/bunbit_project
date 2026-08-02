@@ -17,13 +17,13 @@
 export const DialogueTheme = Object.freeze({
     // ─── Textbox ──────────────────────────────────
     textbox: {
-        backgroundColor: 'rgba(0,0,0,0.92)',
+        backgroundColor: '#0a0a0a',
         borderColor: '#555555',
         borderWidth: '1px',
         borderRadius: '2px',
-        textColor: '#e0e0e0',
+        textColor: '#cccccc',
         fontFamily: "'Courier New', monospace",
-        padding: '20px 24px',
+        padding: '16px',
         maxWidth: '90vw',
         maxHeight: '60vh',
         overflow: 'auto',
@@ -45,24 +45,22 @@ export const DialogueTheme = Object.freeze({
 
     // ─── Speaker Name ─────────────────────────────
     speakerName: {
-        fontSize: '20px',
+        fontSize: '16px',
         fontWeight: 'bold',
-        marginBottom: '10px',
-        color: '#eeeeee',
+        marginBottom: '8px',
+        color: '#dddddd',
         fontFamily: "'Courier New', monospace",
-        textAlign: 'center',
     },
 
     // ─── Dialogue Text ────────────────────────────
     dialogueText: {
-        fontSize: '20px',
-        lineHeight: '1.7',
-        marginBottom: '16px',
-        color: '#dddddd',
+        fontSize: '14px',
+        lineHeight: '1.6',
+        marginBottom: '12px',
+        color: '#cccccc',
         fontFamily: "'Courier New', monospace",
         whiteSpace: 'pre-wrap',
-        maxWidth: '85%',
-        textAlign: 'center',
+        maxWidth: '80%',
     },
 
     // ─── Choice Buttons ───────────────────────────

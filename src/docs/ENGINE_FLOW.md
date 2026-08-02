@@ -103,13 +103,14 @@ GAMEPLAY
    - After the cinematic, transitions to `DIALOGUE` with `dialogueId: 'new_game_intro'`.
 4. `DialogueManager` loads `new_game_intro.json` and starts executing the node graph.
 5. The renderer displays dialogue nodes (speaker, expression, text, choices).
-   - During the intro, character faces AND names are hidden (`facesVisible: false`,
-     `namesVisible: false`).
+   - During the intro, character ASCII faces ARE visible, positioned left/right
+     (Patches left, Vesper right via their `uiPosition`). Only the speaker NAMES
+     are hidden (`namesVisible: false`) — the player does not know who they are yet.
    - The dialogue is two characters bickering before they notice the player.
-   - When the dialogue system detects the player (`PLAYER_RECOGNIZED`), ONLY the faces
-     are revealed, with shocked/surprised expressions.
-   - Names remain hidden — the player does not learn the characters' names during the
-     intro. The normal dialogue UI continues after the shock reaction.
+   - When the dialogue system detects the player (`PLAYER_RECOGNIZED`), the
+     characters react with shocked/surprised expressions.
+   - After the shock reaction, `SHOW_NAMES` reveals the speaker names and the
+     normal dialogue UI continues.
 6. Player advances through nodes by clicking choices or continue prompts.
 7. When the final node is reached, `intro_complete` is set and `DialogueFinished` is emitted.
 8. `handleDialogueComplete` in `dialogue.js` checks the `intro_complete` flag.
@@ -123,9 +124,9 @@ The new-game cinematic is an **engine state transition**, not dialogue data:
 - `NEW_GAME_PLACEHOLDER` handles environment fades and the sigil portal zoom.
 - `DIALOGUE` handles face reveals and player recognition via cinematic events.
 - Dialogue JSON contains **only** dialogue data (speaker, text, expressions) plus
-  `PLAYER_RECOGNIZED` reveal triggers.
-- Character names are never revealed during the intro — the player does not know
-  who they are yet.
+  `PLAYER_RECOGNIZED` and `SHOW_NAMES` reveal triggers.
+- Character names stay hidden until `SHOW_NAMES` fires after the recognition
+  shock reaction — the player does not know who they are before that point.
 - No dialogue node describes cinematic effects (no "fade to black" text, no fake sigils).
 
 ---
