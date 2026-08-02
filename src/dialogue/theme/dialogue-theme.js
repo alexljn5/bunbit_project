@@ -33,9 +33,7 @@ export const DialogueTheme = Object.freeze({
 
     // ─── Portrait Frame ───────────────────────────
     portrait: {
-        frameBorderColor: '#444444',
-        frameBorderWidth: '1px',
-        framePadding: '4px',
+                framePadding: '4px',
         frameMargin: '0 0 8px 0',
         maxWidth: '120px',
         maxHeight: '120px',
