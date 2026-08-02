@@ -49,10 +49,14 @@ export async function dialogueHandler(controller, sharedState, payload = {}) {
     // Create dialogue renderer container
     dialogueRenderer.createContainer();
 
-    // Set cinematic state for intro sequence — faces hidden until player is recognized
+    // Set cinematic state for intro sequence.
+    // Patches and Vesper exist before the player is recognized, but their
+    // faces AND names stay hidden until recognition reveals them.
     if (dialogueId === 'new_game_intro') {
         dialogueRenderer.setCinematicState({
+            introActive: true,
             facesVisible: false,
+            namesVisible: false,
             playerRecognized: false,
         });
     }
@@ -78,17 +82,31 @@ export async function dialogueHandler(controller, sharedState, payload = {}) {
         handleDialogueComplete(controller, onComplete, currentDialogueId);
     });
 
-    // Listen for cinematic events (face reveal, expression changes, etc.)
+    // Listen for cinematic events (face/name reveal, recognition, etc.)
+    // NOTE: Environment fades and sigil portal zoom are handled by the
+    // NEW_GAME_PLACEHOLDER state — dialogue only drives face/name reveals.
     const cinematicHandler = (e) => {
-        const { action, characters } = e.detail || {};
+        const { action } = e.detail || {};
 
         switch (action) {
-            case 'FADE_OUT':
-                dialogueRenderer.setCinematicState({ facesVisible: false });
+            case 'PLAYER_RECOGNIZED':
+                // Player is detected. Reveal ONLY the faces first — names are
+                // still unknown. The dialogue data supplies shocked expressions.
+                dialogueRenderer.setCinematicState({
+                    facesVisible: true,
+                    namesVisible: false,
+                    playerRecognized: true,
+                });
                 break;
 
-            case 'FADE_IN':
-                dialogueRenderer.setCinematicState({ facesVisible: true });
+            case 'SHOW_NAMES':
+                // After the shock reaction, the characters introduce themselves.
+                // Now the normal dialogue UI (names + faces) appears.
+                dialogueRenderer.setCinematicState({
+                    facesVisible: true,
+                    namesVisible: true,
+                    playerRecognized: true,
+                });
                 break;
 
             case 'SHOW_EXPRESSIONS':
@@ -99,8 +117,7 @@ export async function dialogueHandler(controller, sharedState, payload = {}) {
                 dialogueRenderer.setCinematicState({ facesVisible: false });
                 break;
 
-            case 'PLAYER_RECOGNIZED':
-                dialogueRenderer.setCinematicState({ facesVisible: true, playerRecognized: true });
+            default:
                 break;
         }
     };
@@ -134,9 +151,20 @@ export async function dialogueHandler(controller, sharedState, payload = {}) {
         unsubscribeComplete();
         dialogueRenderer.destroyContainer();
         dialogueRenderer.setCinematicState({
+            introActive: false,
             facesVisible: true,
+            namesVisible: true,
             playerRecognized: false,
         });
+        // Clean up cinematic DOM elements and dashboard
+        const sigil = document.querySelector('[data-dashboard-sigil="1"]');
+        if (sigil) sigil.remove();
+        document.body.classList.remove('cinematic-dim-environment', 'dimmed');
+
+        // Remove the dashboard so the gameplay canvas can take over
+        const dashboard = document.getElementById('bunbit-main-dashboard');
+        if (dashboard) dashboard.remove();
+
         if (canvas) canvas.style.display = '';
         currentDialogueId = null;
     };
@@ -215,9 +243,20 @@ async function handleContinue() {
 function handleDialogueComplete(controller, onComplete, dialogueId) {
     dialogueRenderer.hide();
 
+    // Clean up cinematic DOM elements and dashboard
+    const sigil = document.querySelector('[data-dashboard-sigil="1"]');
+    if (sigil) sigil.remove();
+    document.body.classList.remove('cinematic-dim-environment', 'dimmed');
+
+    // Remove the dashboard so the gameplay canvas can take over
+    const dashboard = document.getElementById('bunbit-main-dashboard');
+    if (dashboard) dashboard.remove();
+
     // Reset cinematic state
     dialogueRenderer.setCinematicState({
+        introActive: false,
         facesVisible: true,
+        namesVisible: true,
         playerRecognized: false,
     });
 

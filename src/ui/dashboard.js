@@ -69,7 +69,9 @@ function createVisualAtmosphere(container) {
     }
 
     const pillarLeft = createPillarImg('left');
+    pillarLeft.dataset.dashboardPillar = 'left';
     const pillarRight = createPillarImg('right');
+    pillarRight.dataset.dashboardPillar = 'right';
 
     // Stairs texture
     const stairsSrc = 'img/menu/main/stairs.png';
@@ -88,6 +90,7 @@ function createVisualAtmosphere(container) {
     stairsEl.style.mixBlendMode = 'overlay';
     stairsEl.style.opacity = '0.85';
     stairsEl.style.pointerEvents = 'none';
+    stairsEl.dataset.dashboardStairs = '1';
 
     // Spinning sigil
     const sigilSrc = 'img/logo/logo-ascii-transparent-sigil-blend.png';
@@ -110,12 +113,14 @@ function createVisualAtmosphere(container) {
         zIndex: '0'
     });
     sigilEl.style.animation = 'bunbit-sigil-spin 25s linear infinite';
+    sigilEl.dataset.dashboardSigil = '1';
 
     // Face overlay
     const faceSrc = 'img/logo/logo-ascii.png';
     const faceEl = document.createElement('img');
     faceEl.src = faceSrc;
     faceEl.alt = '';
+    faceEl.dataset.dashboardFace = '1';
     Object.assign(faceEl.style, {
         position: 'absolute',
         left: '50%',
@@ -213,6 +218,11 @@ function createDashboard() {
         newGameBtn.style.color = '#FC0000';
     });
     newGameBtn.addEventListener('click', () => {
+        // Disable the button immediately to prevent a second click from
+        // firing an invalid transition (e.g. DIALOGUE → NEW_GAME_PLACEHOLDER).
+        newGameBtn.disabled = true;
+        newGameBtn.style.opacity = '0.5';
+        newGameBtn.style.pointerEvents = 'none';
         engineController.transitionTo(EngineState.NEW_GAME_PLACEHOLDER);
     });
 
@@ -293,9 +303,10 @@ export async function dashboardHandler(controller, sharedState, payload = {}) {
     createDashboard();
 
     // Cleanup function
+    // NOTE: The dashboard is NOT removed here so that the New Game cinematic
+    // can reuse the existing sigil element. The dialogue handler removes
+    // the dashboard after the cinematic completes.
     cleanupFn = () => {
-        const el = document.getElementById(DASHBOARD_ID);
-        if (el) el.remove();
         if (canvas) canvas.style.display = '';
     };
 

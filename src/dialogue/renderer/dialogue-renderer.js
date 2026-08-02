@@ -54,6 +54,7 @@ export class DialogueRenderer {
         this._cinematicState = {
             introActive: false,
             facesVisible: true,
+            namesVisible: true,
             playerRecognized: false,
         };
     }
@@ -142,12 +143,16 @@ export class DialogueRenderer {
      * When facesVisible is false, character portraits are hidden.
      * @param {object} state - Cinematic state object.
      * @param {boolean} [state.facesVisible=true] - Whether character faces should be rendered.
+     * @param {boolean} [state.namesVisible=true] - Whether speaker names should be rendered.
      * @param {boolean} [state.introActive=false] - Whether the intro cinematic is active.
      * @param {boolean} [state.playerRecognized=false] - Whether the player has been recognized.
      */
     setCinematicState(state) {
         if (state.facesVisible !== undefined) {
             this._cinematicState.facesVisible = state.facesVisible;
+        }
+        if (state.namesVisible !== undefined) {
+            this._cinematicState.namesVisible = state.namesVisible;
         }
         if (state.introActive !== undefined) {
             this._cinematicState.introActive = state.introActive;
@@ -284,6 +289,10 @@ export class DialogueRenderer {
      */
     _createSpeakerName(node) {
         if (!node.speaker) return null;
+
+        // Hide speaker names during the cinematic intro until names are revealed.
+        // The player does not know the characters' names before recognition.
+        if (!this._cinematicState.namesVisible) return null;
 
         const theme = this.config.speakerName;
         const speakerDiv = document.createElement('div');

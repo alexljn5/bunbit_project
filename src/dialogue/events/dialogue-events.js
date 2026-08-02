@@ -170,7 +170,18 @@ const builtInHandlers = {
                 detail: { action: 'PLAYER_RECOGNIZED', characters: event.characters || ['patches', 'vesper'] },
             }));
         }
-        return { ...flags, playerRecognized: true, facesVisible: true };
+        return { ...flags, playerRecognized: true, facesVisible: true, namesVisible: false };
+    },
+
+    // --- Name Reveal Event --------------------------------
+
+    SHOW_NAMES(event, flags) {
+        if (typeof window !== 'undefined' && window.dispatchEvent) {
+            window.dispatchEvent(new CustomEvent('dialogue:cinematic', {
+                detail: { action: 'SHOW_NAMES' },
+            }));
+        }
+        return { ...flags, namesVisible: true };
     },
 };
 

@@ -1,16 +1,19 @@
 // ============================================================
 // NEW GAME PLACEHOLDER UI
 // ============================================================
-// Reserves the future location for:
-//   - intro dialogue
-//   - Patches
-//   - Vesper
-//   - save slot creation
-//   - cinematic transitions
+// Cinematic transition point for the new-game flow.
 //
-// On entry, runs a cinematic intro transition (environment
-// fade + sigil spin/zoom portal effect), then transitions
-// to DIALOGUE state to run the new_game_intro dialogue graph.
+// The cinematic is an ENGINE transition — not dialogue data.
+// On entry this state:
+//   1. Fades the dashboard environment away (pillars, stairs,
+//      face overlay, dashboard chrome).
+//   2. Reuses the EXISTING spinning dashboard sigil element
+//      (logo-ascii-transparent-sigil-blend.png) and zooms it
+//      toward the camera like entering a portal.
+//   3. Transitions to DIALOGUE to run the data-driven intro.
+//
+// No second sigil element is created. No fake ASCII sigils.
+// The cinematic is engine visuals; dialogue remains pure data.
 // ============================================================
 
 import { EngineState } from '../engine/enginestate.js';
@@ -20,13 +23,117 @@ import { engineController } from '../engine/engine.js';
 engineController.registerHandler(EngineState.NEW_GAME_PLACEHOLDER, newGamePlaceholderHandler);
 
 const PLACEHOLDER_ID = 'bunbit-newgame-placeholder';
-const CINEMATIC_OVERLAY_ID = 'bunbit-cinematic-overlay';
-const SIGIL_ID = 'bunbit-cinematic-sigil';
+const CINEMATIC_MS = 2600;
+const ENV_FADE_MS = 1500;
+
 let cleanupFn = null;
+
+// ─── Cinematic Keyframes ─────────────────────────────────
+// Portal zoom: keeps the existing spin animation running via
+// the element's inline `animation` (bunbit-sigil-spin), while
+// the placeholder drives the scale toward the camera.
+function ensureCinematicStyles() {
+    if (document.getElementById('bunbit-newgame-cinematic-style')) return;
+
+    const style = document.createElement('style');
+    style.id = 'bunbit-newgame-cinematic-style';
+    style.textContent = `
+@keyframes bunbit-portal-zoom {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(22);
+    opacity: 1;
+  }
+}
+
+.bunbit-cinematic-dim {
+  transition: opacity ${ENV_FADE_MS}ms ease-in-out;
+  opacity: 0 !important;
+}
+
+.bunbit-cinematic-fade-element {
+  transition: opacity ${ENV_FADE_MS}ms ease-in-out;
+  opacity: 0;
+}
+`;
+    document.head.appendChild(style);
+}
+
+/**
+ * Runs the new-game cinematic transition.
+ * Fades the dashboard environment, then zooms the existing
+ * spinning sigil toward the camera before entering DIALOGUE.
+ * @param {object} controller - The engine controller.
+ */
+function runNewGameCinematic(controller) {
+    ensureCinematicStyles();
+
+    const dashboard = document.getElementById('bunbit-main-dashboard');
+
+    // Hide interactive buttons during the cinematic
+    const newGameBtn = document.getElementById('bunbit-new-game-btn');
+    if (newGameBtn) newGameBtn.style.display = 'none';
+    const debugBtn = document.getElementById('bunbit-debug-toggle-btn');
+    if (debugBtn) debugBtn.style.display = 'none';
+
+    // ── Phase 1: dissolve the environment (pillars, stairs, face) ──
+    document.querySelectorAll('[data-dashboard-pillar]').forEach((el) => {
+        el.classList.add('bunbit-cinematic-fade-element');
+    });
+    const stairs = document.querySelector('[data-dashboard-stairs]');
+    if (stairs) stairs.classList.add('bunbit-cinematic-fade-element');
+    const face = document.querySelector('[data-dashboard-face]');
+    if (face) face.classList.add('bunbit-cinematic-fade-element');
+
+    // Drop the dashboard chrome so only the sigil remains visible
+    if (dashboard) {
+        dashboard.style.transition = `border-color ${ENV_FADE_MS}ms ease-in-out, box-shadow ${ENV_FADE_MS}ms ease-in-out`;
+        dashboard.style.borderColor = 'transparent';
+        dashboard.style.boxShadow = 'none';
+        dashboard.classList.add('bunbit-cinematic-dim');
+    }
+
+    // ── Phase 2: portal zoom on the EXISTING sigil ──
+    const sigil = document.querySelector('[data-dashboard-sigil="1"]');
+    if (sigil) {
+        // Move it to a fixed, centered position (it is currently in the
+        // dashboard atmosphere layer). Keep its existing spin animation.
+        sigil.style.position = 'fixed';
+        sigil.style.left = '50%';
+        sigil.style.top = '50%';
+        sigil.style.transform = 'translate(-50%, -50%) scale(1)';
+        sigil.style.width = '340px';
+        sigil.style.height = '340px';
+        sigil.style.maxWidth = '70vw';
+        sigil.style.maxHeight = '70vh';
+        sigil.style.zIndex = '2147483645';
+        sigil.style.pointerEvents = 'none';
+        sigil.style.opacity = '1';
+        // Keep the dashboard spin animation running while we add the zoom
+        sigil.style.animation = 'bunbit-sigil-spin 25s linear infinite, bunbit-portal-zoom 2200ms ease-in-out forwards';
+
+        // The dashboard container has overflow:hidden — detach the sigil
+        // so it can scale beyond the dashboard frame.
+        if (dashboard && sigil.parentNode) {
+            dashboard.parentNode.appendChild(sigil);
+        }
+    }
+
+    // ── Phase 3: enter dialogue after the portal zoom ──
+    setTimeout(() => {
+        controller.transitionTo(EngineState.DIALOGUE, {
+            dialogueId: 'new_game_intro',
+            flags: {},
+        });
+    }, CINEMATIC_MS);
+}
 
 /**
  * Handler for the NEW_GAME_PLACEHOLDER state.
- * Runs a cinematic intro transition before entering dialogue.
+ * Runs the engine-driven cinematic transition, then moves to DIALOGUE.
  * @param {object} controller - The engine controller.
  * @param {object} sharedState - Persistent shared state.
  * @param {object} payload - Optional transition payload.
@@ -35,110 +142,27 @@ let cleanupFn = null;
 export async function newGamePlaceholderHandler(controller, sharedState, payload = {}) {
     console.log('[Engine] Entering NEW_GAME_PLACEHOLDER state');
 
-    // Ensure canvas is visible for this state
+    // Ensure canvas stays hidden — the dashboard is the cinematic surface
     const canvas = document.getElementById('mainGameRender');
     if (canvas) {
-        canvas.style.display = '';
+        canvas.style.display = 'none';
     }
 
     // Remove any existing placeholder
     const existing = document.getElementById(PLACEHOLDER_ID);
     if (existing) existing.remove();
 
-    // Run the cinematic intro transition
-    await runCinematicIntro();
+    // Run the cinematic transition (reuses the dashboard sigil element)
+    runNewGameCinematic(controller);
 
-    // After cinematic completes, transition to DIALOGUE state
-    controller.transitionTo(EngineState.DIALOGUE, {
-        dialogueId: 'new_game_intro',
-        flags: {},
-    });
-
-    // Cleanup function
+    // Cleanup function (minimal — dialogue handles its own lifecycle)
     cleanupFn = () => {
         const el = document.getElementById(PLACEHOLDER_ID);
         if (el) el.remove();
-        const cinematic = document.getElementById(CINEMATIC_OVERLAY_ID);
-        if (cinematic) cinematic.remove();
     };
 
     return cleanupFn;
 }
 
-/**
- * Runs the cinematic intro sequence:
- * 1. Dark overlay fades in (environment fade)
- * 2. Sigil appears centered
- * 3. Sigil spins and zooms dramatically (portal effect)
- * 4. Overlay fades out
- * @returns {Promise<void>}
- */
-function runCinematicIntro() {
-    return new Promise((resolve) => {
-        const overlay = document.createElement('div');
-        overlay.id = CINEMATIC_OVERLAY_ID;
-        overlay.style.cssText = `
-            position: fixed;
-            inset: 0;
-            z-index: 9999;
-            background: #000000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 1s ease-in-out;
-        `;
-        document.body.appendChild(overlay);
-
-        // Fade in the dark overlay (environment fade)
-        requestAnimationFrame(() => {
-            overlay.style.opacity = '1';
-        });
-
-        // Wait for overlay fade-in, then show sigil
-        setTimeout(() => {
-            const sigil = document.createElement('img');
-            sigil.id = SIGIL_ID;
-            sigil.src = 'img/logo/logo-ascii-transparent-sigil-blend.png';
-            sigil.alt = 'Sigil';
-            sigil.style.cssText = `
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                width: 200px;
-                height: 200px;
-                max-width: 50vw;
-                max-height: 50vh;
-                transform: translate(-50%, -50%) rotate(0deg) scale(1);
-                opacity: 0;
-                transition: opacity 0.5s ease-in-out;
-                pointer-events: none;
-                z-index: 10000;
-            `;
-            overlay.appendChild(sigil);
-
-            // Fade in sigil
-            requestAnimationFrame(() => {
-                sigil.style.opacity = '1';
-            });
-
-            // Wait for sigil fade-in, then spin and zoom (portal effect)
-            setTimeout(() => {
-                sigil.style.transition = 'transform 2s ease-in-out, opacity 2s ease-in-out';
-                sigil.style.transform = 'translate(-50%, -50%) rotate(360deg) scale(20)';
-
-                // After spin+zoom, fade out overlay
-                setTimeout(() => {
-                    overlay.style.opacity = '0';
-                    setTimeout(() => {
-                        overlay.remove();
-                        resolve();
-                    }, 1000);
-                }, 2000);
-            }, 500);
-        }, 1000);
-    });
-}
-
 export default newGamePlaceholderHandler;
+
