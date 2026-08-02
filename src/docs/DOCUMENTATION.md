@@ -127,6 +127,184 @@ The Rust backend handles:
 | Data → Runtime | Loaders fetch JSON/Markdown files; runtime processes them |
 | Events → Cross-module | `window.dispatchEvent(new CustomEvent(...))` for decoupled communication |
 
+## Reference: Theming, State Changes & Text Box Standardizations
+
+### Theming System
+
+The theme system is defined in `src/themes/thememanager.js` and uses CSS custom properties for runtime theme switching.
+
+#### Available Themes (from `STANDARDISATION.md`)
+
+| Theme | Description |
+|---|---|
+| `evil` | Default theme. Dark red/black palette with glitch effects. |
+| `highcontrast` | High-contrast theme for accessibility. Bright colours on dark background. |
+| `calm` | Softer colour palette for reduced eye strain. |
+| `hacky` | Retro hacker aesthetic with green-on-black. |
+
+#### Evil Theme Tokens (from `STANDARDISATION.md`)
+
+| Token | Value | Usage |
+|---|---|---|
+| `--theme-primary` | `#FC0000` | Primary accent (borders, headings, buttons) |
+| `--theme-background` | `#0a0000` | Deep black-red background |
+| `--theme-text` | `#FC0000` | Primary text colour |
+| `--theme-button-bg` | `#1a0000` | Button background |
+| `--theme-button-text` | `#FC0000` | Button text colour |
+| `--theme-accent` | `#00FF00` | Secondary accent (DEBUG PLAY button) |
+| `--theme-border` | `#FC0000` | Border colour |
+| `--theme-glow` | `rgba(255,0,0,0.5)` | Text shadow / glow |
+
+#### Theme Switching
+
+Themes are switched via `ThemeManager.setTheme(themeName)`. All UI components use CSS custom properties rather than hardcoded colours, ensuring theme changes propagate automatically.
+
+#### How Theming Was Pulled from STANDARDISATION.md
+
+The theming section in `STANDARDISATION.md` (Section 14) defines:
+- Available themes and their descriptions
+- Evil theme colour tokens with usage mappings
+- High contrast theme colour tokens
+- Theme switching via `ThemeManager.setTheme()`
+- Accessibility requirements (button contrast in all themes)
+
+The `src/themes/thememanager.js` implements the runtime theme switching. UI components read theme tokens via `themeManager?.getCurrentTheme?.()` and apply them to inline styles or CSS custom properties.
+
+---
+
+### State Change System
+
+#### How State Changes Work
+
+The engine state machine is defined in `src/engine/enginestate.js` and managed by `src/engine/engine.js`.
+
+**State Definitions** (`EngineState` enum):
+| State | Description |
+|---|---|
+| `ENGINE_INIT` | Engine initialisation, resource loading |
+| `INTRO` | Creepy intro / title screen with ASCII animation |
+| `DASHBOARD` | Main menu with New Game button |
+| `DIALOGUE` | Data-driven dialogue graph runtime |
+| `NEW_GAME_PLACEHOLDER` | Transition point to DIALOGUE for new-game flow |
+| `INGAME_MENU` | Minimal in-game menu (Play, Select Map, Return) |
+| `GAMEPLAY` | Active raycasting gameplay |
+
+**Transition Rules** (`ValidTransitions`):
+- All transitions go through the state machine — no direct screen switching
+- Transitions are triggered by events, not by direct function calls
+- Each state is isolated — a state handler is responsible for rendering and input only
+- The engine controller manages transitions; states emit events that the controller processes
+
+**Transition Events** (`TransitionEvent`):
+| Event | Trigger |
+|---|---|
+| `START_ENGINE` | Engine initialisation |
+| `INTRO_COMPLETE` | Intro animation finishes |
+| `NEW_GAME` | Player clicks "New Game" |
+| `DEBUG_PLAY` | Developer clicks "DEBUG PLAY" |
+| `DISMISS_PLACEHOLDER` | Placeholder dismissed |
+| `START_GAMEPLAY` | Player starts gameplay |
+| `PAUSE_GAME` | Player pauses |
+| `RESUME_GAME` | Player resumes |
+| `RETURN_TO_DASHBOARD` | Return to dashboard |
+| `SELECT_MAP` | Player opens map selection |
+| `START_DIALOGUE` | Dialogue sequence begins |
+| `DIALOGUE_FINISHED` | Dialogue graph completes |
+
+**State Handler Pattern**:
+Each state handler is a function registered with `engineController.registerHandler(state, handler)`. The handler:
+1. Receives `(controller, sharedState, payload)`
+2. Renders the appropriate UI
+3. Returns a cleanup function that removes the UI
+
+**Example Flow**:
+```
+Dashboard → New Game button click
+  → engineController.transitionTo(NEW_GAME_PLACEHOLDER)
+  → NEW_GAME_PLACEHOLDER handler runs
+  → Auto-transitions to DIALOGUE
+  → DIALOGUE handler runs
+  → DialogueManager loads new_game_intro.json
+  → DialogueRenderer displays first node
+  → Player clicks Continue or makes a choice
+  → DialogueManager advances to next node
+  → When no more nodes, DialogueFinished is emitted
+  → DIALOGUE handler transitions to DASHBOARD
+```
+
+---
+
+### Text Box Standardizations
+
+#### Intro Text Box (`src/ui/intro.js`)
+
+The intro screen uses a fullscreen canvas with CRT-style effects. The text box is not a separate DOM element — the intro animation is handled by `src/animations/introplaceholder.js` which renders ASCII art directly to the canvas.
+
+**Standardization**:
+- Fullscreen canvas overlay
+- CRT-style glitch effects (flicker, shake, corruption, scanlines)
+- Auto-transitions to DASHBOARD after animation completes
+- Only shown once per application launch (controlled by `window.introActive`)
+
+#### In-Game Text Box (`src/ui/ingamemenu.js`)
+
+The in-game menu is a minimal overlay with Play, Select Map, and Return buttons. It uses the same theme-aware styling as other UI components.
+
+**Standardization**:
+- Positioned as an HTML overlay on top of the gameplay canvas
+- Uses CSS custom properties for theme awareness
+- Transitions back to GAMEPLAY or DASHBOARD
+
+#### Dialogue Text Box (`src/dialogue/renderer/dialogue-renderer.js`)
+
+The dialogue text box is a fixed-position HTML element at the bottom of the screen.
+
+**Standardization**:
+- Container: `position: fixed`, `bottom: 20px`, `left: 0`, `right: 0`, `margin: 0 auto`
+- Width: `90vw`, max-width: `900px`
+- Background: `#0a0000` (theme background)
+- Border: `2px solid #FC0000` (theme primary)
+- Text colour: `#FC0000` (theme text)
+- Font: `'Courier New', monospace`
+- Z-index: `2147483647` (above all other UI)
+- Box shadow: `0 4px 20px rgba(255,0,0,0.3)`
+- Padding: `20px`
+
+**Content Layout**:
+1. Expression ASCII art (centered, monospace, `font-size: 14px`)
+2. Speaker name (left-aligned for Patches, right-aligned for Vesper, `font-size: 18px`, bold)
+3. Dialogue text (left/right aligned based on speaker, `font-size: 16px`, `white-space: pre-wrap`)
+4. Choice buttons (full-width, left-aligned text, `font-size: 14px`)
+5. Continue prompt (`[Continue]`, centered, `opacity: 0.7`, `cursor: pointer`)
+
+**Speaker Positioning**:
+- Patches and other characters: left-aligned
+- Vesper: right-aligned
+
+#### Dashboard Text Box (`src/ui/dashboard.js`)
+
+The dashboard uses a centered layout with visual atmosphere (pillars, sigil, stairs).
+
+**Standardization**:
+- Fixed position covering the full viewport
+- Border: `2px solid rgba(252,0,0,0.95)`
+- Box shadow: `0 6px 30px rgba(252,0,0,0.35)`
+- Z-index: `2147483644`
+- New Game button: centered, `padding: 16px 48px`, `font-size: 20px`, letter-spacing `2px`
+- Debug button: bottom-right corner, `32x32px`, gear icon (⚙), `opacity: 0.4`
+
+#### New Game Placeholder Text Box (`src/ui/newgameplaceholder.js`)
+
+The placeholder screen is a minimal transition point that immediately enters the dialogue system.
+
+**Standardization**:
+- Fullscreen overlay, `background-color: #0a0000`
+- Title: `NEW GAME`, `font-size: 32px`, `color: #FC0000`
+- Subtitle: `Placeholder`, `font-size: 16px`, `color: #663333`
+- Return to Dashboard button: `padding: 10px 24px`, `font-size: 14px`
+
+---
+
 ## Project Structure
 
 ### `src/` — Frontend (JavaScript/HTML/CSS)

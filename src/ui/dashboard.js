@@ -3,9 +3,11 @@
 // ============================================================
 // Renders the main dashboard with the visual atmosphere
 // (pillars, spinning sigil, stairs) from the original
-// main_dashboard.js, plus two separate interactive sections:
-//   - Player Section: New Game button, Saved Game placeholder
-//   - Developer Section: DEBUG PLAY button
+// main_dashboard.js.
+//
+// The New Game button starts the intro dialogue flow.
+// The debug button is hidden in the bottom-right corner
+// to avoid accidental clicks.
 // ============================================================
 
 import { EngineState } from '../engine/enginestate.js';
@@ -179,36 +181,18 @@ function createDashboard() {
     createVisualAtmosphere(atmosphere);
     dashboard.appendChild(atmosphere);
 
-    // ─── Player Section (TOP) ──────────────────────────────
-    const playerSection = document.createElement('div');
-    playerSection.dataset.engineSection = 'player';
-    playerSection.style.pointerEvents = 'auto';
-    playerSection.style.position = 'absolute';
-    playerSection.style.top = '40px';
-    playerSection.style.left = '50%';
-    playerSection.style.transform = 'translateX(-50%)';
-    playerSection.style.display = 'flex';
-    playerSection.style.flexDirection = 'column';
-    playerSection.style.alignItems = 'center';
-    playerSection.style.gap = '12px';
-    playerSection.style.zIndex = '2';
-
-    const playerLabel = document.createElement('h2');
-    playerLabel.textContent = 'Player';
-    playerLabel.style.color = '#FC0000';
-    playerLabel.style.fontSize = '20px';
-    playerLabel.style.margin = '0 0 8px 0';
-    playerLabel.style.fontFamily = "'Courier New', monospace";
-    playerLabel.style.textShadow = '0 0 10px rgba(255,0,0,0.5)';
-
-    // New Game button
+    // ─── New Game Button (CENTER) ──────────────────────────
     const newGameBtn = document.createElement('button');
     newGameBtn.id = 'bunbit-new-game-btn';
     newGameBtn.textContent = 'New Game';
     newGameBtn.style.cssText = `
-        padding: 12px 32px;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        padding: 16px 48px;
         font-family: 'Courier New', monospace;
-        font-size: 16px;
+        font-size: 20px;
         font-weight: bold;
         color: #FC0000;
         background: #1a0000;
@@ -217,7 +201,8 @@ function createDashboard() {
         cursor: pointer;
         pointer-events: auto;
         transition: background 0.2s, color 0.2s;
-        min-width: 200px;
+        z-index: 2;
+        letter-spacing: 2px;
     `;
     newGameBtn.addEventListener('mouseenter', () => {
         newGameBtn.style.background = '#FC0000';
@@ -231,94 +216,47 @@ function createDashboard() {
         engineController.transitionTo(EngineState.NEW_GAME_PLACEHOLDER);
     });
 
-    // Saved Game placeholder
-    const savedGameSection = document.createElement('div');
-    savedGameSection.style.cssText = `
-        margin-top: 16px;
-        padding: 12px 24px;
-        border: 1px solid rgba(252,0,0,0.3);
-        border-radius: 4px;
-        color: #663333;
-        font-size: 14px;
-        text-align: center;
-        min-width: 200px;
-    `;
-    const savedGameLabel = document.createElement('div');
-    savedGameLabel.textContent = 'Saved Game';
-    savedGameLabel.style.fontWeight = 'bold';
-    savedGameLabel.style.marginBottom = '4px';
-    const savedGamePlaceholder = document.createElement('div');
-    savedGamePlaceholder.textContent = '(No save system implemented yet)';
-    savedGamePlaceholder.style.fontSize = '12px';
-    savedGamePlaceholder.style.opacity = '0.6';
-    savedGameSection.appendChild(savedGameLabel);
-    savedGameSection.appendChild(savedGamePlaceholder);
+    dashboard.appendChild(newGameBtn);
 
-    playerSection.appendChild(playerLabel);
-    playerSection.appendChild(newGameBtn);
-    playerSection.appendChild(savedGameSection);
-
-    // ─── Developer Section (BOTTOM) ─────────────────────────
-    const devSection = document.createElement('div');
-    devSection.dataset.engineSection = 'developer';
-    devSection.style.pointerEvents = 'auto';
-    devSection.style.position = 'absolute';
-    devSection.style.bottom = '40px';
-    devSection.style.left = '50%';
-    devSection.style.transform = 'translateX(-50%)';
-    devSection.style.display = 'flex';
-    devSection.style.flexDirection = 'column';
-    devSection.style.alignItems = 'center';
-    devSection.style.gap = '8px';
-    devSection.style.zIndex = '2';
-
-    const devLabel = document.createElement('h2');
-    devLabel.textContent = 'Developer';
-    devLabel.style.color = '#FC0000';
-    devLabel.style.fontSize = '20px';
-    devLabel.style.margin = '0 0 8px 0';
-    devLabel.style.fontFamily = "'Courier New', monospace";
-    devLabel.style.textShadow = '0 0 10px rgba(255,0,0,0.5)';
-
-    // DEBUG PLAY button
-    const debugPlayBtn = document.createElement('button');
-    debugPlayBtn.id = 'bunbit-debug-play-btn';
-    debugPlayBtn.textContent = 'DEBUG PLAY';
-    debugPlayBtn.style.cssText = `
-        padding: 12px 32px;
-        font-family: 'Courier New', monospace;
+    // ─── Debug Button (bottom-right, subtle) ──────────────
+    const debugToggleBtn = document.createElement('button');
+    debugToggleBtn.id = 'bunbit-debug-toggle-btn';
+    debugToggleBtn.textContent = '⚙';
+    debugToggleBtn.title = 'Toggle debug panels';
+    debugToggleBtn.style.cssText = `
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        width: 32px;
+        height: 32px;
         font-size: 16px;
-        font-weight: bold;
-        color: #00FF00;
-        background: #001a00;
-        border: 2px solid #00FF00;
+        color: #442222;
+        background: transparent;
+        border: 1px solid rgba(252,0,0,0.2);
         border-radius: 4px;
         cursor: pointer;
         pointer-events: auto;
-        transition: background 0.2s, color 0.2s;
-        min-width: 200px;
+        z-index: 2;
+        opacity: 0.4;
+        transition: opacity 0.3s, color 0.3s, border-color 0.3s;
     `;
-    debugPlayBtn.addEventListener('mouseenter', () => {
-        debugPlayBtn.style.background = '#00FF00';
-        debugPlayBtn.style.color = '#000';
+    debugToggleBtn.addEventListener('mouseenter', () => {
+        debugToggleBtn.style.opacity = '0.8';
+        debugToggleBtn.style.color = '#FC0000';
+        debugToggleBtn.style.borderColor = 'rgba(252,0,0,0.5)';
     });
-    debugPlayBtn.addEventListener('mouseleave', () => {
-        debugPlayBtn.style.background = '#001a00';
-        debugPlayBtn.style.color = '#00FF00';
+    debugToggleBtn.addEventListener('mouseleave', () => {
+        debugToggleBtn.style.opacity = '0.4';
+        debugToggleBtn.style.color = '#442222';
+        debugToggleBtn.style.borderColor = 'rgba(252,0,0,0.2)';
     });
-    debugPlayBtn.addEventListener('click', () => {
-        // Toggle all debug panels on/off
+    debugToggleBtn.addEventListener('click', () => {
         toggleDebugPanels();
     });
 
-    devSection.appendChild(devLabel);
-    devSection.appendChild(debugPlayBtn);
+    dashboard.appendChild(debugToggleBtn);
 
     // ─── Assemble Dashboard ────────────────────────────────
-    dashboard.appendChild(atmosphere);
-    dashboard.appendChild(playerSection);
-    dashboard.appendChild(devSection);
-
     document.body.appendChild(dashboard);
 
     // Theme tint
