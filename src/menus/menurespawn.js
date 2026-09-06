@@ -13,7 +13,7 @@ export function drawRespawnMenu(canvas, onRespawn) {
 
     renderEngine.fillStyle = "#cccccc";
     compiledTextStyle();
-    renderEngine.font = `bold ${32 * Math.min(SCALE_X, SCALE_Y)}px ${GLOBAL_FONT}`;
+    renderEngine.font = `bold ${Math.floor(32 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
     renderEngine.fillText("YOU DIED", CANVAS_WIDTH / 2 - 80 * SCALE_X, CANVAS_HEIGHT / 2 - 50 * SCALE_Y);
 
     // Draw respawn button
@@ -28,7 +28,7 @@ export function drawRespawnMenu(canvas, onRespawn) {
     renderEngine.lineWidth = 1;
     renderEngine.strokeRect(buttonX, buttonY, buttonWidth, buttonHeight);
     renderEngine.fillStyle = "#cccccc";
-    renderEngine.font = `bold ${18 * Math.min(SCALE_X, SCALE_Y)}px ${GLOBAL_FONT}`;
+    renderEngine.font = `bold ${Math.floor(18 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
     renderEngine.textAlign = 'center';
     renderEngine.fillText("Respawn", buttonX + buttonWidth / 2, buttonY + 25 * SCALE_Y);
     renderEngine.textAlign = 'left';
