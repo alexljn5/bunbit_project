@@ -250,4 +250,4 @@ const baseMinimapWidth = 200; // Base size in reference resolution
 const baseMinimapHeight = 200;
 const baseMargin = 20; // Base margin in reference resolution
 
-export function compiledTextStyle() { renderEngine.fillStyle = "yellow"; renderEngine.font = `${Math.floor(30 * Math.min(SCALE_X, SCALE_Y))}px Arial`; }
+export function compiledTextStyle() { renderEngine.fillStyle = "yellow"; renderEngine.font = `${Math.floor(30 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`; }
