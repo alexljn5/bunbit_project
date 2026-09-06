@@ -51,7 +51,8 @@ function getSettingsButtons() {
         { name: "Graphics", x: 60 * SCALE_X, y: 340 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
         { name: "Save Game", x: 60 * SCALE_X, y: 400 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
         { name: "Load Game", x: 60 * SCALE_X, y: 460 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
-        { name: "Quit", x: 60 * SCALE_X, y: 520 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false }
+        { name: "Back to Menu", x: 60 * SCALE_X, y: 520 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
+        { name: "Quit", x: 60 * SCALE_X, y: 580 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false }
     ];
 }
 
@@ -235,6 +236,15 @@ async function handleSettingsMenuClick(e) {
                 }
             } else if (button.name === "Load Game") {
                 showLoadPrompt = true;
+            } else if (button.name === "Back to Menu") {
+                window.__settingsMenuOpen = false;
+                stopMenuLoop();
+                showLoadPrompt = false;
+                showControls = false;
+                showAudio = false;
+                showGraphics = false;
+                detachSettingsMenuHandlers();
+                // Keep menuActive=true so the game menu shows, but don't resume gameplay
             } else if (button.name === "Quit") {
                 if (typeof window !== 'undefined') {
                     window.location.href = 'intro.html';
