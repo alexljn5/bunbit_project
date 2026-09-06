@@ -1,13 +1,15 @@
-import { SCALE_X, SCALE_Y, CANVAS_WIDTH, CANVAS_HEIGHT } from '../globals.js';
+import { SCALE_X, SCALE_Y, CANVAS_WIDTH, CANVAS_HEIGHT, skyboxEnabled, skyColorTop, skyColorHorizon } from '../globals.js';
 import { setMenuActive } from '../gamestate.js';
 import { gameLoop } from '../game_loop.js';
 import { setupMenuClickHandler } from '../menus/ingame_menu/game_menu.js';
 import { gameRenderEngine, initializeRenderWorkers, cleanupRenderWorkers } from '../rendering/renderengine.js';
 import { memCpuGodFunction, stopMemCpuMonitor } from './panels/memcpu.js';
-import { debugHandlerGodFunction, stopDebugTerminal } from './debughandler.js';
+import { debugHandlerGodFunction, stopDebugTerminal } from '../debughandler.js';
 import { themeManager } from '../themes/thememanager.js';
 import { defaultThemeName, DEBUG_START_INTRO_ANIMATION } from '../globals.js';
-
+import { mapHandler } from '../mapdata/maphandler.js';
+import { mapTable } from '../mapdata/maps.js';
+import { transparentWallTextureKeys } from '../mapdata/maptexturesloader.js';
 
 import { togglePositionPanel } from './panels/positionpanel.js';
 
@@ -28,9 +30,9 @@ export function initControlPanel() {
 
     const debugPanel = document.createElement('div');
     debugPanel.id = 'bunbit-debug-panel';
-    // Compact panel: 220x300px self-contained box
+    // Compact panel: 220x420px self-contained box (extra height for new controls)
     const panelWidth = 220;
-    const panelHeight = 300;
+    const panelHeight = 420;
     const edgeGap = 20; // px from viewport edges
     debugPanel.style.position = 'fixed';
     debugPanel.style.top = `${edgeGap}px`;
@@ -138,9 +140,101 @@ export function initControlPanel() {
     // Apply default theme immediately
     try { themeManager.setTheme(defaultThemeName); } catch (e) { /* ignore */ }
 
+    // ─── Map Selector ─────────────────────────────────────
+    const mapSelector = document.createElement('select');
+    mapSelector.id = 'bunbit-debug-map-selector';
+    mapSelector.title = 'Select map (debug)';
+    mapSelector.style.cssText = `
+        padding: ${6 * SCALE_Y}px ${10 * SCALE_X}px;
+        cursor: pointer;
+        border: ${1 * SCALE_X}px solid ${DEFAULT_BORDER};
+        border-radius: ${4 * SCALE_X}px;
+        font-size: ${11 * SCALE_Y}px;
+        font-weight: bold;
+        margin-top: ${4 * SCALE_Y}px;
+        background-color: ${DEFAULT_BUTTON_BG};
+        color: ${DEFAULT_TEXT};
+        width: 100%;
+        box-sizing: border-box;
+    `;
+
+    // Populate map options using actual map keys
+    for (const [key] of mapTable.entries()) {
+        const option = document.createElement('option');
+        option.value = key;
+        option.textContent = key;
+        if (mapHandler.activeMapKey === key) option.selected = true;
+        mapSelector.appendChild(option);
+    }
+
+    mapSelector.addEventListener('change', async (e) => {
+        const selectedMap = e.target.value;
+        if (selectedMap && mapHandler.activeMapKey !== selectedMap) {
+            try {
+                const p = window.__playerPosition || { x: 75, z: 75, angle: 0 };
+                await mapHandler.loadMap(selectedMap, p);
+                console.log(`[DebugPanel] Switched to map: ${selectedMap}`);
+            } catch (err) {
+                console.error(`[DebugPanel] Failed to load map ${selectedMap}:`, err);
+            }
+        }
+    });
+
+    // ─── Skybox Toggle ────────────────────────────────────
+    const skyboxButton = document.createElement('button');
+    skyboxButton.id = 'bunbit-skybox-toggle';
+    skyboxButton.textContent = `Skybox: ${skyboxEnabled ? 'ON' : 'OFF'}`;
+    skyboxButton.style.cssText = `
+        padding: ${6 * SCALE_Y}px ${10 * SCALE_X}px;
+        cursor: pointer;
+        border: ${1 * SCALE_X}px solid ${DEFAULT_BORDER};
+        border-radius: ${4 * SCALE_X}px;
+        font-size: ${11 * SCALE_Y}px;
+        font-weight: bold;
+        margin-top: ${4 * SCALE_Y}px;
+        background-color: ${DEFAULT_BUTTON_BG};
+        color: ${DEFAULT_TEXT};
+        width: 100%;
+        box-sizing: border-box;
+    `;
+    skyboxButton.addEventListener('click', () => {
+        skyboxEnabled = !skyboxEnabled;
+        skyboxButton.textContent = `Skybox: ${skyboxEnabled ? 'ON' : 'OFF'}`;
+        console.log(`[DebugPanel] Skybox ${skyboxEnabled ? 'enabled' : 'disabled'}`);
+    });
+
+    // ─── Transparent Wall Toggle ─────────────────────────
+    const transparentWallButton = document.createElement('button');
+    transparentWallButton.id = 'bunbit-transparent-wall-toggle';
+    transparentWallButton.textContent = 'Transparent Walls: OFF';
+    transparentWallButton.style.cssText = `
+        padding: ${6 * SCALE_Y}px ${10 * SCALE_X}px;
+        cursor: pointer;
+        border: ${1 * SCALE_X}px solid ${DEFAULT_BORDER};
+        border-radius: ${4 * SCALE_X}px;
+        font-size: ${11 * SCALE_Y}px;
+        font-weight: bold;
+        margin-top: ${4 * SCALE_Y}px;
+        background-color: ${DEFAULT_BUTTON_BG};
+        color: ${DEFAULT_TEXT};
+        width: 100%;
+        box-sizing: border-box;
+    `;
+    transparentWallButton.addEventListener('click', () => {
+        const isCurrentlyTransparent = transparentWallTextureKeys.has('wall_creamlol');
+        if (isCurrentlyTransparent) {
+            transparentWallTextureKeys.delete('wall_creamlol');
+            transparentWallButton.textContent = 'Transparent Walls: OFF';
+            console.log('[DebugPanel] Transparent walls disabled');
+        } else {
+            transparentWallTextureKeys.add('wall_creamlol');
+            transparentWallButton.textContent = 'Transparent Walls: ON';
+            console.log('[DebugPanel] Transparent walls enabled (wall_creamlol)');
+        }
+    });
 
     // basic styling for readability - compact buttons
-    [reloadButton, playButton, stopButton, showDebugButton, positionButton].forEach(btn => {
+    [reloadButton, playButton, stopButton, showDebugButton, positionButton, mapSelector, skyboxButton, transparentWallButton].forEach(btn => {
         btn.style.padding = `${6 * SCALE_Y}px ${10 * SCALE_X}px`;
         btn.style.cursor = 'pointer';
         btn.style.border = `${1 * SCALE_X}px solid ${DEFAULT_BORDER}`;
@@ -179,6 +273,9 @@ export function initControlPanel() {
     debugPanel.appendChild(replayIntroButton);
     debugPanel.appendChild(positionButton);
     debugPanel.appendChild(themeSelector);
+    debugPanel.appendChild(mapSelector);
+    debugPanel.appendChild(skyboxButton);
+    debugPanel.appendChild(transparentWallButton);
     document.body.appendChild(debugPanel);
 
     // Notify other systems that the control panel exists now (ThemeManager listens for this)

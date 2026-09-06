@@ -6,26 +6,21 @@ import {
 import { buildMapGrid } from './maputils.js';
 import { addMapLight } from '../rendering/lightengine/renderlight.js';
 
-// Debug sector (16x16 open area with transparent border walls for skybox testing)
-// All interior is empty, border walls are transparent (invisible but block rays)
-export const map_debug_sector1 = [
-    [transparentWall, transparentWall, transparentWall, transparentWall, transparentWall, transparentWall, transparentWall, transparentWall, transparentWall, transparentWall, transparentWall, transparentWall, transparentWall, transparentWall, transparentWall, transparentWall],
-    [transparentWall, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, transparentWall],
-    [transparentWall, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, transparentWall],
-    [transparentWall, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, transparentWall],
-    [transparentWall, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, transparentWall],
-    [transparentWall, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, transparentWall],
-    [transparentWall, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, transparentWall],
-    [transparentWall, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, transparentWall],
-    [transparentWall, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, transparentWall],
-    [transparentWall, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, transparentWall],
-    [transparentWall, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, transparentWall],
-    [transparentWall, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, transparentWall],
-    [transparentWall, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, transparentWall],
-    [transparentWall, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, transparentWall],
-    [transparentWall, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, emptyTile, transparentWall],
-    [transparentWall, transparentWall, transparentWall, transparentWall, transparentWall, transparentWall, transparentWall, transparentWall, transparentWall, transparentWall, transparentWall, transparentWall, transparentWall, transparentWall, transparentWall, transparentWall],
-];
+// Debug sector - extremely wide open area (64x16) with transparent border walls
+// Perfect for testing skybox and transparent walls - no roof, just sky
+const WIDTH = 64;
+const HEIGHT = 16;
+const map_debug_sector1 = Array.from({ length: HEIGHT }, (_, y) =>
+    Array.from({ length: WIDTH }, (_, x) => {
+        // Border walls are transparent (invisible but block rays)
+        if (y === 0 || y === HEIGHT - 1 || x === 0 || x === WIDTH - 1) {
+            return transparentWall;
+        }
+        // Interior is completely empty
+        return emptyTile;
+    })
+);
+
 
 // Debug sector metadata
 export const map_debug_sectors = [
@@ -42,20 +37,15 @@ export const map_debug_sectors = [
 // Core grid setup using global function
 export const map_debug = buildMapGrid(map_debug_sectors);
 
-// Map metadata with floor texture
+// Map metadata - no roof texture for skybox testing
 export const map_debug_data = {
     grid: map_debug,
     sectors: map_debug_sectors,
     floorTextureId: 51, // floor_test (uses creamlol.png)
+    noRoof: true, // Flag to skip roof rendering for this map
 
     lights: [
-        // sector1 - soft red near Casper tile
-        addMapLight([2.5, 4.5], '#ff5555', 1.2, 5.0),
-
-        // sector2 - cyan in the hallway
-        addMapLight([1.5, 2.0], '#aaffff', 5.8, 4.0),
-
-        // sector3 - yellow near laughing demon
-        addMapLight([4.0, 5.5], '#cfa415ff', 1.4, 5.5)
+        // Soft ambient light in the center
+        addMapLight([32, 8], '#ffffff', 2.0, 20.0)
     ]
 };

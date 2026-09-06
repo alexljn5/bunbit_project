@@ -28,8 +28,6 @@ import { engineController } from '../engine/engine.js';
 import { themeManager } from '../themes/thememanager.js';
 import { toggleDebugPanels } from '../debug/panels/bunbitdebug.js';
 import { setMenuActive, menuActive } from '../gamestate.js';
-import { mapHandler } from '../mapdata/maphandler.js';
-import { mapTable } from '../mapdata/maps.js';
 
 // Self-register this state handler with the engine controller
 engineController.registerHandler(EngineState.DASHBOARD, dashboardHandler);
@@ -288,71 +286,6 @@ function createDashboard() {
     });
 
     dashboard.appendChild(backToGameBtn);
-
-    // ─── Map Selector (bottom-right, above debug button) ──
-    const mapSelector = document.createElement('select');
-    mapSelector.id = 'bunbit-map-selector';
-    mapSelector.title = 'Select map';
-    mapSelector.style.cssText = `
-        position: absolute;
-        bottom: 50px;
-        right: 10px;
-        padding: 6px 10px;
-        font-family: ${GLOBAL_FONT};
-        font-size: 11px;
-        font-weight: bold;
-        color: #cccccc;
-        background: #1a1a1a;
-        border: 1px solid rgba(85,85,85,0.3);
-        border-radius: 4px;
-        cursor: pointer;
-        pointer-events: auto;
-        z-index: 2;
-        opacity: 0.6;
-        transition: opacity 0.3s;
-        min-width: 120px;
-    `;
-    mapSelector.addEventListener('mouseenter', () => {
-        mapSelector.style.opacity = '0.9';
-    });
-    mapSelector.addEventListener('mouseleave', () => {
-        mapSelector.style.opacity = '0.6';
-    });
-
-    // Populate map options
-    const mapNames = {
-        'map_hub': 'Hub',
-        'map_01': 'Level 1',
-        'map_02': 'Level 2',
-        'map_03': 'Level 3',
-        'map_04': 'Level 4',
-        'map_05': 'Level 5',
-        'map_06': 'Level 6',
-        'map_07': 'Level 7',
-        'map_debug': 'Debug',
-        'map_test': 'Test'
-    };
-
-    for (const [key, name] of Object.entries(mapNames)) {
-        const option = document.createElement('option');
-        option.value = key;
-        option.textContent = name;
-        mapSelector.appendChild(option);
-    }
-
-    mapSelector.addEventListener('change', async (e) => {
-        const selectedMap = e.target.value;
-        if (selectedMap && mapHandler.activeMapKey !== selectedMap) {
-            try {
-                await mapHandler.loadMap(selectedMap, window.__playerPosition || { x: 75, z: 75, angle: 0 });
-                console.log(`[Dashboard] Switched to map: ${selectedMap}`);
-            } catch (err) {
-                console.error(`[Dashboard] Failed to load map ${selectedMap}:`, err);
-            }
-        }
-    });
-
-    dashboard.appendChild(mapSelector);
 
     // ─── Debug Button (bottom-right, subtle) ──────────────
     const debugToggleBtn = document.createElement('button');

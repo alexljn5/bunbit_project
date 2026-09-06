@@ -262,7 +262,8 @@ export function setupMenuClickHandler() {
 
             if (b.name === "Play") {
                 const p = getPlayerPosition();
-                selectedMapName = "map_01";
+                // Use the currently selected map, or fall back to the active map, or map_01
+                selectedMapName = selectedMapName || mapHandler.activeMapKey || "map_01";
 
                 mapHandler.loadMap(selectedMapName, p);
                 spriteManager.loadSpritesForMap(selectedMapName);

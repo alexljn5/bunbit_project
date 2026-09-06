@@ -3,6 +3,7 @@ import { tileSectors } from "../mapdata/maps.js";
 import { tileTexturesMap, texturesLoaded } from "../mapdata/maptexturesloader.js";
 import { playerPosition } from "../playerdata/playerlogic.js";
 import { CANVAS_HEIGHT, CANVAS_WIDTH, WORKER_DEBUG_LOGS, skyboxEnabled, skyColorTop, skyColorHorizon } from "../globals.js";
+import { mapTable } from "../mapdata/maps.js";
 import { fastCos, fastSin } from "../math/mathtables.js";
 import { renderEngine, drawQuad } from "./renderengine.js";
 import { playerFOV, numCastRays } from "./raycasting.js";
@@ -233,12 +234,16 @@ export function precomputeHorizonData(sectorKey, rayData) {
             return;
         }
 
+        const mapKey = mapHandler.activeMapKey || "map_01";
+        const mapData = mapTable.get(mapKey);
+        const noRoof = mapData?.noRoof === true;
+
         const floorTextureKey = mapHandler.getMapFloorTexture(sectorKey) || "floor_concrete_01";
         const roofTextureKey = "roof_concrete_01";
         const floorTexture = tileTexturesMap.get(floorTextureKey);
         const roofTexture = tileTexturesMap.get(roofTextureKey);
 
-        if (!floorTexture || !roofTexture) {
+        if (!floorTexture || (!noRoof && !roofTexture)) {
             console.warn(`Textures missing for sector ${sectorKey}`);
             return;
         }
@@ -258,7 +263,9 @@ export function precomputeHorizonData(sectorKey, rayData) {
                 const endCol = Math.min(Math.floor((i + 1) * colWidth), CANVAS_WIDTH);
                 for (let col = startCol; col < endCol; col++) {
                     clipYFloor[col] = Math.min(clipYFloor[col], wallBottom);
-                    clipYRoof[col] = Math.max(clipYRoof[col], wallTop);
+                    if (!noRoof) {
+                        clipYRoof[col] = Math.max(clipYRoof[col], wallTop);
+                    }
                 }
             }
         }
@@ -293,7 +300,10 @@ export function renderRaycastHorizons(rayData, targetCtx = renderEngine) {
         }
 
         const mapKey = mapHandler.activeMapKey || "map_01";
+        const mapData = mapTable.get(mapKey);
+        const noRoof = mapData?.noRoof === true;
         const cachedData = horizonCache.get(mapKey);
+        const horizonY = Math.floor(CANVAS_HEIGHT / 2);
 
         // Check if cache is valid
         const isPlayerPositionClose = cachedData &&
@@ -309,7 +319,7 @@ export function renderRaycastHorizons(rayData, targetCtx = renderEngine) {
                 updateTexture(tileTexturesMap.get(floorTextureKey), "Floor");
                 lastFloorTextureKey = floorTextureKey;
             }
-            if (roofTextureKey !== lastRoofTextureKey) {
+            if (!noRoof && roofTextureKey !== lastRoofTextureKey) {
                 updateTexture(tileTexturesMap.get(roofTextureKey), "Roof");
                 lastRoofTextureKey = roofTextureKey;
             }
@@ -362,7 +372,7 @@ export function renderRaycastHorizons(rayData, targetCtx = renderEngine) {
 
             // Draw skybox gradient if enabled
             if (skyboxEnabled) {
-                drawSkybox(targetCtx, cachedData.clipYRoof);
+                drawSkybox(targetCtx, cachedData.clipYRoof, noRoof, horizonY);
             }
 
             if (DEBUG_HORIZON_TIMING) console.timeEnd('renderHorizons');
@@ -376,7 +386,7 @@ export function renderRaycastHorizons(rayData, targetCtx = renderEngine) {
         const floorTexture = tileTexturesMap.get(floorTextureKey);
         const roofTexture = tileTexturesMap.get(roofTextureKey);
 
-        if (!texturesLoaded || !floorTexture || !floorTexture.complete || !roofTexture || !roofTexture.complete) {
+        if (!texturesLoaded || !floorTexture || !floorTexture.complete || (roofTexture && !roofTexture.complete)) {
             console.warn("Textures not loaded or invalid, rendering fallback");
             drawQuad({
                 topX: 0, topY: 0,
@@ -398,13 +408,13 @@ export function renderRaycastHorizons(rayData, targetCtx = renderEngine) {
             updateTexture(floorTexture, "Floor");
             lastFloorTextureKey = floorTextureKey;
         }
-        if (roofTextureKey !== lastRoofTextureKey) {
+        if (!noRoof && roofTextureKey !== lastRoofTextureKey) {
             updateTexture(roofTexture, "Roof");
             lastRoofTextureKey = roofTextureKey;
         }
 
         const clipYFloor = new Float32Array(CANVAS_WIDTH).fill(CANVAS_HEIGHT);
-        const clipYRoof = new Float32Array(CANVAS_WIDTH).fill(0);
+        const clipYRoof = new Float32Array(CANVAS_WIDTH).fill(noRoof ? -1 : 0);
         const colWidth = CANVAS_WIDTH / numCastRays;
 
         for (let i = 0; i < rayData.length; i++) {
@@ -418,7 +428,19 @@ export function renderRaycastHorizons(rayData, targetCtx = renderEngine) {
                 const endCol = Math.min(Math.floor((i + 1) * colWidth), CANVAS_WIDTH);
                 for (let col = startCol; col < endCol; col++) {
                     clipYFloor[col] = Math.min(clipYFloor[col], wallBottom);
-                    clipYRoof[col] = Math.max(clipYRoof[col], wallTop);
+                    if (!noRoof) {
+                        clipYRoof[col] = Math.max(clipYRoof[col], wallTop);
+                    }
+                }
+            }
+        }
+
+        // If no walls were hit and noRoof is true, set floor to horizon line
+        if (noRoof) {
+            const horizonY = Math.floor(CANVAS_HEIGHT / 2);
+            for (let x = 0; x < CANVAS_WIDTH; x++) {
+                if (clipYFloor[x] === CANVAS_HEIGHT) {
+                    clipYFloor[x] = horizonY;
                 }
             }
         }
@@ -470,7 +492,7 @@ export function renderRaycastHorizons(rayData, targetCtx = renderEngine) {
 
         // Draw skybox gradient if enabled
         if (skyboxEnabled) {
-            drawSkybox(targetCtx, clipYRoof);
+            drawSkybox(targetCtx, clipYRoof, noRoof, horizonY);
         }
 
         // Cache results for static sectors
@@ -487,15 +509,17 @@ export function renderRaycastHorizons(rayData, targetCtx = renderEngine) {
  * Draws a skybox gradient in the roof area (above the walls).
  * @param {CanvasRenderingContext2D} ctx - The target context
  * @param {Float32Array} clipYRoof - Array of wall top Y positions per column
+ * @param {boolean} noRoof - Whether the map has no roof
+ * @param {number} horizonY - The horizon line Y position
  */
-function drawSkybox(ctx, clipYRoof) {
+function drawSkybox(ctx, clipYRoof, noRoof, horizonY) {
     if (!skyboxEnabled) return;
 
     const topColor = skyColorTop;
     const horizonColor = skyColorHorizon;
 
     // Create gradient from top to horizon
-    const gradient = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT / 2);
+    const gradient = ctx.createLinearGradient(0, 0, 0, horizonY);
     gradient.addColorStop(0, topColor);
     gradient.addColorStop(1, horizonColor);
 
@@ -503,11 +527,16 @@ function drawSkybox(ctx, clipYRoof) {
     ctx.globalCompositeOperation = 'source-over';
     ctx.fillStyle = gradient;
 
-    // Draw skybox in the roof area (above walls)
-    for (let x = 0; x < CANVAS_WIDTH; x++) {
-        const wallTop = clipYRoof[x];
-        if (wallTop > 0) {
-            ctx.fillRect(x, 0, 1, wallTop);
+    if (noRoof) {
+        // No roof: fill entire top half with skybox
+        ctx.fillRect(0, 0, CANVAS_WIDTH, horizonY);
+    } else {
+        // Draw skybox in the roof area (above walls)
+        for (let x = 0; x < CANVAS_WIDTH; x++) {
+            const wallTop = clipYRoof[x];
+            if (wallTop > 0) {
+                ctx.fillRect(x, 0, 1, wallTop);
+            }
         }
     }
 
