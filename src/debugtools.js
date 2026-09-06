@@ -4,7 +4,7 @@ import { mapHandler } from "./mapdata/maphandler.js";
 import { tileSectors } from "./mapdata/maps.js";
 import { tileTexturesMap } from "./mapdata/maptexturesloader.js";
 import { getCreamSpinCurrentFrame, spriteState } from "./rendering/sprites/spritetextures.js";
-import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, HIGH_RES_ENABLED, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT, showMinimap } from "./globals.js";
+import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, HIGH_RES_ENABLED, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT, showMinimap, GLOBAL_FONT } from "./globals.js";
 import { spriteManager } from "./rendering/sprites/rendersprites.js";
 import { renderSprite } from "./rendering/sprites/spriteutils.js";
 import { gameVersionNumber, gameName } from "./globals.js";
@@ -224,7 +224,7 @@ function drawDebugOverlay() {
 
     // Draw version text
     renderEngine.fillStyle = "#fff";
-    renderEngine.font = `${Math.floor(22 * Math.min(SCALE_X, SCALE_Y))}px Arial`;
+    renderEngine.font = `${Math.floor(22 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
     renderEngine.fillText(`${gameName}: ${gameVersionNumber}`, overlayX + 10 * SCALE_X, overlayY + 30 * SCALE_Y);
 
     // Draw FPS
@@ -234,14 +234,14 @@ function drawDebugOverlay() {
     lastFrameTime = currentTime;
     const fps = Math.round(1 / deltaTime);
     renderEngine.fillStyle = "#fff";
-    renderEngine.font = `${Math.floor(16 * Math.min(SCALE_X, SCALE_Y))}px Arial`;
+    renderEngine.font = `${Math.floor(16 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
     renderEngine.fillText(`FPS: ${fps}`, overlayX + 10 * SCALE_X, overlayY + 60 * SCALE_Y);
 
     // Draw player coordinates
     const playerX = Math.round(playerPosition.x);
     const playerZ = Math.round(playerPosition.z);
     renderEngine.fillStyle = "#fff";
-    renderEngine.font = `${Math.floor(16 * Math.min(SCALE_X, SCALE_Y))}px Arial`;
+    renderEngine.font = `${Math.floor(16 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
     renderEngine.fillText(`X: ${playerX}, Z: ${playerZ}`, overlayX + 10 * SCALE_X, overlayY + 80 * SCALE_Y);
 }
 

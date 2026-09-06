@@ -1,5 +1,5 @@
 import { keys } from "../../playerdata/playerlogic.js";
-import { SCALE_X, SCALE_Y, CANVAS_WIDTH, CANVAS_HEIGHT, showTerminal, setShowTerminal } from "../../globals.js";
+import { SCALE_X, SCALE_Y, CANVAS_WIDTH, CANVAS_HEIGHT, showTerminal, setShowTerminal, GLOBAL_FONT } from "../../globals.js";
 import { renderEngine } from "../../rendering/renderengine.js";
 import { terminalGodFunction } from "./terminalhandler.js";
 
@@ -53,11 +53,11 @@ function terminalOverLay() {
 
     // Terminal title
     renderEngine.fillStyle = "#fff";
-    renderEngine.font = `${Math.floor(22 * Math.min(SCALE_X, SCALE_Y))}px Arial`;
+    renderEngine.font = `${Math.floor(22 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
     renderEngine.fillText("Terminal", overlayX + 20 * SCALE_X, overlayY + 40 * SCALE_Y);
 
     // Display available commands
-    renderEngine.font = `${Math.floor(16 * Math.min(SCALE_X, SCALE_Y))}px Arial`;
+    renderEngine.font = `${Math.floor(16 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
     const commands = [
         "/godmode - Toggle infinite health and stamina",
         "/spawnenemy <type> - Spawn enemy (placeholderai, lesserdemon)",
@@ -89,7 +89,7 @@ function inputIntoTheTerminal() {
     renderEngine.strokeStyle = "#fff";
     renderEngine.strokeRect(overlayX, overlayY, overlayWidth, overlayHeight);
     renderEngine.fillStyle = "#fff";
-    renderEngine.font = `${Math.floor(22 * Math.min(SCALE_X, SCALE_Y))}px Arial`;
+    renderEngine.font = `${Math.floor(22 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
     renderEngine.fillText("Input Command: " + (currentCommand || ""), overlayX + 10 * SCALE_X, overlayY + 30 * SCALE_Y);
     renderEngine.restore();
 }

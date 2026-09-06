@@ -1,6 +1,6 @@
 // computerai/mainframe/ui/test.js
 import { computerAIRenderEngine } from "../../../computerai.js";
-import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y } from "../../../../../globals.js";
+import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, GLOBAL_FONT } from "../../../../../globals.js";
 import { drawAsciiArt, loadAsciiArt } from "../loadascii.js";
 import { bunbitOSText } from "../login.js";
 import { inputBox } from "../../utils/inputbox.js";
@@ -38,13 +38,13 @@ function mainDesktopEnvironmentStuff() {
     computerAIRenderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
     computerAIRenderEngine.fillStyle = "#00ff00";
-    computerAIRenderEngine.font = `${24 * SCALE_X}px Arial`;
+    computerAIRenderEngine.font = `${24 * SCALE_X}px ${GLOBAL_FONT}`;
     computerAIRenderEngine.textAlign = "center";
     computerAIRenderEngine.textBaseline = "middle";
     computerAIRenderEngine.fillText("Welcome to the Test Environment!", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
 
     computerAIRenderEngine.fillStyle = "#ffffff";
-    computerAIRenderEngine.font = `${16 * SCALE_X}px Arial`;
+    computerAIRenderEngine.font = `${16 * SCALE_X}px ${GLOBAL_FONT}`;
     computerAIRenderEngine.fillText("This is your desktop after successful login!", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 40);
 }
 

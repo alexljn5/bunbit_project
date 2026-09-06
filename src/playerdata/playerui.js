@@ -5,7 +5,7 @@ import { playerInventory, inventoryState } from "./playerinventory.js";
 import { metalPipeSprite, genericGunSprite } from "../rendering/sprites/spritetextures.js";
 import { playerStamina, playerHealthBar, playerHealth } from "./playerlogic.js";
 import { genericGunAmmo } from "../itemhandler/guns/gunregistry.js";
-import { CANVAS_HEIGHT, CANVAS_WIDTH, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT } from "../globals.js";
+import { CANVAS_HEIGHT, CANVAS_WIDTH, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT, GLOBAL_FONT } from "../globals.js";
 
 // Array of faces and their load status
 const faces = [
@@ -48,7 +48,7 @@ export function playerUI() {
     } else {
         compiledTextStyle();
         renderEngine.fillRect(faceX, faceY, faceSize, faceSize);
-        renderEngine.font = `${Math.floor(16 * Math.min(SCALE_X, SCALE_Y))}px Arial`;
+        renderEngine.font = `${Math.floor(16 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
         renderEngine.fillText("Loading...", faceX + 5 * SCALE_X, faceY + 32 * SCALE_Y);
     }
 
@@ -62,7 +62,7 @@ export function playerUI() {
     } else if (selectedItem === "generic_gun") {
         renderEngine.drawImage(genericGunSprite, itemX, itemY, itemSize, itemSize);
         renderEngine.fillStyle = "white";
-        renderEngine.font = `${Math.floor(24 * Math.min(SCALE_X, SCALE_Y))}px Arial`;
+        renderEngine.font = `${Math.floor(24 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
         const ammoText = `Ammo: ${genericGunAmmo.current}`;
         const textMetrics = renderEngine.measureText(ammoText);
         const textX = faceX - 16 * SCALE_X - textMetrics.width;
@@ -88,7 +88,7 @@ export function staminaBarMeterOnCanvas() {
     renderEngine.lineWidth = 2 * Math.min(SCALE_X, SCALE_Y);
     renderEngine.strokeRect(x, y, barWidth, barHeight);
     compiledTextStyle();
-    renderEngine.font = `${Math.floor(16 * Math.min(SCALE_X, SCALE_Y))}px Arial`;
+    renderEngine.font = `${Math.floor(16 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
     renderEngine.fillText("Stamina", (CANVAS_WIDTH - 120 * SCALE_X), 732 * SCALE_Y);
 }
 
@@ -105,6 +105,6 @@ export function healthMeterOnCanvas() {
     renderEngine.lineWidth = 2 * Math.min(SCALE_X, SCALE_Y);
     renderEngine.strokeRect(x, y, barWidth, barHeight);
     compiledTextStyle();
-    renderEngine.font = `${Math.floor(16 * Math.min(SCALE_X, SCALE_Y))}px Arial`;
+    renderEngine.font = `${Math.floor(16 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
     renderEngine.fillText("HP", 5 * SCALE_X, 732 * SCALE_Y);
 }

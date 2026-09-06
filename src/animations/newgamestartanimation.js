@@ -1,7 +1,7 @@
 import { renderEngine } from "../rendering/renderengine.js";
 import { fuckTheScreenUp } from "./fuckthescreenup.js";
 import { getDemonLaughingCurrentFrame } from "../mapdata/maptexturesloader.js";
-import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT, DISABLE_ANIMATIONS, introActive, setIntroActive } from "../globals.js";
+import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT, DISABLE_ANIMATIONS, introActive, setIntroActive, GLOBAL_FONT } from "../globals.js";
 
 // Re-export introActive for backward compatibility
 export { introActive };
@@ -35,13 +35,13 @@ function drawNewGameStartAnimation() {
         // Text 1: 0.1s - 2.2s
         if (elapsed > 100 && elapsed < 2200) {
             renderEngine.fillStyle = "white";
-            renderEngine.font = `${Math.floor(20 * Math.min(SCALE_X, SCALE_Y))}px Arial`;
+            renderEngine.font = `${Math.floor(20 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
             renderEngine.fillText("My name is John. B. Ossman. I remember nothing, but then...", 10 * SCALE_X, 15 * SCALE_Y);
         }
         // Text 2 + demon: 2.2s - 4.2s
         if (elapsed > 2200 && elapsed < 4200) {
             renderEngine.fillStyle = "red";
-            renderEngine.font = `${Math.floor(20 * Math.min(SCALE_X, SCALE_Y))}px Arial`;
+            renderEngine.font = `${Math.floor(20 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
             renderEngine.fillText("I awaken with a jolt of electricity rushing through my veins...", 10 * SCALE_X, 40 * SCALE_Y);
             drawDemonFrame(renderEngine);
         }

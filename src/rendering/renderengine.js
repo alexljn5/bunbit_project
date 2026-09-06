@@ -19,7 +19,7 @@ import { menuActive, setMenuActive, isPaused, setPaused } from "../gamestate.js"
 import { playMusicGodFunction } from "../audio/audiohandler.js";
 import { menuHandler } from "../menus/menu.js";
 import { itemHandlerGodFunction } from "../itemhandler/itemhandler.js";
-import { CANVAS_HEIGHT, CANVAS_WIDTH, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT, useWasmRayMath } from "../globals.js";
+import { CANVAS_HEIGHT, CANVAS_WIDTH, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT, useWasmRayMath, GLOBAL_FONT } from "../globals.js";
 import { eventHandler } from "../events/eventhandler.js";
 import { decorationHandlerGodFunction } from "../decorationhandler/decorationhandler.js";
 import { mapHandler } from "../mapdata/maphandler.js";
@@ -112,10 +112,10 @@ function renderPauseMenu() {
     renderEngine.fillStyle = "rgba(0, 0, 0, 0.7)";
     renderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     renderEngine.fillStyle = "#fff";
-    renderEngine.font = `${Math.floor(32 * Math.min(SCALE_X, SCALE_Y))}px Arial`;
+    renderEngine.font = `${Math.floor(32 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
     renderEngine.textAlign = "center";
     renderEngine.fillText("PAUSED", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 3);
-    renderEngine.font = `${Math.floor(20 * Math.min(SCALE_X, SCALE_Y))}px Arial`;
+    renderEngine.font = `${Math.floor(20 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
     renderEngine.fillText("Press ESC or P to resume", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
     renderEngine.fillText("Press M to return to main menu", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 40);
     renderEngine.restore();

@@ -377,11 +377,11 @@ export const graphicsPresets = {
 
 // --- MENU FONTS ---
 export const MENU_FONTS = {
-    title: () => `32px Arial`,
-    subtitle: () => `24px Arial`,
-    button: () => `18px Arial`,
-    body: () => `16px Arial`,
-    small: () => `14px Arial`
+    title: () => `32px ${GLOBAL_FONT}`,
+    subtitle: () => `24px ${GLOBAL_FONT}`,
+    button: () => `18px ${GLOBAL_FONT}`,
+    body: () => `16px ${GLOBAL_FONT}`,
+    small: () => `14px ${GLOBAL_FONT}`
 };
 
 // --- BUTTON PRESETS ---

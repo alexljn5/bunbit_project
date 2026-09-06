@@ -1,6 +1,6 @@
 import { mapTable } from "../mapdata/maps.js";
 import { renderEngine } from "../rendering/renderengine.js";
-import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT } from "../globals.js";
+import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT, GLOBAL_FONT } from "../globals.js";
 import { mapHandler } from "../mapdata/maphandler.js";
 
 // Audio tracks per map
@@ -116,7 +116,7 @@ function musicVolumeSlider() {
     renderEngine.lineWidth = 2 * Math.min(SCALE_X, SCALE_Y);
     renderEngine.strokeRect(sliderX, sliderY, sliderWidth, sliderHeight);
     renderEngine.fillStyle = '#fff';
-    renderEngine.font = `${Math.floor(18 * Math.min(SCALE_X, SCALE_Y))}px Arial`;
+    renderEngine.font = `${Math.floor(18 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
     renderEngine.fillText('Music Volume', sliderX, sliderY - 10 * SCALE_Y);
     const knobX = sliderX + sliderWidth * musicVolume;
     renderEngine.beginPath();
@@ -141,7 +141,7 @@ function soundVolumeSlider() {
     renderEngine.lineWidth = 2 * Math.min(SCALE_X, SCALE_Y);
     renderEngine.strokeRect(sliderX, soundSliderY, sliderWidth, sliderHeight);
     renderEngine.fillStyle = '#fff';
-    renderEngine.font = `${Math.floor(18 * Math.min(SCALE_X, SCALE_Y))}px Arial`;
+    renderEngine.font = `${Math.floor(18 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
     renderEngine.fillText('Sound Volume', sliderX, soundSliderY - 10 * SCALE_Y);
     const knobX = sliderX + sliderWidth * soundVolume;
     renderEngine.beginPath();

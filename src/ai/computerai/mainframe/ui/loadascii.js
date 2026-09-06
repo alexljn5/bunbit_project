@@ -1,6 +1,6 @@
 // loadascii.js
 import { computerAICanvas, computerAIRenderEngine } from "../../computerai.js";
-import { REF_CANVAS_HEIGHT, REF_CANVAS_WIDTH, SCALE_X, SCALE_Y } from "../../../../globals.js";
+import { REF_CANVAS_HEIGHT, REF_CANVAS_WIDTH, SCALE_X, SCALE_Y, GLOBAL_FONT } from "../../../../globals.js";
 
 let asciiArtLines = [];        // Stores the lines of art
 let asciiOffscreen = null;     // Offscreen canvas for cached ASCII
@@ -32,7 +32,7 @@ export function loadAsciiArt() {
             asciiArtLines = text.split("\n");
 
             // Precompute measurements
-            computerAIRenderEngine.font = `${fontSize_logical * SCALE_X}px Courier`;
+            computerAIRenderEngine.font = `${fontSize_logical * SCALE_X}px ${GLOBAL_FONT}`;
             let maxWidth = 0;
             let drawCommands = [];
 
@@ -58,7 +58,7 @@ export function loadAsciiArt() {
 
             // Draw to offscreen
             offCtx.fillStyle = "#FC0000";
-            offCtx.font = `${fontSize_logical * SCALE_X}px Courier`;
+            offCtx.font = `${fontSize_logical * SCALE_X}px ${GLOBAL_FONT}`;
             offCtx.textAlign = "center";
             offCtx.textBaseline = "top";
 
