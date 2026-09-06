@@ -16,6 +16,29 @@ import { drawControlsOverlay } from "./controlssettings.js";
 function getGame() { return window.__game || null; }
 function getRenderEngine() { return window.__renderEngine || null; }
 
+// Fullscreen support via display module
+const bunbitDisplay = typeof window !== 'undefined' ? window.__bunbitDisplay : null;
+
+function toggleFullscreen() {
+    if (!bunbitDisplay) return;
+    if (bunbitDisplay.isFullscreen) {
+        bunbitDisplay.exitFullscreen();
+    } else {
+        bunbitDisplay.requestFullscreen();
+    }
+    needsRedraw = true;
+}
+
+// Keyboard shortcuts for fullscreen (F11 or Alt+Enter)
+if (typeof window !== 'undefined') {
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'F11' || (e.altKey && e.key === 'Enter')) {
+            e.preventDefault();
+            toggleFullscreen();
+        }
+    });
+}
+
 // Export menu loop controls so dashboard can open settings programmatically
 export { startMenuLoop, stopMenuLoop };
 
@@ -51,8 +74,9 @@ function getSettingsButtons() {
         { name: "Graphics", x: 60 * SCALE_X, y: 340 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
         { name: "Save Game", x: 60 * SCALE_X, y: 400 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
         { name: "Load Game", x: 60 * SCALE_X, y: 460 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
-        { name: "Back to Menu", x: 60 * SCALE_X, y: 520 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
-        { name: "Quit", x: 60 * SCALE_X, y: 580 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false }
+        { name: "Fullscreen", x: 60 * SCALE_X, y: 520 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
+        { name: "Back to Menu", x: 60 * SCALE_X, y: 580 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
+        { name: "Quit", x: 60 * SCALE_X, y: 640 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false }
     ];
 }
 
@@ -236,6 +260,8 @@ async function handleSettingsMenuClick(e) {
                 }
             } else if (button.name === "Load Game") {
                 showLoadPrompt = true;
+            } else if (button.name === "Fullscreen") {
+                toggleFullscreen();
             } else if (button.name === "Back to Menu") {
                 window.__settingsMenuOpen = false;
                 stopMenuLoop();
@@ -311,6 +337,9 @@ function menuSettingsRender() {
     if (!engine) return;
     engine.setTransform(1, 0, 0, 1, 0, 0); // Reset transformations
     engine.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    // Draw solid background immediately to prevent white flash between frames
+    engine.fillStyle = "#0a0a0a";
+    engine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     if (needsRedraw || !offscreenCanvas) {
         drawStaticMenu();
         needsRedraw = false;
