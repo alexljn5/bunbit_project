@@ -61,7 +61,7 @@ function drawDoorDialogue() {
     renderEngine.fillRect(boxX, boxY, boxWidth, boxHeight);
     renderEngine.globalAlpha = 1.0;
     renderEngine.fillStyle = "white";
-    renderEngine.font = `${24 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+    renderEngine.font = `${Math.floor(24 * Math.min(SCALE_X, SCALE_Y))}px Arial`;
     const line = "Doors closed, seems too have a lock on it.";
     const maxWidth = 560 * SCALE_X;
     const x = 120 * SCALE_X;

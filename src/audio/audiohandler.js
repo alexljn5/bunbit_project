@@ -116,7 +116,7 @@ function musicVolumeSlider() {
     renderEngine.lineWidth = 2 * Math.min(SCALE_X, SCALE_Y);
     renderEngine.strokeRect(sliderX, sliderY, sliderWidth, sliderHeight);
     renderEngine.fillStyle = '#fff';
-    renderEngine.font = `${18 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+    renderEngine.font = `${Math.floor(18 * Math.min(SCALE_X, SCALE_Y))}px Arial`;
     renderEngine.fillText('Music Volume', sliderX, sliderY - 10 * SCALE_Y);
     const knobX = sliderX + sliderWidth * musicVolume;
     renderEngine.beginPath();
@@ -141,7 +141,7 @@ function soundVolumeSlider() {
     renderEngine.lineWidth = 2 * Math.min(SCALE_X, SCALE_Y);
     renderEngine.strokeRect(sliderX, soundSliderY, sliderWidth, sliderHeight);
     renderEngine.fillStyle = '#fff';
-    renderEngine.font = `${18 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+    renderEngine.font = `${Math.floor(18 * Math.min(SCALE_X, SCALE_Y))}px Arial`;
     renderEngine.fillText('Sound Volume', sliderX, soundSliderY - 10 * SCALE_Y);
     const knobX = sliderX + sliderWidth * soundVolume;
     renderEngine.beginPath();

@@ -193,7 +193,7 @@ export function drawAIHealthBar(worldX, worldZ, health, options = {}) {
     engine.strokeRect(barX, barY, barWidth, barHeight);
     if (barWidth > 32 * SCALE_X) {
         engine.fillStyle = 'white';
-        engine.font = `${10 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+        engine.font = `${Math.floor(10 * Math.min(SCALE_X, SCALE_Y))}px Arial`;
         engine.textAlign = 'center';
         engine.fillText(label, screenX, barY - 2);
     }

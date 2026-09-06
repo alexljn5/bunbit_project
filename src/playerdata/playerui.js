@@ -48,7 +48,7 @@ export function playerUI() {
     } else {
         compiledTextStyle();
         renderEngine.fillRect(faceX, faceY, faceSize, faceSize);
-        renderEngine.font = `${16 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+        renderEngine.font = `${Math.floor(16 * Math.min(SCALE_X, SCALE_Y))}px Arial`;
         renderEngine.fillText("Loading...", faceX + 5 * SCALE_X, faceY + 32 * SCALE_Y);
     }
 
@@ -62,7 +62,7 @@ export function playerUI() {
     } else if (selectedItem === "generic_gun") {
         renderEngine.drawImage(genericGunSprite, itemX, itemY, itemSize, itemSize);
         renderEngine.fillStyle = "white";
-        renderEngine.font = `${24 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+        renderEngine.font = `${Math.floor(24 * Math.min(SCALE_X, SCALE_Y))}px Arial`;
         const ammoText = `Ammo: ${genericGunAmmo.current}`;
         const textMetrics = renderEngine.measureText(ammoText);
         const textX = faceX - 16 * SCALE_X - textMetrics.width;
@@ -88,7 +88,7 @@ export function staminaBarMeterOnCanvas() {
     renderEngine.lineWidth = 2 * Math.min(SCALE_X, SCALE_Y);
     renderEngine.strokeRect(x, y, barWidth, barHeight);
     compiledTextStyle();
-    renderEngine.font = `${16 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+    renderEngine.font = `${Math.floor(16 * Math.min(SCALE_X, SCALE_Y))}px Arial`;
     renderEngine.fillText("Stamina", (CANVAS_WIDTH - 120 * SCALE_X), 732 * SCALE_Y);
 }
 
@@ -105,6 +105,6 @@ export function healthMeterOnCanvas() {
     renderEngine.lineWidth = 2 * Math.min(SCALE_X, SCALE_Y);
     renderEngine.strokeRect(x, y, barWidth, barHeight);
     compiledTextStyle();
-    renderEngine.font = `${16 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+    renderEngine.font = `${Math.floor(16 * Math.min(SCALE_X, SCALE_Y))}px Arial`;
     renderEngine.fillText("HP", 5 * SCALE_X, 732 * SCALE_Y);
 }

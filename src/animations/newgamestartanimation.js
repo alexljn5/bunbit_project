@@ -35,13 +35,13 @@ function drawNewGameStartAnimation() {
         // Text 1: 0.1s - 2.2s
         if (elapsed > 100 && elapsed < 2200) {
             renderEngine.fillStyle = "white";
-            renderEngine.font = `${20 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+            renderEngine.font = `${Math.floor(20 * Math.min(SCALE_X, SCALE_Y))}px Arial`;
             renderEngine.fillText("My name is John. B. Ossman. I remember nothing, but then...", 10 * SCALE_X, 15 * SCALE_Y);
         }
         // Text 2 + demon: 2.2s - 4.2s
         if (elapsed > 2200 && elapsed < 4200) {
             renderEngine.fillStyle = "red";
-            renderEngine.font = `${20 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+            renderEngine.font = `${Math.floor(20 * Math.min(SCALE_X, SCALE_Y))}px Arial`;
             renderEngine.fillText("I awaken with a jolt of electricity rushing through my veins...", 10 * SCALE_X, 40 * SCALE_Y);
             drawDemonFrame(renderEngine);
         }

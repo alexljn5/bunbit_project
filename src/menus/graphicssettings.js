@@ -40,11 +40,11 @@ export function drawGraphicsOverlay(renderEngine, SCALE_X, SCALE_Y, showGraphics
     renderEngine.lineWidth = 1;
     renderEngine.strokeRect(overlayX, overlayY, overlayWidth, overlayHeight);
     renderEngine.fillStyle = "#cccccc";
-    renderEngine.font = `bold ${22 * Math.min(SCALE_X, SCALE_Y)}px ${GLOBAL_FONT}`;
+    renderEngine.font = `bold ${Math.floor(22 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
     renderEngine.fillText("Graphics Settings", overlayX, overlayY + 40 * SCALE_Y);
 
     const currentSettings = getGraphicsSettings();
-    renderEngine.font = `${16 * Math.min(SCALE_X, SCALE_Y)}px ${GLOBAL_FONT}`;
+    renderEngine.font = `${Math.floor(16 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
     renderEngine.fillText(`Current: ${currentSettings.preset.toUpperCase()}`, overlayX + 10 * SCALE_X, overlayY + 70 * SCALE_Y);
     renderEngine.fillText(`Rays: ${currentSettings.numCastRays}`, overlayX + 10 * SCALE_X, overlayY + 100 * SCALE_Y);
     renderEngine.fillText(`Render Distance: ${currentSettings.maxRayDepth}`, overlayX + 10 * SCALE_X, overlayY + 130 * SCALE_Y);

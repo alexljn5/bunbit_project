@@ -117,10 +117,10 @@ function menuText(engine) {
 
     compiledTextStyle();
     engine.fillStyle = "#cccccc";
-    engine.font = `bold ${24 * Math.min(SCALE_X, SCALE_Y)}px ${GLOBAL_FONT}`;
+    engine.font = `bold ${Math.floor(24 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
     engine.textAlign = 'right';
     engine.fillText(gameName, canvas.width - 40, 60);
-    engine.font = `${16 * Math.min(SCALE_X, SCALE_Y)}px ${GLOBAL_FONT}`;
+    engine.font = `${Math.floor(16 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
     engine.fillText(`Version ${gameVersionNumber}`, canvas.width - 40, 90);
     engine.textAlign = 'left';
 }
@@ -158,7 +158,7 @@ function drawMapSelect(engine) {
 
     engine.fillStyle = "#cccccc";
     compiledTextStyle();
-    engine.font = `bold ${24 * Math.min(SCALE_X, SCALE_Y)}px ${GLOBAL_FONT}`;
+    engine.font = `bold ${Math.floor(24 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
     engine.textAlign = 'center';
     engine.fillText("Select a Map", canvas.width / 2, 100);
     engine.textAlign = 'left';
@@ -178,7 +178,7 @@ function drawMapSelect(engine) {
         engine.strokeRect(x, y, w, h);
 
         engine.fillStyle = selectedMapName === name ? "#ffffff" : "#cccccc";
-        engine.font = `bold ${16 * Math.min(SCALE_X, SCALE_Y)}px ${GLOBAL_FONT}`;
+        engine.font = `bold ${Math.floor(16 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
         engine.textAlign = 'center';
         engine.fillText(name, x + w / 2, y + h / 2 + 6);
         engine.textAlign = 'left';

@@ -38,7 +38,7 @@ function drawDebugOverlay() {
 
     // Draw version text
     renderEngine.fillStyle = "#fff";
-    renderEngine.font = `${22 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+    renderEngine.font = `${Math.floor(22 * Math.min(SCALE_X, SCALE_Y))}px Arial`;
     renderEngine.fillText(`${gameName}: ${gameVersionNumber}`, overlayX + 10 * SCALE_X, overlayY + 30 * SCALE_Y);
 
     // Draw FPS
@@ -48,14 +48,14 @@ function drawDebugOverlay() {
     lastFrameTime = currentTime;
     const fps = Math.round(1 / deltaTime);
     renderEngine.fillStyle = "#fff";
-    renderEngine.font = `${16 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+    renderEngine.font = `${Math.floor(16 * Math.min(SCALE_X, SCALE_Y))}px Arial`;
     renderEngine.fillText(`FPS: ${fps}`, overlayX + 10 * SCALE_X, overlayY + 60 * SCALE_Y);
 
     // Draw player coordinates
     const playerX = Math.round(playerPosition.x);
     const playerZ = Math.round(playerPosition.z);
     renderEngine.fillStyle = "#fff";
-    renderEngine.font = `${16 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+    renderEngine.font = `${Math.floor(16 * Math.min(SCALE_X, SCALE_Y))}px Arial`;
     renderEngine.fillText(`X: ${playerX}, Z: ${playerZ}`, overlayX + 10 * SCALE_X, overlayY + 80 * SCALE_Y);
 }
 
@@ -249,4 +249,4 @@ export function drawMinimap() {
 
     renderEngine.restore();
 }
-export function compiledTextStyle() { renderEngine.fillStyle = "yellow"; renderEngine.font = `${30 * Math.min(SCALE_X, SCALE_Y)}px Arial`; }
+export function compiledTextStyle() { renderEngine.fillStyle = "yellow"; renderEngine.font = `${Math.floor(30 * Math.min(SCALE_X, SCALE_Y))}px Arial`; }

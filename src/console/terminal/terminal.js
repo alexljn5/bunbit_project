@@ -77,11 +77,11 @@ function terminalOverLay() {
 
     // Terminal title
     renderEngine.fillStyle = "#fff";
-    renderEngine.font = `${22 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+    renderEngine.font = `${Math.floor(22 * Math.min(SCALE_X, SCALE_Y))}px Arial`;
     renderEngine.fillText("Terminal", overlayX + 20 * SCALE_X, overlayY + 40 * SCALE_Y);
 
     // Display available commands
-    renderEngine.font = `${16 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+    renderEngine.font = `${Math.floor(16 * Math.min(SCALE_X, SCALE_Y))}px Arial`;
     const commands = [
         "/godmode - Toggle infinite health and stamina",
         "/spawnenemy <type> - Spawn enemy (placeholderai, lesserdemon)",
@@ -113,7 +113,7 @@ function inputIntoTheTerminal() {
     renderEngine.strokeStyle = "#fff";
     renderEngine.strokeRect(overlayX, overlayY, overlayWidth, overlayHeight);
     renderEngine.fillStyle = "#fff";
-    renderEngine.font = `${22 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+    renderEngine.font = `${Math.floor(22 * Math.min(SCALE_X, SCALE_Y))}px Arial`;
     renderEngine.fillText("Input Command: " + (currentCommand || ""), overlayX + 10 * SCALE_X, overlayY + 30 * SCALE_Y);
     renderEngine.restore();
 }
