@@ -353,6 +353,7 @@ export function maybeShowIntroPlaceholders({ onComplete } = {}) {
     }
 
 
+    // Use willReadFrequently: true for better performance with frequent getImageData operations
     const ctx = canvas.getContext("2d", { willReadFrequently: true });
     const { w, h } = setupLogicalCanvas(canvas);
 

@@ -12,9 +12,12 @@
 
 import { EngineState } from '../engine/enginestate.js';
 import { engineController } from '../engine/engine.js';
-import { setMenuActive } from '../gamestate.js';
+import { setMenuActive, setPlayerMovementDisabled } from '../gamestate.js';
 import { gameLoop } from '../game_loop.js';
 import { gameRenderEngine, initializeRenderWorkers } from '../rendering/renderengine.js';
+import { attachSettingsMenuHandlers } from '../menus/menusettings.js';
+import { spriteManager } from '../rendering/sprites/rendersprites.js';
+import { mapHandler } from '../mapdata/maphandler.js';
 
 // Self-register this state handler with the engine controller
 engineController.registerHandler(EngineState.GAMEPLAY, gameplayHandler);
@@ -120,6 +123,18 @@ export async function gameplayHandler(controller, sharedState, payload = {}) {
 
     // Ensure the menu is off so the canvas renders the game world, not the menu.
     setMenuActive(false);
+
+    // Ensure player movement is enabled when entering gameplay
+    setPlayerMovementDisabled(false);
+
+    // Attach settings menu handlers to allow ESC to work properly
+    attachSettingsMenuHandlers();
+
+    // Load sprites for the active map so entities actually render.
+    const currentMap = mapHandler.activeMapKey || 'map_01';
+    if (!spriteManager.currentMapKey || spriteManager.currentMapKey !== currentMap) {
+        spriteManager.loadSpritesForMap(currentMap);
+    }
 
     // Start / reuse the game loop.
     ensureGameLoop();

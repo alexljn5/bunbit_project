@@ -1,7 +1,7 @@
 import { compiledTextStyle } from "../debugtools.js";
 import { staminaBarMeterOnCanvas, healthMeterOnCanvas } from "./playerui.js";
 import { wallCollision } from "../collissiondetection/collissionwalllogic.js";
-import { CANVAS_WIDTH, CANVAS_HEIGHT, keys, playerPosition, previousPosition, playerMovement, playerStamina, playerHealth, playerHealthBar, gameOver, showTerminal, setGameOver, setPlayerMovementDisabled, setPlayerPosition, showDebugTools, playerMovementDisabled } from "../globals.js";
+import { CANVAS_WIDTH, CANVAS_HEIGHT, keys, playerPosition, previousPosition, playerMovement, playerStamina, playerHealth, playerHealthBar, gameOver, showTerminal, setGameOver, setPlayerMovementDisabled, setPlayerPosition, showDebugTools, playerMovementDisabled, showMinimap, setShowMinimap, setShowTerminal } from "../globals.js";
 import { drawRespawnMenu } from "../menus/menurespawn.js";
 
 export let playerVantagePointX = { playerVantagePointX: 0 };
@@ -44,9 +44,13 @@ window.addEventListener("keydown", (event) => {
         event.preventDefault();
         keys[key] = true;
     }
-    // Toggle debug tools with F3
+    // Toggle terminal with F3
     if (event.key === "F3" || event.key === "f3") {
-        showDebugTools = !showDebugTools;
+        setShowTerminal(!showTerminal);
+    }
+    // Toggle minimap with F4
+    if (event.key === "F4" || event.key === "f4") {
+        setShowMinimap(!showMinimap);
     }
 }, true);
 

@@ -186,10 +186,10 @@ export async function loadRenderHelpersWasm() {
 
             // TeaVM may expose some exports as non-`function` objects (wrappers).
             // For gating, only require presence; workers will decide whether they can call them.
-            const hasRaycastColumnsBatch = resolved?.raycastColumnsBatch != null;
-            const hasRenderHorizonSlice = resolved?.renderHorizonSlice != null;
-            const hasFastSin = resolved?.fastSin != null;
-            const hasFastCos = resolved?.fastCos != null;
+            let hasRaycastColumnsBatch = resolved?.raycastColumnsBatch != null;
+            let hasRenderHorizonSlice = resolved?.renderHorizonSlice != null;
+            let hasFastSin = resolved?.fastSin != null;
+            let hasFastCos = resolved?.fastCos != null;
 
 
 

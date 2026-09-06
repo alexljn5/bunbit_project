@@ -24,6 +24,9 @@ let showNoSaveMessage = false;
 let messageTimer = null;
 let presetButtons = []; // Store preset buttons from drawGraphicsOverlay
 
+// File input element for loading games
+let fileInput = null;
+
 // Dynamic settings buttons to ensure proper scaling
 function getSettingsButtons() {
     return [
@@ -303,7 +306,7 @@ function detachSettingsMenuHandlers() {
     const canvas = renderEngine.canvas;
     if (!canvas) return;
     if (canvas._hasMenuHandlers) {
-        canvas.onmousemove = null;
+        // Only detach click handlers, keep mouse move handlers for hover effects
         canvas.onclick = null;
         canvas._hasMenuHandlers = false;
     }
@@ -371,6 +374,7 @@ function menuSettings() {
             }
             startMenuLoop();
             attachSettingsMenuHandlers();
+            initFileInput();
         } else {
             console.log("Settings menu closed, resuming game");
             stopMenuLoop();
@@ -386,6 +390,18 @@ function menuSettings() {
     }
     lastEscapeState = currentEscapeState;
 }
+
+function initFileInput() {
+    if (!fileInput) {
+        fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.json';
+        fileInput.style.display = 'none';
+        document.body.appendChild(fileInput);
+    }
+}
+
+export { attachSettingsMenuHandlers, initFileInput };
 
 export function menuSettingsGodFunction() {
     menuSettings();

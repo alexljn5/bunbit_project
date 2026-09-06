@@ -3,6 +3,12 @@ const gameInfo = {
     version: "0.0.5"
 };
 
+// --- MINIMAP FLAG ---
+export let showMinimap = false;
+export function setShowMinimap(val) {
+    showMinimap = val;
+}
+
 // =============================================================================
 // GLOBAL FONT CONFIGURATION
 // Change this single value to update the font across the entire game.

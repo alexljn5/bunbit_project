@@ -1,12 +1,11 @@
 import { keys } from "../../playerdata/playerlogic.js";
-import { SCALE_X, SCALE_Y, CANVAS_WIDTH, CANVAS_HEIGHT, showTerminal, setShowTerminal, defaultDebugVisible } from "../../globals.js";
+import { SCALE_X, SCALE_Y, CANVAS_WIDTH, CANVAS_HEIGHT, showTerminal, setShowTerminal } from "../../globals.js";
 import { renderEngine } from "../../rendering/renderengine.js";
 import { terminalGodFunction } from "./terminalhandler.js";
 
 // Re-export showTerminal for backward compatibility
 export { showTerminal };
 
-let lastYState = false;
 let currentCommand = "";
 let inputActive = false;
 let lastKeyStates = {};
@@ -25,31 +24,8 @@ function isTauri() {
 }
 
 export function displayTheTerminal() {
-    // Always use "t" to toggle the terminal regardless of environment
-    const key = "t";
-
-    // Terminal is a developer tool — only accessible when debug options were
-    // selected on the main dashboard (defaultDebugVisible). If debug is not
-    // enabled, the key does nothing.
-    const debugEnabled = defaultDebugVisible || (typeof window !== 'undefined' && window.defaultDebugVisible);
-
-    // Toggle terminal only when key is newly pressed AND debug is enabled
-    if (keys[key] && !lastYState && !inputActive && debugEnabled) {
-        setShowTerminal(!showTerminal);
-
-        if (!showTerminal) {
-            inputActive = false;
-            currentCommand = "";
-        }
-
-        console.log(
-            `Terminal toggled (${electron ? "Electron" : tauri ? "Tauri" : "Web"}):`,
-            showTerminal
-        );
-    }
-
-    // Track last key state (reuse lastYState safely)
-    lastYState = keys[key];
+    // Terminal toggle is now handled by F3 in playerlogic.js
+    // This function only renders the terminal when showTerminal is true
 
     if (showTerminal) {
         terminalOverLay();

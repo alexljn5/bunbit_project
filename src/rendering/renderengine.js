@@ -4,10 +4,11 @@ import { gameLoop } from "../game_loop.js";
 import { playerLogic, playerPosition, showDebugTools, gameOver, onRespawn, keys } from "../playerdata/playerlogic.js";
 import { drawRespawnMenu } from "../menus/menurespawn.js";
 import { playerInventoryGodFunction } from "../playerdata/playerinventory.js";
-import { compiledDevTools } from "../debugtools.js";
+import { compiledDevTools, drawMinimap } from "../debugtools.js";
+import { showMinimap } from "../globals.js";
 import { tileSectors } from "../mapdata/maps.js";
 import { castRays, numCastRays, playerFOV, maxRayDepth } from "./raycasting.js";
-import { drawSprites } from "./sprites/rendersprites.js";
+import { drawSprites, spriteManager } from "./sprites/rendersprites.js";
 import { mainGameMenu, setupMenuClickHandler } from "../menus/menu.js";
 import { texturesLoaded, textureTransparencyMap } from "../mapdata/maptexturesloader.js";
 import { textureIdMap, floorTextureIdMap } from "../mapdata/maptexturesids.js";
@@ -315,6 +316,12 @@ export async function gameRenderEngine(deltaTime) {
         // Lighting pass: update lights and apply
         updateLights();
         applyLighting(rayData, offscreenCanvas, offscreenCtx);
+
+        // Ensure sprites are loaded for the active map before drawing them.
+        const currentMap = mapHandler.activeMapKey || 'map_01';
+        if (!spriteManager.currentMapKey || spriteManager.currentMapKey !== currentMap) {
+            spriteManager.loadSpritesForMap(currentMap);
+        }
         drawSprites(rayData, offscreenCtx);
 
         // Draw final offscreen canvas to the visible canvas
@@ -322,6 +329,7 @@ export async function gameRenderEngine(deltaTime) {
 
         eventHandler();
         if (showDebugTools) compiledDevTools();
+        if (showMinimap) drawMinimap();
         if (!isPaused) {
             playerLogic();
             playerInventoryGodFunction();
