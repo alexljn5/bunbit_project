@@ -78,21 +78,30 @@ function logTextureSummary(status = "complete") {
     console.groupEnd();
 }
 
-export const fullTile = { type: "wall", textureId: 1, texture: "wall_creamlol", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
-export const fullTileBrick = { type: "wall", textureId: 2, texture: "wall_brick", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
-export const fullTileAldi = { type: "wall", textureId: 3, texture: "wall_aldi", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
-export const fullTileSatanic = { type: "wall", textureId: 4, texture: "wall_satanic", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
-export const fullTileSchizoEye = { type: "wall", textureId: 5, texture: "wall_schizoeye", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
-export const fullTileRustyDoor01 = { type: "wall", textureId: 6, texture: "door_rusty_01", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
-export const fullTileBrickGraffiti01 = { type: "wall", textureId: 7, texture: "wall_brick_graffiti_01", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
-export const fullTileLaughingDemon = { type: "wall", textureId: 8, texture: "wall_laughing_demon", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
-export const fullTileBrickDoor01Open = { type: "wall", textureId: 9, texture: "wall_brick_door01_open", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
-export const fullTileBrickDoor01Closed = { type: "wall", textureId: 10, texture: "wall_brick_door01_closed", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
-export const fullTileFenceWallTest = { type: "wall", textureId: 11, texture: "wall_fence_test", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
-export const fullTileBrickCream = { type: "wall", textureId: 12, texture: "wall_brick_cream", floorHeight: 0, floorTextureId: 50, floorTexture: "wall_brick_cream", ceilingTextureId: 1 };
-export const fullTileBrickEye = { type: "wall", textureId: 13, texture: "wall_brick_eye", floorHeight: 0, floorTextureId: 50, floorTexture: "wall_brick_eye", ceilingTextureId: 1 };
-export const fullTileCasper01 = { type: "wall", textureId: 14, texture: "wall_casper_01", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
+export const fullTile = { type: "wall", textureId: 1, texture: "wall_creamlol", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1, transparent: false };
+export const fullTileBrick = { type: "wall", textureId: 2, texture: "wall_brick", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1, transparent: false };
+export const fullTileAldi = { type: "wall", textureId: 3, texture: "wall_aldi", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1, transparent: false };
+export const fullTileSatanic = { type: "wall", textureId: 4, texture: "wall_satanic", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1, transparent: false };
+export const fullTileSchizoEye = { type: "wall", textureId: 5, texture: "wall_schizoeye", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1, transparent: false };
+export const fullTileRustyDoor01 = { type: "wall", textureId: 6, texture: "door_rusty_01", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1, transparent: false };
+export const fullTileBrickGraffiti01 = { type: "wall", textureId: 7, texture: "wall_brick_graffiti_01", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1, transparent: false };
+export const fullTileLaughingDemon = { type: "wall", textureId: 8, texture: "wall_laughing_demon", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1, transparent: false };
+export const fullTileBrickDoor01Open = { type: "wall", textureId: 9, texture: "wall_brick_door01_open", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1, transparent: false };
+export const fullTileBrickDoor01Closed = { type: "wall", textureId: 10, texture: "wall_brick_door01_closed", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1, transparent: false };
+export const fullTileFenceWallTest = { type: "wall", textureId: 11, texture: "wall_fence_test", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1, transparent: false };
+export const fullTileBrickCream = { type: "wall", textureId: 12, texture: "wall_brick_cream", floorHeight: 0, floorTextureId: 50, floorTexture: "wall_brick_cream", ceilingTextureId: 1, transparent: false };
+export const fullTileBrickEye = { type: "wall", textureId: 13, texture: "wall_brick_eye", floorHeight: 0, floorTextureId: 50, floorTexture: "wall_brick_eye", ceilingTextureId: 1, transparent: false };
+export const fullTileCasper01 = { type: "wall", textureId: 14, texture: "wall_casper_01", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1, transparent: false };
 export const emptyTile = { type: "empty", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete_01", ceilingTextureId: 1 };
+
+// Transparent wall tile (invisible but still blocks rays)
+export const transparentWall = { type: "wall", textureId: 1, texture: "wall_creamlol", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1, transparent: true };
+
+// Set of texture keys that should be rendered as transparent (invisible) walls
+export const transparentWallTextureKeys = new Set();
+
+// Register transparent wall texture key
+transparentWallTextureKeys.add(transparentWall.texture);
 
 export const tileTexturesMap = new Map();
 

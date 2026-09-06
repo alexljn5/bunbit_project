@@ -2,6 +2,8 @@ import { genericGunAmmo, genericGunDamage, genericGunRange } from "../../itemhan
 import { playerInventory, inventoryState } from "../../playerdata/playerinventory.js";
 import { playerHealth, playerStamina } from "../../playerdata/playerlogic.js";
 import { ITEM_REGISTRY, AVAILABLE_ITEMS } from "../../itemhandler/itemregistry.js";
+import { skyboxEnabled, skyColorTop, skyColorHorizon } from "../../globals.js";
+import { transparentWallTextureKeys } from "../../mapdata/maptexturesloader.js";
 
 let godMode = false;
 const originalHealth = 100;
@@ -95,6 +97,44 @@ export function debugCommandsGodFunction(command) {
             }
             break;
 
+        case "skybox":
+            skyboxEnabled = !skyboxEnabled;
+            console.log(`Skybox ${skyboxEnabled ? 'enabled' : 'disabled'}`);
+            if (skyboxEnabled) {
+                console.log(`  Top color: ${skyColorTop}`);
+                console.log(`  Horizon color: ${skyColorHorizon}`);
+                console.log("  Use /skyboxcolor <top> <horizon> to change colors");
+            }
+            break;
+
+        case "skyboxcolor":
+            if (args.length >= 2) {
+                skyColorTop = args[0];
+                skyColorHorizon = args[1];
+                console.log(`Skybox colors updated: top=${skyColorTop}, horizon=${skyColorHorizon}`);
+            } else {
+                console.log("Usage: /skyboxcolor <top_color> <horizon_color>");
+                console.log("Example: /skyboxcolor #1a0a2e #ff6b35");
+            }
+            break;
+
+        case "transparentwall":
+            if (args.length >= 1) {
+                const textureKey = args[0];
+                if (transparentWallTextureKeys.has(textureKey)) {
+                    transparentWallTextureKeys.delete(textureKey);
+                    console.log(`Removed ${textureKey} from transparent walls`);
+                } else {
+                    transparentWallTextureKeys.add(textureKey);
+                    console.log(`Added ${textureKey} to transparent walls (invisible but blocks rays)`);
+                }
+            } else {
+                console.log("Current transparent wall textures:", Array.from(transparentWallTextureKeys).join(", ") || "none");
+                console.log("Usage: /transparentwall <texture_key>");
+                console.log("Example: /transparentwall wall_creamlol");
+            }
+            break;
+
         case "help":
             console.log("Available commands (use / or . prefix):");
             console.log("godmode - Toggle infinite health and stamina");
@@ -103,11 +143,15 @@ export function debugCommandsGodFunction(command) {
             console.log("setrange <amount> - Set generic gun range");
             console.log("giveitem <item_id> - Add item to inventory");
             console.log("clearinv - Clear inventory");
+            console.log("skybox - Toggle skybox rendering (replaces roof with gradient)");
+            console.log("skyboxcolor <top> <horizon> - Set skybox gradient colors");
+            console.log("transparentwall <texture_key> - Toggle wall transparency");
             console.log("\nAvailable items:", Object.entries(AVAILABLE_ITEMS).map(([id, name]) => `${id} (${name})`).join(", "));
             console.log("\nExamples:");
             console.log("/godmode - Toggle god mode");
-            console.log("/setammo 100 or .setammo 100");
-            console.log("/giveitem metal_pipe or .giveitem generic_gun");
+            console.log("/skybox - Enable skybox");
+            console.log("/skyboxcolor #1a0a2e #ff6b35 - Set skybox colors");
+            console.log("/transparentwall wall_creamlol - Make creamlol walls invisible");
             break;
 
         default:

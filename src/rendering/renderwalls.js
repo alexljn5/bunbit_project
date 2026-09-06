@@ -1,5 +1,5 @@
 import { drawQuad } from "./renderengine.js";
-import { texturesLoaded, getDemonLaughingCurrentFrame, tileTexturesMap } from "../mapdata/maptexturesloader.js";
+import { texturesLoaded, getDemonLaughingCurrentFrame, tileTexturesMap, transparentWallTextureKeys } from "../mapdata/maptexturesloader.js";
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from "../globals.js";
 import { numCastRays, playerFOV } from "./raycasting.js";
 import { tileSectors } from "../mapdata/maps.js";
@@ -121,6 +121,11 @@ export function renderRaycastWalls(rayData, sectorKey, ctx = null) {
             const floatsPerRay = cached.floatsPerRay || 8;
             for (let i = 0, len = cached.numRays; i < len; i++) {
                 const base = i * floatsPerRay;
+                const key = tKeys[i] || null;
+
+                // Skip transparent walls
+                if (key && transparentWallTextureKeys.has(key)) continue;
+
                 reusableQuad.topX = geom[base + 0];
                 reusableQuad.topY = geom[base + 1];
                 reusableQuad.leftX = geom[base + 2];
@@ -129,7 +134,6 @@ export function renderRaycastWalls(rayData, sectorKey, ctx = null) {
                 reusableQuad.rightY = geom[base + 5];
                 reusableQuad.textureX = geom[base + 6];
                 reusableQuad.alpha = geom[base + 7];
-                const key = tKeys[i] || null;
                 reusableQuad.texture = (key === "wall_laughing_demon")
                     ? demonFrame
                     : tileTexturesMap.get(key) || tileTexturesMap.get("wall_creamlol");
@@ -157,6 +161,10 @@ export function renderRaycastWalls(rayData, sectorKey, ctx = null) {
                 let accumulatedAlpha = 0;
                 for (let j = ray.length - 1; j >= 0; j--) {
                     const hit = ray[j];
+
+                    // Skip transparent walls
+                    if (hit.textureKey && transparentWallTextureKeys.has(hit.textureKey)) continue;
+
                     const textureX = computeTextureX(hit, i);
                     const tex = tileTexturesMap.get(hit.textureKey) || defaultTexture;
                     const alpha = 0.5 * (1 - accumulatedAlpha);
@@ -178,6 +186,9 @@ export function renderRaycastWalls(rayData, sectorKey, ctx = null) {
                     if (accumulatedAlpha >= 1) break;
                 }
             } else {
+                // Skip transparent walls
+                if (ray.textureKey && transparentWallTextureKeys.has(ray.textureKey)) continue;
+
                 const textureX = computeTextureX(ray, i);
                 const texture = (ray.textureKey === "wall_laughing_demon")
                     ? demonFrame

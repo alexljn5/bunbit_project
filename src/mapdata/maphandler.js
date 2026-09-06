@@ -56,8 +56,8 @@ export class MapHandler {
         }
 
         if (mapKey === "map_debug") {
-            playerPosition.x = 75;
-            playerPosition.z = 75;
+            playerPosition.x = 400;
+            playerPosition.z = 400;
             playerPosition.angle = 0;
         }
 

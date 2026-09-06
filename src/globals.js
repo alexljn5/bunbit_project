@@ -253,6 +253,11 @@ export let playerFOV = Math.PI / 6; // 60 degrees
 export let numCastRays = 300; // Default value
 export let maxRayDepth = 50; // Default value
 
+// --- SKYBOX SETTINGS ---
+export let skyboxEnabled = false;
+export let skyColorTop = "#1a0a2e";      // Deep purple/blue at top
+export let skyColorHorizon = "#ff6b35";  // Orange at horizon
+
 // Device-based adjustment for numCastRays
 if (typeof navigator !== 'undefined' && (/Mobi|Android/i.test(navigator.userAgent) || navigator.hardwareConcurrency <= 4)) {
     numCastRays = 240; // Reduce for low-end devices

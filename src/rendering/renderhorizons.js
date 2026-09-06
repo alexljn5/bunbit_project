@@ -2,7 +2,7 @@ import { mapHandler } from "../mapdata/maphandler.js";
 import { tileSectors } from "../mapdata/maps.js";
 import { tileTexturesMap, texturesLoaded } from "../mapdata/maptexturesloader.js";
 import { playerPosition } from "../playerdata/playerlogic.js";
-import { CANVAS_HEIGHT, CANVAS_WIDTH, WORKER_DEBUG_LOGS } from "../globals.js";
+import { CANVAS_HEIGHT, CANVAS_WIDTH, WORKER_DEBUG_LOGS, skyboxEnabled, skyColorTop, skyColorHorizon } from "../globals.js";
 import { fastCos, fastSin } from "../math/mathtables.js";
 import { renderEngine, drawQuad } from "./renderengine.js";
 import { playerFOV, numCastRays } from "./raycasting.js";
@@ -359,6 +359,12 @@ export function renderRaycastHorizons(rayData, targetCtx = renderEngine) {
             await Promise.all(promises);
             // Reuse preallocated ImageData and blit
             targetCtx.putImageData(finalImageData, 0, 0);
+
+            // Draw skybox gradient if enabled
+            if (skyboxEnabled) {
+                drawSkybox(targetCtx, cachedData.clipYRoof);
+            }
+
             if (DEBUG_HORIZON_TIMING) console.timeEnd('renderHorizons');
             resolve();
             return;
@@ -462,6 +468,11 @@ export function renderRaycastHorizons(rayData, targetCtx = renderEngine) {
         // Reuse the allocated ImageData
         targetCtx.putImageData(finalImageData, 0, 0);
 
+        // Draw skybox gradient if enabled
+        if (skyboxEnabled) {
+            drawSkybox(targetCtx, clipYRoof);
+        }
+
         // Cache results for static sectors
         if (!horizonCache.has(mapKey)) {
             precomputeHorizonData(mapKey, rayData);
@@ -470,6 +481,37 @@ export function renderRaycastHorizons(rayData, targetCtx = renderEngine) {
         if (DEBUG_HORIZON_TIMING) console.timeEnd('renderHorizons');
         resolve();
     });
+}
+
+/**
+ * Draws a skybox gradient in the roof area (above the walls).
+ * @param {CanvasRenderingContext2D} ctx - The target context
+ * @param {Float32Array} clipYRoof - Array of wall top Y positions per column
+ */
+function drawSkybox(ctx, clipYRoof) {
+    if (!skyboxEnabled) return;
+
+    const topColor = skyColorTop;
+    const horizonColor = skyColorHorizon;
+
+    // Create gradient from top to horizon
+    const gradient = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT / 2);
+    gradient.addColorStop(0, topColor);
+    gradient.addColorStop(1, horizonColor);
+
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = gradient;
+
+    // Draw skybox in the roof area (above walls)
+    for (let x = 0; x < CANVAS_WIDTH; x++) {
+        const wallTop = clipYRoof[x];
+        if (wallTop > 0) {
+            ctx.fillRect(x, 0, 1, wallTop);
+        }
+    }
+
+    ctx.restore();
 }
 
 export function cleanupHorizonWorkers() {
