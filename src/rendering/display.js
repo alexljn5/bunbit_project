@@ -123,17 +123,29 @@ export const display = {
      * @private
      */
     _apply(canvas, viewportW, viewportH) {
+        const dpr = window.devicePixelRatio || 1;
         const scale = Math.min(viewportW / GAME_WIDTH, viewportH / GAME_HEIGHT);
 
-        // Preserve logical backing store exactly.
-        if (canvas.width !== GAME_WIDTH) canvas.width = GAME_WIDTH;
-        if (canvas.height !== GAME_HEIGHT) canvas.height = GAME_HEIGHT;
+        // Use devicePixelRatio for sharp rendering on high-DPI displays.
+        // The backing store is larger, but all game code still draws in
+        // the 800x800 logical coordinate space via the context scale.
+        const backingW = Math.round(GAME_WIDTH * dpr);
+        const backingH = Math.round(GAME_HEIGHT * dpr);
+        if (canvas.width !== backingW) canvas.width = backingW;
+        if (canvas.height !== backingH) canvas.height = backingH;
 
         const displayW = Math.round(GAME_WIDTH * scale);
         const displayH = Math.round(GAME_HEIGHT * scale);
 
         const offsetX = Math.round((viewportW - displayW) / 2);
         const offsetY = Math.round((viewportH - displayH) / 2);
+
+        // Scale the context so all existing 800x800 drawing code works unchanged.
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            ctx.imageSmoothingEnabled = false;
+        }
 
         // Store for other systems (intro / dashboard overlay alignment).
         this.scale = scale;
@@ -143,7 +155,7 @@ export const display = {
         this.viewportH = viewportH;
         this.isFullscreen = typeof document !== 'undefined' && !!document.fullscreenElement;
 
-        // Use CSS size + transform so the canvas draws its 800x800 buffer
+        // Use CSS size + transform so the canvas draws its buffer
         // crisply scaled (image-rendering: pixelated) and centred.
         canvas.style.position = 'fixed';
         canvas.style.top = '0';
