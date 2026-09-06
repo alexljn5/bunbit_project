@@ -1,14 +1,20 @@
-import { game, renderEngine } from "../rendering/renderengine.js";
-import { keys } from "../playerdata/playerlogic.js";
-import { volumeSlidersGodFunction, setupAudioSliderHandlers } from "../audio/audiohandler.js";
-import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT, menuActive, setMenuActive, playerMovementDisabled, setPlayerMovementDisabled, GLOBAL_FONT, engineState } from "../globals.js";
-import { getMouseCanvasPos } from "../utils/inputTransform.js";
+import { keys } from "../../../playerdata/playerlogic.js";
+import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT, menuActive, setMenuActive, playerMovementDisabled, setPlayerMovementDisabled, GLOBAL_FONT, engineState } from "../../../globals.js";
+import { getMouseCanvasPos } from "../../../utils/inputTransform.js";
 
-import { saveGame, loadGame } from "../savedata/save_load_game.js";
+import { saveGame, loadGame } from "../../../savedata/save_load_game.js";
 import { applyGraphicsPreset, getGraphicsSettings, drawGraphicsOverlay, handleGraphicsMenuClick } from "./graphicssettings.js";
-import { drawButton, drawMenuOverlay } from "./overlays.js";
-import { engineController } from "../engine/engine.js";
-import { EngineState } from "../engine/enginestate.js";
+import { drawButton, drawMenuOverlay } from "../../overlays.js";
+import { engineController } from "../../../engine/engine.js";
+import { EngineState } from "../../../engine/enginestate.js";
+
+// Import settings sub-modules
+import { drawAudioOverlay } from "./audiosettings.js";
+import { drawControlsOverlay } from "./controlssettings.js";
+
+// Avoid circular dependency with renderengine.js by using window globals
+function getGame() { return window.__game || null; }
+function getRenderEngine() { return window.__renderEngine || null; }
 
 // Export menu loop controls so dashboard can open settings programmatically
 export { startMenuLoop, stopMenuLoop };
@@ -28,6 +34,10 @@ let showLoadMessage = false;
 let showNoSaveMessage = false;
 let messageTimer = null;
 let presetButtons = []; // Store preset buttons from drawGraphicsOverlay
+
+// Expose settings menu state so renderengine.js can skip mainGameMenu()
+// when the settings menu is handling its own rendering.
+window.__settingsMenuOpen = false;
 
 // File input element for loading games
 let fileInput = null;
@@ -77,102 +87,39 @@ function drawStaticMenu() {
 
 function drawSettingsButtons() {
     if (showControls || showAudio || showGraphics) return;
+    const engine = getRenderEngine();
+    if (!engine) return;
     const settingsButtons = getSettingsButtons();
-    settingsButtons.forEach(button => drawButton(renderEngine, button));
+    settingsButtons.forEach(button => drawButton(engine, button));
     if (showSaveMessage || showLoadMessage || showNoSaveMessage) {
-        renderEngine.fillStyle = "rgba(10, 10, 10, 0.95)";
-        renderEngine.fillRect(350 * SCALE_X, 120 * SCALE_Y, 400 * SCALE_X, 100 * SCALE_Y);
-        renderEngine.strokeStyle = "#555555";
-        renderEngine.lineWidth = 1;
-        renderEngine.strokeRect(350 * SCALE_X, 120 * SCALE_Y, 400 * SCALE_X, 100 * SCALE_Y);
-        renderEngine.fillStyle = "#cccccc";
-        renderEngine.font = `bold ${Math.floor(20 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
+        engine.fillStyle = "rgba(10, 10, 10, 0.95)";
+        engine.fillRect(350 * SCALE_X, 120 * SCALE_Y, 400 * SCALE_X, 100 * SCALE_Y);
+        engine.strokeStyle = "#555555";
+        engine.lineWidth = 1;
+        engine.strokeRect(350 * SCALE_X, 120 * SCALE_Y, 400 * SCALE_X, 100 * SCALE_Y);
+        engine.fillStyle = "#cccccc";
+        engine.font = `bold ${Math.floor(20 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
         const message = showSaveMessage ? "Game Saved!" : showLoadMessage ? "Game Loaded!" : "No Save Found!";
-        renderEngine.fillText(message, 400 * SCALE_X, 170 * SCALE_Y);
+        engine.fillText(message, 400 * SCALE_X, 170 * SCALE_Y);
     }
     if (showLoadPrompt) {
-        renderEngine.fillStyle = "rgba(10, 10, 10, 0.95)";
-        renderEngine.fillRect(250 * SCALE_X, 100 * SCALE_Y, 500 * SCALE_X, 150 * SCALE_Y);
-        renderEngine.strokeStyle = "#555555";
-        renderEngine.lineWidth = 1;
-        renderEngine.strokeRect(250 * SCALE_X, 100 * SCALE_Y, 500 * SCALE_X, 150 * SCALE_Y);
-        renderEngine.fillStyle = "#cccccc";
-        renderEngine.font = `bold ${Math.floor(20 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
-        renderEngine.fillText("Select save.json from your savesdata folder", 280 * SCALE_X, 150 * SCALE_Y);
-        renderEngine.fillText("Click anywhere to continue", 280 * SCALE_X, 180 * SCALE_Y);
+        engine.fillStyle = "rgba(10, 10, 10, 0.95)";
+        engine.fillRect(250 * SCALE_X, 100 * SCALE_Y, 500 * SCALE_X, 150 * SCALE_Y);
+        engine.strokeStyle = "#555555";
+        engine.lineWidth = 1;
+        engine.strokeRect(250 * SCALE_X, 100 * SCALE_Y, 500 * SCALE_X, 150 * SCALE_Y);
+        engine.fillStyle = "#cccccc";
+        engine.font = `bold ${Math.floor(20 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
+        engine.fillText("Select save.json from your savesdata folder", 280 * SCALE_X, 150 * SCALE_Y);
+        engine.fillText("Click anywhere to continue", 280 * SCALE_X, 180 * SCALE_Y);
     }
-}
-
-function drawControlsOverlay() {
-    const overlayX = 350 * SCALE_X;
-    const overlayY = 120 * SCALE_Y;
-    const overlayWidth = 400 * SCALE_X;
-    const overlayHeight = 400 * SCALE_Y;
-    renderEngine.fillStyle = "rgba(10, 10, 10, 0.95)";
-    renderEngine.fillRect(overlayX, overlayY, overlayWidth, overlayHeight);
-    renderEngine.strokeStyle = "#555555";
-    renderEngine.lineWidth = 1;
-    renderEngine.strokeRect(overlayX, overlayY, overlayWidth, overlayHeight);
-    renderEngine.fillStyle = "#cccccc";
-    renderEngine.font = `bold ${Math.floor(22 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
-    renderEngine.fillText("Controls", overlayX, overlayY + 40 * SCALE_Y);
-    renderEngine.font = `${Math.floor(16 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
-    const controls = [
-        "WASD: Move",
-        "Shift: Walk slow",
-        "Alt: Sprint",
-        "Q/E: Strafe left/right",
-        "Space: Shoot/Hit",
-        "1-9: Inventory slots",
-        "T: Interact",
-        "F3: Toggle debug",
-        "Escape: Open/close menu",
-        "Save files to your savesdata folder!"
-    ];
-    controls.forEach((line, i) => {
-        renderEngine.fillText(line, overlayX + 10 * SCALE_X, overlayY + 80 * SCALE_Y + i * 30 * SCALE_Y);
-    });
-    const backButton = {
-        name: "Back",
-        x: 60 * SCALE_X,
-        y: 470 * SCALE_Y,
-        width: 100 * SCALE_X,
-        height: 36 * SCALE_Y,
-        hovered: false
-    };
-    drawButton(renderEngine, backButton, showControls, 30, 25);
-}
-
-function drawAudioOverlay() {
-    const overlayX = 350 * SCALE_X;
-    const overlayY = 120 * SCALE_Y;
-    const overlayWidth = 400 * SCALE_X;
-    const overlayHeight = 400 * SCALE_Y;
-    renderEngine.fillStyle = "rgba(10, 10, 10, 0.95)";
-    renderEngine.fillRect(overlayX, overlayY, overlayWidth, overlayHeight);
-    renderEngine.strokeStyle = "#555555";
-    renderEngine.lineWidth = 1;
-    renderEngine.strokeRect(overlayX, overlayY, overlayWidth, overlayHeight);
-    renderEngine.fillStyle = "#cccccc";
-    renderEngine.font = `bold ${Math.floor(22 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
-    renderEngine.fillText("Audio Settings", overlayX, overlayY + 40 * SCALE_Y);
-    volumeSlidersGodFunction();
-    setupAudioSliderHandlers();
-    const backButton = {
-        name: "Back",
-        x: 60 * SCALE_X,
-        y: 470 * SCALE_Y,
-        width: 100 * SCALE_X,
-        height: 36 * SCALE_Y,
-        hovered: false
-    };
-    drawButton(renderEngine, backButton, showAudio, 30, 25);
 }
 
 async function handleSettingsMenuClick(e) {
-    const canvas = renderEngine.canvas;
+    const engine = getRenderEngine();
+    const canvas = engine?.canvas;
+    if (!canvas) return;
     const { x: mouseX, y: mouseY } = getMouseCanvasPos(canvas, e);
-
 
     needsRedraw = true;
 
@@ -212,7 +159,7 @@ async function handleSettingsMenuClick(e) {
     }
 
     if (showGraphics) {
-        handleGraphicsMenuClick(e, renderEngine, SCALE_X, SCALE_Y, presetButtons, (value) => { showGraphics = value; }, (value) => { needsRedraw = value; });
+        handleGraphicsMenuClick(e, engine, SCALE_X, SCALE_Y, presetButtons, (value) => { showGraphics = value; }, (value) => { needsRedraw = value; });
         return;
     }
 
@@ -298,7 +245,7 @@ async function handleSettingsMenuClick(e) {
 }
 
 function attachSettingsMenuHandlers() {
-    const canvas = renderEngine.canvas;
+    const canvas = getRenderEngine()?.canvas;
     if (!canvas) return;
     if (!canvas._hasMenuHandlers) {
         canvas.onmousemove = handleSettingsMenuClick;
@@ -308,7 +255,7 @@ function attachSettingsMenuHandlers() {
 }
 
 function detachSettingsMenuHandlers() {
-    const canvas = renderEngine.canvas;
+    const canvas = getRenderEngine()?.canvas;
     if (!canvas) return;
     if (canvas._hasMenuHandlers) {
         // Only detach click handlers, keep mouse move handlers for hover effects
@@ -318,11 +265,16 @@ function detachSettingsMenuHandlers() {
 }
 
 function startMenuLoop() {
-    if (menuIsRunning) return;
+    console.log('[Settings] startMenuLoop called, menuIsRunning:', menuIsRunning, 'menuActive:', menuActive);
+    if (menuIsRunning) {
+        console.log('[Settings] startMenuLoop early return - already running');
+        return;
+    }
     menuIsRunning = true;
 
     function menuTick() {
         if (!menuIsRunning || !menuActive) {
+            console.log('[Settings] menuTick stopping, menuIsRunning:', menuIsRunning, 'menuActive:', menuActive);
             stopMenuLoop();
             return;
         }
@@ -331,6 +283,7 @@ function startMenuLoop() {
     }
 
     menuRafId = requestAnimationFrame(menuTick);
+    console.log('[Settings] menu loop started, menuRafId:', menuRafId);
 }
 
 function stopMenuLoop() {
@@ -343,21 +296,23 @@ function stopMenuLoop() {
 }
 
 function menuSettingsRender() {
-    renderEngine.setTransform(1, 0, 0, 1, 0, 0); // Reset transformations
-    renderEngine.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    const engine = getRenderEngine();
+    if (!engine) return;
+    engine.setTransform(1, 0, 0, 1, 0, 0); // Reset transformations
+    engine.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     if (needsRedraw || !offscreenCanvas) {
         drawStaticMenu();
         needsRedraw = false;
     }
     if (offscreenCanvas) {
-        renderEngine.drawImage(offscreenCanvas, 0, 0);
+        engine.drawImage(offscreenCanvas, 0, 0);
     }
     if (showControls) {
         drawControlsOverlay();
     } else if (showAudio) {
         drawAudioOverlay();
     } else if (showGraphics) {
-        presetButtons = drawGraphicsOverlay(renderEngine, SCALE_X, SCALE_Y, showGraphics);
+        presetButtons = drawGraphicsOverlay(engine, SCALE_X, SCALE_Y, showGraphics);
     } else {
         drawSettingsButtons();
     }
@@ -382,17 +337,21 @@ function menuSettings() {
         needsRedraw = true;
         if (menuActive) {
             console.log("Settings menu opened, pausing game");
-            if (game && typeof game.stop === 'function') {
-                game.stop();
+            window.__settingsMenuOpen = true;
+            const g = getGame();
+            if (g && typeof g.stop === 'function') {
+                g.stop();
             }
             startMenuLoop();
             attachSettingsMenuHandlers();
             initFileInput();
         } else {
             console.log("Settings menu closed, resuming game");
+            window.__settingsMenuOpen = false;
             stopMenuLoop();
-            if (game && typeof game.start === 'function') {
-                game.start();
+            const g = getGame();
+            if (g && typeof g.start === 'function') {
+                g.start();
             }
             showLoadPrompt = false;
             showControls = false;
@@ -419,4 +378,3 @@ export { attachSettingsMenuHandlers, initFileInput };
 export function menuSettingsGodFunction() {
     menuSettings();
 }
-

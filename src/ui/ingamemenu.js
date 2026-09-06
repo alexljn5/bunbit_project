@@ -12,7 +12,7 @@ import { EngineState } from '../engine/enginestate.js';
 import { engineController } from '../engine/engine.js';
 import { GLOBAL_FONT } from '../globals.js';
 import { setMenuActive, menuActive } from '../gamestate.js';
-import { startMenuLoop, attachSettingsMenuHandlers, initFileInput } from '../menus/menusettings.js';
+import { startMenuLoop, attachSettingsMenuHandlers, initFileInput } from '../menus/ingame_menu/settings/menusettings.js';
 
 // Self-register this state handler with the engine controller
 engineController.registerHandler(EngineState.INGAME_MENU, ingameMenuHandler);
@@ -119,13 +119,24 @@ export async function ingameMenuHandler(controller, sharedState, payload = {}) {
         settingsBtn.style.color = '#cccccc';
     });
     settingsBtn.addEventListener('click', () => {
+        console.log('[InGameMenu] Settings button clicked');
         // Remove in-game menu so settings menu (canvas-based) is visible
         const ingameMenu = document.getElementById(INGAME_MENU_ID);
-        if (ingameMenu) ingameMenu.remove();
+        if (ingameMenu) {
+            console.log('[InGameMenu] Removing in-game menu DOM overlay');
+            ingameMenu.remove();
+        } else {
+            console.warn('[InGameMenu] In-game menu element not found');
+        }
+        console.log('[InGameMenu] Setting menuActive=true, was:', menuActive);
         setMenuActive(true);
+        console.log('[InGameMenu] Starting settings menu loop');
         startMenuLoop();
+        console.log('[InGameMenu] Attaching settings menu handlers');
         attachSettingsMenuHandlers();
+        console.log('[InGameMenu] Initializing file input');
         initFileInput();
+        console.log('[InGameMenu] Settings button click handler complete');
     });
 
     // Select Map button (placeholder)

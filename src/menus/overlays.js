@@ -1,4 +1,6 @@
-import { renderEngine } from "../rendering/renderengine.js";
+// Avoid circular dependency with renderengine.js
+function getRenderEngine() { return window.__renderEngine || null; }
+
 import { SCALE_X, SCALE_Y, CANVAS_WIDTH, CANVAS_HEIGHT, GLOBAL_FONT } from "../globals.js";
 import { genericGunSprite, rustyKeySprite, metalPipeSprite } from "../rendering/sprites/spritetextures.js";
 
@@ -48,14 +50,16 @@ const BOX = {
 
 // Helper function to draw word-wrapped text
 function drawWrappedText(text, x, y, maxWidth, lineHeight) {
+    const engine = getRenderEngine();
+    if (!engine) return;
     const words = text.split(' ');
     let currentLine = '';
     let currentY = y;
     for (let i = 0; i < words.length; i++) {
         const testLine = currentLine + words[i] + ' ';
-        const metrics = renderEngine.measureText(testLine);
+        const metrics = engine.measureText(testLine);
         if (metrics.width > maxWidth && currentLine !== '') {
-            renderEngine.fillText(currentLine.trim(), x, currentY);
+            engine.fillText(currentLine.trim(), x, currentY);
             currentLine = words[i] + ' ';
             currentY += lineHeight;
         } else {
@@ -63,85 +67,97 @@ function drawWrappedText(text, x, y, maxWidth, lineHeight) {
         }
     }
     if (currentLine) {
-        renderEngine.fillText(currentLine.trim(), x, currentY);
+        engine.fillText(currentLine.trim(), x, currentY);
     }
 }
 
 export function drawNpcDialogue(dialogueLines, currentDialogueIndex) {
-    renderEngine.save();
-    renderEngine.globalAlpha = COLORS.boxBackgroundAlpha;
-    renderEngine.fillStyle = COLORS.background;
+    const engine = getRenderEngine();
+    if (!engine) return;
+    engine.save();
+    engine.globalAlpha = COLORS.boxBackgroundAlpha;
+    engine.fillStyle = COLORS.background;
     const box = BOX.npcDialogue;
-    renderEngine.fillRect(box.x, box.y, box.width, box.height);
-    renderEngine.globalAlpha = COLORS.boxBackgroundAlphaSolid;
-    renderEngine.fillStyle = COLORS.text;
-    renderEngine.font = FONTS.base;
+    engine.fillRect(box.x, box.y, box.width, box.height);
+    engine.globalAlpha = COLORS.boxBackgroundAlphaSolid;
+    engine.fillStyle = COLORS.text;
+    engine.font = FONTS.base;
     const line = dialogueLines[currentDialogueIndex];
     if (line) {
         drawWrappedText(line, box.x + box.paddingX, box.y + box.paddingY, box.maxTextWidth, box.lineHeight);
     }
-    renderEngine.restore();
+    engine.restore();
 }
 
 export function drawMetalPipePickupBox() {
+    const engine = getRenderEngine();
+    if (!engine) return;
     basicPickUpMenuStyle();
-    renderEngine.save();
-    renderEngine.globalAlpha = COLORS.boxBackgroundAlphaSolid;
-    renderEngine.fillStyle = COLORS.text;
-    renderEngine.font = FONTS.base;
+    engine.save();
+    engine.globalAlpha = COLORS.boxBackgroundAlphaSolid;
+    engine.fillStyle = COLORS.text;
+    engine.font = FONTS.base;
     const text = "You found a metal pipe! It looks like it could be useful. Press [Space] to swing and T to continue.";
     const box = BOX.pickup;
     drawWrappedText(text, box.x + box.paddingX, box.y + box.paddingY, box.maxTextWidth, box.lineHeight);
     const imgX = box.x + (box.width - box.imgWidth) / 2
-    renderEngine.drawImage(metalPipeSprite, imgX, box.y + box.imgY, box.imgWidth, box.imgHeight);
-    renderEngine.restore();
+    engine.drawImage(metalPipeSprite, imgX, box.y + box.imgY, box.imgWidth, box.imgHeight);
+    engine.restore();
 }
 
 export function drawGunPickupBox() {
+    const engine = getRenderEngine();
+    if (!engine) return;
     basicPickUpMenuStyle();
-    renderEngine.save();
-    renderEngine.globalAlpha = COLORS.boxBackgroundAlphaSolid;
-    renderEngine.fillStyle = COLORS.text;
-    renderEngine.font = FONTS.base;
+    engine.save();
+    engine.globalAlpha = COLORS.boxBackgroundAlphaSolid;
+    engine.fillStyle = COLORS.text;
+    engine.font = FONTS.base;
     const text = "You received a generic gun!";
     const box = BOX.pickup;
     drawWrappedText(text, box.x + box.paddingX, box.y + box.paddingY, box.maxTextWidth, box.lineHeight);
     const imgX = box.x + (box.width - box.imgWidth) / 2;
-    renderEngine.drawImage(genericGunSprite, imgX, box.y + box.imgY, box.imgWidth, box.imgHeight);
-    renderEngine.restore();
+    engine.drawImage(genericGunSprite, imgX, box.y + box.imgY, box.imgWidth, box.imgHeight);
+    engine.restore();
 }
 
 export function drawRustyKeyPickupBox() {
+    const engine = getRenderEngine();
+    if (!engine) return;
     basicPickUpMenuStyle();
-    renderEngine.save();
-    renderEngine.globalAlpha = COLORS.boxBackgroundAlphaSolid;
-    renderEngine.fillStyle = COLORS.text;
-    renderEngine.font = FONTS.base;
+    engine.save();
+    engine.globalAlpha = COLORS.boxBackgroundAlphaSolid;
+    engine.fillStyle = COLORS.text;
+    engine.font = FONTS.base;
     const text = "You rummaged through warm flesh and amidst the bones you found a rusty key!";
     const box = BOX.pickup;
     drawWrappedText(text, box.x + box.paddingX, box.y + box.paddingY, box.maxTextWidth, box.lineHeight);
     const imgX = box.x + (box.width - box.imgWidth) / 2;
-    renderEngine.drawImage(rustyKeySprite, imgX, box.y + box.imgY, box.imgWidth, box.imgHeight);
-    renderEngine.restore();
+    engine.drawImage(rustyKeySprite, imgX, box.y + box.imgY, box.imgWidth, box.imgHeight);
+    engine.restore();
 }
 
 export function basicPickUpMenuStyle() {
+    const engine = getRenderEngine();
+    if (!engine) return;
     const box = BOX.pickup;
-    renderEngine.save();
-    renderEngine.globalAlpha = COLORS.boxBackgroundAlpha;
-    renderEngine.fillStyle = COLORS.background;
-    renderEngine.fillRect(box.x, box.y, box.width, box.height);
-    renderEngine.globalAlpha = COLORS.boxBackgroundAlphaSolid;
-    renderEngine.restore();
+    engine.save();
+    engine.globalAlpha = COLORS.boxBackgroundAlpha;
+    engine.fillStyle = COLORS.background;
+    engine.fillRect(box.x, box.y, box.width, box.height);
+    engine.globalAlpha = COLORS.boxBackgroundAlphaSolid;
+    engine.restore();
 }
 
 export function drawMenuOverlay(alpha = 0.8) {
-    renderEngine.save();
-    renderEngine.globalAlpha = alpha;
-    renderEngine.fillStyle = COLORS.background;
-    renderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-    renderEngine.globalAlpha = 1.0;
-    renderEngine.restore();
+    const engine = getRenderEngine();
+    if (!engine) return;
+    engine.save();
+    engine.globalAlpha = alpha;
+    engine.fillStyle = COLORS.background;
+    engine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    engine.globalAlpha = 1.0;
+    engine.restore();
 }
 
 export function drawButton(context, button, isSelected = false, textOffsetX = 20, textOffsetY = 25) {

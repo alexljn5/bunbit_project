@@ -2,7 +2,7 @@ import { themeManager } from '../../themes/thememanager.js';
 import { SCALE_X, SCALE_Y, CANVAS_WIDTH, CANVAS_HEIGHT, defaultDebugVisible, setDebugVisible, setShowDebugTools } from '../../globals.js';
 import { setMenuActive, menuActive } from '../../gamestate.js';
 import { gameLoop } from '../../game_loop.js';
-import { setupMenuClickHandler } from '../../menus/menu.js';
+import { setupMenuClickHandler } from '../../menus/ingame_menu/game_menu.js';
 import { gameRenderEngine, initializeRenderWorkers, cleanupRenderWorkers } from '../../rendering/renderengine.js';
 import { memCpuGodFunction, stopMemCpuMonitor } from './memcpu.js';
 import { debugHandlerGodFunction, stopDebugTerminal } from '../debughandler.js';

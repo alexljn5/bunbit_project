@@ -26,7 +26,24 @@ src/
 ├── debug/                 # Developer tooling (debug panel, panels, workers)
 ├── rendering/             # Rendering pipeline (raycasting, sprites, lighting)
 ├── mapdata/               # Map definitions, loading, and texture management
-├── menus/                 # Menu screens (dashboard, in-game menu, etc.)
+├── menus/                 # Menu system (god handler, dashboard, in-game menu)
+│   ├── menu.js            # God menu handler - combines all menu god functions
+│   ├── dashboard/         # Dashboard components
+│   │   ├── main_dashboard.js
+│   │   ├── dashboard_box.js
+│   │   ├── dashboard_content.js
+│   │   └── dashboard_keyframes.js
+│   ├── ingame_menu/       # In-game pause menu
+│   │   ├── game_menu.js
+│   │   └── settings/      # Settings sub-menus
+│   │       ├── menusettings.js
+│   │       ├── graphicssettings.js
+│   │       ├── audiosettings.js
+│   │       └── controlssettings.js
+│   ├── overlays.js        # Shared overlay drawing utilities
+│   ├── menurespawn.js     # Death/respawn screen
+│   ├── menupresets.js     # Menu layout presets and theme helpers
+│   └── menumaps.js        # Map selection data
 ├── animations/            # Intro animations and screen transitions
 ├── audio/                 # Sound and music handling
 ├── playerdata/            # Player state, inventory, logic, UI
@@ -52,6 +69,7 @@ src/
 - **lowercase with underscores** for map data files: `map_01.js`, `map_debug.js`
 - **kebab-case** for HTML files: `main-game.html`, `intro.html`
 - **lowercase** for CSS files: `stylesgame.css`
+- **NO DUPLICATE FILENAMES** in the same directory tree: never have two files with the same name (e.g., `menu.js`) in the same parent directory or its subdirectories. Use descriptive names like `game_menu.js` for the in-game menu and `menu.js` for the god handler.
 
 ### Variables
 - **camelCase** for all variables and functions: `playerPosition`, `setMenuActive`

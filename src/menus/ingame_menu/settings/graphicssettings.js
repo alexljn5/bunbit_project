@@ -1,7 +1,10 @@
-import { updateGraphicsSettings } from "../rendering/raycasting.js";
-import { CANVAS_WIDTH, CANVAS_HEIGHT, updateCanvasResolution, graphicsPresets, currentGraphicsPreset, applyGraphicsPreset, numCastRays, maxRayDepth, GLOBAL_FONT } from "../globals.js";
-import { drawButton, drawMenuOverlay } from "./overlays.js";
-import { getMouseCanvasPos } from "../utils/inputTransform.js";
+import { updateGraphicsSettings } from "../../../rendering/raycasting.js";
+import { CANVAS_WIDTH, CANVAS_HEIGHT, updateCanvasResolution, graphicsPresets, currentGraphicsPreset, applyGraphicsPreset, numCastRays, maxRayDepth, GLOBAL_FONT } from "../../../globals.js";
+import { drawButton, drawMenuOverlay } from "../../overlays.js";
+import { getMouseCanvasPos } from "../../../utils/inputTransform.js";
+
+// Avoid circular dependency with renderengine.js
+function getRenderEngine() { return window.__renderEngine || null; }
 
 // Re-export graphicsPresets and currentGraphicsPreset for backward compatibility
 export { graphicsPresets, currentGraphicsPreset, applyGraphicsPreset };

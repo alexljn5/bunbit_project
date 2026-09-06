@@ -9,7 +9,7 @@ import { showMinimap } from "../globals.js";
 import { tileSectors } from "../mapdata/maps.js";
 import { castRays, numCastRays, playerFOV, maxRayDepth } from "./raycasting.js";
 import { drawSprites, spriteManager } from "./sprites/rendersprites.js";
-import { mainGameMenu, setupMenuClickHandler } from "../menus/menu.js";
+import { mainGameMenu, setupMenuClickHandler } from "../menus/ingame_menu/game_menu.js";
 import { texturesLoaded, textureTransparencyMap } from "../mapdata/maptexturesloader.js";
 import { textureIdMap, floorTextureIdMap } from "../mapdata/maptexturesids.js";
 import { playerUI } from "../playerdata/playerui.js";
@@ -17,7 +17,7 @@ import { collissionGodFunction } from "../collissiondetection/collissionlogichan
 import { enemyAiGodFunction, friendlyAiGodFunction } from "../ai/aihandler.js";
 import { menuActive, setMenuActive, isPaused, setPaused } from "../gamestate.js";
 import { playMusicGodFunction } from "../audio/audiohandler.js";
-import { menuHandler } from "../menus/menuhandler.js";
+import { menuHandler } from "../menus/menu.js";
 import { itemHandlerGodFunction } from "../itemhandler/itemhandler.js";
 import { CANVAS_HEIGHT, CANVAS_WIDTH, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT, useWasmRayMath } from "../globals.js";
 import { eventHandler } from "../events/eventhandler.js";
@@ -68,6 +68,7 @@ glCanvas.width = CANVAS_WIDTH;
 glCanvas.height = CANVAS_HEIGHT;
 
 export let game = null;
+window.__game = game;
 let isRenderingFrame = false;
 let renderWorkersInitialized = false;
 let renderHelpersWasm = null;
@@ -223,6 +224,11 @@ export async function gameRenderEngine(deltaTime) {
     try {
         const minScale = Math.min(SCALE_X, SCALE_Y);
         if (menuActive) {
+            // If the settings menu is open, it has its own render loop.
+            // Skip mainGameMenu() to avoid drawing the game menu over the settings menu.
+            if (window.__settingsMenuOpen) {
+                return;
+            }
             debugLog('Rendering menu (menuActive=true)');
             mainGameMenu();
             return;
@@ -233,7 +239,7 @@ export async function gameRenderEngine(deltaTime) {
         // is a DOM overlay with Play, Settings, Select Map, and Return to
         // Dashboard buttons. Pressing ESC again inside the in-game menu
         // resumes gameplay. The legacy canvas settings menu
-        // (src/menus/menusettings.js) is opened from the in-game menu's
+        // (src/menus/ingame_menu/settings/menusettings.js) is opened from the in-game menu's
         // Settings button, not directly from ESC.
         if (isPaused && keys["m"]) {
             setPaused(false);

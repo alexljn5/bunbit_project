@@ -15,7 +15,7 @@ import { engineController } from '../engine/engine.js';
 import { setMenuActive, setPlayerMovementDisabled } from '../gamestate.js';
 import { gameLoop } from '../game_loop.js';
 import { gameRenderEngine, initializeRenderWorkers } from '../rendering/renderengine.js';
-import { attachSettingsMenuHandlers } from '../menus/menusettings.js';
+import { attachSettingsMenuHandlers } from '../menus/ingame_menu/settings/menusettings.js';
 import { spriteManager } from '../rendering/sprites/rendersprites.js';
 import { mapHandler } from '../mapdata/maphandler.js';
 
