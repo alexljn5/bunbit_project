@@ -279,7 +279,9 @@ async function handleSettingsMenuClick(e) {
             } else if (button.name === "Load Game") {
                 showLoadPrompt = true;
             } else if (button.name === "Quit") {
-                window.location.reload();
+                if (typeof window !== 'undefined') {
+                    window.location.href = 'intro.html';
+                }
             }
         }
     });

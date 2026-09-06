@@ -26,6 +26,7 @@
 
 import { EngineState } from '../engine/enginestate.js';
 import { engineController } from '../engine/engine.js';
+import { DISABLE_CUTSCENES } from '../globals.js';
 
 // Self-register this state handler with the engine controller
 engineController.registerHandler(EngineState.NEW_GAME_PLACEHOLDER, newGamePlaceholderHandler);
@@ -242,6 +243,16 @@ export async function newGamePlaceholderHandler(controller, sharedState, payload
     // Remove any existing placeholder
     const existing = document.getElementById(PLACEHOLDER_ID);
     if (existing) existing.remove();
+
+    // If cutscenes are disabled, skip straight to dialogue
+    if (DISABLE_CUTSCENES) {
+        console.log('[DEV SHORTCUT] Cutscenes disabled — skipping new game cinematic');
+        controller.transitionTo(EngineState.DIALOGUE, {
+            dialogueId: 'new_game_intro',
+            flags: {},
+        });
+        return () => { };
+    }
 
     // Run the cinematic transition (reuses the dashboard sigil element)
     runNewGameCinematic(controller);

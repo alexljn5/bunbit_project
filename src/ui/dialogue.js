@@ -11,6 +11,7 @@ import { engineController } from '../engine/engine.js';
 import { dialogueManager } from '../dialogue/runtime/dialogue-manager.js';
 import { dialogueRenderer } from '../dialogue/renderer/dialogue-renderer.js';
 import { loadCharacter } from '../dialogue/loader/character-loader.js';
+import { DISABLE_DIALOGUE } from '../globals.js';
 
 // Self-register this state handler with the engine controller
 engineController.registerHandler(EngineState.DIALOGUE, dialogueHandler);
@@ -61,19 +62,49 @@ export async function dialogueHandler(controller, sharedState, payload = {}) {
 
     const { dialogueId, flags = {}, onComplete } = payload;
 
-    if (!dialogueId) {
-        console.warn('[Dialogue] No dialogueId provided in payload. Returning to DASHBOARD.');
-        controller.transitionTo(EngineState.DASHBOARD);
-        return () => { };
-    }
-
-    currentDialogueId = dialogueId;
-
-    // Ensure canvas is hidden during dialogue
+    // Ensure canvas is hidden during dialogue (do this early so the skip path can restore it)
     const canvas = document.getElementById('mainGameRender');
     if (canvas) {
         canvas.style.display = 'none';
     }
+
+    if (!dialogueId) {
+        console.warn('[Dialogue] No dialogueId provided in payload. Returning to DASHBOARD.');
+        if (canvas) canvas.style.display = '';
+        controller.transitionTo(EngineState.DASHBOARD);
+        return () => { };
+    }
+
+    // If dialogue is disabled, skip straight to completion
+    if (DISABLE_DIALOGUE) {
+        console.log('[DEV SHORTCUT] Dialogue disabled — skipping dialogue:', dialogueId);
+
+        // Clean up cinematic DOM elements and dashboard
+        const sigil = document.querySelector('[data-dashboard-sigil="1"]');
+        if (sigil) sigil.remove();
+        const sigilWrapper = document.querySelector('[data-sigil-wrapper]');
+        if (sigilWrapper) sigilWrapper.remove();
+        removeIntroBackdrop();
+        document.body.classList.remove('cinematic-dim-environment', 'dimmed');
+
+        // Remove the dashboard so the gameplay canvas can take over
+        const dashboard = document.getElementById('bunbit-main-dashboard');
+        if (dashboard) dashboard.remove();
+
+        // Show the canvas again
+        if (canvas) canvas.style.display = '';
+
+        if (typeof onComplete === 'function') {
+            onComplete();
+        } else if (dialogueId === 'new_game_intro') {
+            controller.transitionTo(EngineState.GAMEPLAY);
+        } else {
+            controller.transitionTo(EngineState.DASHBOARD);
+        }
+        return () => { };
+    }
+
+    currentDialogueId = dialogueId;
 
     // Create dialogue renderer container
     dialogueRenderer.createContainer();

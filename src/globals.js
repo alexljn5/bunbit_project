@@ -130,6 +130,59 @@ export let MAX_LOGS = 50000;
 // Developer-only start/intro animation toggles
 export let DEBUG_START_INTRO_ANIMATION = true;
 export let RUN_INTRO_ON_START = true; // Run intro animation automatically on app start
+
+// =============================================================================
+// DEVELOPMENT SHORTCUT FLAGS
+// Toggle these to skip animations, cutscenes, and dialogue for faster testing.
+// Can also be set via URL params: ?disableAnimations=true&disableCutscenes=true&disableDialogue=true&fastDialogue=true&skipIntro=true&devMode=true
+// =============================================================================
+
+// Master dev mode toggle — set to true to enable ALL shortcuts below at once.
+// Individual flags can still be overridden after this block.
+export let DEV_MODE = false;
+
+export let DISABLE_ANIMATIONS = false;   // Skip all animation sequences (fades, slides, etc.)
+export let DISABLE_CUTSCENES = true;    // Skip cutscene/cinematic sequences
+export let DISABLE_DIALOGUE = true;     // Skip dialogue boxes entirely
+export let FAST_DIALOGUE = false;        // Instantly render dialogue text (no typewriter effect)
+export let SKIP_INTRO = false;           // Skip intro sequence on app start
+
+// Apply URL param overrides for dev shortcuts
+if (typeof window !== 'undefined') {
+    const urlParams = new URLSearchParams(window.location.search);
+
+    // Master dev mode via URL
+    if (urlParams.get('devMode') === 'true') DEV_MODE = true;
+
+    // Individual flags via URL (override hardcoded values)
+    if (urlParams.get('disableAnimations') === 'true') DISABLE_ANIMATIONS = true;
+    if (urlParams.get('disableCutscenes') === 'true') DISABLE_CUTSCENES = true;
+    if (urlParams.get('disableDialogue') === 'true') DISABLE_DIALOGUE = true;
+    if (urlParams.get('fastDialogue') === 'true') FAST_DIALOGUE = true;
+    if (urlParams.get('skipIntro') === 'true') SKIP_INTRO = true;
+
+    // If DEV_MODE is active, enable all shortcuts unless explicitly overridden above
+    if (DEV_MODE) {
+        DISABLE_ANIMATIONS = urlParams.get('disableAnimations') === 'false' ? false : true;
+        DISABLE_CUTSCENES = urlParams.get('disableCutscenes') === 'false' ? false : true;
+        DISABLE_DIALOGUE = urlParams.get('disableDialogue') === 'false' ? false : true;
+        FAST_DIALOGUE = urlParams.get('fastDialogue') === 'false' ? false : true;
+        SKIP_INTRO = urlParams.get('skipIntro') === 'false' ? false : true;
+    }
+
+    // Log active dev shortcuts
+    const activeShortcuts = [];
+    if (DISABLE_ANIMATIONS) activeShortcuts.push('disableAnimations');
+    if (DISABLE_CUTSCENES) activeShortcuts.push('disableCutscenes');
+    if (DISABLE_DIALOGUE) activeShortcuts.push('disableDialogue');
+    if (FAST_DIALOGUE) activeShortcuts.push('fastDialogue');
+    if (SKIP_INTRO) activeShortcuts.push('skipIntro');
+    if (DEV_MODE) activeShortcuts.push('devMode');
+    if (activeShortcuts.length > 0) {
+        console.log(`[DEV SHORTCUTS] Active: ${activeShortcuts.join(', ')}`);
+    }
+}
+
 export let logBuffer = [];
 export let logFilters = { log: true, error: true, warn: true, info: true, debug: true };
 
@@ -392,3 +445,23 @@ export function setLogBuffer(val) {
 export function clearLogBuffer() {
     logBuffer.length = 0;
 }
+
+// =============================================================================
+// DEV SHORTCUT SETTERS
+// =============================================================================
+export function setDevMode(val) {
+    DEV_MODE = !!val;
+    // When enabling dev mode, also enable all shortcuts unless explicitly disabled
+    if (DEV_MODE) {
+        DISABLE_ANIMATIONS = true;
+        DISABLE_CUTSCENES = true;
+        DISABLE_DIALOGUE = true;
+        FAST_DIALOGUE = true;
+        SKIP_INTRO = true;
+    }
+}
+export function setDisableAnimations(val) { DISABLE_ANIMATIONS = !!val; }
+export function setDisableCutscenes(val) { DISABLE_CUTSCENES = !!val; }
+export function setDisableDialogue(val) { DISABLE_DIALOGUE = !!val; }
+export function setFastDialogue(val) { FAST_DIALOGUE = !!val; }
+export function setSkipIntro(val) { SKIP_INTRO = !!val; }

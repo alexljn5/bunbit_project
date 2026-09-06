@@ -1,7 +1,7 @@
 import { renderEngine } from "../rendering/renderengine.js";
 import { fuckTheScreenUp } from "./fuckthescreenup.js";
 import { getDemonLaughingCurrentFrame } from "../mapdata/maptexturesloader.js";
-import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT, introActive, setIntroActive } from "../globals.js";
+import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT, DISABLE_ANIMATIONS, introActive, setIntroActive } from "../globals.js";
 
 // Re-export introActive for backward compatibility
 export { introActive };
@@ -20,6 +20,10 @@ function drawDemonFrame(renderEngine, alpha = 0.1) {
 }
 
 function drawNewGameStartAnimation() {
+    if (DISABLE_ANIMATIONS) {
+        setIntroActive(false);
+        return;
+    }
     const startTime = performance.now();
 
     function animate(now) {

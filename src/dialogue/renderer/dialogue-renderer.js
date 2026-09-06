@@ -19,6 +19,7 @@
 
 import { DialogueTheme, SpeakerAlignment } from '../theme/dialogue-theme.js';
 import { loadCharacterSpriteMetadata, parseSpriteSheetMarkdown } from '../loader/sprite-metadata-loader.js';
+import { FAST_DIALOGUE } from '../../globals.js';
 
 /**
  * Dialogue renderer component.

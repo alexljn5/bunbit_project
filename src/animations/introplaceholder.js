@@ -11,6 +11,8 @@
 import {
     DEBUG_START_INTRO_ANIMATION,
     RUN_INTRO_ON_START,
+    SKIP_INTRO,
+    DISABLE_ANIMATIONS,
     introActive,
     setIntroActive,
     GAME_WIDTH,
@@ -303,7 +305,7 @@ function drawFrame(ctx, img, w, h, progress) {
 
 // ─── MAIN ENTRY ─────────────────────────────────────────────────
 export function maybeShowIntroPlaceholders({ onComplete } = {}) {
-    if (!DEBUG_START_INTRO_ANIMATION) {
+    if (!DEBUG_START_INTRO_ANIMATION || DISABLE_ANIMATIONS) {
         onComplete?.();
         return;
     }
@@ -401,7 +403,7 @@ export function maybeShowIntroPlaceholders({ onComplete } = {}) {
 
 // ─── AUTO-RUN ───────────────────────────────────────────────────
 export function runIntroPlaceholderAutorun() {
-    if (!RUN_INTRO_ON_START || hasRun) return Promise.resolve();
+    if (!RUN_INTRO_ON_START || hasRun || SKIP_INTRO) return Promise.resolve();
     if (!introActive) return Promise.resolve();
 
     hasRun = true;
@@ -431,7 +433,7 @@ export function tryAutorunIntroPlaceholder() {
 }
 
 // ─── AUTO-START ────────────────────────────────────────────────
-if (RUN_INTRO_ON_START && typeof window !== 'undefined') {
+if (RUN_INTRO_ON_START && !SKIP_INTRO && typeof window !== 'undefined') {
     requestAnimationFrame(() => {
         runIntroPlaceholderAutorun();
     });

@@ -39,7 +39,8 @@ function rebuildButtons(canvas) {
 
     buttons = [
         { name: "Play", x: cx - w / 2, y: cy - 200, w, h, hovered: false },
-        { name: "Maps", x: cx - w / 2, y: cy - 80, w, h, hovered: false }
+        { name: "Maps", x: cx - w / 2, y: cy - 80, w, h, hovered: false },
+        { name: "Exit", x: cx - w / 2, y: cy + 40, w, h, hovered: false }
     ];
 }
 
@@ -242,6 +243,12 @@ export function setupMenuClickHandler() {
 
             if (b.name === "Maps") {
                 showMapSelect = true;
+            }
+
+            if (b.name === "Exit") {
+                if (typeof window !== 'undefined') {
+                    window.location.href = 'intro.html';
+                }
             }
 
             return;

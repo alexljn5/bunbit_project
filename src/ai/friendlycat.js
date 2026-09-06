@@ -7,7 +7,7 @@ import { tileSectors } from "../mapdata/maps.js";
 import { renderEngine } from "../rendering/renderengine.js";
 import { playerInventory } from "../playerdata/playerinventory.js";
 import { isOccludedByWall } from "./aihandler.js";
-import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT, playerMovementDisabled, setPlayerMovementDisabled } from "../globals.js";
+import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT, playerMovementDisabled, setPlayerMovementDisabled, DISABLE_DIALOGUE } from "../globals.js";
 
 // Re-export playerMovementDisabled for backward compatibility
 export { playerMovementDisabled, setPlayerMovementDisabled };
@@ -78,6 +78,10 @@ window.addEventListener("keydown", (event) => {
 }, true);
 
 function startNpcDialogue(lines) {
+    if (DISABLE_DIALOGUE) {
+        console.log('[DEV SHORTCUT] NPC dialogue disabled — skipping');
+        return;
+    }
     dialogueActive = true;
     dialogueLines = lines;
     currentDialogueIndex = 0;
@@ -157,7 +161,7 @@ function getCurrentNpcDialogueLine() {
 
 export function boyKisserNpcAIGodFunction() {
     if (!dialogueActive) boyKisserNpcAI();
-    if (dialogueActive) drawNpcDialogue(dialogueLines, currentDialogueIndex);
+    if (dialogueActive && !DISABLE_DIALOGUE) drawNpcDialogue(dialogueLines, currentDialogueIndex);
     if (showGunPickupBox && gunPickupTimer > 0) {
         drawGunPickupBox();
         gunPickupTimer--;

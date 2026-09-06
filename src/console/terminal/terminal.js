@@ -25,11 +25,8 @@ function isTauri() {
 }
 
 export function displayTheTerminal() {
-    const electron = isElectron();
-    const tauri = isTauri();
-
-    // Choose key depending on environment (Electron or Tauri uses "t", web uses "y")
-    const key = (electron || tauri) ? "t" : "y";
+    // Always use "t" to toggle the terminal regardless of environment
+    const key = "t";
 
     // Terminal is a developer tool — only accessible when debug options were
     // selected on the main dashboard (defaultDebugVisible). If debug is not
