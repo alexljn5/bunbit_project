@@ -4,7 +4,7 @@ import { gameLoop } from '../game_loop.js';
 import { setupMenuClickHandler } from '../menus/ingame_menu/game_menu.js';
 import { gameRenderEngine, initializeRenderWorkers, cleanupRenderWorkers } from '../rendering/renderengine.js';
 import { memCpuGodFunction, stopMemCpuMonitor } from './panels/memcpu.js';
-import { debugHandlerGodFunction, stopDebugTerminal } from '../debughandler.js';
+import { debugHandlerGodFunction, stopDebugTerminal } from './debughandler.js';
 import { themeManager } from '../themes/thememanager.js';
 import { defaultThemeName, DEBUG_START_INTRO_ANIMATION } from '../globals.js';
 import { mapHandler } from '../mapdata/maphandler.js';
