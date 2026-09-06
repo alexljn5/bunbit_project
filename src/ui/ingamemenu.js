@@ -1,8 +1,9 @@
 // ============================================================
 // IN-GAME MENU UI
 // ============================================================
-// Minimal in-game menu with three buttons:
+// Minimal in-game menu with four buttons:
 //   - Play (resume gameplay)
+//   - Settings (open settings menu)
 //   - Select Map (placeholder for future map selection)
 //   - Return to Dashboard
 // ============================================================
@@ -10,6 +11,8 @@
 import { EngineState } from '../engine/enginestate.js';
 import { engineController } from '../engine/engine.js';
 import { GLOBAL_FONT } from '../globals.js';
+import { setMenuActive, menuActive } from '../gamestate.js';
+import { startMenuLoop, attachSettingsMenuHandlers, initFileInput } from '../menus/menusettings.js';
 
 // Self-register this state handler with the engine controller
 engineController.registerHandler(EngineState.INGAME_MENU, ingameMenuHandler);
@@ -91,6 +94,40 @@ export async function ingameMenuHandler(controller, sharedState, payload = {}) {
         engineController.transitionTo(EngineState.GAMEPLAY);
     });
 
+    // Settings button
+    const settingsBtn = document.createElement('button');
+    settingsBtn.id = 'bunbit-ingame-settings-btn';
+    settingsBtn.textContent = 'Settings';
+    settingsBtn.style.cssText = `
+        padding: 10px 28px;
+        font-family: ${GLOBAL_FONT};
+        font-size: 14px;
+        font-weight: bold;
+        color: #cccccc;
+        background: #1a1a1a;
+        border: 1px solid #555555;
+        border-radius: 4px;
+        cursor: pointer;
+        min-width: 180px;
+    `;
+    settingsBtn.addEventListener('mouseenter', () => {
+        settingsBtn.style.background = '#333333';
+        settingsBtn.style.color = '#ffffff';
+    });
+    settingsBtn.addEventListener('mouseleave', () => {
+        settingsBtn.style.background = '#1a1a1a';
+        settingsBtn.style.color = '#cccccc';
+    });
+    settingsBtn.addEventListener('click', () => {
+        // Remove in-game menu so settings menu (canvas-based) is visible
+        const ingameMenu = document.getElementById(INGAME_MENU_ID);
+        if (ingameMenu) ingameMenu.remove();
+        setMenuActive(true);
+        startMenuLoop();
+        attachSettingsMenuHandlers();
+        initFileInput();
+    });
+
     // Select Map button (placeholder)
     const mapBtn = document.createElement('button');
     mapBtn.id = 'bunbit-ingame-map-btn';
@@ -147,6 +184,7 @@ export async function ingameMenuHandler(controller, sharedState, payload = {}) {
     });
 
     buttonContainer.appendChild(playBtn);
+    buttonContainer.appendChild(settingsBtn);
     buttonContainer.appendChild(mapBtn);
     buttonContainer.appendChild(backBtn);
 
@@ -155,10 +193,19 @@ export async function ingameMenuHandler(controller, sharedState, payload = {}) {
 
     document.body.appendChild(menu);
 
+    // ESC key handler to resume gameplay directly from the in-game menu
+    function handleIngameMenuKeydown(e) {
+        if (e.key === 'Escape') {
+            engineController.transitionTo(EngineState.GAMEPLAY);
+        }
+    }
+    document.addEventListener('keydown', handleIngameMenuKeydown);
+
     // Cleanup function
     cleanupFn = () => {
         const el = document.getElementById(INGAME_MENU_ID);
         if (el) el.remove();
+        document.removeEventListener('keydown', handleIngameMenuKeydown);
     };
 
     return cleanupFn;

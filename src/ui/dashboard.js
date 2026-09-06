@@ -6,6 +6,7 @@
 // main_dashboard.js.
 //
 // The New Game button starts the intro dialogue flow.
+// The Back to Game button resumes gameplay if the game is active.
 // The debug button is hidden in the bottom-right corner
 // to avoid accidental clicks.
 //
@@ -26,6 +27,7 @@ import { EngineState } from '../engine/enginestate.js';
 import { engineController } from '../engine/engine.js';
 import { themeManager } from '../themes/thememanager.js';
 import { toggleDebugPanels } from '../debug/panels/bunbitdebug.js';
+import { setMenuActive, menuActive } from '../gamestate.js';
 
 // Self-register this state handler with the engine controller
 engineController.registerHandler(EngineState.DASHBOARD, dashboardHandler);
@@ -242,6 +244,49 @@ function createDashboard() {
 
     dashboard.appendChild(newGameBtn);
 
+    // ─── Back to Game Button (only visible when game is active) ──
+    const backToGameBtn = document.createElement('button');
+    backToGameBtn.id = 'bunbit-back-to-game-btn';
+    backToGameBtn.textContent = 'Back to Game';
+    backToGameBtn.style.cssText = `
+        position: absolute;
+        bottom: 14%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        padding: 12px 36px;
+        font-family: ${GLOBAL_FONT};
+        font-size: 16px;
+        font-weight: bold;
+        color: #cccccc;
+        background: #1a1a1a;
+        border: 1px solid #555555;
+        border-radius: 4px;
+        cursor: pointer;
+        pointer-events: auto;
+        transition: background 0.2s, color 0.2s;
+        z-index: 2;
+        letter-spacing: 2px;
+        display: none;
+    `;
+    backToGameBtn.addEventListener('mouseenter', () => {
+        backToGameBtn.style.background = '#333333';
+        backToGameBtn.style.color = '#ffffff';
+    });
+    backToGameBtn.addEventListener('mouseleave', () => {
+        backToGameBtn.style.background = '#1a1a1a';
+        backToGameBtn.style.color = '#cccccc';
+    });
+    backToGameBtn.addEventListener('click', () => {
+        if (typeof window !== 'undefined' && window.__bunbitGameActive) {
+            window.__bunbitGameActive = false;
+            const dashboard = document.getElementById(DASHBOARD_ID);
+            if (dashboard) dashboard.remove();
+            engineController.transitionTo(EngineState.GAMEPLAY);
+        }
+    });
+
+    dashboard.appendChild(backToGameBtn);
+
     // ─── Debug Button (bottom-right, subtle) ──────────────
     const debugToggleBtn = document.createElement('button');
     debugToggleBtn.id = 'bunbit-debug-toggle-btn';
@@ -299,15 +344,6 @@ function createDashboard() {
 export async function dashboardHandler(controller, sharedState, payload = {}) {
     console.log('[Engine] Entering DASHBOARD state');
 
-    // If the game is currently running (started via DEBUG PLAY / control panel Play),
-    // do NOT re-create the dashboard overlay on top of the gameplay canvas.
-    if (typeof window !== 'undefined' && window.__bunbitGameActive) {
-        console.warn('[Dashboard] Game is active — skipping dashboard creation to avoid overlay.');
-        const el = document.getElementById(DASHBOARD_ID);
-        if (el) el.remove();
-        return () => { };
-    }
-
     // Hide the canvas during dashboard (dashboard is HTML overlay)
     const canvas = document.getElementById('mainGameRender');
     if (canvas) {
@@ -315,6 +351,16 @@ export async function dashboardHandler(controller, sharedState, payload = {}) {
     }
 
     createDashboard();
+
+    // Show/hide Back to Game button based on whether game is active
+    const backToGameBtn = document.getElementById('bunbit-back-to-game-btn');
+    if (backToGameBtn) {
+        if (typeof window !== 'undefined' && window.__bunbitGameActive) {
+            backToGameBtn.style.display = '';
+        } else {
+            backToGameBtn.style.display = 'none';
+        }
+    }
 
     // Cleanup function
     // NOTE: The dashboard is NOT removed here so that the New Game cinematic

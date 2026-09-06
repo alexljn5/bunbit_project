@@ -1,12 +1,17 @@
 import { game, renderEngine } from "../rendering/renderengine.js";
 import { keys } from "../playerdata/playerlogic.js";
 import { volumeSlidersGodFunction, setupAudioSliderHandlers } from "../audio/audiohandler.js";
-import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT, menuActive, setMenuActive, playerMovementDisabled, setPlayerMovementDisabled, GLOBAL_FONT } from "../globals.js";
+import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT, menuActive, setMenuActive, playerMovementDisabled, setPlayerMovementDisabled, GLOBAL_FONT, engineState } from "../globals.js";
 import { getMouseCanvasPos } from "../utils/inputTransform.js";
 
 import { saveGame, loadGame } from "../savedata/save_load_game.js";
 import { applyGraphicsPreset, getGraphicsSettings, drawGraphicsOverlay, handleGraphicsMenuClick } from "./graphicssettings.js";
 import { drawButton, drawMenuOverlay } from "./overlays.js";
+import { engineController } from "../engine/engine.js";
+import { EngineState } from "../engine/enginestate.js";
+
+// Export menu loop controls so dashboard can open settings programmatically
+export { startMenuLoop, stopMenuLoop };
 
 let lastEscapeState = false;
 let showLoadPrompt = false;
@@ -359,6 +364,14 @@ function menuSettingsRender() {
 }
 
 function menuSettings() {
+    // During gameplay, open the in-game menu (DOM overlay) instead of the
+    // legacy canvas settings menu. The in-game menu already contains a
+    // Settings button that opens the canvas settings menu when needed.
+    if (engineState === EngineState.GAMEPLAY) {
+        engineController.showInGameMenu();
+        return;
+    }
+
     const currentEscapeState = keys["escape"];
     if (!lastEscapeState && currentEscapeState) {
         const wasMenuActive = menuActive;

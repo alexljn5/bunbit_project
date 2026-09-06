@@ -228,10 +228,13 @@ export async function gameRenderEngine(deltaTime) {
             return;
         }
         // NOTE: ESC / P pause toggling is intentionally removed here.
-        // The legacy canvas settings menu (src/menus/menusettings.js) owns the
-        // ESC key via menuHandler() -> menuSettingsGodFunction() -> menuSettings().
-        // The engine state machine's INGAME_MENU is a separate DOM overlay used
-        // by dialogue-driven transitions; it does not consume ESC here.
+        // During gameplay, ESC is handled by menuSettings() which transitions
+        // to the INGAME_MENU state (src/ui/ingamemenu.js). The in-game menu
+        // is a DOM overlay with Play, Settings, Select Map, and Return to
+        // Dashboard buttons. Pressing ESC again inside the in-game menu
+        // resumes gameplay. The legacy canvas settings menu
+        // (src/menus/menusettings.js) is opened from the in-game menu's
+        // Settings button, not directly from ESC.
         if (isPaused && keys["m"]) {
             setPaused(false);
             setMenuActive(true);

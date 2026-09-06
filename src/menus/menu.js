@@ -4,6 +4,7 @@ import { mapTable } from "../mapdata/maps.js";
 import { mapHandler } from "../mapdata/maphandler.js";
 import { spriteManager } from "../rendering/sprites/rendersprites.js";
 import { gameVersionNumber, gameName, GLOBAL_FONT, SCALE_X, SCALE_Y } from "../globals.js";
+import { startMenuLoop, attachSettingsMenuHandlers, initFileInput } from "../menus/menusettings.js";
 
 // ---------- engine ----------
 function getRenderEngine() {
@@ -38,9 +39,10 @@ function rebuildButtons(canvas) {
     const cy = canvas.height / 2;
 
     buttons = [
-        { name: "Play", x: cx - w / 2, y: cy - 60, w, h, hovered: false },
-        { name: "Maps", x: cx - w / 2, y: cy + 10, w, h, hovered: false },
-        { name: "Exit", x: cx - w / 2, y: cy + 80, w, h, hovered: false }
+        { name: "Play", x: cx - w / 2, y: cy - 90, w, h, hovered: false },
+        { name: "Settings", x: cx - w / 2, y: cy - 30, w, h, hovered: false },
+        { name: "Maps", x: cx - w / 2, y: cy + 30, w, h, hovered: false },
+        { name: "Exit", x: cx - w / 2, y: cy + 90, w, h, hovered: false }
     ];
 }
 
@@ -258,6 +260,13 @@ export function setupMenuClickHandler() {
                 setMenuActive(false);
                 getMainGameRender()();
                 getInitializeRenderWorkers()();
+            }
+
+            if (b.name === "Settings") {
+                setMenuActive(true);
+                startMenuLoop();
+                attachSettingsMenuHandlers();
+                initFileInput();
             }
 
             if (b.name === "Maps") {
