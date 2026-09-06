@@ -281,6 +281,7 @@ function startMenuLoop() {
         return;
     }
     menuIsRunning = true;
+    window.__settingsMenuOpen = true;
 
     function menuTick() {
         if (!menuIsRunning || !menuActive) {
@@ -329,46 +330,35 @@ function menuSettingsRender() {
 }
 
 function menuSettings() {
-    // During gameplay, open the in-game menu (DOM overlay) instead of the
-    // legacy canvas settings menu. The in-game menu already contains a
-    // Settings button that opens the canvas settings menu when needed.
-    if (engineState === EngineState.GAMEPLAY) {
-        engineController.showInGameMenu();
-        return;
-    }
-
+    // ESC key handler: toggle between game menu and gameplay.
+    // The settings menu is opened from the game menu's Settings button,
+    // not directly from ESC.
     const currentEscapeState = keys["escape"];
     if (!lastEscapeState && currentEscapeState) {
-        const wasMenuActive = menuActive;
-        setMenuActive(!menuActive);
-        // When closing the menu, explicitly enable movement.
-        // When opening, disable movement.
-        setPlayerMovementDisabled(!menuActive);
-        needsRedraw = true;
-        if (menuActive) {
-            console.log("Settings menu opened, pausing game");
-            window.__settingsMenuOpen = true;
-            const g = getGame();
-            if (g && typeof g.stop === 'function') {
-                g.stop();
-            }
-            startMenuLoop();
-            attachSettingsMenuHandlers();
-            initFileInput();
-        } else {
-            console.log("Settings menu closed, resuming game");
+        if (window.__settingsMenuOpen) {
+            // Close settings menu, return to game menu
             window.__settingsMenuOpen = false;
             stopMenuLoop();
-            const g = getGame();
-            if (g && typeof g.start === 'function') {
-                g.start();
-            }
             showLoadPrompt = false;
             showControls = false;
             showAudio = false;
             showGraphics = false;
             detachSettingsMenuHandlers();
+            // Keep menuActive=true so the game menu shows
+        } else if (menuActive) {
+            // Close game menu, resume gameplay
+            setMenuActive(false);
+            setPlayerMovementDisabled(false);
+            showLoadPrompt = false;
+            showControls = false;
+            showAudio = false;
+            showGraphics = false;
+        } else {
+            // Open game menu
+            setMenuActive(true);
+            setPlayerMovementDisabled(true);
         }
+        needsRedraw = true;
     }
     lastEscapeState = currentEscapeState;
 }
