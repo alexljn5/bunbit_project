@@ -9,6 +9,8 @@
 // The renderer reads from this theme object for all visuals.
 // ============================================================
 
+import { GLOBAL_FONT } from "../../globals.js";
+
 /**
  * Default placeholder dialogue theme.
  * Dark fantasy terminal style — a conversation window,
@@ -22,7 +24,7 @@ export const DialogueTheme = Object.freeze({
         borderWidth: '1px',
         borderRadius: '2px',
         textColor: '#cccccc',
-        fontFamily: "'Courier New', monospace",
+        fontFamily: GLOBAL_FONT,
         padding: '20px',
         maxWidth: '92vw',
         maxHeight: '65vh',
@@ -62,7 +64,7 @@ export const DialogueTheme = Object.freeze({
         fontWeight: 'bold',
         marginBottom: '8px',
         color: '#dddddd',
-        fontFamily: "'Courier New', monospace",
+        fontFamily: GLOBAL_FONT,
     },
 
     // ─── Dialogue Text ────────────────────────────
@@ -71,7 +73,7 @@ export const DialogueTheme = Object.freeze({
         lineHeight: '1.6',
         marginBottom: '12px',
         color: '#cccccc',
-        fontFamily: "'Courier New', monospace",
+        fontFamily: GLOBAL_FONT,
         whiteSpace: 'pre-wrap',
         maxWidth: '80%',
     },
@@ -90,7 +92,7 @@ export const DialogueTheme = Object.freeze({
         borderRadius: '2px',
         cursor: 'pointer',
         textAlign: 'left',
-        fontFamily: "'Courier New', monospace",
+        fontFamily: GLOBAL_FONT,
     },
 
     choiceHover: {
@@ -107,7 +109,7 @@ export const DialogueTheme = Object.freeze({
         opacity: '0.5',
         cursor: 'pointer',
         color: '#aaaaaa',
-        fontFamily: "'Courier New', monospace",
+        fontFamily: GLOBAL_FONT,
     },
 
     // ─── Animations ───────────────────────────────
@@ -119,8 +121,8 @@ export const DialogueTheme = Object.freeze({
 
     // ─── Typography ───────────────────────────────
     typography: {
-        baseFont: "'Courier New', monospace",
-        headingFont: "'Courier New', monospace",
+        baseFont: GLOBAL_FONT,
+        headingFont: GLOBAL_FONT,
         fontSizeSmall: '12px',
         fontSizeMedium: '14px',
         fontSizeLarge: '16px',

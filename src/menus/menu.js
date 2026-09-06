@@ -3,7 +3,7 @@ import { menuActive, setMenuActive } from "../gamestate.js";
 import { mapTable } from "../mapdata/maps.js";
 import { mapHandler } from "../mapdata/maphandler.js";
 import { spriteManager } from "../rendering/sprites/rendersprites.js";
-import { gameVersionNumber, gameName } from "../globals.js";
+import { gameVersionNumber, gameName, GLOBAL_FONT, SCALE_X, SCALE_Y } from "../globals.js";
 
 // ---------- engine ----------
 function getRenderEngine() {
@@ -31,16 +31,16 @@ let menuHandlersAttached = false;
 
 // ---------- UI LAYOUT ----------
 function rebuildButtons(canvas) {
-    const w = 100;
-    const h = 40;
+    const w = 220;
+    const h = 50;
 
     const cx = canvas.width / 2;
     const cy = canvas.height / 2;
 
     buttons = [
-        { name: "Play", x: cx - w / 2, y: cy - 200, w, h, hovered: false },
-        { name: "Maps", x: cx - w / 2, y: cy - 80, w, h, hovered: false },
-        { name: "Exit", x: cx - w / 2, y: cy + 40, w, h, hovered: false }
+        { name: "Play", x: cx - w / 2, y: cy - 60, w, h, hovered: false },
+        { name: "Maps", x: cx - w / 2, y: cy + 10, w, h, hovered: false },
+        { name: "Exit", x: cx - w / 2, y: cy + 80, w, h, hovered: false }
     ];
 }
 
@@ -68,7 +68,7 @@ function screenToCanvas(canvas, e) {
         offsetX = (rect.width - drawW) / 2;
     } else {
         drawW = rect.width;
-        drawH = drawW / internalAspect;
+        drawH = drawW * internalAspect;
         offsetY = (rect.height - drawH) / 2;
     }
 
@@ -96,42 +96,54 @@ export function mainGameMenu() {
 }
 
 function menuBackGround(engine) {
-    if (!menuBackGround.img) {
-        menuBackGround.img = new Image();
-        menuBackGround.img.src = "./img/menu/main-menu.png";
-    }
-
     const canvas = engine.canvas;
+    const w = canvas.width;
+    const h = canvas.height;
 
-    if (menuBackGround.img.complete) {
-        engine.drawImage(menuBackGround.img, 0, 0, canvas.width, canvas.height);
-    } else {
-        engine.fillStyle = "#222";
-        engine.fillRect(0, 0, canvas.width, canvas.height);
-    }
+    // Dark background with subtle vignette
+    engine.fillStyle = '#0a0a0a';
+    engine.fillRect(0, 0, w, h);
+
+    // Subtle radial vignette for atmosphere
+    const gradient = engine.createRadialGradient(w / 2, h / 2, h * 0.2, w / 2, h / 2, h * 0.8);
+    gradient.addColorStop(0, 'rgba(20, 0, 0, 0.3)');
+    gradient.addColorStop(1, 'rgba(0, 0, 0, 0.6)');
+    engine.fillStyle = gradient;
+    engine.fillRect(0, 0, w, h);
 }
 
 function menuText(engine) {
     const canvas = engine.canvas;
 
     compiledTextStyle();
-    engine.fillStyle = "#fff";
-    engine.fillText(gameName, canvas.width - 500, 100);
-    engine.fillText(`Version ${gameVersionNumber}`, canvas.width - 490, 150);
+    engine.fillStyle = "#cccccc";
+    engine.font = `bold ${24 * Math.min(SCALE_X, SCALE_Y)}px ${GLOBAL_FONT}`;
+    engine.textAlign = 'right';
+    engine.fillText(gameName, canvas.width - 40, 60);
+    engine.font = `${16 * Math.min(SCALE_X, SCALE_Y)}px ${GLOBAL_FONT}`;
+    engine.fillText(`Version ${gameVersionNumber}`, canvas.width - 40, 90);
+    engine.textAlign = 'left';
 }
 
 function drawButtons(engine) {
     for (const b of buttons) {
-        engine.fillStyle = b.hovered ? "#555" : "#222";
+        // Button background
+        engine.fillStyle = b.hovered ? "#333333" : "#1a1a1a";
         engine.fillRect(b.x, b.y, b.w, b.h);
 
-        engine.strokeStyle = "#fff";
+        // Button border
+        engine.strokeStyle = b.hovered ? "#777777" : "#555555";
+        engine.lineWidth = 1;
         engine.strokeRect(b.x, b.y, b.w, b.h);
 
-        engine.fillStyle = "#fff";
-        compiledTextStyle();
-        engine.font = "18px Arial";
-        engine.fillText(b.name, b.x + 20, b.y + 25);
+        // Button text — pixel fonts render best with alphabetic baseline
+        engine.fillStyle = b.hovered ? "#ffffff" : "#cccccc";
+        const fontSize = Math.round(18 * Math.min(SCALE_X, SCALE_Y));
+        engine.font = `bold ${fontSize}px ${GLOBAL_FONT}`;
+        engine.textAlign = 'center';
+        engine.textBaseline = 'alphabetic';
+        engine.fillText(b.name, b.x + b.w / 2, b.y + b.h / 2 + fontSize * 0.35);
+        engine.textAlign = 'left';
     }
 }
 
@@ -140,29 +152,36 @@ function drawMapSelect(engine) {
 
     engine.save();
     engine.globalAlpha = 0.95;
-    engine.fillStyle = "#111";
+    engine.fillStyle = "#0a0a0a";
     engine.fillRect(0, 0, canvas.width, canvas.height);
     engine.globalAlpha = 1;
 
-    engine.fillStyle = "#fff";
+    engine.fillStyle = "#cccccc";
     compiledTextStyle();
-    engine.fillText("Select a Map", canvas.width / 2 - 80, 100);
+    engine.font = `bold ${24 * Math.min(SCALE_X, SCALE_Y)}px ${GLOBAL_FONT}`;
+    engine.textAlign = 'center';
+    engine.fillText("Select a Map", canvas.width / 2, 100);
+    engine.textAlign = 'left';
 
     mapButtons = Array.from(mapTable.keys()).map((name, i) => {
-        const w = 180;
-        const h = 40;
+        const w = 220;
+        const h = 50;
 
         const x = canvas.width / 2 - w / 2;
         const y = 180 + i * (h + 20);
 
-        engine.fillStyle = selectedMapName === name ? "#444" : "#222";
+        engine.fillStyle = selectedMapName === name ? "#333333" : "#1a1a1a";
         engine.fillRect(x, y, w, h);
 
-        engine.strokeStyle = "#fff";
+        engine.strokeStyle = selectedMapName === name ? "#777777" : "#555555";
+        engine.lineWidth = 1;
         engine.strokeRect(x, y, w, h);
 
-        engine.fillStyle = "#fff";
-        engine.fillText(name, x + 20, y + 25);
+        engine.fillStyle = selectedMapName === name ? "#ffffff" : "#cccccc";
+        engine.font = `bold ${16 * Math.min(SCALE_X, SCALE_Y)}px ${GLOBAL_FONT}`;
+        engine.textAlign = 'center';
+        engine.fillText(name, x + w / 2, y + h / 2 + 6);
+        engine.textAlign = 'left';
 
         return { name, x, y, w, h };
     });

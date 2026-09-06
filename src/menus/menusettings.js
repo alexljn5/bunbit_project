@@ -1,7 +1,7 @@
 import { game, renderEngine } from "../rendering/renderengine.js";
 import { keys } from "../playerdata/playerlogic.js";
 import { volumeSlidersGodFunction, setupAudioSliderHandlers } from "../audio/audiohandler.js";
-import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT, menuActive, setMenuActive, playerMovementDisabled, setPlayerMovementDisabled } from "../globals.js";
+import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT, menuActive, setMenuActive, playerMovementDisabled, setPlayerMovementDisabled, GLOBAL_FONT } from "../globals.js";
 import { getMouseCanvasPos } from "../utils/inputTransform.js";
 
 import { saveGame, loadGame } from "../savedata/save_load_game.js";
@@ -56,17 +56,15 @@ function initOffscreenCanvas() {
 }
 
 function drawStaticMenu() {
-    const testSettingsBackGroundImage = new Image();
-    testSettingsBackGroundImage.src = "./img/menu/main-menu.png";
     initOffscreenCanvas();
     offscreenContext.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     // Use reusable overlay function with alpha 0.8
     drawMenuOverlay(0.8);
-    offscreenContext.fillStyle = "white";
-    offscreenContext.font = `${20 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+    offscreenContext.fillStyle = "#cccccc";
+    offscreenContext.font = `bold ${20 * Math.min(SCALE_X, SCALE_Y)}px ${GLOBAL_FONT}`;
     offscreenContext.fillText("Settings Menu", 60 * SCALE_X, 80 * SCALE_Y);
+    offscreenContext.font = `${14 * Math.min(SCALE_X, SCALE_Y)}px ${GLOBAL_FONT}`;
     offscreenContext.fillText("Press Escape to close", 60 * SCALE_X, 110 * SCALE_Y);
-    offscreenContext.drawImage(testSettingsBackGroundImage, 0, 0, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 }
 
 function drawSettingsButtons() {
@@ -74,22 +72,24 @@ function drawSettingsButtons() {
     const settingsButtons = getSettingsButtons();
     settingsButtons.forEach(button => drawButton(renderEngine, button));
     if (showSaveMessage || showLoadMessage || showNoSaveMessage) {
-        renderEngine.fillStyle = "rgba(20, 20, 20, 0.95)";
+        renderEngine.fillStyle = "rgba(10, 10, 10, 0.95)";
         renderEngine.fillRect(350 * SCALE_X, 120 * SCALE_Y, 400 * SCALE_X, 100 * SCALE_Y);
-        renderEngine.strokeStyle = "#fff";
+        renderEngine.strokeStyle = "#555555";
+        renderEngine.lineWidth = 1;
         renderEngine.strokeRect(350 * SCALE_X, 120 * SCALE_Y, 400 * SCALE_X, 100 * SCALE_Y);
-        renderEngine.fillStyle = "#fff";
-        renderEngine.font = `${20 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+        renderEngine.fillStyle = "#cccccc";
+        renderEngine.font = `bold ${20 * Math.min(SCALE_X, SCALE_Y)}px ${GLOBAL_FONT}`;
         const message = showSaveMessage ? "Game Saved!" : showLoadMessage ? "Game Loaded!" : "No Save Found!";
         renderEngine.fillText(message, 400 * SCALE_X, 170 * SCALE_Y);
     }
     if (showLoadPrompt) {
-        renderEngine.fillStyle = "rgba(20, 20, 20, 0.95)";
+        renderEngine.fillStyle = "rgba(10, 10, 10, 0.95)";
         renderEngine.fillRect(250 * SCALE_X, 100 * SCALE_Y, 500 * SCALE_X, 150 * SCALE_Y);
-        renderEngine.strokeStyle = "#fff";
+        renderEngine.strokeStyle = "#555555";
+        renderEngine.lineWidth = 1;
         renderEngine.strokeRect(250 * SCALE_X, 100 * SCALE_Y, 500 * SCALE_X, 150 * SCALE_Y);
-        renderEngine.fillStyle = "#fff";
-        renderEngine.font = `${20 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+        renderEngine.fillStyle = "#cccccc";
+        renderEngine.font = `bold ${20 * Math.min(SCALE_X, SCALE_Y)}px ${GLOBAL_FONT}`;
         renderEngine.fillText("Select save.json from your savesdata folder", 280 * SCALE_X, 150 * SCALE_Y);
         renderEngine.fillText("Click anywhere to continue", 280 * SCALE_X, 180 * SCALE_Y);
     }
@@ -100,14 +100,15 @@ function drawControlsOverlay() {
     const overlayY = 120 * SCALE_Y;
     const overlayWidth = 400 * SCALE_X;
     const overlayHeight = 400 * SCALE_Y;
-    renderEngine.fillStyle = "rgba(20, 20, 20, 0.95)";
+    renderEngine.fillStyle = "rgba(10, 10, 10, 0.95)";
     renderEngine.fillRect(overlayX, overlayY, overlayWidth, overlayHeight);
-    renderEngine.strokeStyle = "#fff";
+    renderEngine.strokeStyle = "#555555";
+    renderEngine.lineWidth = 1;
     renderEngine.strokeRect(overlayX, overlayY, overlayWidth, overlayHeight);
-    renderEngine.fillStyle = "#fff";
-    renderEngine.font = `${22 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+    renderEngine.fillStyle = "#cccccc";
+    renderEngine.font = `bold ${22 * Math.min(SCALE_X, SCALE_Y)}px ${GLOBAL_FONT}`;
     renderEngine.fillText("Controls", overlayX, overlayY + 40 * SCALE_Y);
-    renderEngine.font = `${16 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+    renderEngine.font = `${16 * Math.min(SCALE_X, SCALE_Y)}px ${GLOBAL_FONT}`;
     const controls = [
         "WASD: Move",
         "Shift: Walk slow",
@@ -139,12 +140,13 @@ function drawAudioOverlay() {
     const overlayY = 120 * SCALE_Y;
     const overlayWidth = 400 * SCALE_X;
     const overlayHeight = 400 * SCALE_Y;
-    renderEngine.fillStyle = "rgba(20, 20, 20, 0.95)";
+    renderEngine.fillStyle = "rgba(10, 10, 10, 0.95)";
     renderEngine.fillRect(overlayX, overlayY, overlayWidth, overlayHeight);
-    renderEngine.strokeStyle = "#fff";
+    renderEngine.strokeStyle = "#555555";
+    renderEngine.lineWidth = 1;
     renderEngine.strokeRect(overlayX, overlayY, overlayWidth, overlayHeight);
-    renderEngine.fillStyle = "#fff";
-    renderEngine.font = `${22 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+    renderEngine.fillStyle = "#cccccc";
+    renderEngine.font = `bold ${22 * Math.min(SCALE_X, SCALE_Y)}px ${GLOBAL_FONT}`;
     renderEngine.fillText("Audio Settings", overlayX, overlayY + 40 * SCALE_Y);
     volumeSlidersGodFunction();
     setupAudioSliderHandlers();
@@ -361,13 +363,17 @@ function menuSettings() {
         needsRedraw = true;
         if (menuActive) {
             console.log("Settings menu opened, pausing game");
-            game.stop();
+            if (game && typeof game.stop === 'function') {
+                game.stop();
+            }
             startMenuLoop();
             attachSettingsMenuHandlers();
         } else {
             console.log("Settings menu closed, resuming game");
             stopMenuLoop();
-            game.start();
+            if (game && typeof game.start === 'function') {
+                game.start();
+            }
             showLoadPrompt = false;
             showControls = false;
             showAudio = false;
@@ -381,3 +387,4 @@ function menuSettings() {
 export function menuSettingsGodFunction() {
     menuSettings();
 }
+

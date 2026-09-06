@@ -204,6 +204,12 @@ export { initializeRenderWorkers };
 window.__initializeRenderWorkers = initializeRenderWorkers;
 window.__initializeRenderHelpersWasm = initializeRenderHelpersWasm;
 
+// Redraw when the global font finishes loading so canvas text picks it up
+if (typeof window !== 'undefined') {
+    window.addEventListener('fontLoaded', () => {
+        console.log('[RenderEngine] Font loaded, canvas will use it on next frame');
+    });
+}
 
 // --- Main game render loop (mostly unchanged) ---
 export async function gameRenderEngine(deltaTime) {

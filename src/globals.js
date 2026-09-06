@@ -3,6 +3,38 @@ const gameInfo = {
     version: "0.0.5"
 };
 
+// =============================================================================
+// GLOBAL FONT CONFIGURATION
+// Change this single value to update the font across the entire game.
+// The font is loaded via @font-face in stylesgame.css.
+// =============================================================================
+export const GLOBAL_FONT = "'BoldPixels', 'Courier New', monospace";
+
+// Preload the global font so canvas text rendering can use it immediately.
+// Canvas requires fonts to be fully loaded before they can be rendered.
+let globalFontLoaded = false;
+export function preloadGlobalFont() {
+    if (globalFontLoaded || typeof document === 'undefined') return;
+    globalFontLoaded = true;
+
+    // Use both FontFace API and document.fonts.load for maximum compatibility
+    const fontRegular = new FontFace('BoldPixels', 'url(./img/fonts/boldpixels/BoldsPixels.ttf)');
+
+    Promise.all([fontRegular.load()])
+        .then(([regular]) => {
+            document.fonts.add(regular);
+            console.log('[Font] BoldPixels loaded successfully');
+            // Trigger a redraw so canvas picks up the new font
+            document.dispatchEvent(new Event('fontLoaded'));
+        })
+        .catch((err) => {
+            console.warn('[Font] BoldPixels failed to load, falling back to Courier New:', err);
+        });
+
+    // Also try document.fonts.load as a fallback
+    document.fonts.load(`${GLOBAL_FONT}`).catch(() => { });
+}
+
 const isRenderer = typeof window !== "undefined" && typeof document !== "undefined";
 
 // Only do DOM + window stuff in the renderer

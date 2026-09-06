@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="stylesgame.css">
+    <link rel="preload" href="img/fonts/boldpixels/BoldsPixels.ttf" as="font" type="font/ttf" crossorigin>
     <link rel="shortcut icon" href="#">
     <title></title>
 </head>
@@ -34,6 +35,8 @@
     <script>
         // Disable intro animation on main_game.html - it was already shown on intro.html
         window.introActive = false;
+        // Preload the global font so canvas text rendering can use it immediately
+        import('./globals.js').then(m => m.preloadGlobalFont()).catch(() => { });
         // Start the engine lifecycle. The intro handler will detect that
         // introActive is false and skip directly to DASHBOARD.
         window.addEventListener('DOMContentLoaded', () => {

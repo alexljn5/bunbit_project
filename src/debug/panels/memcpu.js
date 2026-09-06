@@ -1,7 +1,7 @@
 import { evilGlitchSystem, EvilUIState } from '../../themes/eviltheme.js';
 import { WORKER_DEBUG_LOGS, setWorkerDebugLogs } from '../../globals.js';
 import { themeManager } from '../../themes/thememanager.js';
-import { gameVersionNumber, gameName, CANVAS_WIDTH, CANVAS_HEIGHT } from '../../globals.js';
+import { gameVersionNumber, gameName, CANVAS_WIDTH, CANVAS_HEIGHT, GLOBAL_FONT } from '../../globals.js';
 
 // Fallback for Node.js os module in browser
 const os = typeof require === 'function' ? require('os') : {
@@ -329,7 +329,7 @@ export function memCpuGodFunction() {
         perfHeader.style.backgroundColor = themeManager.getCurrentTheme()?.headerBg || '#1a0000';
         perfHeader.style.borderBottom = `1px solid ${themeManager.getCurrentTheme()?.border || '#FC0000'}`;
         perfHeader.style.color = themeManager.getCurrentTheme()?.text || '#FFFFFF';
-        perfHeader.style.fontFamily = "Courier New, monospace";
+        perfHeader.style.fontFamily = GLOBAL_FONT;
         perfHeader.style.fontSize = "12px";
         perfHeader.style.cursor = "move";
         perfHeader.style.textShadow = `0 0 8px ${themeManager.getCurrentTheme()?.border || '#FC0000'}`;
@@ -350,7 +350,7 @@ export function memCpuGodFunction() {
         closeButton.style.cursor = "pointer";
         closeButton.style.padding = "2px 5px";
         closeButton.style.fontWeight = "bold";
-        closeButton.style.fontFamily = "Courier New, monospace";
+        closeButton.style.fontFamily = GLOBAL_FONT;
         closeButton.addEventListener("click", stopMemCpuMonitor);
         closeButton.addEventListener("mouseover", () => {
             closeButton.style.backgroundColor = themeManager.getCurrentTheme()?.danger || '#FC0000';
@@ -651,7 +651,7 @@ function drawPerfMonitor(time) {
             perfCtx.fillRect(0, i, width, 1);
         }
 
-        perfCtx.font = "12px 'Courier New', monospace";
+        perfCtx.font = `12px ${GLOBAL_FONT}`;
         perfCtx.textBaseline = "top";
         let y = 10;
 

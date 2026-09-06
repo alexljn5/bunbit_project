@@ -9,6 +9,7 @@
 
 import { EngineState } from '../engine/enginestate.js';
 import { engineController } from '../engine/engine.js';
+import { GLOBAL_FONT } from '../globals.js';
 
 // Self-register this state handler with the engine controller
 engineController.registerHandler(EngineState.INGAME_MENU, ingameMenuHandler);
@@ -41,18 +42,18 @@ export async function ingameMenuHandler(controller, sharedState, payload = {}) {
     menu.style.alignItems = 'center';
     menu.style.justifyContent = 'center';
     menu.style.zIndex = '2147483646';
-    menu.style.backgroundColor = 'rgba(0,0,0,0.85)';
-    menu.style.fontFamily = "'Courier New', monospace";
+    menu.style.backgroundColor = 'rgba(10,10,10,0.85)';
+    menu.style.fontFamily = GLOBAL_FONT;
     menu.style.pointerEvents = 'auto';
 
     // Title
     const title = document.createElement('h1');
     title.textContent = 'PAUSED';
     title.style.cssText = `
-        color: #FC0000;
+        color: #cccccc;
         font-size: 28px;
         margin: 0 0 24px 0;
-        text-shadow: 0 0 15px rgba(255,0,0,0.5);
+        font-weight: bold;
     `;
 
     // Button container
@@ -68,23 +69,23 @@ export async function ingameMenuHandler(controller, sharedState, payload = {}) {
     playBtn.textContent = 'Play';
     playBtn.style.cssText = `
         padding: 10px 28px;
-        font-family: 'Courier New', monospace;
+        font-family: ${GLOBAL_FONT};
         font-size: 14px;
         font-weight: bold;
-        color: #00FF00;
-        background: #001a00;
-        border: 1px solid #00FF00;
+        color: #cccccc;
+        background: #1a1a1a;
+        border: 1px solid #555555;
         border-radius: 4px;
         cursor: pointer;
         min-width: 180px;
     `;
     playBtn.addEventListener('mouseenter', () => {
-        playBtn.style.background = '#00FF00';
-        playBtn.style.color = '#000';
+        playBtn.style.background = '#333333';
+        playBtn.style.color = '#ffffff';
     });
     playBtn.addEventListener('mouseleave', () => {
-        playBtn.style.background = '#001a00';
-        playBtn.style.color = '#00FF00';
+        playBtn.style.background = '#1a1a1a';
+        playBtn.style.color = '#cccccc';
     });
     playBtn.addEventListener('click', () => {
         engineController.transitionTo(EngineState.GAMEPLAY);
@@ -96,12 +97,12 @@ export async function ingameMenuHandler(controller, sharedState, payload = {}) {
     mapBtn.textContent = 'Select Map';
     mapBtn.style.cssText = `
         padding: 10px 28px;
-        font-family: 'Courier New', monospace;
+        font-family: ${GLOBAL_FONT};
         font-size: 14px;
         font-weight: bold;
-        color: #FC0000;
-        background: #1a0000;
-        border: 1px solid #FC0000;
+        color: #cccccc;
+        background: #1a1a1a;
+        border: 1px solid #555555;
         border-radius: 4px;
         cursor: pointer;
         min-width: 180px;
@@ -118,12 +119,12 @@ export async function ingameMenuHandler(controller, sharedState, payload = {}) {
     backBtn.textContent = 'Return to Dashboard';
     backBtn.style.cssText = `
         padding: 10px 28px;
-        font-family: 'Courier New', monospace;
+        font-family: ${GLOBAL_FONT};
         font-size: 14px;
         font-weight: bold;
-        color: #FC0000;
-        background: #1a0000;
-        border: 1px solid #FC0000;
+        color: #cccccc;
+        background: #1a1a1a;
+        border: 1px solid #555555;
         border-radius: 4px;
         cursor: pointer;
         min-width: 180px;

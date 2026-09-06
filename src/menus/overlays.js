@@ -1,18 +1,18 @@
 import { renderEngine } from "../rendering/renderengine.js";
-import { SCALE_X, SCALE_Y, CANVAS_WIDTH, CANVAS_HEIGHT } from "../globals.js";
+import { SCALE_X, SCALE_Y, CANVAS_WIDTH, CANVAS_HEIGHT, GLOBAL_FONT } from "../globals.js";
 import { genericGunSprite, rustyKeySprite, metalPipeSprite } from "../rendering/sprites/spritetextures.js";
 
-// Style constants
+// Style constants — cohesive dark fantasy theme matching dialogue boxes
 const COLORS = {
-    background: "black",
-    text: "white",
+    background: "#0a0a0a",
+    text: "#cccccc",
     boxBackgroundAlpha: 0.85,
     boxBackgroundAlphaSolid: 1.0
 };
 
 const FONTS = {
     get base() {
-        return `${24 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+        return `${24 * Math.min(SCALE_X, SCALE_Y)}px ${GLOBAL_FONT}`;
     }
 };
 
@@ -145,11 +145,14 @@ export function drawMenuOverlay(alpha = 0.8) {
 }
 
 export function drawButton(context, button, isSelected = false, textOffsetX = 20, textOffsetY = 25) {
-    context.fillStyle = button.hovered || isSelected ? "#555" : "#222";
+    context.fillStyle = button.hovered || isSelected ? "#333333" : "#1a1a1a";
     context.fillRect(button.x, button.y, button.width, button.height);
-    context.strokeStyle = COLORS.text;
+    context.strokeStyle = "#555555";
+    context.lineWidth = 1;
     context.strokeRect(button.x, button.y, button.width, button.height);
-    context.fillStyle = COLORS.text;
-    context.font = `${18 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
-    context.fillText(button.name, button.x + textOffsetX * SCALE_X, button.y + textOffsetY * SCALE_Y);
+    context.fillStyle = button.hovered || isSelected ? "#ffffff" : "#cccccc";
+    context.font = `bold ${18 * Math.min(SCALE_X, SCALE_Y)}px ${GLOBAL_FONT}`;
+    context.textAlign = 'center';
+    context.fillText(button.name, button.x + button.width / 2, button.y + button.height / 2 + textOffsetY * Math.min(SCALE_X, SCALE_Y) * 0.3);
+    context.textAlign = 'left';
 }

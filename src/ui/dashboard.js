@@ -20,6 +20,8 @@
 //   - The New Game button and sigil are centred on the viewport.
 // ============================================================
 
+import { GLOBAL_FONT } from "../globals.js";
+
 import { EngineState } from '../engine/enginestate.js';
 import { engineController } from '../engine/engine.js';
 import { themeManager } from '../themes/thememanager.js';
@@ -208,12 +210,12 @@ function createDashboard() {
         left: 50%;
         transform: translate(-50%, -50%);
         padding: 16px 48px;
-        font-family: 'Courier New', monospace;
+        font-family: ${GLOBAL_FONT};
         font-size: 20px;
         font-weight: bold;
-        color: #FC0000;
-        background: #1a0000;
-        border: 2px solid #FC0000;
+        color: #cccccc;
+        background: #1a1a1a;
+        border: 1px solid #555555;
         border-radius: 4px;
         cursor: pointer;
         pointer-events: auto;
@@ -222,12 +224,12 @@ function createDashboard() {
         letter-spacing: 2px;
     `;
     newGameBtn.addEventListener('mouseenter', () => {
-        newGameBtn.style.background = '#FC0000';
-        newGameBtn.style.color = '#000';
+        newGameBtn.style.background = '#333333';
+        newGameBtn.style.color = '#ffffff';
     });
     newGameBtn.addEventListener('mouseleave', () => {
-        newGameBtn.style.background = '#1a0000';
-        newGameBtn.style.color = '#FC0000';
+        newGameBtn.style.background = '#1a1a1a';
+        newGameBtn.style.color = '#cccccc';
     });
     newGameBtn.addEventListener('click', () => {
         // Disable the button immediately to prevent a second click from
@@ -252,9 +254,9 @@ function createDashboard() {
         width: 32px;
         height: 32px;
         font-size: 16px;
-        color: #442222;
+        color: #333333;
         background: transparent;
-        border: 1px solid rgba(252,0,0,0.2);
+        border: 1px solid rgba(85,85,85,0.3);
         border-radius: 4px;
         cursor: pointer;
         pointer-events: auto;
@@ -264,13 +266,13 @@ function createDashboard() {
     `;
     debugToggleBtn.addEventListener('mouseenter', () => {
         debugToggleBtn.style.opacity = '0.8';
-        debugToggleBtn.style.color = '#FC0000';
-        debugToggleBtn.style.borderColor = 'rgba(252,0,0,0.5)';
+        debugToggleBtn.style.color = '#cccccc';
+        debugToggleBtn.style.borderColor = 'rgba(85,85,85,0.6)';
     });
     debugToggleBtn.addEventListener('mouseleave', () => {
         debugToggleBtn.style.opacity = '0.4';
-        debugToggleBtn.style.color = '#442222';
-        debugToggleBtn.style.borderColor = 'rgba(252,0,0,0.2)';
+        debugToggleBtn.style.color = '#333333';
+        debugToggleBtn.style.borderColor = 'rgba(85,85,85,0.3)';
     });
     debugToggleBtn.addEventListener('click', () => {
         toggleDebugPanels();

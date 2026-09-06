@@ -35,7 +35,7 @@ const injectStyles = () => {
             height: 100%;
             overflow: hidden;
             background: #000000;
-            font-family: 'Courier New', monospace;
+            font-family: 'BoldPixels', 'Courier New', monospace;
         }
 
 /* ─── CANVAS ─── */
@@ -59,7 +59,7 @@ const injectStyles = () => {
             transform: translateX(-50%);
             z-index: 20;
             color: #660000;
-            font-family: 'Courier New', monospace;
+            font-family: 'BoldPixels', 'Courier New', monospace;
             font-size: 14px;
             letter-spacing: 4px;
             text-transform: uppercase;
