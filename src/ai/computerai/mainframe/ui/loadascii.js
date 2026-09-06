@@ -17,7 +17,10 @@ export function loadAsciiArt() {
 
     loadPromise = new Promise(async (resolve, reject) => {
         try {
-            const response = await fetch("/src/ai/computerai/mainframe/ui/asciiart/bunbitos.txt");
+            // Use import.meta.url to resolve the path relative to this module,
+            // avoiding issues with absolute paths in different server configurations.
+            const asciiArtPath = new URL('./asciiart/bunbitos.txt', import.meta.url).href;
+            const response = await fetch(asciiArtPath);
             if (!response.ok) throw new Error("Couldn't load ASCII art!");
 
             const text = await response.text();

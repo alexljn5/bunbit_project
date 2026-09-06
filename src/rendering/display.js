@@ -163,6 +163,10 @@ export const display = {
         canvas.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
         canvas.style.transformOrigin = 'top left';
         canvas.style.zIndex = '1';
+        // Ensure crisp pixelated scaling when the canvas is visually resized
+        canvas.style.imageRendering = 'pixelated';
+        canvas.style.imageRendering = '-moz-crisp-edges';
+        canvas.style.imageRendering = 'crisp-edges';
 
         // Broadcast so UI overlays (dashboard, intro, etc.) can read scale.
         if (typeof window !== 'undefined') {

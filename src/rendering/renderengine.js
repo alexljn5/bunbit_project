@@ -110,10 +110,10 @@ function renderPauseMenu() {
     renderEngine.fillStyle = "rgba(0, 0, 0, 0.7)";
     renderEngine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     renderEngine.fillStyle = "#fff";
-    renderEngine.font = `${32 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+    renderEngine.font = `${Math.floor(32 * Math.min(SCALE_X, SCALE_Y))}px Arial`;
     renderEngine.textAlign = "center";
     renderEngine.fillText("PAUSED", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 3);
-    renderEngine.font = `${20 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+    renderEngine.font = `${Math.floor(20 * Math.min(SCALE_X, SCALE_Y))}px Arial`;
     renderEngine.fillText("Press ESC or P to resume", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
     renderEngine.fillText("Press M to return to main menu", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 40);
     renderEngine.restore();

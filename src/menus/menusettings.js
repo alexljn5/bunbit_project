@@ -61,9 +61,9 @@ function drawStaticMenu() {
     // Use reusable overlay function with alpha 0.8
     drawMenuOverlay(0.8);
     offscreenContext.fillStyle = "#cccccc";
-    offscreenContext.font = `bold ${20 * Math.min(SCALE_X, SCALE_Y)}px ${GLOBAL_FONT}`;
+    offscreenContext.font = `bold ${Math.floor(20 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
     offscreenContext.fillText("Settings Menu", 60 * SCALE_X, 80 * SCALE_Y);
-    offscreenContext.font = `${14 * Math.min(SCALE_X, SCALE_Y)}px ${GLOBAL_FONT}`;
+    offscreenContext.font = `${Math.floor(14 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
     offscreenContext.fillText("Press Escape to close", 60 * SCALE_X, 110 * SCALE_Y);
 }
 
@@ -78,7 +78,7 @@ function drawSettingsButtons() {
         renderEngine.lineWidth = 1;
         renderEngine.strokeRect(350 * SCALE_X, 120 * SCALE_Y, 400 * SCALE_X, 100 * SCALE_Y);
         renderEngine.fillStyle = "#cccccc";
-        renderEngine.font = `bold ${20 * Math.min(SCALE_X, SCALE_Y)}px ${GLOBAL_FONT}`;
+        renderEngine.font = `bold ${Math.floor(20 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
         const message = showSaveMessage ? "Game Saved!" : showLoadMessage ? "Game Loaded!" : "No Save Found!";
         renderEngine.fillText(message, 400 * SCALE_X, 170 * SCALE_Y);
     }
@@ -89,7 +89,7 @@ function drawSettingsButtons() {
         renderEngine.lineWidth = 1;
         renderEngine.strokeRect(250 * SCALE_X, 100 * SCALE_Y, 500 * SCALE_X, 150 * SCALE_Y);
         renderEngine.fillStyle = "#cccccc";
-        renderEngine.font = `bold ${20 * Math.min(SCALE_X, SCALE_Y)}px ${GLOBAL_FONT}`;
+        renderEngine.font = `bold ${Math.floor(20 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
         renderEngine.fillText("Select save.json from your savesdata folder", 280 * SCALE_X, 150 * SCALE_Y);
         renderEngine.fillText("Click anywhere to continue", 280 * SCALE_X, 180 * SCALE_Y);
     }
@@ -106,9 +106,9 @@ function drawControlsOverlay() {
     renderEngine.lineWidth = 1;
     renderEngine.strokeRect(overlayX, overlayY, overlayWidth, overlayHeight);
     renderEngine.fillStyle = "#cccccc";
-    renderEngine.font = `bold ${22 * Math.min(SCALE_X, SCALE_Y)}px ${GLOBAL_FONT}`;
+    renderEngine.font = `bold ${Math.floor(22 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
     renderEngine.fillText("Controls", overlayX, overlayY + 40 * SCALE_Y);
-    renderEngine.font = `${16 * Math.min(SCALE_X, SCALE_Y)}px ${GLOBAL_FONT}`;
+    renderEngine.font = `${Math.floor(16 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
     const controls = [
         "WASD: Move",
         "Shift: Walk slow",
@@ -146,7 +146,7 @@ function drawAudioOverlay() {
     renderEngine.lineWidth = 1;
     renderEngine.strokeRect(overlayX, overlayY, overlayWidth, overlayHeight);
     renderEngine.fillStyle = "#cccccc";
-    renderEngine.font = `bold ${22 * Math.min(SCALE_X, SCALE_Y)}px ${GLOBAL_FONT}`;
+    renderEngine.font = `bold ${Math.floor(22 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
     renderEngine.fillText("Audio Settings", overlayX, overlayY + 40 * SCALE_Y);
     volumeSlidersGodFunction();
     setupAudioSliderHandlers();
@@ -358,8 +358,11 @@ function menuSettingsRender() {
 function menuSettings() {
     const currentEscapeState = keys["escape"];
     if (!lastEscapeState && currentEscapeState) {
+        const wasMenuActive = menuActive;
         setMenuActive(!menuActive);
-        setPlayerMovementDisabled(menuActive);
+        // When closing the menu, explicitly enable movement.
+        // When opening, disable movement.
+        setPlayerMovementDisabled(!menuActive);
         needsRedraw = true;
         if (menuActive) {
             console.log("Settings menu opened, pausing game");

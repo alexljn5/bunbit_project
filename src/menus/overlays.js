@@ -12,7 +12,7 @@ const COLORS = {
 
 const FONTS = {
     get base() {
-        return `${24 * Math.min(SCALE_X, SCALE_Y)}px ${GLOBAL_FONT}`;
+        return `${Math.floor(24 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
     }
 };
 
@@ -151,7 +151,7 @@ export function drawButton(context, button, isSelected = false, textOffsetX = 20
     context.lineWidth = 1;
     context.strokeRect(button.x, button.y, button.width, button.height);
     context.fillStyle = button.hovered || isSelected ? "#ffffff" : "#cccccc";
-    context.font = `bold ${18 * Math.min(SCALE_X, SCALE_Y)}px ${GLOBAL_FONT}`;
+    context.font = `bold ${Math.floor(18 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
     context.textAlign = 'center';
     context.fillText(button.name, button.x + button.width / 2, button.y + button.height / 2 + textOffsetY * Math.min(SCALE_X, SCALE_Y) * 0.3);
     context.textAlign = 'left';
