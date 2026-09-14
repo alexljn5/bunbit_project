@@ -9,6 +9,13 @@ export { showTerminal };
 let currentCommand = "";
 let inputActive = false;
 let lastKeyStates = {};
+let copyFeedbackTimer = null;
+let copyFeedback = false;
+let isPasting = false;
+let isCopying = false;
+let lastPasteTime = 0;
+let lastCopyTime = 0;
+const clipboardCooldown = 500; // ms between clipboard operations
 
 //Helper function to check if on electron or tauri
 function isElectron() {
@@ -71,6 +78,26 @@ function terminalOverLay() {
         "/clearinv - Clear inventory",
         "/help - Show all commands"
     ];
+
+    // Display copy/paste shortcuts
+    const shortcuts = [
+        "CTRL+C - Copy current command",
+        "CTRL+V / CTRL+P - Paste from clipboard"
+    ];
+    shortcuts.forEach((shortcut, i) => {
+        renderEngine.fillStyle = "#888888";
+        renderEngine.fillText(shortcut, overlayX + 20 * SCALE_X, overlayY + (80 + commands.length * 30 + 10 + i * 20) * SCALE_Y);
+    });
+    renderEngine.fillStyle = "#fff";
+
+    // Display copy feedback
+    if (copyFeedback) {
+        renderEngine.fillStyle = "#00ff00";
+        renderEngine.font = `${Math.floor(18 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
+        renderEngine.fillText("Copied!", overlayX + 20 * SCALE_X, overlayY + (80 + commands.length * 30 + 10 + shortcuts.length * 20 + 10) * SCALE_Y);
+        renderEngine.fillStyle = "#fff";
+        renderEngine.font = `${Math.floor(16 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
+    }
 
     commands.forEach((cmd, i) => {
         renderEngine.fillText(cmd, overlayX + 20 * SCALE_X, overlayY + (80 + i * 30) * SCALE_Y);
@@ -138,9 +165,107 @@ function setupTerminalClickHandler() {
     };
 }
 
+async function copyToClipboard(text) {
+    if (isCopying) return false;
+    isCopying = true;
+    try {
+        // Use Tauri clipboard API if available
+        if (isTauri() && window.__TAURI__?.clipboard) {
+            await window.__TAURI__.clipboard.writeText(text);
+            return true;
+        }
+        // Fallback to browser Clipboard API
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(text);
+            return true;
+        }
+        // Fallback to execCommand
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+        return true;
+    } catch (err) {
+        console.error("Clipboard write failed:", err);
+        return false;
+    } finally {
+        isCopying = false;
+    }
+}
+
+async function pasteFromClipboard() {
+    if (isPasting) return null;
+    isPasting = true;
+    try {
+        // Use Tauri clipboard API if available
+        if (isTauri() && window.__TAURI__?.clipboard) {
+            return await window.__TAURI__.clipboard.readText();
+        }
+        // Fallback to browser Clipboard API
+        if (navigator.clipboard && navigator.clipboard.readText) {
+            return await navigator.clipboard.readText();
+        }
+        // Fallback: return null (no paste possible)
+        console.warn("No clipboard API available for paste");
+        return null;
+    } catch (err) {
+        console.error("Clipboard read failed:", err);
+        return null;
+    } finally {
+        isPasting = false;
+    }
+}
+
+function showCopyFeedback() {
+    copyFeedback = true;
+    if (copyFeedbackTimer) clearTimeout(copyFeedbackTimer);
+    copyFeedbackTimer = setTimeout(() => {
+        copyFeedback = false;
+    }, 1500);
+}
+
 function setupTerminalKeyHandler() {
     window.addEventListener("keydown", (event) => {
         if (!showTerminal || !inputActive) return;
+
+        // Handle CTRL+C (copy), CTRL+V (paste), CTRL+P (paste)
+        const now = performance.now();
+        if (event.ctrlKey || event.metaKey) {
+            if (event.key === "c" || event.key === "C") {
+                event.preventDefault();
+                if (currentCommand && now - lastCopyTime > clipboardCooldown) {
+                    lastCopyTime = now;
+                    copyToClipboard(currentCommand).then((success) => {
+                        if (success) {
+                            showCopyFeedback();
+                            console.log("Copied to clipboard: " + currentCommand);
+                        } else {
+                            console.log("Copy failed");
+                        }
+                    });
+                }
+                return;
+            } else if (event.key === "v" || event.key === "V" || event.key === "p" || event.key === "P") {
+                event.preventDefault();
+                if (now - lastPasteTime > clipboardCooldown) {
+                    lastPasteTime = now;
+                    pasteFromClipboard().then((text) => {
+                        if (text !== null) {
+                            currentCommand += text;
+                            console.log("Pasted: " + text);
+                        } else {
+                            console.log("Paste failed or clipboard empty");
+                        }
+                    });
+                }
+                return;
+            }
+        }
+
         const key = event.key;
         // Only process if key is newly pressed
         if (!lastKeyStates[key]) {
