@@ -117,14 +117,23 @@ export const roofConcrete01 = { type: "roof", textureId: 100, texture: "roof_con
 const floorTextures = {
     floor_concrete_01: isBrowser ? new Image() : { src: "./img/sprites/floors/floor_concrete_01.png" },
     floor_test: isBrowser ? new Image() : { src: "./img/sprites/walls/creamlol.png" },
+    floor_dirt_01: isBrowser ? new Image() : { src: "./img/sprites/floors/floor_dirt_01.png" },
+    floor_metal_01: isBrowser ? new Image() : { src: "./img/sprites/floors/floor_metal_01.png" },
+    floor_wood_01: isBrowser ? new Image() : { src: "./img/sprites/floors/floor_wood_01.png" },
 };
 if (isBrowser) {
     floorTextures.floor_concrete_01.src = "./img/sprites/floors/floor_concrete_01.png";
     floorTextures.floor_test.src = "./img/sprites/walls/creamlol.png";
+    floorTextures.floor_dirt_01.src = "./img/sprites/floors/floor_dirt_01.png";
+    floorTextures.floor_metal_01.src = "./img/sprites/floors/floor_metal_01.png";
+    floorTextures.floor_wood_01.src = "./img/sprites/floors/floor_wood_01.png";
 }
 
 export const floorConcrete = { type: "floor", textureId: 50, texture: "floor_concrete_01", floorHeight: 1 };
 export const floorTest = { type: "floor", textureId: 51, texture: "floor_test", floorHeight: 1 };
+export const floorDirt = { type: "floor", textureId: 52, texture: "floor_dirt_01", floorHeight: 1 };
+export const floorMetal = { type: "floor", textureId: 53, texture: "floor_metal_01", floorHeight: 1 };
+export const floorWood = { type: "floor", textureId: 54, texture: "floor_wood_01", floorHeight: 1 };
 
 // Initialize tileTexturesMap
 for (const [key, texture] of Object.entries(floorTextures)) {

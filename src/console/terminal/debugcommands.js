@@ -180,7 +180,8 @@ export function debugCommandsGodFunction(command) {
         case "spawnenemy":
             if (args.length < 1) {
                 console.log("Usage: /spawnenemy <type> [count]");
-                console.log("Types: placeholderai, lesserdemon, boykisser");
+                console.log("Types: placeholderai, lesserdemon (or casperlesserdemon), boykisser");
+                console.log("  Note: casperLesserDemon base ID is 'casperLesserDemon' (used by AI). Spawned IDs use '_N' suffix.");
                 return;
             }
             const enemyType = args[0].toLowerCase();
@@ -211,12 +212,14 @@ export function debugCommandsGodFunction(command) {
                     image = placeholderAiSprite;
                     isLoaded = placeholderAiSpriteLoaded;
                     initPlaceholderAIHealth(spriteId);
-                } else if (enemyType === "lesserdemon") {
+                } else if (enemyType === "lesserdemon" || enemyType === "casperlesserdemon") {
+                    // AI casperlesserdemon.js looks for "casperLesserDemon" (no suffix)
                     let idx = 1;
                     while (spriteManager.getSprite(`casperLesserDemon_${idx}`)) idx++;
                     spriteId = `casperLesserDemon_${idx}`;
                     image = casperLesserDemonSprite;
                     isLoaded = casperLesserDemonSpriteLoaded;
+                    console.log(`Note: casperLesserDemon ID is "${spriteId}". AI searches for "casperLesserDemon" (base ID). Use /spawnenemy lesserdemon or /spawnenemy casperlesserdemon to spawn.`);
                 } else if (enemyType === "boykisser") {
                     let idx = 1;
                     while (spriteManager.getSprite(`boyKisser_${idx}`)) idx++;
@@ -224,7 +227,7 @@ export function debugCommandsGodFunction(command) {
                     image = boyKisserEnemySprite;
                     isLoaded = boyKisserEnemySpriteLoaded;
                 } else {
-                    console.log(`Unknown enemy type: ${enemyType}. Types: placeholderai, lesserdemon, boykisser`);
+                    console.log(`Unknown enemy type: ${enemyType}. Types: placeholderai, lesserdemon (or casperlesserdemon), boykisser`);
                     break;
                 }
                 const sprite = createEnemySprite(spriteId, image, isLoaded, pos);
@@ -241,7 +244,10 @@ export function debugCommandsGodFunction(command) {
         case "setfloortexture":
             if (args.length < 1) {
                 console.log("Usage: /setfloortexture <texture_key>");
-                console.log("Available: floor_concrete_01, floor_test, wall_creamlol, wall_brick, wall_aldi, wall_satanic, wall_schizoeye, door_rusty_01, wall_brick_graffiti_01, wall_laughing_demon, wall_brick_door01_open, wall_brick_door01_closed, wall_fence_test, wall_brick_cream, wall_brick_eye, wall_casper_01");
+                console.log("Works with ANY texture (walls, floors, roofs):");
+                console.log("  Floors: floor_concrete_01, floor_test, floor_dirt_01, floor_metal_01, floor_wood_01");
+                console.log("  Walls: wall_creamlol, wall_brick, wall_aldi, wall_satanic, wall_schizoeye, door_rusty_01, wall_brick_graffiti_01, wall_laughing_demon, wall_brick_door01_open, wall_brick_door01_closed, wall_fence_test, wall_brick_cream, wall_brick_eye, wall_casper_01, wall_brick_small, wall_empty, door");
+                console.log("  Roofs: roof_concrete_01");
                 if (floorTextureOverride) {
                     console.log(`Current override: ${floorTextureOverride}`);
                 }
@@ -265,13 +271,25 @@ export function debugCommandsGodFunction(command) {
 
         case "clearenemies":
             let cleared = 0;
+            // Clear all spawned enemies first
             const enemyIds = [...spawnedEnemies];
             for (const spriteId of enemyIds) {
                 spriteManager.removeSprite(spriteId);
                 spawnedEnemies.delete(spriteId);
                 cleared++;
             }
-            console.log(`Cleared ${cleared} spawned enemy(ies)`);
+            // Also clear pre-existing enemy sprites from the map registry
+            // (casperLesserDemon, boyKisser, placeholderAI are loaded from spriteregistry.js)
+            const presetEnemyIds = ["casperLesserDemon", "boyKisser", "placeholderAI"];
+            for (const spriteId of presetEnemyIds) {
+                const sprite = spriteManager.getSprite(spriteId);
+                if (sprite) {
+                    spriteManager.removeSprite(spriteId);
+                    spawnedEnemies.delete(spriteId);
+                    cleared++;
+                }
+            }
+            console.log(`Cleared ${cleared} enemy(ies)`);
             break;
 
         case "help":
@@ -285,17 +303,18 @@ export function debugCommandsGodFunction(command) {
             console.log("skybox - Toggle skybox rendering (replaces roof with gradient)");
             console.log("skyboxcolor <top> <horizon> - Set skybox gradient colors");
             console.log("transparentwall <texture_key> - Toggle wall transparency");
-            console.log("spawnenemy <type> [count] - Spawn enemies (placeholderai, lesserdemon, boykisser)");
+            console.log("spawnenemy <type> [count] - Spawn enemies (placeholderai, lesserdemon/casperlesserdemon, boykisser)");
+            console.log("  Enemy IDs: placeholderAI, casperLesserDemon, boyKisser (base); _N suffix for spawned");
             console.log("setfloortexture <key> - Override floor texture for screenshots");
             console.log("resetfloortexture - Restore original floor texture");
-            console.log("clearenemies - Remove all spawned enemies");
+            console.log("clearenemies - Remove all enemies (spawned + preset map enemies)");
             console.log("\nAvailable items:", Object.entries(AVAILABLE_ITEMS).map(([id, name]) => `${id} (${name})`).join(", "));
             console.log("\nExamples:");
             console.log("/godmode - Toggle god mode");
             console.log("/skybox - Enable skybox");
             console.log("/skyboxcolor #1a0a2e #ff6b35 - Set skybox colors");
             console.log("/transparentwall wall_creamlol - Make creamlol walls invisible");
-            console.log("/spawnenemy placeholderai 10 - Spawn 10 placeholder enemies");
+            console.log("/spawnenemy lesserdemon 10 - Spawn 10 lesser demons (or use /spawnenemy casperlesserdemon)");
             console.log("/setfloortexture wall_brick - Change floor to brick texture");
             break;
 
