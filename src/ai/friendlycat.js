@@ -107,9 +107,17 @@ function advanceNpcDialogue() {
 }
 
 export function boyKisserNpcAI() {
-    const boyKisserSprite = spriteManager.getSprite("boyKisser");
-    if (!boyKisserSprite || !boyKisserSprite.worldPos) {
-        console.log("Oh no! BoyKisser sprite not found or missing worldPos! *sadiamas!");
+    // Find all boyKisser sprites (base "boyKisser" and spawned "boyKisser_N")
+    const boyKisserSprites = [];
+    spriteManager.sprites.forEach((sprite, spriteId) => {
+        if (spriteId === "boyKisser" || spriteId.startsWith("boyKisser_")) {
+            if (sprite.worldPos) {
+                boyKisserSprites.push(sprite);
+            }
+        }
+    });
+
+    if (boyKisserSprites.length === 0) {
         return;
     }
 
@@ -119,38 +127,40 @@ export function boyKisserNpcAI() {
         return;
     }
 
-    const dx = playerPosition.x - boyKisserSprite.worldPos.x;
-    const dz = playerPosition.z - boyKisserSprite.worldPos.z;
-    const distance = Math.sqrt(dx * dx + dz * dz);
-    const isOccluded = isOccludedByWall(
-        boyKisserSprite.worldPos.x,
-        boyKisserSprite.worldPos.z,
-        playerPosition.x,
-        playerPosition.z,
-        map_01,
-        tileSectors
-    );
+    // Find the first boyKisser that can trigger dialogue
+    for (const boyKisserSprite of boyKisserSprites) {
+        const dx = playerPosition.x - boyKisserSprite.worldPos.x;
+        const dz = playerPosition.z - boyKisserSprite.worldPos.z;
+        const distance = Math.sqrt(dx * dx + dz * dz);
+        const isOccluded = isOccludedByWall(
+            boyKisserSprite.worldPos.x,
+            boyKisserSprite.worldPos.z,
+            playerPosition.x,
+            playerPosition.z,
+            map_01,
+            tileSectors
+        );
 
-    if (distance < npcTriggerRadius && !isOccluded) {
-        let dialogue;
-        justReceivedGun = false;
-        if (playerInventory.includes("generic_gun")) {
-            dialogue = ["You already have a gun, no need for another."];
-        } else {
-            dialogue = [
-                "Hello there, traveler!",
-                "Press T to continue...",
-                "Please take this item!",
-                "It's a special gift for you.",
-                "Remember, kindness is key!",
-            ];
-            playerInventory.push("generic_gun");
-            justReceivedGun = true;
+        if (distance < npcTriggerRadius && !isOccluded) {
+            let dialogue;
+            justReceivedGun = false;
+            if (playerInventory.includes("generic_gun")) {
+                dialogue = ["You already have a gun, no need for another."];
+            } else {
+                dialogue = [
+                    "Hello there, traveler!",
+                    "Press T to continue...",
+                    "Please take this item!",
+                    "It's a special gift for you.",
+                    "Remember, kindness is key!",
+                ];
+                playerInventory.push("generic_gun");
+                justReceivedGun = true;
+            }
+            startNpcDialogue(dialogue);
+            npcLastTriggered = true;
+            break; // Only trigger dialogue for one boyKisser at a time
         }
-        startNpcDialogue(dialogue);
-        npcLastTriggered = true;
-    } else {
-        npcLastTriggered = false;
     }
     lastInteractionState = currentInteractionState;
 }
