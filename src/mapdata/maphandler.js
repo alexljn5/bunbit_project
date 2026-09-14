@@ -3,6 +3,7 @@ import { buildMapGrid } from "./maputils.js";
 import { emptyTile, floorConcrete } from "./maptexturesloader.js";
 import { floorTextureIdMap } from "./maptexturesids.js";
 import { map_01 } from "./map_01.js"; // Import legacy map_01 for fallback
+import { floorTextureOverride } from "../globals.js";
 
 export class MapHandler {
     constructor() {
@@ -164,6 +165,9 @@ export class MapHandler {
     }
 
     getMapFloorTexture(mapKey = this.activeMapKey) {
+        if (floorTextureOverride) {
+            return floorTextureOverride;
+        }
         if (!mapKey) mapKey = "map_01";
         const mapData = this.fullMapCache.get(mapKey);
         if (!mapData || !mapData.floorTextureId) {

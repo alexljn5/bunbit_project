@@ -18,6 +18,8 @@ export const textureIdMap = new Map([
 export const floorTextureIdMap = new Map([
     [50, "floor_concrete_01"],
     [51, "floor_test"],
+    [52, "floor_metal_01"],
+    [53, "floor_dirt_01"],
 ]);
 
 export const roofTextureIdMap = new Map([

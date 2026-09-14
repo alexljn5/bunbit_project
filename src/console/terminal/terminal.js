@@ -60,7 +60,10 @@ function terminalOverLay() {
     renderEngine.font = `${Math.floor(16 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
     const commands = [
         "/godmode - Toggle infinite health and stamina",
-        "/spawnenemy <type> - Spawn enemy (placeholderai, lesserdemon)",
+        "/spawnenemy <type> [count] - Spawn enemies (placeholderai, lesserdemon, boykisser)",
+        "/setfloortexture <key> - Change floor texture for screenshots",
+        "/resetfloortexture - Restore original floor texture",
+        "/clearenemies - Remove all spawned enemies",
         "/setammo <amount> - Set gun ammo",
         "/setdamage <amount> - Set gun damage",
         "/setrange <amount> - Set gun range",

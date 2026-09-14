@@ -258,6 +258,13 @@ export let skyboxEnabled = false;
 export let skyColorTop = "#1a0a2e";      // Deep purple/blue at top
 export let skyColorHorizon = "#ff6b35";  // Orange at horizon
 
+// --- FLOOR TEXTURE OVERRIDE ---
+// When set, overrides the floor texture for the current map (used by /setfloortexture)
+export let floorTextureOverride = null;
+export function setFloorTextureOverride(textureKey) {
+    floorTextureOverride = textureKey || null;
+}
+
 // Device-based adjustment for numCastRays
 if (typeof navigator !== 'undefined' && (/Mobi|Android/i.test(navigator.userAgent) || navigator.hardwareConcurrency <= 4)) {
     numCastRays = 240; // Reduce for low-end devices
