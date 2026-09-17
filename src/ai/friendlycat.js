@@ -7,7 +7,7 @@ import { tileSectors } from "../mapdata/maps.js";
 import { renderEngine } from "../rendering/renderengine.js";
 import { playerInventory } from "../playerdata/playerinventory.js";
 import { isOccludedByWall } from "./aihandler.js";
-import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT, playerMovementDisabled, setPlayerMovementDisabled } from "../globals.js";
+import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT, playerMovementDisabled, setPlayerMovementDisabled, DISABLE_DIALOGUE } from "../globals.js";
 
 // Re-export playerMovementDisabled for backward compatibility
 export { playerMovementDisabled, setPlayerMovementDisabled };
@@ -78,6 +78,10 @@ window.addEventListener("keydown", (event) => {
 }, true);
 
 function startNpcDialogue(lines) {
+    if (DISABLE_DIALOGUE) {
+        console.log('[DEV SHORTCUT] NPC dialogue disabled — skipping');
+        return;
+    }
     dialogueActive = true;
     dialogueLines = lines;
     currentDialogueIndex = 0;
@@ -103,9 +107,17 @@ function advanceNpcDialogue() {
 }
 
 export function boyKisserNpcAI() {
-    const boyKisserSprite = spriteManager.getSprite("boyKisser");
-    if (!boyKisserSprite || !boyKisserSprite.worldPos) {
-        console.log("Oh no! BoyKisser sprite not found or missing worldPos! *sadiamas!");
+    // Find all boyKisser sprites (base "boyKisser" and spawned "boyKisser_N")
+    const boyKisserSprites = [];
+    spriteManager.sprites.forEach((sprite, spriteId) => {
+        if (spriteId === "boyKisser" || spriteId.startsWith("boyKisser_")) {
+            if (sprite.worldPos) {
+                boyKisserSprites.push(sprite);
+            }
+        }
+    });
+
+    if (boyKisserSprites.length === 0) {
         return;
     }
 
@@ -115,38 +127,40 @@ export function boyKisserNpcAI() {
         return;
     }
 
-    const dx = playerPosition.x - boyKisserSprite.worldPos.x;
-    const dz = playerPosition.z - boyKisserSprite.worldPos.z;
-    const distance = Math.sqrt(dx * dx + dz * dz);
-    const isOccluded = isOccludedByWall(
-        boyKisserSprite.worldPos.x,
-        boyKisserSprite.worldPos.z,
-        playerPosition.x,
-        playerPosition.z,
-        map_01,
-        tileSectors
-    );
+    // Find the first boyKisser that can trigger dialogue
+    for (const boyKisserSprite of boyKisserSprites) {
+        const dx = playerPosition.x - boyKisserSprite.worldPos.x;
+        const dz = playerPosition.z - boyKisserSprite.worldPos.z;
+        const distance = Math.sqrt(dx * dx + dz * dz);
+        const isOccluded = isOccludedByWall(
+            boyKisserSprite.worldPos.x,
+            boyKisserSprite.worldPos.z,
+            playerPosition.x,
+            playerPosition.z,
+            map_01,
+            tileSectors
+        );
 
-    if (distance < npcTriggerRadius && !isOccluded) {
-        let dialogue;
-        justReceivedGun = false;
-        if (playerInventory.includes("generic_gun")) {
-            dialogue = ["You already have a gun, no need for another."];
-        } else {
-            dialogue = [
-                "Hello there, traveler!",
-                "Press T to continue...",
-                "Please take this item!",
-                "It's a special gift for you.",
-                "Remember, kindness is key!",
-            ];
-            playerInventory.push("generic_gun");
-            justReceivedGun = true;
+        if (distance < npcTriggerRadius && !isOccluded) {
+            let dialogue;
+            justReceivedGun = false;
+            if (playerInventory.includes("generic_gun")) {
+                dialogue = ["You already have a gun, no need for another."];
+            } else {
+                dialogue = [
+                    "Hello there, traveler!",
+                    "Press T to continue...",
+                    "Please take this item!",
+                    "It's a special gift for you.",
+                    "Remember, kindness is key!",
+                ];
+                playerInventory.push("generic_gun");
+                justReceivedGun = true;
+            }
+            startNpcDialogue(dialogue);
+            npcLastTriggered = true;
+            break; // Only trigger dialogue for one boyKisser at a time
         }
-        startNpcDialogue(dialogue);
-        npcLastTriggered = true;
-    } else {
-        npcLastTriggered = false;
     }
     lastInteractionState = currentInteractionState;
 }
@@ -157,7 +171,7 @@ function getCurrentNpcDialogueLine() {
 
 export function boyKisserNpcAIGodFunction() {
     if (!dialogueActive) boyKisserNpcAI();
-    if (dialogueActive) drawNpcDialogue(dialogueLines, currentDialogueIndex);
+    if (dialogueActive && !DISABLE_DIALOGUE) drawNpcDialogue(dialogueLines, currentDialogueIndex);
     if (showGunPickupBox && gunPickupTimer > 0) {
         drawGunPickupBox();
         gunPickupTimer--;
@@ -171,9 +185,17 @@ function friendlyCatAi() {
         return; // Stop following if player has the gun
     }
 
-    const boyKisserSprite = spriteManager.getSprite("boyKisser");
-    if (!boyKisserSprite || !boyKisserSprite.worldPos) {
-        console.log("Oops! BoyKisser sprite not found or missing worldPos! *Chao chao*");
+    // Find all boyKisser sprites (base "boyKisser" and spawned "boyKisser_N")
+    const boyKisserSprites = [];
+    spriteManager.sprites.forEach((sprite, spriteId) => {
+        if (spriteId === "boyKisser" || spriteId.startsWith("boyKisser_")) {
+            if (sprite.worldPos) {
+                boyKisserSprites.push(sprite);
+            }
+        }
+    });
+
+    if (boyKisserSprites.length === 0) {
         return;
     }
 
@@ -185,7 +207,7 @@ function friendlyCatAi() {
 
     // Initialize boyKisserPreviousPos if null
     if (!boyKisserPreviousPos) {
-        boyKisserPreviousPos = { x: boyKisserSprite.worldPos.x, z: boyKisserSprite.worldPos.z };
+        boyKisserPreviousPos = { x: boyKisserSprites[0].worldPos.x, z: boyKisserSprites[0].worldPos.z };
     }
 
     const enemySpeed = 0.3 * 2;
@@ -194,102 +216,104 @@ function friendlyCatAi() {
     const buffer = 0.3;
     const visionRange = 500;
 
-    const dx = playerPosition.x - boyKisserSprite.worldPos.x;
-    const dz = playerPosition.z - boyKisserSprite.worldPos.z;
-    const distance = Math.sqrt(dx * dx + dz * dz);
+    for (const boyKisserSprite of boyKisserSprites) {
+        const dx = playerPosition.x - boyKisserSprite.worldPos.x;
+        const dz = playerPosition.z - boyKisserSprite.worldPos.z;
+        const distance = Math.sqrt(dx * dx + dz * dz);
 
-    // Check for occlusion (BoyKisser)
-    const isOccluded = isOccludedByWall(
-        boyKisserSprite.worldPos.x,
-        boyKisserSprite.worldPos.z,
-        playerPosition.x,
-        playerPosition.z,
-        map_01,
-        tileSectors
-    );
+        // Check for occlusion (BoyKisser)
+        const isOccluded = isOccludedByWall(
+            boyKisserSprite.worldPos.x,
+            boyKisserSprite.worldPos.z,
+            playerPosition.x,
+            playerPosition.z,
+            map_01,
+            tileSectors
+        );
 
-    if (!isOccluded && distance < visionRange) {
-        lastKnownPlayerPos.x = playerPosition.x;
-        lastKnownPlayerPos.z = playerPosition.z;
-        canSeePlayer = true;
-    } else {
-        canSeePlayer = false;
-    }
+        if (!isOccluded && distance < visionRange) {
+            lastKnownPlayerPos.x = playerPosition.x;
+            lastKnownPlayerPos.z = playerPosition.z;
+            canSeePlayer = true;
+        } else {
+            canSeePlayer = false;
+        }
 
-    const targetX = canSeePlayer ? playerPosition.x : lastKnownPlayerPos.x;
-    const targetZ = canSeePlayer ? playerPosition.z : lastKnownPlayerPos.z;
-    const targetDx = targetX - boyKisserSprite.worldPos.x;
-    const targetDz = targetZ - boyKisserSprite.worldPos.z;
-    const targetDistance = Math.sqrt(targetDx * targetDx + targetDz * targetDz);
+        const targetX = canSeePlayer ? playerPosition.x : lastKnownPlayerPos.x;
+        const targetZ = canSeePlayer ? playerPosition.z : lastKnownPlayerPos.z;
+        const targetDx = targetX - boyKisserSprite.worldPos.x;
+        const targetDz = targetZ - boyKisserSprite.worldPos.z;
+        const targetDistance = Math.sqrt(targetDx * targetDx + targetDz * targetDz);
 
-    if (targetDistance < 50) {
-        return;
-    }
+        if (targetDistance < 50) {
+            continue;
+        }
 
-    const dirX = targetDx / targetDistance;
-    const dirZ = targetDz / targetDistance;
+        const dirX = targetDx / targetDistance;
+        const dirZ = targetDz / targetDistance;
 
-    const randomAngle = (Math.random() - 0.5) * randomFactor;
-    const randomDirX = Math.cos(randomAngle) * dirX - Math.sin(randomAngle) * dirZ;
-    const randomDirZ = Math.sin(randomAngle) * dirX + Math.cos(randomAngle) * dirZ;
+        const randomAngle = (Math.random() - 0.5) * randomFactor;
+        const randomDirX = Math.cos(randomAngle) * dirX - Math.sin(randomAngle) * dirZ;
+        const randomDirZ = Math.sin(randomAngle) * dirX + Math.cos(randomAngle) * dirZ;
 
-    let newX = boyKisserSprite.worldPos.x + randomDirX * enemySpeed;
-    let newZ = boyKisserSprite.worldPos.z + randomDirZ * enemySpeed;
+        let newX = boyKisserSprite.worldPos.x + randomDirX * enemySpeed;
+        let newZ = boyKisserSprite.worldPos.z + randomDirZ * enemySpeed;
 
-    const mapWidth = map_01[0].length;
-    const mapHeight = map_01.length;
-    const minX = Math.floor((newX - enemyRadius) / tileSectors);
-    const maxX = Math.floor((newX + enemyRadius) / tileSectors);
-    const minZ = Math.floor((newZ - enemyRadius) / tileSectors);
-    const maxZ = Math.floor((newZ + enemyRadius) / tileSectors);
+        const mapWidth = map_01[0].length;
+        const mapHeight = map_01.length;
+        const minX = Math.floor((newX - enemyRadius) / tileSectors);
+        const maxX = Math.floor((newX + enemyRadius) / tileSectors);
+        const minZ = Math.floor((newZ - enemyRadius) / tileSectors);
+        const maxZ = Math.floor((newZ + enemyRadius) / tileSectors);
 
-    let collisionX = false;
-    let collisionZ = false;
+        let collisionX = false;
+        let collisionZ = false;
 
-    for (let x = minX; x <= maxX; x++) {
-        for (let z = minZ; z <= maxZ; z++) {
-            if (x >= 0 && x < mapWidth && z >= 0 && z < mapHeight) {
-                const tile = map_01[z][x];
-                if (tile.type === "wall") {
-                    const tileLeft = x * tileSectors;
-                    const tileRight = (x + 1) * tileSectors;
-                    const tileTop = z * tileSectors;
-                    const tileBottom = (z + 1) * tileSectors;
+        for (let x = minX; x <= maxX; x++) {
+            for (let z = minZ; z <= maxZ; z++) {
+                if (x >= 0 && x < mapWidth && z >= 0 && z < mapHeight) {
+                    const tile = map_01[z][x];
+                    if (tile.type === "wall") {
+                        const tileLeft = x * tileSectors;
+                        const tileRight = (x + 1) * tileSectors;
+                        const tileTop = z * tileSectors;
+                        const tileBottom = (z + 1) * tileSectors;
 
-                    if (newX + enemyRadius > tileLeft && boyKisserPreviousPos.x + enemyRadius <= tileLeft) {
-                        newX = tileLeft - enemyRadius - buffer;
-                        collisionX = true;
-                    } else if (newX - enemyRadius < tileRight && boyKisserPreviousPos.x - enemyRadius >= tileRight) {
-                        newX = tileRight + enemyRadius + buffer;
-                        collisionX = true;
-                    }
+                        if (newX + enemyRadius > tileLeft && boyKisserPreviousPos.x + enemyRadius <= tileLeft) {
+                            newX = tileLeft - enemyRadius - buffer;
+                            collisionX = true;
+                        } else if (newX - enemyRadius < tileRight && boyKisserPreviousPos.x - enemyRadius >= tileRight) {
+                            newX = tileRight + enemyRadius + buffer;
+                            collisionX = true;
+                        }
 
-                    if (newZ + enemyRadius > tileTop && boyKisserPreviousPos.z + enemyRadius <= tileTop) {
-                        newZ = tileTop - enemyRadius - buffer;
-                        collisionZ = true;
-                    } else if (newZ - enemyRadius < tileBottom && boyKisserPreviousPos.z - enemyRadius >= tileBottom) {
-                        newZ = tileBottom + enemyRadius + buffer;
-                        collisionZ = true;
+                        if (newZ + enemyRadius > tileTop && boyKisserPreviousPos.z + enemyRadius <= tileTop) {
+                            newZ = tileTop - enemyRadius - buffer;
+                            collisionZ = true;
+                        } else if (newZ - enemyRadius < tileBottom && boyKisserPreviousPos.z - enemyRadius >= tileBottom) {
+                            newZ = tileBottom + enemyRadius + buffer;
+                            collisionZ = true;
+                        }
                     }
                 }
             }
         }
-    }
 
-    if (!collisionX) {
-        boyKisserSprite.worldPos.x = newX;
-    }
-    if (!collisionZ) {
-        boyKisserSprite.worldPos.z = newZ;
-    }
+        if (!collisionX) {
+            boyKisserSprite.worldPos.x = newX;
+        }
+        if (!collisionZ) {
+            boyKisserSprite.worldPos.z = newZ;
+        }
 
-    // Update previous position
-    boyKisserPreviousPos.x = boyKisserSprite.worldPos.x;
-    boyKisserPreviousPos.z = boyKisserSprite.worldPos.z;
+        // Update previous position
+        boyKisserPreviousPos.x = boyKisserSprite.worldPos.x;
+        boyKisserPreviousPos.z = boyKisserSprite.worldPos.z;
 
-    // Clamp position to map boundaries
-    const maxXBound = mapWidth * tileSectors - enemyRadius;
-    const maxZBound = mapHeight * tileSectors - enemyRadius;
-    boyKisserSprite.worldPos.x = Math.max(enemyRadius, Math.min(maxXBound, boyKisserSprite.worldPos.x));
-    boyKisserSprite.worldPos.z = Math.max(enemyRadius, Math.min(maxZBound, boyKisserSprite.worldPos.z));
+        // Clamp position to map boundaries
+        const maxXBound = mapWidth * tileSectors - enemyRadius;
+        const maxZBound = mapHeight * tileSectors - enemyRadius;
+        boyKisserSprite.worldPos.x = Math.max(enemyRadius, Math.min(maxXBound, boyKisserSprite.worldPos.x));
+        boyKisserSprite.worldPos.z = Math.max(enemyRadius, Math.min(maxZBound, boyKisserSprite.worldPos.z));
+    }
 }

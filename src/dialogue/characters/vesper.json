@@ -1,0 +1,29 @@
+{
+    "id": "vesper",
+    "displayName": "Vesper",
+    "defaultExpression": "neutral",
+    "spriteFolder": "img/sprites/friendly/vesper",
+    "spriteSheet": "vesper-ascii-sheet.md",
+    "uiPosition": "right",
+    "expressions": [
+        "neutral",
+        "happy",
+        "smug",
+        "judging",
+        "curious",
+        "surprised",
+        "excited",
+        "determined",
+        "sleepy",
+        "embarrassed",
+        "confused",
+        "suspicious",
+        "annoyed",
+        "proud",
+        "tinyGrin",
+        "sad",
+        "crying",
+        "angry",
+        "loafMode"
+    ]
+}

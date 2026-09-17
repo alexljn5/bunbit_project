@@ -23,9 +23,9 @@ export class ThemeManager {
             { name: 'calm', theme: CALM_THEME, getLogColor: getCalmLogColor, getPerformanceColor: getCalmPerformanceColor },
             { name: 'hacky', theme: HACKY_THEME, getLogColor: getHackyLogColor, getPerformanceColor: getHackyPerformanceColor }
         ];
-        // Default to 'calm' theme for nicer visuals
-        const calmIndex = this.themes.findIndex(t => t.name === 'calm');
-        this.currentThemeIndex = calmIndex !== -1 ? calmIndex : 0;
+        // Default to 'evil' theme
+        const evilIndex = this.themes.findIndex(t => t.name === 'evil');
+        this.currentThemeIndex = evilIndex !== -1 ? evilIndex : 0;
         this.currentTheme = this.themes[this.currentThemeIndex];
 
         // Defer applying theme until DOM is available to avoid timing issues
@@ -121,10 +121,16 @@ export class ThemeManager {
             container.style.padding = '0';
         }
 
-        // Also apply directly to canvas if present
+        // Also apply directly to canvas if present.
+        // The neon border/glow is gated behind body.bunbit-gameplay so it
+        // ONLY appears when the player is actually spawned inside the game
+        // (GAMEPLAY state). It must never show during INTRO, DASHBOARD, or
+        // DIALOGUE, where the canvas is either hidden or is a cinematic surface.
         if (canvasEl) {
-            canvasEl.style.borderColor = theme.border || '';
-            canvasEl.style.boxShadow = theme.glow === true ? `0 0 20px ${theme.border}` : 'none';
+            const isGameplay = !!(typeof document !== 'undefined' && document.body
+                && document.body.classList.contains('bunbit-gameplay'));
+            canvasEl.style.borderColor = isGameplay ? (theme.border || '') : 'none';
+            canvasEl.style.boxShadow = (isGameplay && theme.glow === true) ? `0 0 20px ${theme.border}` : 'none';
         }
 
         // Inject CSS rules as backup (keeps other UI elements themed)
@@ -139,7 +145,7 @@ export class ThemeManager {
             styleEl.textContent = `
                 html, body { background-color: ${theme.background} !important; color: ${theme.text} !important; }
                 .game-container { background-color: ${theme.background} !important; }
-                canvas#mainGameRender { border-color: ${theme.border} !important; box-shadow: ${theme.glow === true ? `0 0 20px ${theme.border}` : 'none'} !important; }
+                body.bunbit-gameplay canvas#mainGameRender { border-color: ${theme.border} !important; box-shadow: ${theme.glow === true ? `0 0 20px ${theme.border}` : 'none'} !important; }
                 .gameMenu { background-color: ${theme.headerBg || theme.background} !important; color: ${theme.text} !important; }
             `;
         } catch (e) {

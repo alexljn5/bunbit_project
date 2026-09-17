@@ -1,6 +1,6 @@
 // login.js
 import { computerAIRenderEngine } from "../../computerai.js";
-import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_HEIGHT, REF_CANVAS_WIDTH } from "../../../../globals.js";
+import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_HEIGHT, REF_CANVAS_WIDTH, GLOBAL_FONT } from "../../../../globals.js";
 import { initInputHandler, registerUsernameBox, registerPasswordBox, username, password, activeElement, checkLogin } from "../utils/inputhandler.js";
 import { drawAsciiArt, loadAsciiArt } from "./loadascii.js";
 import { CURRENT_COMPUTER_STATE } from "../../computeraiglobals.js";
@@ -73,7 +73,7 @@ function handleLoginAttempt(success) {
 
 function showLoginResult(success) {
     computerAIRenderEngine.fillStyle = success ? "#0f0" : "#f00";
-    computerAIRenderEngine.font = `${16 * SCALE_X}px Arial`;
+    computerAIRenderEngine.font = `${16 * SCALE_X}px ${GLOBAL_FONT}`;
     computerAIRenderEngine.textAlign = "center";
     computerAIRenderEngine.textBaseline = "middle";
     computerAIRenderEngine.fillText(
@@ -131,7 +131,7 @@ function loginBox() {
     );
 
     computerAIRenderEngine.fillStyle = "#0f0";
-    computerAIRenderEngine.font = `${20 * SCALE_X}px Arial`;
+    computerAIRenderEngine.font = `${20 * SCALE_X}px ${GLOBAL_FONT}`;
     computerAIRenderEngine.textAlign = "center";
     computerAIRenderEngine.textBaseline = "middle";
     computerAIRenderEngine.fillText(
@@ -165,7 +165,7 @@ function insertUserNameBox() {
     );
 
     computerAIRenderEngine.fillStyle = "#000";
-    computerAIRenderEngine.font = `${16 * SCALE_X}px Arial`;
+    computerAIRenderEngine.font = `${16 * SCALE_X}px ${GLOBAL_FONT}`;
     computerAIRenderEngine.textAlign = "center";
     computerAIRenderEngine.textBaseline = "middle";
     computerAIRenderEngine.fillText(
@@ -202,7 +202,7 @@ function insertPasswordBox() {
     const displayText = password ? "*".repeat(password.length) : "Password";
 
     computerAIRenderEngine.fillStyle = "#000";
-    computerAIRenderEngine.font = `${16 * SCALE_X}px Arial`;
+    computerAIRenderEngine.font = `${16 * SCALE_X}px ${GLOBAL_FONT}`;
     computerAIRenderEngine.textAlign = "center";
     computerAIRenderEngine.textBaseline = "middle";
     computerAIRenderEngine.fillText(

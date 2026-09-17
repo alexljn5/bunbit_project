@@ -1,0 +1,134 @@
+{
+    "id": "new_game_intro",
+    "metadata": {
+        "language": "en",
+        "version": 4
+    },
+    "startNode": "intro_start",
+    "nodes": {
+        "intro_start": {
+            "speaker": "patches",
+            "expression": "neutral",
+            "text": "...Did you hear that?",
+            "next": "vesper_intro"
+        },
+        "vesper_intro": {
+            "speaker": "vesper",
+            "expression": "neutral",
+            "text": "Hear what? You have been staring into the dark for hours.",
+            "next": "patches_response"
+        },
+        "patches_response": {
+            "speaker": "patches",
+            "expression": "neutral",
+            "text": "Something feels different. Like something changed when we weren't looking.",
+            "next": "vesper_tease"
+        },
+        "vesper_tease": {
+            "speaker": "vesper",
+            "expression": "annoyed",
+            "text": "You said that last time before you knocked over the lantern.",
+            "next": "patches_defend"
+        },
+        "patches_defend": {
+            "speaker": "patches",
+            "expression": "annoyed",
+            "text": "The lantern was already unstable.",
+            "next": "vesper_reply"
+        },
+        "vesper_reply": {
+            "speaker": "vesper",
+            "expression": "annoyed",
+            "text": "You walked directly into it.",
+            "next": "patches_silence"
+        },
+        "patches_silence": {
+            "speaker": "patches",
+            "expression": "neutral",
+            "text": "...Wait.",
+            "next": "vesper_question"
+        },
+        "vesper_question": {
+            "speaker": "vesper",
+            "expression": "neutral",
+            "text": "What is it?",
+            "next": "patches_feeling"
+        },
+        "patches_feeling": {
+            "speaker": "patches",
+            "expression": "neutral",
+            "text": "I don't know. It feels like we're being watched.",
+            "next": "vesper_feeling"
+        },
+        "vesper_feeling": {
+            "speaker": "vesper",
+            "expression": "neutral",
+            "text": "...That's impossible.",
+            "next": "patches_realization"
+        },
+        "patches_realization": {
+            "speaker": "patches",
+            "expression": "neutral",
+            "text": "No... wait. I can actually feel something there.",
+            "events": [
+                {
+                    "type": "SET_FLAG",
+                    "flag": "player_aware",
+                    "value": true
+                },
+                {
+                    "type": "PLAYER_RECOGNIZED"
+                }
+            ],
+            "next": "patches_shock"
+        },
+        "patches_shock": {
+            "speaker": "patches",
+            "expression": "surprised",
+            "text": "You can hear us?",
+            "next": "vesper_shock"
+        },
+        "vesper_shock": {
+            "speaker": "vesper",
+            "expression": "surprised",
+            "text": "Wait... you're not just a feeling. You're actually there.",
+            "next": "patches_confused"
+        },
+        "patches_confused": {
+            "speaker": "patches",
+            "expression": "surprised",
+            "text": "How is that possible? We weren't supposed to have anyone else here.",
+            "next": "vesper_confused"
+        },
+        "vesper_confused": {
+            "speaker": "vesper",
+            "expression": "neutral",
+            "text": "Something about this world feels different now.",
+            "next": "patches_accept"
+        },
+        "patches_accept": {
+            "speaker": "patches",
+            "expression": "neutral",
+            "text": "I don't understand it... but I believe you are real.",
+            "next": "vesper_accept"
+        },
+        "vesper_accept": {
+            "speaker": "vesper",
+            "expression": "neutral",
+            "text": "Then I suppose we should find out why you're here.",
+            "next": "intro_end"
+        },
+        "intro_end": {
+            "speaker": "patches",
+            "expression": "happy",
+            "text": "Whatever you are... I think we'll find out soon enough.",
+            "events": [
+                {
+                    "type": "SET_FLAG",
+                    "flag": "intro_complete",
+                    "value": true
+                }
+            ]
+        }
+    }
+}

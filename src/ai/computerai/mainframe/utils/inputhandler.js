@@ -1,4 +1,4 @@
-import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y } from "../../../../globals.js";
+import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, GLOBAL_FONT } from "../../../../globals.js";
 import { computerAIRenderEngine } from "../../computerai.js";
 import { CURRENT_COMPUTER_STATE, setComputerState } from "../../computeraiglobals.js";
 import { REF_CANVAS_HEIGHT, REF_CANVAS_WIDTH } from "../../../../globals.js";
@@ -173,7 +173,7 @@ export async function loadTestEnvironment() {
 
     // Loading message
     computerAIRenderEngine.fillStyle = "#0f0";
-    computerAIRenderEngine.font = `${20 * SCALE_X}px Arial`;
+    computerAIRenderEngine.font = `${20 * SCALE_X}px ${GLOBAL_FONT}`;
     computerAIRenderEngine.textAlign = "center";
     computerAIRenderEngine.textBaseline = "middle";
     computerAIRenderEngine.fillText("Loading Desktop Environment...", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);

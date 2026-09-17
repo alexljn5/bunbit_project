@@ -1,6 +1,20 @@
 // renderWorker.js
+import { createWorkerDebug } from '../../debug/workerdebug.js';
+const wd = createWorkerDebug('renderengine-worker');
+let __wdCount = 0;
 self.addEventListener("message", (e) => {
-    const { rayData, startRay, endRay, tileSectors, CANVAS_HEIGHT, CANVAS_WIDTH } = e.data;
+    const d = e.data;
+
+    // Handle init message
+    if (d.type === "init") {
+        wd.setName('renderengine-worker-' + (d.workerId != null ? d.workerId : '?'));
+        wd.heartbeat();
+        wd.log('started');
+        self.postMessage({ type: "init", success: true });
+        return;
+    }
+
+    const { rayData, startRay, endRay, tileSectors, CANVAS_HEIGHT, CANVAS_WIDTH } = d;
     const wallData = [];
 
     for (let i = startRay; i < endRay; i++) {
@@ -11,11 +25,11 @@ self.addEventListener("message", (e) => {
         const wallTop = (CANVAS_HEIGHT - wallHeight) / 2;
         const wallBottom = wallTop + wallHeight;
 
-        let textureX;
-        if (ray.hitSide === "x") {
-            textureX = (ray.hitX % tileSectors) / tileSectors;
-        } else {
-            textureX = (ray.hitY % tileSectors) / tileSectors;
+        // Use textureX from ray data if available, otherwise compute it
+        let textureX = ray.textureX;
+        if (textureX === undefined) {
+            // Fallback: compute from hitSide (simplified)
+            textureX = 0.5;
         }
         textureX = Math.max(0, Math.min(1, textureX));
 
@@ -28,5 +42,8 @@ self.addEventListener("message", (e) => {
         });
     }
 
+    wd.markTask();
+    __wdCount++;
+    if (__wdCount % 60 === 0) wd.log('processed task', __wdCount);
     self.postMessage({ startRay, wallData });
 });

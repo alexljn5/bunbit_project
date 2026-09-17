@@ -1,15 +1,20 @@
 import { drawQuad } from "./renderengine.js";
-import { texturesLoaded, getDemonLaughingCurrentFrame, tileTexturesMap } from "../mapdata/maptexturesloader.js";
+import { texturesLoaded, getDemonLaughingCurrentFrame, tileTexturesMap, transparentWallTextureKeys } from "../mapdata/maptexturesloader.js";
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from "../globals.js";
 import { numCastRays, playerFOV } from "./raycasting.js";
 import { tileSectors } from "../mapdata/maps.js";
 import { playerPosition } from "../playerdata/playerlogic.js";
+import { wdMainEvent, wdMainMessage, wdMainError } from "../debug/workermaindebug.js";
+
+// Tauri-only worker URL
+const wallPrecomputeWorkerURL = new URL("./renderworkers/wallprecomputeworker.js", import.meta.url);
 
 // Heap-based cache for wall rendering data
 const wallRenderCache = new Map();
 
 // Reusable quad object to reduce allocations
 const reusableQuad = {
+
     topX: 0, topY: 0,
     leftX: 0, leftY: 0,
     rightX: 0, rightY: 0,
@@ -21,9 +26,11 @@ const reusableQuad = {
     ctx: null
 };
 
-const wallPrecomputeWorker = new Worker('/src/rendering/renderworkers/wallprecomputeworker.js', { type: 'module' });
+const wallPrecomputeWorker = new Worker(wallPrecomputeWorkerURL, { type: 'module' });
+wdMainEvent('wallprecompute-worker', 'created (module)');
 wallPrecomputeWorker.onmessage = function (e) {
     if (!e.data) return;
+    wdMainMessage('wallprecompute-worker', e.data.type);
     if (e.data.type === 'precomputed') {
         try {
             const { sectorKey, geometryBuffer, numRays, floatsPerRay, textureKeys } = e.data;
@@ -31,10 +38,16 @@ wallPrecomputeWorker.onmessage = function (e) {
             wallRenderCache.set(sectorKey, { geom, numRays, floatsPerRay, textureKeys });
         } catch (err) {
             console.error('Failed to set wall cache from worker:', err);
+            wdMainError('wallprecompute-worker', err);
         }
     } else if (e.data.type === 'error') {
         console.error('Wall precompute worker error for', e.data.sectorKey, e.data.message);
+        wdMainError('wallprecompute-worker', e.data);
     }
+};
+wallPrecomputeWorker.onerror = (error) => {
+    console.error('Wall precompute worker crashed:', error);
+    wdMainError('wallprecompute-worker', error);
 };
 
 export function precomputeWallRenderData(sectorKey) {
@@ -108,6 +121,11 @@ export function renderRaycastWalls(rayData, sectorKey, ctx = null) {
             const floatsPerRay = cached.floatsPerRay || 8;
             for (let i = 0, len = cached.numRays; i < len; i++) {
                 const base = i * floatsPerRay;
+                const key = tKeys[i] || null;
+
+                // Skip transparent walls
+                if (key && transparentWallTextureKeys.has(key)) continue;
+
                 reusableQuad.topX = geom[base + 0];
                 reusableQuad.topY = geom[base + 1];
                 reusableQuad.leftX = geom[base + 2];
@@ -116,7 +134,6 @@ export function renderRaycastWalls(rayData, sectorKey, ctx = null) {
                 reusableQuad.rightY = geom[base + 5];
                 reusableQuad.textureX = geom[base + 6];
                 reusableQuad.alpha = geom[base + 7];
-                const key = tKeys[i] || null;
                 reusableQuad.texture = (key === "wall_laughing_demon")
                     ? demonFrame
                     : tileTexturesMap.get(key) || tileTexturesMap.get("wall_creamlol");
@@ -144,6 +161,10 @@ export function renderRaycastWalls(rayData, sectorKey, ctx = null) {
                 let accumulatedAlpha = 0;
                 for (let j = ray.length - 1; j >= 0; j--) {
                     const hit = ray[j];
+
+                    // Skip transparent walls
+                    if (hit.textureKey && transparentWallTextureKeys.has(hit.textureKey)) continue;
+
                     const textureX = computeTextureX(hit, i);
                     const tex = tileTexturesMap.get(hit.textureKey) || defaultTexture;
                     const alpha = 0.5 * (1 - accumulatedAlpha);
@@ -165,6 +186,9 @@ export function renderRaycastWalls(rayData, sectorKey, ctx = null) {
                     if (accumulatedAlpha >= 1) break;
                 }
             } else {
+                // Skip transparent walls
+                if (ray.textureKey && transparentWallTextureKeys.has(ray.textureKey)) continue;
+
                 const textureX = computeTextureX(ray, i);
                 const texture = (ray.textureKey === "wall_laughing_demon")
                     ? demonFrame

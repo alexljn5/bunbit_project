@@ -11,8 +11,12 @@
 import {
     DEBUG_START_INTRO_ANIMATION,
     RUN_INTRO_ON_START,
+    SKIP_INTRO,
+    DISABLE_ANIMATIONS,
     introActive,
-    setIntroActive
+    setIntroActive,
+    GAME_WIDTH,
+    GAME_HEIGHT
 } from "../globals.js";
 
 // ─── CSS INJECTION ─────────────────────────────────────────────
@@ -21,6 +25,7 @@ import {
 
 const injectStyles = () => {
     const style = document.createElement("style");
+    style.id = "bunbit-intro-styles";
     style.textContent = `
         /* ─── BASE RESET ─── */
         html, body {
@@ -29,100 +34,24 @@ const injectStyles = () => {
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background: #0a0a0a;
-            font-family: 'Courier New', monospace;
+            background: #000000;
+            font-family: 'BoldPixels', 'Courier New', monospace;
         }
 
-        /* ─── CANVAS ─── */
+/* ─── CANVAS ─── */
         #mainGameRender {
             display: block;
-            width: 100vw !important;
-            height: 100vh !important;
-            max-width: none !important;
-            max-height: none !important;
-            aspect-ratio: auto !important;
 
-            background: #0a0a0a;
+            /* Pure black background — no glow, no scanlines, no vignette.
+               The canvas runs in 800x800 LOGICAL space. The global display
+               layer (rendering/display.js) sets its CSS size + transform to
+               fit the viewport with uniform scale + letterboxing. Never
+               stretch to 100vw/100vh — that would distort the square buffer. */
+            background: #000000;
             image-rendering: pixelated;
-
-            /* subtle CRT glow */
-            box-shadow: inset 0 0 100px rgba(255, 0, 0, 0.05);
         }
 
-        /* ─── SCARY OVERLAY (CRT SCANLINES) ─── */
-        #mainGameRender::after {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 10;
-            background: repeating-linear-gradient(
-                0deg,
-                rgba(0, 0, 0, 0.15) 0px,
-                rgba(0, 0, 0, 0.15) 2px,
-                transparent 2px,
-                transparent 4px
-            );
-            animation: scanline 0.1s infinite linear;
-        }
-
-        @keyframes scanline {
-            0% { transform: translateY(0); }
-            100% { transform: translateY(4px); }
-        }
-
-        /* ─── FLICKER VIGNETTE ─── */
-        #mainGameRender::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 11;
-            background: radial-gradient(
-                ellipse at center,
-                transparent 60%,
-                rgba(0, 0, 0, 0.8) 100%
-            );
-            animation: vignetteFlicker 2s infinite ease-in-out;
-        }
-
-        @keyframes vignetteFlicker {
-            0%, 100% { opacity: 0.7; }
-            50% { opacity: 0.9; }
-            25% { opacity: 0.6; }
-            75% { opacity: 0.85; }
-        }
-
-        /* ─── STATIC NOISE OVERLAY ─── */
-        .intro-static {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 12;
-            opacity: 0.03;
-            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" stitchTiles="stitch"/></filter><rect width="100" height="100" filter="url(%23n)" opacity="1"/></svg>');
-            background-size: 200px 200px;
-            animation: staticMove 0.5s infinite steps(4);
-        }
-
-        @keyframes staticMove {
-            0% { transform: translate(0, 0); }
-            25% { transform: translate(-5px, 3px); }
-            50% { transform: translate(7px, -2px); }
-            75% { transform: translate(-3px, 5px); }
-            100% { transform: translate(2px, -4px); }
-        }
-
-        /* ─── LOADING TEXT (for extra spook) ─── */
+        /* ─── LOADING TEXT ─── */
         .intro-loading {
             position: fixed;
             bottom: 40px;
@@ -130,14 +59,13 @@ const injectStyles = () => {
             transform: translateX(-50%);
             z-index: 20;
             color: #660000;
-            font-family: 'Courier New', monospace;
+            font-family: 'BoldPixels', 'Courier New', monospace;
             font-size: 14px;
             letter-spacing: 4px;
             text-transform: uppercase;
             opacity: 0.6;
             animation: loadingBlink 1.2s infinite step-start;
             pointer-events: none;
-            text-shadow: 0 0 10px rgba(255, 0, 0, 0.3);
         }
 
         @keyframes loadingBlink {
@@ -145,20 +73,20 @@ const injectStyles = () => {
             50% { opacity: 0.1; }
         }
 
-        /* ─── RESPONSIVE ─── */
-        @media (max-width: 600px) {
-            .intro-loading { font-size: 10px; bottom: 20px; }
+        /* ─── PURE BLACK OVERRIDE DURING INTRO ───────────
+           The theme manager injects a background-color !important rule on
+           html/body which would tint the page behind the intro (e.g. evil
+           red-black). This attribute-scoped rule has higher specificity and
+           forces pure black for the entire intro, defeating the theme. */
+        html[data-bunbit-intro], html[data-bunbit-intro] body {
+            background: #000000 !important;
         }
     `;
     document.head.appendChild(style);
 };
 
 // ─── INJECT STATIC OVERLAY ────────────────────────────────────
-const injectStaticOverlay = () => {
-    const div = document.createElement("div");
-    div.className = "intro-static";
-    document.body.appendChild(div);
-};
+// (removed — intro is pure black + demon frames, no overlays)
 
 const injectLoadingText = () => {
     const div = document.createElement("div");
@@ -169,6 +97,16 @@ const injectLoadingText = () => {
 
 // ─── CONSTANTS ─────────────────────────────────────────────────
 const INTRO_DURATION = 5200; // ms
+
+// The intro runs in the SAME 800x800 logical world as the game.
+// Demons keep their original size/position in this space; the
+// global display layer (rendering/display.js) scales them visually.
+const INTRO_W = GAME_WIDTH;   // 800
+const INTRO_H = GAME_HEIGHT;  // 800
+
+// Demon size is defined in LOGICAL units (relative to 800x800),
+// not in viewport pixels. Changing the window/fullscreen never
+// recalculates these from window dimensions.
 const FRAME_START_SCALE = 0.15;
 const FRAME_END_SCALE = 0.65;
 const FRAME_FADE_START = 0.4;
@@ -182,6 +120,32 @@ const FRAME_SOURCES = [
 ];
 
 let hasRun = false;
+
+// Tracks the resize handler installed for the intro so it can be removed
+// when the intro completes (prevents listener leaks on replay).
+let introResizeHandler = null;
+
+/**
+ * Cleans up the intro's black backdrop state once the intro ends:
+ *   - Removes the `data-bunbit-intro` attribute so the attribute-scoped
+ *     pure-black !important rule stops applying.
+ *   - Clears the inline black backgrounds so the theme manager's own
+ *     html/body background (evil red-black, etc.) takes over again.
+ *   - Removes the intro resize re-centering listener.
+ * Call this BEFORE the DASHBOARD state renders so the dashboard keeps its
+ * themed reddish hue.
+ */
+function clearIntroBackdrop() {
+    if (typeof document !== 'undefined') {
+        document.documentElement.removeAttribute('data-bunbit-intro');
+        document.documentElement.style.backgroundColor = '';
+        document.body.style.backgroundColor = '';
+    }
+    if (typeof window !== 'undefined' && introResizeHandler) {
+        window.removeEventListener('resize', introResizeHandler);
+        introResizeHandler = null;
+    }
+}
 
 // ─── EASE IN-OUT ──────────────────────────────────────────────
 function easeInOut(t) {
@@ -213,20 +177,53 @@ function getCanvas() {
     return canvas;
 }
 
-function setupFullscreenCanvas(canvas) {
-    const w = window.innerWidth;
-    const h = window.innerHeight;
-    const dpr = window.devicePixelRatio || 1;
+function setupLogicalCanvas(canvas) {
+    // The intro uses the SAME 800x800 logical space as the game.
+    // We never read window.innerWidth/innerHeight here — the backing
+    // store stays GAME_WIDTH x GAME_HEIGHT and the display layer
+    // scales it visually.
+    canvas.width = INTRO_W;
+    canvas.height = INTRO_H;
+    // Ask the global display layer to re-fit the canvas to the viewport
+    // (uniform scale, centered, letterboxed). The demons are drawn in
+    // logical coordinates; the display layer handles all visual scaling.
+    // If the display layer is unavailable, center + scale manually so the
+    // intro is never stuck in the top-left corner.
+    const display = typeof window !== 'undefined' ? window.__bunbitDisplay : null;
+    if (display && typeof display.applyDisplayScale === 'function') {
+        display.applyDisplayScale();
+    } else {
+        centerCanvasManually(canvas);
+    }
 
-    // Keep drawing coordinates in CSS pixels.
-    canvas.style.width = `${w}px`;
-    canvas.style.height = `${h}px`;
+    return { w: INTRO_W, h: INTRO_H };
+}
 
-    // Scale the internal buffer for crisp rendering.
-    canvas.width = Math.floor(w * dpr);
-    canvas.height = Math.floor(h * dpr);
+/**
+ * Fallback: centers + uniform-scales the 800x800 intro canvas when the
+ * global display layer is unavailable, so the demons appear centred in the
+ * viewport (letterboxed) instead of being offset to the top-left.
+ */
+function centerCanvasManually(canvas) {
+    const viewportW = typeof window !== 'undefined' ? (window.innerWidth || INTRO_W) : INTRO_W;
+    const viewportH = typeof window !== 'undefined' ? (window.innerHeight || INTRO_H) : INTRO_H;
+    const scale = Math.min(viewportW / INTRO_W, viewportH / INTRO_H);
+    const dispW = Math.round(INTRO_W * scale);
+    const dispH = Math.round(INTRO_H * scale);
+    const offsetX = Math.round((viewportW - dispW) / 2);
+    const offsetY = Math.round((viewportH - dispH) / 2);
 
-    return { w, h, dpr };
+    canvas.style.position = 'fixed';
+    canvas.style.top = '0';
+    canvas.style.left = '0';
+    canvas.style.width = `${dispW}px`;
+    canvas.style.height = `${dispH}px`;
+    canvas.style.maxWidth = 'none';
+    canvas.style.maxHeight = 'none';
+    canvas.style.aspectRatio = 'auto';
+    canvas.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+    canvas.style.transformOrigin = 'top left';
+    canvas.style.zIndex = '1';
 }
 
 // ─── GLITCH / SCARY EFFECTS ──────────────────────────────────
@@ -267,7 +264,7 @@ function applyRedFilter(ctx, w, h, intensity) {
 
 // ─── DRAW FRAME ────────────────────────────────────────────────
 function drawFrame(ctx, img, w, h, progress) {
-    // Pure black background
+    // Pure black background (in 800x800 LOGICAL coordinates)
     ctx.fillStyle = "#000000ff";
     ctx.fillRect(0, 0, w, h);
 
@@ -275,7 +272,12 @@ function drawFrame(ctx, img, w, h, progress) {
 
     const eased = easeInOut(progress);
     const scale = FRAME_START_SCALE + (eased * (FRAME_END_SCALE - FRAME_START_SCALE));
-    const size = Math.min(w, h) * scale;
+
+    // The demon is CENTERED in the 800x800 logical world. Its size and
+    // position are relative to GAME_WIDTH/GAME_HEIGHT — never to the
+    // viewport — so resizing/fullscreen does not move or rescale it.
+    const base = Math.min(w, h); // w === h === 800 (square logical space)
+    const size = base * scale;
     const x = Math.round((w - size) / 2);
     const y = Math.round((h - size) / 2);
 
@@ -283,11 +285,8 @@ function drawFrame(ctx, img, w, h, progress) {
     const alpha = FRAME_FADE_START + (eased * (FRAME_FADE_END - FRAME_FADE_START));
     ctx.globalAlpha = Math.min(alpha, 1);
 
-    // Draw image with subtle red glow
-    ctx.shadowColor = "rgba(0, 0, 0, 0.75)";
-    ctx.shadowBlur = 40;
+    // Draw image — no glow, no shadow, just raw demon frame
     ctx.drawImage(img, x, y, size, size);
-    ctx.shadowBlur = 0;
     ctx.globalAlpha = 1;
 
     // Apply scary effects towards the end
@@ -306,7 +305,7 @@ function drawFrame(ctx, img, w, h, progress) {
 
 // ─── MAIN ENTRY ─────────────────────────────────────────────────
 export function maybeShowIntroPlaceholders({ onComplete } = {}) {
-    if (!DEBUG_START_INTRO_ANIMATION) {
+    if (!DEBUG_START_INTRO_ANIMATION || DISABLE_ANIMATIONS) {
         onComplete?.();
         return;
     }
@@ -317,8 +316,34 @@ export function maybeShowIntroPlaceholders({ onComplete } = {}) {
         marker.id = "intro-styles-injected";
         document.head.appendChild(marker);
         injectStyles();
-        injectStaticOverlay();
         injectLoadingText();
+    }
+
+    // Force a pure black backdrop for the entire intro — the theme manager
+    // may otherwise tint the page (e.g. evil red-black) around the canvas.
+    if (typeof document !== 'undefined') {
+        document.documentElement.style.backgroundColor = '#000000';
+        document.body.style.backgroundColor = '#000000';
+        // Activate the attribute-scoped !important rule injected by injectStyles().
+        // This defeats the theme manager's html/body !important background.
+        document.documentElement.setAttribute('data-bunbit-intro', '');
+    }
+
+    // Re-center the intro canvas whenever the viewport changes, so it never
+    // gets stuck offset in a small/resized window. The display layer already
+    // listens to resize; this guards the manual fallback too.
+    if (typeof window !== 'undefined' && !introResizeHandler) {
+        introResizeHandler = () => {
+            const c = getCanvas();
+            if (!c) return;
+            const display = window.__bunbitDisplay;
+            if (display && typeof display.applyDisplayScale === 'function') {
+                display.applyDisplayScale();
+            } else {
+                centerCanvasManually(c);
+            }
+        };
+        window.addEventListener('resize', introResizeHandler);
     }
 
     const canvas = getCanvas();
@@ -328,10 +353,12 @@ export function maybeShowIntroPlaceholders({ onComplete } = {}) {
     }
 
 
-    const ctx = canvas.getContext("2d");
-    const { w, h } = setupFullscreenCanvas(canvas);
+    // Use willReadFrequently: true for better performance with frequent getImageData operations
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    const { w, h } = setupLogicalCanvas(canvas);
 
-    // Ensure drawing uses CSS-pixel coordinates even though the backing store is DPR-scaled.
+    // The canvas is exactly GAME_WIDTH x GAME_HEIGHT (800x800).
+    // Ensure the identity transform so we draw in logical coordinates.
     ctx.setTransform(1, 0, 0, 1, 0, 0);
 
     preloadImages(FRAME_SOURCES).then((imgs) => {
@@ -355,7 +382,7 @@ export function maybeShowIntroPlaceholders({ onComplete } = {}) {
                 // Flicker out
                 let flickerCount = 0;
                 const flickerOut = () => {
-                    ctx.fillStyle = "#0a0a0a";
+                    ctx.fillStyle = "#000000";
                     ctx.fillRect(0, 0, w, h);
                     flickerCount++;
                     if (flickerCount < 6) {
@@ -363,7 +390,7 @@ export function maybeShowIntroPlaceholders({ onComplete } = {}) {
                     } else {
                         ctx.clearRect(0, 0, w, h);
                         // Remove overlays
-                        document.querySelectorAll(".intro-static, .intro-loading").forEach(el => el.remove());
+                        document.querySelectorAll(".intro-loading").forEach(el => el.remove());
                         onComplete?.();
                     }
                 };
@@ -377,7 +404,7 @@ export function maybeShowIntroPlaceholders({ onComplete } = {}) {
 
 // ─── AUTO-RUN ───────────────────────────────────────────────────
 export function runIntroPlaceholderAutorun() {
-    if (!RUN_INTRO_ON_START || hasRun) return Promise.resolve();
+    if (!RUN_INTRO_ON_START || hasRun || SKIP_INTRO) return Promise.resolve();
     if (!introActive) return Promise.resolve();
 
     hasRun = true;
@@ -385,7 +412,17 @@ export function runIntroPlaceholderAutorun() {
         maybeShowIntroPlaceholders({
             onComplete: () => {
                 setIntroActive(false);
-                window.location.href = "main_game.html";
+                // Restore the themed html/body background (evil red-black for the
+                // dashboard). The pure-black intro override must NOT persist.
+                clearIntroBackdrop();
+                // Let the engine state machine handle the transition to DASHBOARD.
+                // The engine controller will manage the next screen.
+                if (typeof window !== 'undefined' && window.engineController) {
+                    window.engineController.transitionTo('DASHBOARD');
+                } else {
+                    // Fallback: redirect to main_game.html if engine controller is not available
+                    window.location.href = "main_game.html";
+                }
                 resolve();
             }
         });
@@ -397,7 +434,7 @@ export function tryAutorunIntroPlaceholder() {
 }
 
 // ─── AUTO-START ────────────────────────────────────────────────
-if (RUN_INTRO_ON_START && typeof window !== 'undefined') {
+if (RUN_INTRO_ON_START && !SKIP_INTRO && typeof window !== 'undefined') {
     requestAnimationFrame(() => {
         runIntroPlaceholderAutorun();
     });

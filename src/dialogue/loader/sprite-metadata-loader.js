@@ -1,0 +1,141 @@
+// ============================================================
+// SPRITE METADATA LOADER
+// ============================================================
+// Parses markdown sprite sheet files and exposes:
+//   - character
+//   - expression
+//   - sprite reference
+//   - animation metadata
+//
+// Does NOT hardcode filenames or paths.
+// The renderer requests by character + expression;
+// this loader resolves the ASCII representation.
+// ============================================================
+
+/**
+ * Parses a markdown sprite sheet file content into structured metadata.
+ * Supports two formats:
+ *
+ * Format 1 (with expression names):
+ *   ExpressionName
+ *   (line1)
+ *   (line2)
+ *
+ * Format 2 (bare ASCII art, no expression name):
+ *   (\_/)
+ *   (•ᴗ•)
+ *
+ * In Format 2, the entire content is treated as the default expression.
+ *
+ * @param {string} content - Raw markdown file content.
+ * @returns {object} Parsed sprite metadata map keyed by expression name.
+ */
+export function parseSpriteSheetMarkdown(content) {
+    const expressions = {};
+    const lines = content.split('\n');
+    let currentExpression = null;
+    let currentLines = [];
+    let hasExpressionNames = false;
+
+    // First pass: detect if the file has expression name headers
+    for (const rawLine of lines) {
+        const line = rawLine.trim();
+        if (line === '') continue;
+        // If a line has no parentheses or backslashes, it's an expression name
+        if (!line.includes('(') && !line.includes(')') && !line.includes('\\')) {
+            hasExpressionNames = true;
+            break;
+        }
+    }
+
+    // If no expression names found, treat entire content as default expression
+    if (!hasExpressionNames) {
+        const artLines = lines
+            .map((l) => l.trim())
+            .filter((l) => l !== '');
+        if (artLines.length > 0) {
+            expressions['default'] = artLines.join('\n');
+        }
+        return expressions;
+    }
+
+    // Format 1: parse with expression name headers
+    for (const rawLine of lines) {
+        const line = rawLine.trim();
+
+        // Skip empty lines
+        if (line === '') {
+            if (currentExpression && currentLines.length > 0) {
+                expressions[currentExpression] = currentLines.join('\n');
+                currentExpression = null;
+                currentLines = [];
+            }
+            continue;
+        }
+
+        // Check if this line is an expression name (no parentheses, no backslashes)
+        if (!line.includes('(') && !line.includes(')') && !line.includes('\\')) {
+            // Save previous expression if any
+            if (currentExpression && currentLines.length > 0) {
+                expressions[currentExpression] = currentLines.join('\n');
+            }
+            currentExpression = line;
+            currentLines = [];
+        } else {
+            // This is a sprite line (contains ASCII art)
+            if (currentExpression) {
+                currentLines.push(line);
+            }
+        }
+    }
+
+    // Save the last expression
+    if (currentExpression && currentLines.length > 0) {
+        expressions[currentExpression] = currentLines.join('\n');
+    }
+
+    return expressions;
+}
+
+/**
+ * Loads sprite metadata from a character JSON definition and its sprite sheet file.
+ * @param {object} characterDef - Character metadata object (from characters/*.json).
+ * @param {Function} fetchFn - Async function to fetch file content (defaults to fetch).
+ * @returns {object} Character metadata with resolved expression sprites.
+ */
+export async function loadCharacterSpriteMetadata(characterDef, fetchFn = null) {
+    const resolvedFetch = fetchFn || (async (path) => {
+        const response = await fetch(path);
+        return response.text();
+    });
+
+    const spriteSheetPath = `${characterDef.spriteFolder}/${characterDef.spriteSheet}`;
+    const content = await resolvedFetch(spriteSheetPath);
+    const expressionSprites = parseSpriteSheetMarkdown(content);
+
+    return {
+        id: characterDef.id,
+        displayName: characterDef.displayName,
+        defaultExpression: characterDef.defaultExpression,
+        expressions: characterDef.expressions,
+        expressionSprites,
+        uiPosition: characterDef.uiPosition,
+    };
+}
+
+/**
+ * Loads multiple character sprite metadata files.
+ * @param {object[]} characterDefs - Array of character metadata objects.
+ * @param {Function} fetchFn - Optional custom fetch function.
+ * @returns {object} Map of character ID to resolved metadata.
+ */
+export async function loadAllCharacterSpriteMetadata(characterDefs, fetchFn = null) {
+    const results = {};
+    for (const def of characterDefs) {
+        const resolved = await loadCharacterSpriteMetadata(def, fetchFn);
+        results[resolved.id] = resolved;
+    }
+    return results;
+}
+
+export default { parseSpriteSheetMarkdown, loadCharacterSpriteMetadata, loadAllCharacterSpriteMetadata };

@@ -1,6 +1,6 @@
 // loadascii.js
 import { computerAICanvas, computerAIRenderEngine } from "../../computerai.js";
-import { REF_CANVAS_HEIGHT, REF_CANVAS_WIDTH, SCALE_X, SCALE_Y } from "../../../../globals.js";
+import { REF_CANVAS_HEIGHT, REF_CANVAS_WIDTH, SCALE_X, SCALE_Y, GLOBAL_FONT } from "../../../../globals.js";
 
 let asciiArtLines = [];        // Stores the lines of art
 let asciiOffscreen = null;     // Offscreen canvas for cached ASCII
@@ -17,14 +17,22 @@ export function loadAsciiArt() {
 
     loadPromise = new Promise(async (resolve, reject) => {
         try {
-            const response = await fetch("/src/ai/computerai/mainframe/ui/asciiart/bunbitos.txt");
-            if (!response.ok) throw new Error("Couldn't load ASCII art!");
+            // Use import.meta.url to resolve the path relative to this module,
+            // avoiding issues with absolute paths in different server configurations.
+            const asciiArtPath = new URL('./asciiart/bunbitos.txt', import.meta.url).href;
+            console.log(`[loadascii.js] Attempting to load ASCII art from: ${asciiArtPath}`);
+
+            const response = await fetch(asciiArtPath);
+            if (!response.ok) {
+                console.error(`[loadascii.js] Failed to load ASCII art: ${response.status} ${response.statusText}`);
+                throw new Error("Couldn't load ASCII art!");
+            }
 
             const text = await response.text();
             asciiArtLines = text.split("\n");
 
             // Precompute measurements
-            computerAIRenderEngine.font = `${fontSize_logical * SCALE_X}px Courier`;
+            computerAIRenderEngine.font = `${fontSize_logical * SCALE_X}px ${GLOBAL_FONT}`;
             let maxWidth = 0;
             let drawCommands = [];
 
@@ -50,7 +58,7 @@ export function loadAsciiArt() {
 
             // Draw to offscreen
             offCtx.fillStyle = "#FC0000";
-            offCtx.font = `${fontSize_logical * SCALE_X}px Courier`;
+            offCtx.font = `${fontSize_logical * SCALE_X}px ${GLOBAL_FONT}`;
             offCtx.textAlign = "center";
             offCtx.textBaseline = "top";
 

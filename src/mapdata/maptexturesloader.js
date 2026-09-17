@@ -1,5 +1,6 @@
 // game_engine/mapdata/maptextures.js
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from "../globals.js";
+import { wdMainEvent } from "../debug/workermaindebug.js";
 
 // Check if running in browser (for Image and document)
 const isBrowser = typeof document !== 'undefined' && typeof Image !== 'undefined';
@@ -77,21 +78,30 @@ function logTextureSummary(status = "complete") {
     console.groupEnd();
 }
 
-export const fullTile = { type: "wall", textureId: 1, texture: "wall_creamlol", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
-export const fullTileBrick = { type: "wall", textureId: 2, texture: "wall_brick", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
-export const fullTileAldi = { type: "wall", textureId: 3, texture: "wall_aldi", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
-export const fullTileSatanic = { type: "wall", textureId: 4, texture: "wall_satanic", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
-export const fullTileSchizoEye = { type: "wall", textureId: 5, texture: "wall_schizoeye", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
-export const fullTileRustyDoor01 = { type: "wall", textureId: 6, texture: "door_rusty_01", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
-export const fullTileBrickGraffiti01 = { type: "wall", textureId: 7, texture: "wall_brick_graffiti_01", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
-export const fullTileLaughingDemon = { type: "wall", textureId: 8, texture: "wall_laughing_demon", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
-export const fullTileBrickDoor01Open = { type: "wall", textureId: 9, texture: "wall_brick_door01_open", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
-export const fullTileBrickDoor01Closed = { type: "wall", textureId: 10, texture: "wall_brick_door01_closed", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
-export const fullTileFenceWallTest = { type: "wall", textureId: 11, texture: "wall_fence_test", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
-export const fullTileBrickCream = { type: "wall", textureId: 12, texture: "wall_brick_cream", floorHeight: 0, floorTextureId: 50, floorTexture: "wall_brick_cream", ceilingTextureId: 1 };
-export const fullTileBrickEye = { type: "wall", textureId: 13, texture: "wall_brick_eye", floorHeight: 0, floorTextureId: 50, floorTexture: "wall_brick_eye", ceilingTextureId: 1 };
-export const fullTileCasper01 = { type: "wall", textureId: 14, texture: "wall_casper_01", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1 };
+export const fullTile = { type: "wall", textureId: 1, texture: "wall_creamlol", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1, transparent: false };
+export const fullTileBrick = { type: "wall", textureId: 2, texture: "wall_brick", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1, transparent: false };
+export const fullTileAldi = { type: "wall", textureId: 3, texture: "wall_aldi", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1, transparent: false };
+export const fullTileSatanic = { type: "wall", textureId: 4, texture: "wall_satanic", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1, transparent: false };
+export const fullTileSchizoEye = { type: "wall", textureId: 5, texture: "wall_schizoeye", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1, transparent: false };
+export const fullTileRustyDoor01 = { type: "wall", textureId: 6, texture: "door_rusty_01", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1, transparent: false };
+export const fullTileBrickGraffiti01 = { type: "wall", textureId: 7, texture: "wall_brick_graffiti_01", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1, transparent: false };
+export const fullTileLaughingDemon = { type: "wall", textureId: 8, texture: "wall_laughing_demon", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1, transparent: false };
+export const fullTileBrickDoor01Open = { type: "wall", textureId: 9, texture: "wall_brick_door01_open", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1, transparent: false };
+export const fullTileBrickDoor01Closed = { type: "wall", textureId: 10, texture: "wall_brick_door01_closed", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1, transparent: false };
+export const fullTileFenceWallTest = { type: "wall", textureId: 11, texture: "wall_fence_test", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1, transparent: false };
+export const fullTileBrickCream = { type: "wall", textureId: 12, texture: "wall_brick_cream", floorHeight: 0, floorTextureId: 50, floorTexture: "wall_brick_cream", ceilingTextureId: 1, transparent: false };
+export const fullTileBrickEye = { type: "wall", textureId: 13, texture: "wall_brick_eye", floorHeight: 0, floorTextureId: 50, floorTexture: "wall_brick_eye", ceilingTextureId: 1, transparent: false };
+export const fullTileCasper01 = { type: "wall", textureId: 14, texture: "wall_casper_01", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1, transparent: false };
 export const emptyTile = { type: "empty", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete_01", ceilingTextureId: 1 };
+
+// Transparent wall tile (invisible but still blocks rays)
+export const transparentWall = { type: "wall", textureId: 1, texture: "wall_creamlol", floorHeight: 0, floorTextureId: 50, floorTexture: "floor_concrete", ceilingTextureId: 1, transparent: true };
+
+// Set of texture keys that should be rendered as transparent (invisible) walls
+export const transparentWallTextureKeys = new Set();
+
+// Register transparent wall texture key
+transparentWallTextureKeys.add(transparentWall.texture);
 
 export const tileTexturesMap = new Map();
 
@@ -107,14 +117,23 @@ export const roofConcrete01 = { type: "roof", textureId: 100, texture: "roof_con
 const floorTextures = {
     floor_concrete_01: isBrowser ? new Image() : { src: "./img/sprites/floors/floor_concrete_01.png" },
     floor_test: isBrowser ? new Image() : { src: "./img/sprites/walls/creamlol.png" },
+    floor_dirt_01: isBrowser ? new Image() : { src: "./img/sprites/floors/floor_dirt_01.png" },
+    floor_metal_01: isBrowser ? new Image() : { src: "./img/sprites/floors/floor_metal_01.png" },
+    floor_wood_01: isBrowser ? new Image() : { src: "./img/sprites/floors/floor_wood_01.png" },
 };
 if (isBrowser) {
     floorTextures.floor_concrete_01.src = "./img/sprites/floors/floor_concrete_01.png";
     floorTextures.floor_test.src = "./img/sprites/walls/creamlol.png";
+    floorTextures.floor_dirt_01.src = "./img/sprites/floors/floor_dirt_01.png";
+    floorTextures.floor_metal_01.src = "./img/sprites/floors/floor_metal_01.png";
+    floorTextures.floor_wood_01.src = "./img/sprites/floors/floor_wood_01.png";
 }
 
 export const floorConcrete = { type: "floor", textureId: 50, texture: "floor_concrete_01", floorHeight: 1 };
 export const floorTest = { type: "floor", textureId: 51, texture: "floor_test", floorHeight: 1 };
+export const floorDirt = { type: "floor", textureId: 52, texture: "floor_dirt_01", floorHeight: 1 };
+export const floorMetal = { type: "floor", textureId: 53, texture: "floor_metal_01", floorHeight: 1 };
+export const floorWood = { type: "floor", textureId: 54, texture: "floor_wood_01", floorHeight: 1 };
 
 // Initialize tileTexturesMap
 for (const [key, texture] of Object.entries(floorTextures)) {
@@ -249,6 +268,8 @@ async function _startTextureWorkerLoad() {
 
     try {
         const worker = new Worker('/src/mapdata/textureloaderworker.js', { type: 'module' });
+        wdMainEvent('textureloader-worker', 'created (module)');
+        worker.onerror = (error) => { console.error('Texture worker error:', error); wdMainError('textureloader-worker', error); };
         const texturesToSend = [];
         for (const [key, value] of Object.entries(tileTextures)) {
             if (key === 'wall_laughing_demon') {
@@ -264,6 +285,7 @@ async function _startTextureWorkerLoad() {
         worker.onmessage = function (e) {
             const data = e.data;
             if (!data) return;
+            wdMainMessage('textureloader-worker', data.type);
             if (data.type === 'loaded') {
                 try {
                     const key = data.key;
@@ -311,6 +333,7 @@ async function _startTextureWorkerLoad() {
                 }
             } else if (data.type === 'error') {
                 console.error('Texture worker error', data.key, data.message);
+                wdMainError('textureloader-worker', data);
             } else {
                 // ignore other messages
             }
@@ -334,5 +357,7 @@ if (USE_TEXTURE_WORKER) {
             console.info('[Textures] Worker not used; falling back to main-thread image loader');
         }
     });
+} else {
+    wdMainEvent('textureloader-worker', 'DISABLED: USE_TEXTURE_WORKER=false — worker is never started (main-thread loader used instead)');
 }
 

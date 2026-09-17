@@ -1,21 +1,32 @@
+// raycastworker.js
 "use strict";
+
+import { createWorkerDebug } from '../../debug/workerdebug.js';
+const wd = createWorkerDebug('raycast-worker');
 
 /* =========================================================
    DEBUG + CRASH HANDLING
 ========================================================= */
+let wasmExports = null; // Will be set from main thread
+
+// Frame counter for debugging
+let frameCount = 0;
 
 function debug(msg, extra = {}) {
-    try {
-        self.postMessage({
-            type: "wasmDebug",
-            msg,
-            ...extra
-        });
-    } catch { }
+    if (typeof window !== 'undefined' && window.DEBUG_WASM) {
+        try {
+            self.postMessage({
+                type: "wasmDebug",
+                msg,
+                ...extra
+            });
+        } catch { }
+    }
 }
 
 self.addEventListener("error", (e) => {
     try {
+        wd.logError("worker error", e.message, e.filename, e.lineno + ":" + e.colno);
         self.postMessage({
             type: "workerError",
             message: e.message,
@@ -28,6 +39,7 @@ self.addEventListener("error", (e) => {
 
 self.addEventListener("unhandledrejection", (e) => {
     try {
+        wd.logError("unhandled rejection", e.reason?.message || String(e.reason));
         self.postMessage({
             type: "workerError",
             message: "UnhandledPromiseRejection",
@@ -44,10 +56,10 @@ const WorkerState = {
     static: null,
     latestFrameId: -1,
 
+    // WASM exports will be stored here (received from main thread)
     wasm: null,
-    wasmPromise: null,
-    wasmStatus: "disabled",
     batchPoC: null,
+    wasmStatus: "disabled",
 
     cpuAccum: 0,
     workerId: null,
@@ -115,54 +127,6 @@ function ensureBuffers(rayCount) {
 }
 
 /* =========================================================
-   WASM LOADER
-========================================================= */
-
-const WASM_BASE = "/src/wasm/generated/wasm-gc";
-const WASM_RUNTIME_URL = `${WASM_BASE}/bunbit-renderhelpers.wasm-runtime.js`;
-const WASM_URL = `${WASM_BASE}/bunbit-renderhelpers.wasm`;
-
-function postWasmStatus(status) {
-    WorkerState.wasmStatus = status;
-    try {
-        self.postMessage({ type: "wasmStatus", status });
-    } catch { }
-}
-
-async function loadWasm() {
-    if (WorkerState.wasm) return WorkerState.wasm;
-    if (WorkerState.wasmPromise) return WorkerState.wasmPromise;
-
-    WorkerState.wasmPromise = (async () => {
-        try {
-
-            debug("Starting WASM load");
-
-            importScripts(WASM_RUNTIME_URL);
-
-            const res = await fetch(WASM_URL);
-            const bytes = await res.arrayBuffer();
-
-            const module = await self.TeaVM.wasmGC.load(bytes, {
-                stackDeobfuscator: { enabled: false }
-            });
-
-            WorkerState.wasm = module;
-            WorkerState.batchPoC = module.exports.raycastColumnsBatch;
-
-            postWasmStatus("ready");
-            return module;
-
-        } catch (err) {
-            postWasmStatus("failed");
-            throw err;
-        }
-    })();
-
-    return WorkerState.wasmPromise;
-}
-
-/* =========================================================
    MAP FLATTEN
 ========================================================= */
 
@@ -186,8 +150,16 @@ function flattenMap(map) {
     return { grid, texGrid, w, h };
 }
 
+function postWasmStatus(status) {
+    WorkerState.wasmStatus = status;
+    debug("WASM status updated", { status });
+    try {
+        self.postMessage({ type: "wasmStatus", status });
+    } catch { }
+}
+
 /* =========================================================
-   RAYCAST CORE (JS FALLBACK ONLY)
+   RAYCAST CORE (JS FALLBACK + WASM via main thread exports)
 ========================================================= */
 
 self.addEventListener("message", async (e) => {
@@ -212,23 +184,61 @@ self.addEventListener("message", async (e) => {
             };
 
             WorkerState.workerId = d.workerId;
+            wd.setName('raycast-worker-' + (d.workerId != null ? d.workerId : '?'));
+            wd.heartbeat();
 
             if (Array.isArray(d.map_01)) {
                 WorkerState.flatMap = flattenMap(d.map_01);
             }
 
-            if (WorkerState.static.useWasm) {
-                await loadWasm();
+            // Receive WASM exports from the main thread and only enable WASM when complete.
+            // If anything is missing, always use JS fallback.
+            if (d.wasmExports && typeof d.wasmExports === 'object') {
+                const hasRaycast = typeof d.wasmExports.raycastColumnsBatch === 'function';
+                const hasFastSin = typeof d.wasmExports.fastSin === 'function';
+                const hasFastCos = typeof d.wasmExports.fastCos === 'function';
+
+                if (hasRaycast && hasFastSin && hasFastCos) {
+                    wasmExports = d.wasmExports;
+                    WorkerState.wasm = wasmExports;
+                    WorkerState.batchPoC = wasmExports.raycastColumnsBatch;
+                    postWasmStatus("ready");
+                    debug("WASM exports received from main thread", {
+                        hasRaycast,
+                        hasFastSin,
+                        hasFastCos,
+                        hasRaycastColumnsBatch: hasRaycast
+                    });
+                } else {
+                    wasmExports = null;
+                    WorkerState.wasm = null;
+                    WorkerState.batchPoC = null;
+                    debug("WASM exports missing required functions, using JS fallback", {
+                        hasRaycast,
+                        hasFastSin,
+                        hasFastCos
+                    });
+                    postWasmStatus("fallback");
+                }
+            } else {
+                wasmExports = null;
+                WorkerState.wasm = null;
+                WorkerState.batchPoC = null;
+                debug("No WASM exports received, using JS fallback");
+                postWasmStatus("disabled");
             }
 
             self.postMessage({ type: "init", success: true });
+            wd.log('started');
             return;
         }
+
 
         if (!WorkerState.static) throw new Error("Not initialized");
 
         if (d.frameId < WorkerState.latestFrameId) return;
         WorkerState.latestFrameId = d.frameId;
+        frameCount++;
 
         const s = {
             ...WorkerState.static,
@@ -241,14 +251,15 @@ self.addEventListener("message", async (e) => {
         const rayCount = d.endRay - d.startRay;
 
         /* =====================================================
-           WASM PATH (FIXED)
+           WASM PATH (Using exports from main thread)
         ===================================================== */
 
-        if (WorkerState.wasm && WorkerState.batchPoC) {
+        // Use the globally stored wasmExports
+        if (wasmExports && typeof wasmExports.raycastColumnsBatch === "function") {
 
             ensureBuffers(rayCount);
 
-            WorkerState.batchPoC(
+            wasmExports.raycastColumnsBatch(
                 s.posX, s.posZ, s.playerAngle, s.playerFOV,
                 d.startRay, d.endRay, s.numCastRays,
                 s.tileSize,
@@ -294,6 +305,8 @@ self.addEventListener("message", async (e) => {
                 };
             }
 
+            wd.markTask();
+            if (frameCount % 60 === 0) wd.log('processed task', frameCount);
             self.postMessage({
                 type: "frame",
                 frameId: d.frameId,
@@ -306,29 +319,101 @@ self.addEventListener("message", async (e) => {
         }
 
         /* =====================================================
-           JS FALLBACK (UNCHANGED)
-        ===================================================== */
+            JS FALLBACK (PROPER IMPLEMENTATION)
+         ===================================================== */
 
         const map = WorkerState.static.map;
 
         const rayData = new Array(rayCount);
 
-        // JS fallback: use wasm batchPoC when available, otherwise fall back to local castRayColumn implementation.
-        // (Some builds migrated globals and removed/renamed castRayColumn in this worker.)
-        const castRayColumnLocal = (typeof castRayColumn === 'function')
-            ? castRayColumn
-            : (x, state, map2d, mathBackend) => {
-                // Minimal safe stub: returns null if we don't know how to cast.
-                // Rendering code already handles null rays.
-                if (!map2d || !Array.isArray(map2d) || map2d.length === 0) return null;
-                return null;
+        // Proper JS raycasting implementation
+        const castRayColumnLocal = (rayIndex, state, map2d, mathBackend) => {
+            if (!map2d || !Array.isArray(map2d) || map2d.length === 0) return null;
+
+            const rayAngle = mathBackend.rayAngle(state.playerAngle, state.playerFOV, rayIndex, state.numCastRays);
+            const cosA = Math.cos(rayAngle);
+            const sinA = Math.sin(rayAngle);
+
+            const tileSize = state.tileSize;
+            const maxRayDepth = state.maxRayDepth;
+
+            // Initial position in map grid
+            let cellX = Math.floor(state.posX / tileSize);
+            let cellY = Math.floor(state.posZ / tileSize);
+
+            // Distance to next x and y grid lines
+            let distX = (cosA !== 0)
+                ? ((cosA > 0 ? cellX + 1 : cellX) * tileSize - state.posX) / cosA
+                : Number.POSITIVE_INFINITY;
+            let distY = (sinA !== 0)
+                ? ((sinA > 0 ? cellY + 1 : cellY) * tileSize - state.posZ) / sinA
+                : Number.POSITIVE_INFINITY;
+
+            // Delta distances
+            const deltaX = Math.abs(tileSize / cosA);
+            const deltaY = Math.abs(tileSize / sinA);
+
+            let hit = false;
+            let side = 0;
+            let distance = 0;
+            let steps = 0;
+
+            while (steps++ < maxRayDepth * 2 && !hit) {
+                if (distX < distY) {
+                    distance = distX;
+                    cellX += (cosA > 0 ? 1 : -1);
+                    distX += deltaX;
+                    side = 1;
+                } else {
+                    distance = distY;
+                    cellY += (sinA > 0 ? 1 : -1);
+                    distY += deltaY;
+                    side = 0;
+                }
+
+                // Check bounds
+                if (cellX < 0 || cellY < 0 || cellX >= map2d[0].length || cellY >= map2d.length) {
+                    break;
+                }
+
+                // Check for wall hit
+                const tile = map2d[cellY][cellX];
+                if (tile && tile.type === "wall") {
+                    hit = true;
+                }
+            }
+
+            if (!hit) return null;
+
+            // Correct distance for fish-eye effect
+            const angleDiff = rayAngle - state.playerAngle;
+            const correctedDistance = distance / Math.sqrt(1.0 + angleDiff * angleDiff);
+
+            // Get texture key
+            const tile = map2d[cellY][cellX];
+            let textureKey = "wall_creamlol";
+            if (tile) {
+                textureKey = state.textureMap[tile.textureId] ?? "wall_creamlol";
+            }
+
+            return {
+                column: rayIndex,
+                distance: correctedDistance,
+                hitSide: side === 1 ? "y" : "x",
+                textureKey,
+                textureX: 0,
+                floorTextureKey: "floor_concrete_01",
+                backend: "js"
             };
+        };
 
         for (let i = 0; i < rayCount; i++) {
             const x = d.startRay + i;
             rayData[i] = castRayColumnLocal(x, s, map, MathBackend);
         }
 
+        wd.markTask();
+        if (frameCount % 60 === 0) wd.log('processed task', frameCount);
         self.postMessage({
             type: "frame",
             frameId: d.frameId,
@@ -339,6 +424,7 @@ self.addEventListener("message", async (e) => {
 
     } catch (err) {
 
+        wd.logError('task error', err?.message);
         self.postMessage({
             type: "error",
             error: err?.message || String(err),

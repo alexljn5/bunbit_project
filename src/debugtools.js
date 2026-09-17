@@ -4,65 +4,18 @@ import { mapHandler } from "./mapdata/maphandler.js";
 import { tileSectors } from "./mapdata/maps.js";
 import { tileTexturesMap } from "./mapdata/maptexturesloader.js";
 import { getCreamSpinCurrentFrame, spriteState } from "./rendering/sprites/spritetextures.js";
-import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, HIGH_RES_ENABLED, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT } from "./globals.js";
+import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, HIGH_RES_ENABLED, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT, showMinimap, GLOBAL_FONT } from "./globals.js";
 import { spriteManager } from "./rendering/sprites/rendersprites.js";
 import { renderSprite } from "./rendering/sprites/spriteutils.js";
 import { gameVersionNumber, gameName } from "./globals.js";
 import { LAYERS } from "./rendering/sprites/rendersprites.js";
 
-let spriteId = null;
-
 export function compiledDevTools() {
     drawDebugOverlay();
-    drawMinimap();
+    if (showMinimap) {
+        drawMinimap();
+    }
 }
-
-// Static variable for FPS calculation
-let lastFrameTime = null;
-
-function drawDebugOverlay() {
-    // Define debug text panel dimensions
-    const overlayX = 10 * SCALE_X;
-    const overlayY = 10 * SCALE_Y;
-    const overlayWidth = 300 * SCALE_X;
-    const overlayHeight = 100 * SCALE_Y;
-
-    // Draw semi-transparent background
-    renderEngine.fillStyle = "rgba(20, 20, 20, 0.95)";
-    renderEngine.fillRect(overlayX, overlayY, overlayWidth, overlayHeight);
-
-    // Draw white border
-    renderEngine.strokeStyle = "#fff";
-    renderEngine.lineWidth = 2 * Math.min(SCALE_X, SCALE_Y);
-    renderEngine.strokeRect(overlayX, overlayY, overlayWidth, overlayHeight);
-
-    // Draw version text
-    renderEngine.fillStyle = "#fff";
-    renderEngine.font = `${22 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
-    renderEngine.fillText(`${gameName}: ${gameVersionNumber}`, overlayX + 10 * SCALE_X, overlayY + 30 * SCALE_Y);
-
-    // Draw FPS
-    if (!lastFrameTime) lastFrameTime = performance.now();
-    const currentTime = performance.now();
-    const deltaTime = (currentTime - lastFrameTime) / 1000;
-    lastFrameTime = currentTime;
-    const fps = Math.round(1 / deltaTime);
-    renderEngine.fillStyle = "#fff";
-    renderEngine.font = `${16 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
-    renderEngine.fillText(`FPS: ${fps}`, overlayX + 10 * SCALE_X, overlayY + 60 * SCALE_Y);
-
-    // Draw player coordinates
-    const playerX = Math.round(playerPosition.x);
-    const playerZ = Math.round(playerPosition.z);
-    renderEngine.fillStyle = "#fff";
-    renderEngine.font = `${16 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
-    renderEngine.fillText(`X: ${playerX}, Z: ${playerZ}`, overlayX + 10 * SCALE_X, overlayY + 80 * SCALE_Y);
-}
-
-// Define minimap size relative to reference canvas (800x800)
-const baseMinimapWidth = 200; // Base size in reference resolution
-const baseMinimapHeight = 200;
-const baseMargin = 20; // Base margin in reference resolution
 
 export function drawMinimap() {
     // Log the active map key for debugging
@@ -199,15 +152,15 @@ export function drawMinimap() {
             continue;
         }
         if (!sprite.worldPos) {
-            console.warn(`Sprite ${spriteId} has no worldPos`);
+            console.warn(`Sprite ${sprite.id} has no worldPos`);
             continue;
         }
-        if (spriteId === 'metalPipe' && spriteState.isMetalPipeCollected) {
-            console.log(`Skipping ${spriteId}: isMetalPipeCollected is true`);
+        if (sprite.id === 'metalPipe' && spriteState.isMetalPipeCollected) {
+            console.log(`Skipping ${sprite.id}: isMetalPipeCollected is true`);
             continue;
         }
-        if (spriteId === 'nineMMAmmo' && spriteState.isNineMmAmmoCollected) {
-            console.log(`Skipping ${spriteId}: isNineMmAmmoCollected is true`);
+        if (sprite.id === 'nineMMAmmo' && spriteState.isNineMmAmmoCollected) {
+            console.log(`Skipping ${sprite.id}: isNineMmAmmoCollected is true`);
             continue;
         }
         const spriteTileX = sprite.worldPos.x / tileSectors;
@@ -217,11 +170,11 @@ export function drawMinimap() {
             spriteTileX < 0 || spriteTileX >= width ||
             spriteTileY < 0 || spriteTileY >= height
         ) {
-            console.warn(`Sprite ${spriteId} is out of map bounds: x=${spriteTileX}, y=${spriteTileY}`);
+            console.warn(`Sprite ${sprite.id} is out of map bounds: x=${spriteTileX}, y=${spriteTileY}`);
             continue;
         }
         let image = sprite.image;
-        if (spriteId === 'creamSpin') {
+        if (sprite.id === 'creamSpin') {
             const currentFrame = getCreamSpinCurrentFrame();
             if (!currentFrame) {
                 console.warn(`No current frame for creamSpin`);
@@ -249,4 +202,52 @@ export function drawMinimap() {
 
     renderEngine.restore();
 }
-export function compiledTextStyle() { renderEngine.fillStyle = "yellow"; renderEngine.font = `${30 * Math.min(SCALE_X, SCALE_Y)}px Arial`; }
+
+// Static variable for FPS calculation
+let lastFrameTime = null;
+
+function drawDebugOverlay() {
+    // Define debug text panel dimensions
+    const overlayX = 10 * SCALE_X;
+    const overlayY = 10 * SCALE_Y;
+    const overlayWidth = 300 * SCALE_X;
+    const overlayHeight = 100 * SCALE_Y;
+
+    // Draw semi-transparent background
+    renderEngine.fillStyle = "rgba(20, 20, 20, 0.95)";
+    renderEngine.fillRect(overlayX, overlayY, overlayWidth, overlayHeight);
+
+    // Draw white border
+    renderEngine.strokeStyle = "#fff";
+    renderEngine.lineWidth = 2 * Math.min(SCALE_X, SCALE_Y);
+    renderEngine.strokeRect(overlayX, overlayY, overlayWidth, overlayHeight);
+
+    // Draw version text
+    renderEngine.fillStyle = "#fff";
+    renderEngine.font = `${Math.floor(22 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
+    renderEngine.fillText(`${gameName}: ${gameVersionNumber}`, overlayX + 10 * SCALE_X, overlayY + 30 * SCALE_Y);
+
+    // Draw FPS
+    if (!lastFrameTime) lastFrameTime = performance.now();
+    const currentTime = performance.now();
+    const deltaTime = (currentTime - lastFrameTime) / 1000;
+    lastFrameTime = currentTime;
+    const fps = Math.round(1 / deltaTime);
+    renderEngine.fillStyle = "#fff";
+    renderEngine.font = `${Math.floor(16 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
+    renderEngine.fillText(`FPS: ${fps}`, overlayX + 10 * SCALE_X, overlayY + 60 * SCALE_Y);
+
+    // Draw player coordinates
+    const playerX = Math.round(playerPosition.x);
+    const playerZ = Math.round(playerPosition.z);
+    renderEngine.fillStyle = "#fff";
+    renderEngine.font = `${Math.floor(16 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
+    renderEngine.fillText(`X: ${playerX}, Z: ${playerZ}`, overlayX + 10 * SCALE_X, overlayY + 80 * SCALE_Y);
+}
+
+// Define minimap size relative to reference canvas (800x800)
+const baseMinimapWidth = 200; // Base size in reference resolution
+const baseMinimapHeight = 200;
+const baseMargin = 20; // Base margin in reference resolution
+
+export function compiledTextStyle() { renderEngine.fillStyle = "yellow"; renderEngine.font = `${Math.floor(30 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`; }

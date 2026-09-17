@@ -1,46 +1,38 @@
 import { keys } from "../../playerdata/playerlogic.js";
-import { SCALE_X, SCALE_Y, CANVAS_WIDTH, CANVAS_HEIGHT, showTerminal, setShowTerminal } from "../../globals.js";
+import { SCALE_X, SCALE_Y, CANVAS_WIDTH, CANVAS_HEIGHT, showTerminal, setShowTerminal, GLOBAL_FONT } from "../../globals.js";
 import { renderEngine } from "../../rendering/renderengine.js";
 import { terminalGodFunction } from "./terminalhandler.js";
 
 // Re-export showTerminal for backward compatibility
 export { showTerminal };
 
-let lastYState = false;
 let currentCommand = "";
 let inputActive = false;
 let lastKeyStates = {};
+let copyFeedbackTimer = null;
+let copyFeedback = false;
+let isPasting = false;
+let isCopying = false;
+let lastPasteTime = 0;
+let lastCopyTime = 0;
+const clipboardCooldown = 500; // ms between clipboard operations
 
-//Helper function to check if on electron or not
+//Helper function to check if on electron or tauri
 function isElectron() {
     return typeof window !== "undefined"
         && typeof window.process === "object"
         && !!window.process.versions?.electron;
 }
 
+//Helper function to check if on tauri
+function isTauri() {
+    return typeof window !== "undefined"
+        && window.__TAURI__ !== undefined;
+}
+
 export function displayTheTerminal() {
-    const electron = isElectron();
-
-    // Choose key depending on environment
-    const key = electron ? "t" : "y";
-
-    // Toggle terminal only when key is newly pressed
-    if (keys[key] && !lastYState && !inputActive) {
-        setShowTerminal(!showTerminal);
-
-        if (!showTerminal) {
-            inputActive = false;
-            currentCommand = "";
-        }
-
-        console.log(
-            `Terminal toggled (${electron ? "Electron" : "Web"}):`,
-            showTerminal
-        );
-    }
-
-    // Track last key state (reuse lastYState safely)
-    lastYState = keys[key];
+    // Terminal toggle is now handled by F3 in playerlogic.js
+    // This function only renders the terminal when showTerminal is true
 
     if (showTerminal) {
         terminalOverLay();
@@ -68,14 +60,17 @@ function terminalOverLay() {
 
     // Terminal title
     renderEngine.fillStyle = "#fff";
-    renderEngine.font = `${22 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+    renderEngine.font = `${Math.floor(22 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
     renderEngine.fillText("Terminal", overlayX + 20 * SCALE_X, overlayY + 40 * SCALE_Y);
 
     // Display available commands
-    renderEngine.font = `${16 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+    renderEngine.font = `${Math.floor(16 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
     const commands = [
         "/godmode - Toggle infinite health and stamina",
-        "/spawnenemy <type> - Spawn enemy (placeholderai, lesserdemon)",
+        "/spawnenemy <type> [count] - Spawn enemies (placeholderai, lesserdemon/casperlesserdemon, boykisser)",
+        "/setfloortexture <key> - Change floor texture for screenshots",
+        "/resetfloortexture - Restore original floor texture",
+        "/clearenemies - Remove all spawned enemies",
         "/setammo <amount> - Set gun ammo",
         "/setdamage <amount> - Set gun damage",
         "/setrange <amount> - Set gun range",
@@ -83,6 +78,26 @@ function terminalOverLay() {
         "/clearinv - Clear inventory",
         "/help - Show all commands"
     ];
+
+    // Display copy/paste shortcuts
+    const shortcuts = [
+        "CTRL+C - Copy current command",
+        "CTRL+V / CTRL+P - Paste from clipboard"
+    ];
+    shortcuts.forEach((shortcut, i) => {
+        renderEngine.fillStyle = "#888888";
+        renderEngine.fillText(shortcut, overlayX + 20 * SCALE_X, overlayY + (80 + commands.length * 30 + 10 + i * 20) * SCALE_Y);
+    });
+    renderEngine.fillStyle = "#fff";
+
+    // Display copy feedback
+    if (copyFeedback) {
+        renderEngine.fillStyle = "#00ff00";
+        renderEngine.font = `${Math.floor(18 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
+        renderEngine.fillText("Copied!", overlayX + 20 * SCALE_X, overlayY + (80 + commands.length * 30 + 10 + shortcuts.length * 20 + 10) * SCALE_Y);
+        renderEngine.fillStyle = "#fff";
+        renderEngine.font = `${Math.floor(16 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
+    }
 
     commands.forEach((cmd, i) => {
         renderEngine.fillText(cmd, overlayX + 20 * SCALE_X, overlayY + (80 + i * 30) * SCALE_Y);
@@ -104,7 +119,7 @@ function inputIntoTheTerminal() {
     renderEngine.strokeStyle = "#fff";
     renderEngine.strokeRect(overlayX, overlayY, overlayWidth, overlayHeight);
     renderEngine.fillStyle = "#fff";
-    renderEngine.font = `${22 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+    renderEngine.font = `${Math.floor(22 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
     renderEngine.fillText("Input Command: " + (currentCommand || ""), overlayX + 10 * SCALE_X, overlayY + 30 * SCALE_Y);
     renderEngine.restore();
 }
@@ -150,9 +165,107 @@ function setupTerminalClickHandler() {
     };
 }
 
+async function copyToClipboard(text) {
+    if (isCopying) return false;
+    isCopying = true;
+    try {
+        // Use Tauri clipboard API if available
+        if (isTauri() && window.__TAURI__?.clipboard) {
+            await window.__TAURI__.clipboard.writeText(text);
+            return true;
+        }
+        // Fallback to browser Clipboard API
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(text);
+            return true;
+        }
+        // Fallback to execCommand
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+        return true;
+    } catch (err) {
+        console.error("Clipboard write failed:", err);
+        return false;
+    } finally {
+        isCopying = false;
+    }
+}
+
+async function pasteFromClipboard() {
+    if (isPasting) return null;
+    isPasting = true;
+    try {
+        // Use Tauri clipboard API if available
+        if (isTauri() && window.__TAURI__?.clipboard) {
+            return await window.__TAURI__.clipboard.readText();
+        }
+        // Fallback to browser Clipboard API
+        if (navigator.clipboard && navigator.clipboard.readText) {
+            return await navigator.clipboard.readText();
+        }
+        // Fallback: return null (no paste possible)
+        console.warn("No clipboard API available for paste");
+        return null;
+    } catch (err) {
+        console.error("Clipboard read failed:", err);
+        return null;
+    } finally {
+        isPasting = false;
+    }
+}
+
+function showCopyFeedback() {
+    copyFeedback = true;
+    if (copyFeedbackTimer) clearTimeout(copyFeedbackTimer);
+    copyFeedbackTimer = setTimeout(() => {
+        copyFeedback = false;
+    }, 1500);
+}
+
 function setupTerminalKeyHandler() {
     window.addEventListener("keydown", (event) => {
         if (!showTerminal || !inputActive) return;
+
+        // Handle CTRL+C (copy), CTRL+V (paste), CTRL+P (paste)
+        const now = performance.now();
+        if (event.ctrlKey || event.metaKey) {
+            if (event.key === "c" || event.key === "C") {
+                event.preventDefault();
+                if (currentCommand && now - lastCopyTime > clipboardCooldown) {
+                    lastCopyTime = now;
+                    copyToClipboard(currentCommand).then((success) => {
+                        if (success) {
+                            showCopyFeedback();
+                            console.log("Copied to clipboard: " + currentCommand);
+                        } else {
+                            console.log("Copy failed");
+                        }
+                    });
+                }
+                return;
+            } else if (event.key === "v" || event.key === "V" || event.key === "p" || event.key === "P") {
+                event.preventDefault();
+                if (now - lastPasteTime > clipboardCooldown) {
+                    lastPasteTime = now;
+                    pasteFromClipboard().then((text) => {
+                        if (text !== null) {
+                            currentCommand += text;
+                            console.log("Pasted: " + text);
+                        } else {
+                            console.log("Paste failed or clipboard empty");
+                        }
+                    });
+                }
+                return;
+            }
+        }
+
         const key = event.key;
         // Only process if key is newly pressed
         if (!lastKeyStates[key]) {

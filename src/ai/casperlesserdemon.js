@@ -29,19 +29,11 @@ export function setPeekStartTime(value) {
     peekStartTime = value;
 }
 
-export function casperLesserDemon() {
-    const casperSprite = spriteManager.getSprite("casperLesserDemon");
-    if (!casperSprite?.worldPos) {
-        console.log("Casper Lesser Demon sprite or worldPos not found!");
-        return;
-    }
+function runCasperAI(casperSprite) {
+    if (!casperSprite?.worldPos) return;
 
     if (!lastKnownPlayerPos) {
         lastKnownPlayerPos = { x: playerPosition.x, z: playerPosition.z };
-    }
-
-    if (!casperLesserDemonPreviousPos) {
-        casperLesserDemonPreviousPos = { x: casperSprite.worldPos.x, z: casperSprite.worldPos.z };
     }
 
     const enemySpeed = 0.2;
@@ -58,17 +50,14 @@ export function casperLesserDemon() {
 
     const now = performance.now();
     if (distance < hitRadius && now - lastHitTime > hitCooldown) {
-        // Deal damage to player
         playerHealth.playerHealth = Math.max(0, playerHealth.playerHealth - damagePerSecond);
         lastHitTime = now;
 
-        // Check if player died
         if (playerHealth.playerHealth <= 0) {
             casperLesserDemonDeathScreen();
         }
     }
 
-    // Use current map grid from mapHandler
     const currentMap = mapHandler.getFullMap();
     if (!currentMap || !Array.isArray(currentMap) || !currentMap[0]) return;
 
@@ -138,5 +127,30 @@ export function casperLesserDemon() {
 
     casperSprite.worldPos.x = newX;
     casperSprite.worldPos.z = newZ;
+}
 
+export function casperLesserDemon() {
+    // Find all casperLesserDemon sprites (base "casperLesserDemon" and spawned "casperLesserDemon_N")
+    const casperSprites = [];
+    for (const [id, sprite] of spriteManager.sprites) {
+        if (id === "casperLesserDemon" || id.startsWith("casperLesserDemon_")) {
+            casperSprites.push(sprite);
+        }
+    }
+
+    if (casperSprites.length === 0) {
+        return;
+    }
+
+    if (!lastKnownPlayerPos) {
+        lastKnownPlayerPos = { x: playerPosition.x, z: playerPosition.z };
+    }
+
+    if (!casperLesserDemonPreviousPos && casperSprites.length > 0) {
+        casperLesserDemonPreviousPos = { x: casperSprites[0].worldPos.x, z: casperSprites[0].worldPos.z };
+    }
+
+    for (const casperSprite of casperSprites) {
+        runCasperAI(casperSprite);
+    }
 }

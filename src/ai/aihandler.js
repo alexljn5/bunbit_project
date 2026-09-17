@@ -8,6 +8,7 @@ import { mapTable, tileSectors } from "../mapdata/maps.js";
 import { mapHandler } from "../mapdata/maphandler.js";
 import { map_01 } from "../mapdata/map_01.js"; // Import legacy map_01 for fallback
 import { computerAIGodFunction } from "./computerai/computerai.js";
+import { GLOBAL_FONT } from "../globals.js";
 
 // AI registries per map
 const enemyAiRegistry = new Map();
@@ -193,7 +194,7 @@ export function drawAIHealthBar(worldX, worldZ, health, options = {}) {
     engine.strokeRect(barX, barY, barWidth, barHeight);
     if (barWidth > 32 * SCALE_X) {
         engine.fillStyle = 'white';
-        engine.font = `${10 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+        engine.font = `${Math.floor(10 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
         engine.textAlign = 'center';
         engine.fillText(label, screenX, barY - 2);
     }

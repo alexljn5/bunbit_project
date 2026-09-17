@@ -1,6 +1,6 @@
 // inputbox.js
 import { computerAIRenderEngine } from "../../computerai.js";
-import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y } from "../../../../globals.js";
+import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, GLOBAL_FONT } from "../../../../globals.js";
 import { registerInteractiveElement, activeElement, setActiveElement } from "./inputhandler.js";
 
 export class inputBox {
@@ -74,7 +74,7 @@ export class inputBox {
         } else {
             // fallback text
             computerAIRenderEngine.fillStyle = "#000";
-            computerAIRenderEngine.font = `${16 * SCALE_X}px Arial`;
+            computerAIRenderEngine.font = `${16 * SCALE_X}px ${GLOBAL_FONT}`;
             computerAIRenderEngine.textAlign = "center";
             computerAIRenderEngine.textBaseline = "middle";
             const displayText = this.isTextInput ? (this.text || this.label) : this.label;

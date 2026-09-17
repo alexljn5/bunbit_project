@@ -1,12 +1,46 @@
-import { game, renderEngine } from "../rendering/renderengine.js";
-import { keys } from "../playerdata/playerlogic.js";
-import { volumeSlidersGodFunction, setupAudioSliderHandlers } from "../audio/audiohandler.js";
-import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT, menuActive, setMenuActive, playerMovementDisabled, setPlayerMovementDisabled } from "../globals.js";
-import { getMouseCanvasPos } from "../utils/inputTransform.js";
+import { keys } from "../../../playerdata/playerlogic.js";
+import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT, menuActive, setMenuActive, playerMovementDisabled, setPlayerMovementDisabled, GLOBAL_FONT, engineState } from "../../../globals.js";
+import { getMouseCanvasPos } from "../../../utils/inputTransform.js";
 
-import { saveGame, loadGame } from "../savedata/save_load_game.js";
+import { saveGame, loadGame } from "../../../savedata/save_load_game.js";
 import { applyGraphicsPreset, getGraphicsSettings, drawGraphicsOverlay, handleGraphicsMenuClick } from "./graphicssettings.js";
-import { drawButton, drawMenuOverlay } from "./overlays.js";
+import { drawButton, drawMenuOverlay } from "../../overlays.js";
+import { engineController } from "../../../engine/engine.js";
+import { EngineState } from "../../../engine/enginestate.js";
+
+// Import settings sub-modules
+import { drawAudioOverlay } from "./audiosettings.js";
+import { drawControlsOverlay } from "./controlssettings.js";
+
+// Avoid circular dependency with renderengine.js by using window globals
+function getGame() { return window.__game || null; }
+function getRenderEngine() { return window.__renderEngine || null; }
+
+// Fullscreen support via display module
+const bunbitDisplay = typeof window !== 'undefined' ? window.__bunbitDisplay : null;
+
+function toggleFullscreen() {
+    if (!bunbitDisplay) return;
+    if (bunbitDisplay.isFullscreen) {
+        bunbitDisplay.exitFullscreen();
+    } else {
+        bunbitDisplay.requestFullscreen();
+    }
+    needsRedraw = true;
+}
+
+// Keyboard shortcuts for fullscreen (F11 or Alt+Enter)
+if (typeof window !== 'undefined') {
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'F11' || (e.altKey && e.key === 'Enter')) {
+            e.preventDefault();
+            toggleFullscreen();
+        }
+    });
+}
+
+// Export menu loop controls so dashboard can open settings programmatically
+export { startMenuLoop, stopMenuLoop };
 
 let lastEscapeState = false;
 let showLoadPrompt = false;
@@ -24,6 +58,13 @@ let showNoSaveMessage = false;
 let messageTimer = null;
 let presetButtons = []; // Store preset buttons from drawGraphicsOverlay
 
+// Expose settings menu state so renderengine.js can skip mainGameMenu()
+// when the settings menu is handling its own rendering.
+window.__settingsMenuOpen = false;
+
+// File input element for loading games
+let fileInput = null;
+
 // Dynamic settings buttons to ensure proper scaling
 function getSettingsButtons() {
     return [
@@ -33,7 +74,9 @@ function getSettingsButtons() {
         { name: "Graphics", x: 60 * SCALE_X, y: 340 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
         { name: "Save Game", x: 60 * SCALE_X, y: 400 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
         { name: "Load Game", x: 60 * SCALE_X, y: 460 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
-        { name: "Quit", x: 60 * SCALE_X, y: 520 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false }
+        { name: "Fullscreen", x: 60 * SCALE_X, y: 520 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
+        { name: "Back to Menu", x: 60 * SCALE_X, y: 580 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false },
+        { name: "Quit", x: 60 * SCALE_X, y: 640 * SCALE_Y, width: 140 * SCALE_X, height: 40 * SCALE_Y, hovered: false }
     ];
 }
 
@@ -56,113 +99,52 @@ function initOffscreenCanvas() {
 }
 
 function drawStaticMenu() {
-    const testSettingsBackGroundImage = new Image();
-    testSettingsBackGroundImage.src = "./img/menu/main-menu.png";
     initOffscreenCanvas();
     offscreenContext.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     // Use reusable overlay function with alpha 0.8
     drawMenuOverlay(0.8);
-    offscreenContext.fillStyle = "white";
-    offscreenContext.font = `${20 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+    offscreenContext.fillStyle = "#cccccc";
+    offscreenContext.font = `bold ${Math.floor(20 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
     offscreenContext.fillText("Settings Menu", 60 * SCALE_X, 80 * SCALE_Y);
+    offscreenContext.font = `${Math.floor(14 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
     offscreenContext.fillText("Press Escape to close", 60 * SCALE_X, 110 * SCALE_Y);
-    offscreenContext.drawImage(testSettingsBackGroundImage, 0, 0, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 }
 
 function drawSettingsButtons() {
     if (showControls || showAudio || showGraphics) return;
+    const engine = getRenderEngine();
+    if (!engine) return;
     const settingsButtons = getSettingsButtons();
-    settingsButtons.forEach(button => drawButton(renderEngine, button));
+    settingsButtons.forEach(button => drawButton(engine, button));
     if (showSaveMessage || showLoadMessage || showNoSaveMessage) {
-        renderEngine.fillStyle = "rgba(20, 20, 20, 0.95)";
-        renderEngine.fillRect(350 * SCALE_X, 120 * SCALE_Y, 400 * SCALE_X, 100 * SCALE_Y);
-        renderEngine.strokeStyle = "#fff";
-        renderEngine.strokeRect(350 * SCALE_X, 120 * SCALE_Y, 400 * SCALE_X, 100 * SCALE_Y);
-        renderEngine.fillStyle = "#fff";
-        renderEngine.font = `${20 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+        engine.fillStyle = "rgba(10, 10, 10, 0.95)";
+        engine.fillRect(350 * SCALE_X, 120 * SCALE_Y, 400 * SCALE_X, 100 * SCALE_Y);
+        engine.strokeStyle = "#555555";
+        engine.lineWidth = 1;
+        engine.strokeRect(350 * SCALE_X, 120 * SCALE_Y, 400 * SCALE_X, 100 * SCALE_Y);
+        engine.fillStyle = "#cccccc";
+        engine.font = `bold ${Math.floor(20 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
         const message = showSaveMessage ? "Game Saved!" : showLoadMessage ? "Game Loaded!" : "No Save Found!";
-        renderEngine.fillText(message, 400 * SCALE_X, 170 * SCALE_Y);
+        engine.fillText(message, 400 * SCALE_X, 170 * SCALE_Y);
     }
     if (showLoadPrompt) {
-        renderEngine.fillStyle = "rgba(20, 20, 20, 0.95)";
-        renderEngine.fillRect(250 * SCALE_X, 100 * SCALE_Y, 500 * SCALE_X, 150 * SCALE_Y);
-        renderEngine.strokeStyle = "#fff";
-        renderEngine.strokeRect(250 * SCALE_X, 100 * SCALE_Y, 500 * SCALE_X, 150 * SCALE_Y);
-        renderEngine.fillStyle = "#fff";
-        renderEngine.font = `${20 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
-        renderEngine.fillText("Select save.json from your savesdata folder", 280 * SCALE_X, 150 * SCALE_Y);
-        renderEngine.fillText("Click anywhere to continue", 280 * SCALE_X, 180 * SCALE_Y);
+        engine.fillStyle = "rgba(10, 10, 10, 0.95)";
+        engine.fillRect(250 * SCALE_X, 100 * SCALE_Y, 500 * SCALE_X, 150 * SCALE_Y);
+        engine.strokeStyle = "#555555";
+        engine.lineWidth = 1;
+        engine.strokeRect(250 * SCALE_X, 100 * SCALE_Y, 500 * SCALE_X, 150 * SCALE_Y);
+        engine.fillStyle = "#cccccc";
+        engine.font = `bold ${Math.floor(20 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
+        engine.fillText("Select save.json from your savesdata folder", 280 * SCALE_X, 150 * SCALE_Y);
+        engine.fillText("Click anywhere to continue", 280 * SCALE_X, 180 * SCALE_Y);
     }
-}
-
-function drawControlsOverlay() {
-    const overlayX = 350 * SCALE_X;
-    const overlayY = 120 * SCALE_Y;
-    const overlayWidth = 400 * SCALE_X;
-    const overlayHeight = 400 * SCALE_Y;
-    renderEngine.fillStyle = "rgba(20, 20, 20, 0.95)";
-    renderEngine.fillRect(overlayX, overlayY, overlayWidth, overlayHeight);
-    renderEngine.strokeStyle = "#fff";
-    renderEngine.strokeRect(overlayX, overlayY, overlayWidth, overlayHeight);
-    renderEngine.fillStyle = "#fff";
-    renderEngine.font = `${22 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
-    renderEngine.fillText("Controls", overlayX, overlayY + 40 * SCALE_Y);
-    renderEngine.font = `${16 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
-    const controls = [
-        "WASD: Move",
-        "Shift: Walk slow",
-        "Alt: Sprint",
-        "Q/E: Strafe left/right",
-        "Space: Shoot/Hit",
-        "1-9: Inventory slots",
-        "T: Interact",
-        "F3: Toggle debug",
-        "Escape: Open/close menu",
-        "Save files to your savesdata folder!"
-    ];
-    controls.forEach((line, i) => {
-        renderEngine.fillText(line, overlayX + 10 * SCALE_X, overlayY + 80 * SCALE_Y + i * 30 * SCALE_Y);
-    });
-    const backButton = {
-        name: "Back",
-        x: 60 * SCALE_X,
-        y: 470 * SCALE_Y,
-        width: 100 * SCALE_X,
-        height: 36 * SCALE_Y,
-        hovered: false
-    };
-    drawButton(renderEngine, backButton, showControls, 30, 25);
-}
-
-function drawAudioOverlay() {
-    const overlayX = 350 * SCALE_X;
-    const overlayY = 120 * SCALE_Y;
-    const overlayWidth = 400 * SCALE_X;
-    const overlayHeight = 400 * SCALE_Y;
-    renderEngine.fillStyle = "rgba(20, 20, 20, 0.95)";
-    renderEngine.fillRect(overlayX, overlayY, overlayWidth, overlayHeight);
-    renderEngine.strokeStyle = "#fff";
-    renderEngine.strokeRect(overlayX, overlayY, overlayWidth, overlayHeight);
-    renderEngine.fillStyle = "#fff";
-    renderEngine.font = `${22 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
-    renderEngine.fillText("Audio Settings", overlayX, overlayY + 40 * SCALE_Y);
-    volumeSlidersGodFunction();
-    setupAudioSliderHandlers();
-    const backButton = {
-        name: "Back",
-        x: 60 * SCALE_X,
-        y: 470 * SCALE_Y,
-        width: 100 * SCALE_X,
-        height: 36 * SCALE_Y,
-        hovered: false
-    };
-    drawButton(renderEngine, backButton, showAudio, 30, 25);
 }
 
 async function handleSettingsMenuClick(e) {
-    const canvas = renderEngine.canvas;
+    const engine = getRenderEngine();
+    const canvas = engine?.canvas;
+    if (!canvas) return;
     const { x: mouseX, y: mouseY } = getMouseCanvasPos(canvas, e);
-
 
     needsRedraw = true;
 
@@ -202,7 +184,7 @@ async function handleSettingsMenuClick(e) {
     }
 
     if (showGraphics) {
-        handleGraphicsMenuClick(e, renderEngine, SCALE_X, SCALE_Y, presetButtons, (value) => { showGraphics = value; }, (value) => { needsRedraw = value; });
+        handleGraphicsMenuClick(e, engine, SCALE_X, SCALE_Y, presetButtons, (value) => { showGraphics = value; }, (value) => { needsRedraw = value; });
         return;
     }
 
@@ -278,15 +260,28 @@ async function handleSettingsMenuClick(e) {
                 }
             } else if (button.name === "Load Game") {
                 showLoadPrompt = true;
+            } else if (button.name === "Fullscreen") {
+                toggleFullscreen();
+            } else if (button.name === "Back to Menu") {
+                window.__settingsMenuOpen = false;
+                stopMenuLoop();
+                showLoadPrompt = false;
+                showControls = false;
+                showAudio = false;
+                showGraphics = false;
+                detachSettingsMenuHandlers();
+                // Keep menuActive=true so the game menu shows, but don't resume gameplay
             } else if (button.name === "Quit") {
-                window.location.reload();
+                if (typeof window !== 'undefined') {
+                    window.location.href = 'intro.html';
+                }
             }
         }
     });
 }
 
 function attachSettingsMenuHandlers() {
-    const canvas = renderEngine.canvas;
+    const canvas = getRenderEngine()?.canvas;
     if (!canvas) return;
     if (!canvas._hasMenuHandlers) {
         canvas.onmousemove = handleSettingsMenuClick;
@@ -296,21 +291,27 @@ function attachSettingsMenuHandlers() {
 }
 
 function detachSettingsMenuHandlers() {
-    const canvas = renderEngine.canvas;
+    const canvas = getRenderEngine()?.canvas;
     if (!canvas) return;
     if (canvas._hasMenuHandlers) {
-        canvas.onmousemove = null;
+        // Only detach click handlers, keep mouse move handlers for hover effects
         canvas.onclick = null;
         canvas._hasMenuHandlers = false;
     }
 }
 
 function startMenuLoop() {
-    if (menuIsRunning) return;
+    console.log('[Settings] startMenuLoop called, menuIsRunning:', menuIsRunning, 'menuActive:', menuActive);
+    if (menuIsRunning) {
+        console.log('[Settings] startMenuLoop early return - already running');
+        return;
+    }
     menuIsRunning = true;
+    window.__settingsMenuOpen = true;
 
     function menuTick() {
         if (!menuIsRunning || !menuActive) {
+            console.log('[Settings] menuTick stopping, menuIsRunning:', menuIsRunning, 'menuActive:', menuActive);
             stopMenuLoop();
             return;
         }
@@ -319,6 +320,7 @@ function startMenuLoop() {
     }
 
     menuRafId = requestAnimationFrame(menuTick);
+    console.log('[Settings] menu loop started, menuRafId:', menuRafId);
 }
 
 function stopMenuLoop() {
@@ -331,50 +333,76 @@ function stopMenuLoop() {
 }
 
 function menuSettingsRender() {
-    renderEngine.setTransform(1, 0, 0, 1, 0, 0); // Reset transformations
-    renderEngine.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    const engine = getRenderEngine();
+    if (!engine) return;
+    engine.setTransform(1, 0, 0, 1, 0, 0); // Reset transformations
+    engine.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    // Draw solid background immediately to prevent white flash between frames
+    engine.fillStyle = "#0a0a0a";
+    engine.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     if (needsRedraw || !offscreenCanvas) {
         drawStaticMenu();
         needsRedraw = false;
     }
     if (offscreenCanvas) {
-        renderEngine.drawImage(offscreenCanvas, 0, 0);
+        engine.drawImage(offscreenCanvas, 0, 0);
     }
     if (showControls) {
         drawControlsOverlay();
     } else if (showAudio) {
         drawAudioOverlay();
     } else if (showGraphics) {
-        presetButtons = drawGraphicsOverlay(renderEngine, SCALE_X, SCALE_Y, showGraphics);
+        presetButtons = drawGraphicsOverlay(engine, SCALE_X, SCALE_Y, showGraphics);
     } else {
         drawSettingsButtons();
     }
 }
 
 function menuSettings() {
+    // ESC key handler: toggle between game menu and gameplay.
+    // The settings menu is opened from the game menu's Settings button,
+    // not directly from ESC.
     const currentEscapeState = keys["escape"];
     if (!lastEscapeState && currentEscapeState) {
-        setMenuActive(!menuActive);
-        setPlayerMovementDisabled(menuActive);
-        needsRedraw = true;
-        if (menuActive) {
-            console.log("Settings menu opened, pausing game");
-            game.stop();
-            startMenuLoop();
-            attachSettingsMenuHandlers();
-        } else {
-            console.log("Settings menu closed, resuming game");
+        if (window.__settingsMenuOpen) {
+            // Close settings menu, return to game menu
+            window.__settingsMenuOpen = false;
             stopMenuLoop();
-            game.start();
             showLoadPrompt = false;
             showControls = false;
             showAudio = false;
             showGraphics = false;
             detachSettingsMenuHandlers();
+            // Keep menuActive=true so the game menu shows
+        } else if (menuActive) {
+            // Close game menu, resume gameplay
+            setMenuActive(false);
+            setPlayerMovementDisabled(false);
+            showLoadPrompt = false;
+            showControls = false;
+            showAudio = false;
+            showGraphics = false;
+        } else {
+            // Open game menu
+            setMenuActive(true);
+            setPlayerMovementDisabled(true);
         }
+        needsRedraw = true;
     }
     lastEscapeState = currentEscapeState;
 }
+
+function initFileInput() {
+    if (!fileInput) {
+        fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.json';
+        fileInput.style.display = 'none';
+        document.body.appendChild(fileInput);
+    }
+}
+
+export { attachSettingsMenuHandlers, initFileInput };
 
 export function menuSettingsGodFunction() {
     menuSettings();

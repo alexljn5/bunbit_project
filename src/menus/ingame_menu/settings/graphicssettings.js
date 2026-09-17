@@ -1,7 +1,10 @@
-import { updateGraphicsSettings } from "../rendering/raycasting.js";
-import { CANVAS_WIDTH, CANVAS_HEIGHT, updateCanvasResolution, graphicsPresets, currentGraphicsPreset, applyGraphicsPreset, numCastRays, maxRayDepth } from "../globals.js";
-import { drawButton, drawMenuOverlay } from "./overlays.js";
-import { getMouseCanvasPos } from "../utils/inputTransform.js";
+import { updateGraphicsSettings } from "../../../rendering/raycasting.js";
+import { CANVAS_WIDTH, CANVAS_HEIGHT, updateCanvasResolution, graphicsPresets, currentGraphicsPreset, applyGraphicsPreset, numCastRays, maxRayDepth, GLOBAL_FONT } from "../../../globals.js";
+import { drawButton, drawMenuOverlay } from "../../overlays.js";
+import { getMouseCanvasPos } from "../../../utils/inputTransform.js";
+
+// Avoid circular dependency with renderengine.js
+function getRenderEngine() { return window.__renderEngine || null; }
 
 // Re-export graphicsPresets and currentGraphicsPreset for backward compatibility
 export { graphicsPresets, currentGraphicsPreset, applyGraphicsPreset };
@@ -36,14 +39,15 @@ export function drawGraphicsOverlay(renderEngine, SCALE_X, SCALE_Y, showGraphics
     drawMenuOverlay(0.95);
     renderEngine.restore();
 
-    renderEngine.strokeStyle = "#fff";
+    renderEngine.strokeStyle = "#555555";
+    renderEngine.lineWidth = 1;
     renderEngine.strokeRect(overlayX, overlayY, overlayWidth, overlayHeight);
-    renderEngine.fillStyle = "#fff";
-    renderEngine.font = `${22 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+    renderEngine.fillStyle = "#cccccc";
+    renderEngine.font = `bold ${Math.floor(22 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
     renderEngine.fillText("Graphics Settings", overlayX, overlayY + 40 * SCALE_Y);
 
     const currentSettings = getGraphicsSettings();
-    renderEngine.font = `${16 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+    renderEngine.font = `${Math.floor(16 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
     renderEngine.fillText(`Current: ${currentSettings.preset.toUpperCase()}`, overlayX + 10 * SCALE_X, overlayY + 70 * SCALE_Y);
     renderEngine.fillText(`Rays: ${currentSettings.numCastRays}`, overlayX + 10 * SCALE_X, overlayY + 100 * SCALE_Y);
     renderEngine.fillText(`Render Distance: ${currentSettings.maxRayDepth}`, overlayX + 10 * SCALE_X, overlayY + 130 * SCALE_Y);

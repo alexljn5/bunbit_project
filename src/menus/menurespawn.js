@@ -1,7 +1,8 @@
 import { renderEngine } from "../rendering/renderengine.js";
 import { compiledTextStyle } from "../debugtools.js";
-import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y } from "../globals.js";
+import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, GLOBAL_FONT } from "../globals.js";
 import { drawMenuOverlay } from "./overlays.js";
+import { getMouseCanvasPos } from "../utils/inputTransform.js";
 
 let gameOverLolImage = new Image();
 gameOverLolImage.src = "./img/gameoverlol.png";
@@ -10,9 +11,9 @@ export function drawRespawnMenu(canvas, onRespawn) {
     // Draw death screen overlay
     drawMenuOverlay(0.8);
 
-    renderEngine.fillStyle = "#fff";
+    renderEngine.fillStyle = "#cccccc";
     compiledTextStyle();
-    renderEngine.font = `${32 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+    renderEngine.font = `bold ${Math.floor(32 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
     renderEngine.fillText("YOU DIED", CANVAS_WIDTH / 2 - 80 * SCALE_X, CANVAS_HEIGHT / 2 - 50 * SCALE_Y);
 
     // Draw respawn button
@@ -21,13 +22,16 @@ export function drawRespawnMenu(canvas, onRespawn) {
     const buttonX = CANVAS_WIDTH / 2 - buttonWidth / 2;
     const buttonY = CANVAS_HEIGHT / 2 + 20 * SCALE_Y;
 
-    renderEngine.fillStyle = "#222";
+    renderEngine.fillStyle = "#1a1a1a";
     renderEngine.fillRect(buttonX, buttonY, buttonWidth, buttonHeight);
-    renderEngine.strokeStyle = "#fff";
+    renderEngine.strokeStyle = "#555555";
+    renderEngine.lineWidth = 1;
     renderEngine.strokeRect(buttonX, buttonY, buttonWidth, buttonHeight);
-    renderEngine.fillStyle = "#fff";
-    renderEngine.font = `${18 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
-    renderEngine.fillText("Respawn", buttonX + 60 * SCALE_X, buttonY + 25 * SCALE_Y);
+    renderEngine.fillStyle = "#cccccc";
+    renderEngine.font = `bold ${Math.floor(18 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
+    renderEngine.textAlign = 'center';
+    renderEngine.fillText("Respawn", buttonX + buttonWidth / 2, buttonY + 25 * SCALE_Y);
+    renderEngine.textAlign = 'left';
 
     // Draw image only if loaded
     const lolGameOverImg = gameOverLolImage;
@@ -41,7 +45,7 @@ export function drawRespawnMenu(canvas, onRespawn) {
     } else {
         // Optional: Log error or draw a placeholder
         console.error("Game over image failed to load!");
-        renderEngine.fillStyle = "#f00"; // Draw a red rectangle as a fallback
+        renderEngine.fillStyle = "#555555"; // Draw a gray rectangle as a fallback
         renderEngine.fillRect(imgX, imgY, imgWidth, imgHeight);
     }
 

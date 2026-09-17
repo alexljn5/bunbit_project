@@ -1,13 +1,15 @@
-import { SCALE_X, SCALE_Y, CANVAS_WIDTH, CANVAS_HEIGHT } from '../globals.js';
+import { SCALE_X, SCALE_Y, CANVAS_WIDTH, CANVAS_HEIGHT, skyboxEnabled, skyColorTop, skyColorHorizon } from '../globals.js';
 import { setMenuActive } from '../gamestate.js';
 import { gameLoop } from '../game_loop.js';
-import { setupMenuClickHandler } from '../menus/menu.js';
+import { setupMenuClickHandler } from '../menus/ingame_menu/game_menu.js';
 import { gameRenderEngine, initializeRenderWorkers, cleanupRenderWorkers } from '../rendering/renderengine.js';
 import { memCpuGodFunction, stopMemCpuMonitor } from './panels/memcpu.js';
 import { debugHandlerGodFunction, stopDebugTerminal } from './debughandler.js';
 import { themeManager } from '../themes/thememanager.js';
 import { defaultThemeName, DEBUG_START_INTRO_ANIMATION } from '../globals.js';
-
+import { mapHandler } from '../mapdata/maphandler.js';
+import { mapTable } from '../mapdata/maps.js';
+import { transparentWallTextureKeys } from '../mapdata/maptexturesloader.js';
 
 import { togglePositionPanel } from './panels/positionpanel.js';
 
@@ -28,9 +30,9 @@ export function initControlPanel() {
 
     const debugPanel = document.createElement('div');
     debugPanel.id = 'bunbit-debug-panel';
-    // Compact panel: 220x300px self-contained box
+    // Compact panel: 220x420px self-contained box (extra height for new controls)
     const panelWidth = 220;
-    const panelHeight = 300;
+    const panelHeight = 420;
     const edgeGap = 20; // px from viewport edges
     debugPanel.style.position = 'fixed';
     debugPanel.style.top = `${edgeGap}px`;
@@ -138,9 +140,101 @@ export function initControlPanel() {
     // Apply default theme immediately
     try { themeManager.setTheme(defaultThemeName); } catch (e) { /* ignore */ }
 
+    // ─── Map Selector ─────────────────────────────────────
+    const mapSelector = document.createElement('select');
+    mapSelector.id = 'bunbit-debug-map-selector';
+    mapSelector.title = 'Select map (debug)';
+    mapSelector.style.cssText = `
+        padding: ${6 * SCALE_Y}px ${10 * SCALE_X}px;
+        cursor: pointer;
+        border: ${1 * SCALE_X}px solid ${DEFAULT_BORDER};
+        border-radius: ${4 * SCALE_X}px;
+        font-size: ${11 * SCALE_Y}px;
+        font-weight: bold;
+        margin-top: ${4 * SCALE_Y}px;
+        background-color: ${DEFAULT_BUTTON_BG};
+        color: ${DEFAULT_TEXT};
+        width: 100%;
+        box-sizing: border-box;
+    `;
+
+    // Populate map options using actual map keys
+    for (const [key] of mapTable.entries()) {
+        const option = document.createElement('option');
+        option.value = key;
+        option.textContent = key;
+        if (mapHandler.activeMapKey === key) option.selected = true;
+        mapSelector.appendChild(option);
+    }
+
+    mapSelector.addEventListener('change', async (e) => {
+        const selectedMap = e.target.value;
+        if (selectedMap && mapHandler.activeMapKey !== selectedMap) {
+            try {
+                const p = window.__playerPosition || { x: 75, z: 75, angle: 0 };
+                await mapHandler.loadMap(selectedMap, p);
+                console.log(`[DebugPanel] Switched to map: ${selectedMap}`);
+            } catch (err) {
+                console.error(`[DebugPanel] Failed to load map ${selectedMap}:`, err);
+            }
+        }
+    });
+
+    // ─── Skybox Toggle ────────────────────────────────────
+    const skyboxButton = document.createElement('button');
+    skyboxButton.id = 'bunbit-skybox-toggle';
+    skyboxButton.textContent = `Skybox: ${skyboxEnabled ? 'ON' : 'OFF'}`;
+    skyboxButton.style.cssText = `
+        padding: ${6 * SCALE_Y}px ${10 * SCALE_X}px;
+        cursor: pointer;
+        border: ${1 * SCALE_X}px solid ${DEFAULT_BORDER};
+        border-radius: ${4 * SCALE_X}px;
+        font-size: ${11 * SCALE_Y}px;
+        font-weight: bold;
+        margin-top: ${4 * SCALE_Y}px;
+        background-color: ${DEFAULT_BUTTON_BG};
+        color: ${DEFAULT_TEXT};
+        width: 100%;
+        box-sizing: border-box;
+    `;
+    skyboxButton.addEventListener('click', () => {
+        skyboxEnabled = !skyboxEnabled;
+        skyboxButton.textContent = `Skybox: ${skyboxEnabled ? 'ON' : 'OFF'}`;
+        console.log(`[DebugPanel] Skybox ${skyboxEnabled ? 'enabled' : 'disabled'}`);
+    });
+
+    // ─── Transparent Wall Toggle ─────────────────────────
+    const transparentWallButton = document.createElement('button');
+    transparentWallButton.id = 'bunbit-transparent-wall-toggle';
+    transparentWallButton.textContent = 'Transparent Walls: OFF';
+    transparentWallButton.style.cssText = `
+        padding: ${6 * SCALE_Y}px ${10 * SCALE_X}px;
+        cursor: pointer;
+        border: ${1 * SCALE_X}px solid ${DEFAULT_BORDER};
+        border-radius: ${4 * SCALE_X}px;
+        font-size: ${11 * SCALE_Y}px;
+        font-weight: bold;
+        margin-top: ${4 * SCALE_Y}px;
+        background-color: ${DEFAULT_BUTTON_BG};
+        color: ${DEFAULT_TEXT};
+        width: 100%;
+        box-sizing: border-box;
+    `;
+    transparentWallButton.addEventListener('click', () => {
+        const isCurrentlyTransparent = transparentWallTextureKeys.has('wall_creamlol');
+        if (isCurrentlyTransparent) {
+            transparentWallTextureKeys.delete('wall_creamlol');
+            transparentWallButton.textContent = 'Transparent Walls: OFF';
+            console.log('[DebugPanel] Transparent walls disabled');
+        } else {
+            transparentWallTextureKeys.add('wall_creamlol');
+            transparentWallButton.textContent = 'Transparent Walls: ON';
+            console.log('[DebugPanel] Transparent walls enabled (wall_creamlol)');
+        }
+    });
 
     // basic styling for readability - compact buttons
-    [reloadButton, playButton, stopButton, showDebugButton, positionButton].forEach(btn => {
+    [reloadButton, playButton, stopButton, showDebugButton, positionButton, mapSelector, skyboxButton, transparentWallButton].forEach(btn => {
         btn.style.padding = `${6 * SCALE_Y}px ${10 * SCALE_X}px`;
         btn.style.cursor = 'pointer';
         btn.style.border = `${1 * SCALE_X}px solid ${DEFAULT_BORDER}`;
@@ -179,6 +273,9 @@ export function initControlPanel() {
     debugPanel.appendChild(replayIntroButton);
     debugPanel.appendChild(positionButton);
     debugPanel.appendChild(themeSelector);
+    debugPanel.appendChild(mapSelector);
+    debugPanel.appendChild(skyboxButton);
+    debugPanel.appendChild(transparentWallButton);
     document.body.appendChild(debugPanel);
 
     // Notify other systems that the control panel exists now (ThemeManager listens for this)
@@ -213,15 +310,19 @@ export function initControlPanel() {
     observer.observe(document.body, { childList: true, subtree: false });
 
     // Button handlers
-    reloadButton.addEventListener('click', () => {
-        if (typeof window.__electron_bridge !== 'undefined' && window.__electron_bridge.reload) {
-            window.__electron_bridge.reload();
-        } else if (window.electronAPI && typeof window.electronAPI.send === 'function') {
-            window.electronAPI.send('reload-window');
-        } else if (window.require) {
-            try { const { ipcRenderer } = window.require('electron'); ipcRenderer.send('reload-window'); }
-            catch (e) { window.location.reload(); }
-        } else if (window.location && typeof window.location.reload === 'function') {
+    reloadButton.addEventListener('click', async () => {
+        // Try Tauri API first
+        if (typeof window !== 'undefined' && window.__TAURI__) {
+            try {
+                const { invoke } = await import('@tauri-apps/api/core');
+                await invoke('reload_window');
+                return;
+            } catch (e) {
+                console.warn('Tauri reload failed, falling back to window reload');
+            }
+        }
+        // Fallback to window reload
+        if (window.location && typeof window.location.reload === 'function') {
             window.location.reload();
         }
     });
@@ -264,23 +365,80 @@ export function initControlPanel() {
                 try {
                     setMenuActive(true);
                     setupMenuClickHandler();
-                    if (!window.game) {
-                        const canvas = document.getElementById('mainGameRender');
-                        if (canvas && (canvas.width === 0 || canvas.height === 0)) {
-                            canvas.width = CANVAS_WIDTH;
-                            canvas.height = CANVAS_HEIGHT;
+
+                    // Ensure canvas is visible (may be hidden by dashboard)
+                    const canvas = document.getElementById('mainGameRender');
+                    if (canvas) {
+                        canvas.style.display = '';
+
+                        // ─── HARD RESET CANVAS DISPLAY ─────────────────────
+                        // The intro animation (introplaceholder.js) resizes the
+                        // backing store to fullscreen and injects a `100vw/100vh
+                        // !important` stylesheet. Fix both so the render is
+                        // exactly CANVAS_WIDTH x CANVAS_HEIGHT and centered.
+                        //
+                        // 1) Remove the intro-injected fullscreen stylesheet.
+                        const introStyle = document.getElementById('bunbit-intro-styles');
+                        if (introStyle) introStyle.remove();
+                        // 2) Remove intro overlay elements.
+                        document.querySelectorAll('.intro-static, .intro-loading').forEach(el => el.remove());
+                        const introMarker = document.getElementById('intro-styles-injected');
+                        if (introMarker) introMarker.remove();
+
+                        // 3) Reset the backing store unconditionally.
+                        canvas.width = CANVAS_WIDTH;
+                        canvas.height = CANVAS_HEIGHT;
+
+                        // 4) Reset all inline display styles so no leftover
+                        //    transform/position/size from the intro or scaling
+                        //    panel can interfere.
+                        canvas.style.position = 'fixed';
+                        canvas.style.top = '50%';
+                        canvas.style.left = '50%';
+                        canvas.style.right = 'auto';
+                        canvas.style.bottom = 'auto';
+                        canvas.style.transform = 'translate(-50%, -50%)';
+                        canvas.style.transformOrigin = 'center';
+                        canvas.style.zIndex = '2147483650';
+                        canvas.style.width = CANVAS_WIDTH + 'px';
+                        canvas.style.height = CANVAS_HEIGHT + 'px';
+                        canvas.style.maxWidth = 'none';
+                        canvas.style.maxHeight = 'none';
+                        canvas.style.aspectRatio = 'auto';
+                        canvas.style.objectFit = 'contain';
+                        canvas.style.imageRendering = 'pixelated';
+                        canvas.style.border = 'none';
+                        canvas.style.boxShadow = 'none';
+                    }
+
+                    // Remove dashboard overlay so it doesn't cover the game canvas
+                    const dashboard = document.getElementById('bunbit-main-dashboard');
+                    if (dashboard) dashboard.remove();
+
+                    // Mark the game as active so the dashboard handler does not
+                    // re-create the pillars/sigil overlay while the game runs.
+                    if (typeof window !== 'undefined') window.__bunbitGameActive = true;
+
+                    // Also transition the engine to GAMEPLAY so the DASHBOARD
+                    // state handler cleanup runs properly.
+                    try {
+                        const engineMod = await import('../engine/engine.js');
+                        if (engineMod.engineController &&
+                            typeof engineMod.engineController.transitionTo === 'function' &&
+                            engineMod.engineController.currentState !== 'GAMEPLAY') {
+                            // Only transition if a valid transition exists.
+                            await engineMod.engineController.transitionTo('GAMEPLAY');
                         }
-                        // Ensure canvas stacks above control panel
-                        try { if (canvas) canvas.style.zIndex = '2147483647'; } catch (e) { console.warn('Could not set canvas z-index', e); }
+                    } catch (e) {
+                        console.warn('Could not transition engine to GAMEPLAY:', e);
+                    }
+
+                    if (!window.game) {
                         window.game = gameLoop(gameRenderEngine);
                         initializeRenderWorkers();
                     }
                     if (window.game && typeof window.game.start === 'function') {
                         window.game.start();
-
-                        // (Removed) Intro placeholder trigger here; game-load should be handled elsewhere.
-
-
                         return true;
                     }
 
@@ -296,10 +454,20 @@ export function initControlPanel() {
 
     function tryStopGame() {
         try {
+            // Remove the gameplay marker so the neon border disappears when
+            // the debug Stop button halts the game.
+            if (typeof document !== 'undefined' && document.body) {
+                document.body.classList.remove('bunbit-gameplay');
+            }
+
             // Stop active game loop first
             if (window.game && typeof window.game.stop === 'function') {
                 window.game.stop();
             }
+
+            // Mark game as no longer active so the dashboard can be re-created
+            // when returning to the dashboard state.
+            if (typeof window !== 'undefined') window.__bunbitGameActive = false;
 
             // Always reset menu state + UI
             setMenuActive(true);

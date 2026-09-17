@@ -1,6 +1,6 @@
 // File: src/debug/debughandler.js
 
-import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, MAX_LOGS, DEBUG_WIDTH, DEBUG_HEIGHT, MIN_WIDTH, MIN_HEIGHT, MAX_CHARS_PER_LINE, logBuffer, logFilters, isDebugVisible, scrollOffsetX, virtualScrollY, autoScroll, buttons, resizeArea, HEADER_HEIGHT, ENABLE_DEBUG_TERMINAL, setDebugVisible, setVirtualScrollY, setScrollOffsetX, setLogBuffer, setAutoScroll } from '../globals.js';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, MAX_LOGS, DEBUG_WIDTH, DEBUG_HEIGHT, MIN_WIDTH, MIN_HEIGHT, MAX_CHARS_PER_LINE, logBuffer, logFilters, isDebugVisible, scrollOffsetX, virtualScrollY, autoScroll, buttons, resizeArea, HEADER_HEIGHT, ENABLE_DEBUG_TERMINAL, setDebugVisible, setVirtualScrollY, setScrollOffsetX, setLogBuffer, setAutoScroll, GLOBAL_FONT } from '../globals.js';
 import { evilGlitchSystem, EvilUIState } from '../themes/eviltheme.js';
 import { themeManager } from '../themes/thememanager.js';
 import { memCpuGodFunction, togglePerfMonitor } from './panels/memcpu.js';
@@ -374,7 +374,7 @@ export function drawDebugTerminal() {
 
     // Draw buttons with shake
     const buttonFontSize = 10 * SCALE_Y;
-    debugCtx.font = `${buttonFontSize}px Courier New`;
+    debugCtx.font = `${buttonFontSize}px ${GLOBAL_FONT}`;
     debugCtx.textAlign = 'center';
     debugCtx.textBaseline = 'middle';
     buttons.forEach(btn => {
@@ -417,7 +417,7 @@ export function drawDebugTerminal() {
     }
 
     const fontSize = 14 * SCALE_Y;
-    debugCtx.font = `${fontSize}px Courier New`;
+    debugCtx.font = `${fontSize}px ${GLOBAL_FONT}`;
     const lineHeight = 18 * SCALE_Y;
 
     // Auto-scroll

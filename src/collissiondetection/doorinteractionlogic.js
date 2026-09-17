@@ -3,7 +3,7 @@ import { map_01 } from "../mapdata/map_01.js";
 import { tileSectors } from "../mapdata/maps.js";
 import { fullTileBrickDoor01Open, fullTileBrickDoor01Closed } from "../mapdata/maptexturesloader.js";
 import { renderEngine } from "../rendering/renderengine.js";
-import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT } from "../globals.js";
+import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE_X, SCALE_Y, REF_CANVAS_WIDTH, REF_CANVAS_HEIGHT, GLOBAL_FONT } from "../globals.js";
 
 let lastInteractionState = false;
 let showDoorDialogue = false;
@@ -61,7 +61,7 @@ function drawDoorDialogue() {
     renderEngine.fillRect(boxX, boxY, boxWidth, boxHeight);
     renderEngine.globalAlpha = 1.0;
     renderEngine.fillStyle = "white";
-    renderEngine.font = `${24 * Math.min(SCALE_X, SCALE_Y)}px Arial`;
+    renderEngine.font = `${Math.floor(24 * Math.min(SCALE_X, SCALE_Y))}px ${GLOBAL_FONT}`;
     const line = "Doors closed, seems too have a lock on it.";
     const maxWidth = 560 * SCALE_X;
     const x = 120 * SCALE_X;

@@ -2,7 +2,7 @@
 import { inputBox } from "../../utils/inputbox.js";
 import { REF_CANVAS_HEIGHT } from "../../../../../globals.js";
 import { computerAIRenderEngine, computerAICanvas } from "../../../computerai.js";  // Import for drawing
-import { SCALE_X, SCALE_Y, CANVAS_WIDTH, CANVAS_HEIGHT } from "../../../../../globals.js";
+import { SCALE_X, SCALE_Y, CANVAS_WIDTH, CANVAS_HEIGHT, GLOBAL_FONT } from "../../../../../globals.js";
 import { fetchData, postData } from "./datahandler.js";  // Your new "API"
 
 let mainOSButton = null;
@@ -70,7 +70,7 @@ async function launchDataApp() {
 
     // Draw fetched data as a list
     computerAIRenderEngine.fillStyle = "#0f0";
-    computerAIRenderEngine.font = `${16 * SCALE_X}px Arial`;
+    computerAIRenderEngine.font = `${16 * SCALE_X}px ${GLOBAL_FONT}`;
     computerAIRenderEngine.textAlign = "left";
     data.forEach((item, index) => {
         computerAIRenderEngine.fillText(`${item.title}: ${item.content}`, windowX + 20, windowY + 40 + index * 20 * SCALE_Y);

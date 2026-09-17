@@ -17,3 +17,8 @@ src/rendering/java/.gradle/
 src/rendering/java/build/
 no_wasm_bunbit_engine.sh
 todo.md
+DEBUG.md
+/src-tauri/target
+/src-tauri/gen
+output_all.sh
+out/code_dump.json

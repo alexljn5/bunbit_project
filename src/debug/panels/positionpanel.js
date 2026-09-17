@@ -1,5 +1,5 @@
 // Canvas scaling control panel - detached floating window for width/height scale sliders
-import { SCALE_X, SCALE_Y } from '../../globals.js';
+import { SCALE_X, SCALE_Y, GLOBAL_FONT } from '../../globals.js';
 import { themeManager } from '../../themes/thememanager.js';
 
 let scalingPanel = null;
@@ -46,7 +46,7 @@ export function initPositionPanel() {
     scalingPanel.style.gap = `${8 * SCALE_Y}px`;
     scalingPanel.style.cursor = 'default';
     scalingPanel.style.userSelect = 'none';
-    scalingPanel.style.fontFamily = 'Arial, sans-serif';
+    scalingPanel.style.fontFamily = GLOBAL_FONT;
     scalingPanel.style.zIndex = '2147483647';
     scalingPanel.style.pointerEvents = 'auto';
     scalingPanel.style.touchAction = 'none';
@@ -134,7 +134,7 @@ export function initPositionPanel() {
         valueDisplay.style.color = DEFAULT_TEXT;
         valueDisplay.style.minWidth = '45px';
         valueDisplay.style.textAlign = 'right';
-        valueDisplay.style.fontFamily = 'monospace';
+        valueDisplay.style.fontFamily = GLOBAL_FONT;
 
         slider.addEventListener('input', (e) => {
             const newValue = parseFloat(e.target.value);
@@ -249,7 +249,7 @@ export function initPositionPanel() {
     angleSection.style.fontSize = `${9 * SCALE_Y}px`;
     angleSection.style.color = DEFAULT_TEXT;
     angleSection.style.textAlign = 'center';
-    angleSection.style.fontFamily = 'monospace';
+    angleSection.style.fontFamily = GLOBAL_FONT;
     angleSection.textContent = 'Canvas Ready';
 
     scalingPanel.appendChild(angleSection);
