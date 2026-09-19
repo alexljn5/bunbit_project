@@ -185,7 +185,7 @@ canvas.minimapCanvas {
     color: var(--bunbit-editor-fg, #ff0000);
     border: 1px solid var(--bunbit-editor-accent, #8b0000);
     cursor: pointer;
-    font: bold 11px monospace;
+    font: bold 11px 'BoldPixels', 'Courier New', monospace;
     padding: 4px 8px;
     border-radius: 4px;
     margin-top: 4px;
@@ -194,4 +194,67 @@ canvas.minimapCanvas {
 .bunbit-editor-button:hover {
     background: var(--bunbit-editor-accent, #8b0000);
     color: var(--bunbit-editor-bg, #0a0000);
+}
+
+/* ─── Global scrollbar hiding ──────────────────────────────── */
+::-webkit-scrollbar {
+    display: none;
+}
+
+* {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+/* ─── Entity editor game-styled controls ───────────────────── */
+#bunbit-entity-editor-container {
+    overflow: hidden;
+}
+
+#bunbit-entity-editor-controls {
+    overflow: hidden;
+}
+
+#bunbit-entity-editor-controls input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    background: var(--bunbit-editor-accent, #8b0000);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+}
+
+#bunbit-entity-editor-controls input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 10px;
+    height: 10px;
+    background: var(--bunbit-editor-fg, #ff0000);
+    border-radius: 1px;
+    cursor: pointer;
+}
+
+#bunbit-entity-editor-controls input[type="range"]::-moz-range-thumb {
+    width: 10px;
+    height: 10px;
+    background: var(--bunbit-editor-fg, #ff0000);
+    border-radius: 1px;
+    cursor: pointer;
+    border: none;
+}
+
+#bunbit-entity-editor-controls input[type="range"]::-moz-range-track {
+    background: var(--bunbit-editor-accent, #8b0000);
+    height: 4px;
+    border-radius: 2px;
+}
+
+#bunbit-entity-editor-preview {
+    overflow: hidden;
+}
+
+#bunbit-entity-selector {
+    font: bold 11px 'BoldPixels', 'Courier New', monospace;
 }

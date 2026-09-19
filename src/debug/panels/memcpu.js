@@ -248,9 +248,13 @@ function startDrag(e) {
             perfHeader.setPointerCapture(e.pointerId);
         } catch (_) { /* setPointerCapture not available */ }
 
-        perfHeader.addEventListener('pointermove', handleDrag, { passive: false });
-        perfHeader.addEventListener('pointerup', stopDrag);
-        perfHeader.addEventListener('pointercancel', stopDrag);
+        // Block bubbling so game/canvas doesn't react to drag
+        e.stopImmediatePropagation();
+
+        // Listen on document so drag continues even if mouse leaves header
+        document.addEventListener('pointermove', handleDrag, { passive: false });
+        document.addEventListener('pointerup', stopDrag, { passive: false });
+        document.addEventListener('pointercancel', stopDrag, { passive: false });
         window.addEventListener('blur', stopDrag);
         document.addEventListener('visibilitychange', stopDrag);
         perfContainer.style.cursor = 'grabbing';
@@ -262,6 +266,8 @@ function startDrag(e) {
 function handleDrag(e) {
     try {
         if (!EvilUIState.isDragging) return;
+        if (activePointerId === null) return;
+        if (e.pointerId !== activePointerId) return;
         e.preventDefault();
 
         const dx = e.clientX - EvilUIState.dragOffsetX;
@@ -276,14 +282,18 @@ function handleDrag(e) {
     }
 }
 
-function stopDrag() {
+function stopDrag(e) {
     try {
+        if (activePointerId !== null && e && e.pointerId !== activePointerId) return;
         EvilUIState.isDragging = false;
         perfHeader.removeEventListener('pointermove', handleDrag);
         perfHeader.removeEventListener('pointerup', stopDrag);
         perfHeader.removeEventListener('pointercancel', stopDrag);
         window.removeEventListener('blur', stopDrag);
         document.removeEventListener('visibilitychange', stopDrag);
+        document.removeEventListener('pointermove', handleDrag, { passive: false });
+        document.removeEventListener('pointerup', stopDrag, { passive: false });
+        document.removeEventListener('pointercancel', stopDrag, { passive: false });
         try {
             if (activePointerId !== null) {
                 perfHeader.releasePointerCapture(activePointerId);
@@ -355,6 +365,7 @@ export function memCpuGodFunction() {
         perfHeader.style.cursor = "move";
         perfHeader.style.textShadow = `0 0 8px ${themeManager.getCurrentTheme()?.border || '#FC0000'}`;
 
+        perfHeader.addEventListener('pointerdown', startDrag);
         perfHeader.addEventListener('mousedown', startDrag);
 
         const title = document.createElement("div");

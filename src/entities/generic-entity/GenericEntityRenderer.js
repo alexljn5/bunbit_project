@@ -18,18 +18,22 @@ export class GenericEntityRenderer {
 
     _loadSprites() {
         for (const comp of this.config.spriteComponents) {
-            const image = new Image();
-            image.src = comp.spritePath;
             const entry = {
                 id: comp.id,
                 label: comp.label,
-                image,
+                image: null,
                 loaded: false,
                 width: comp.defaultWidth,
                 height: comp.defaultHeight,
             };
-            image.onload = () => { entry.loaded = true; };
-            image.onerror = () => { console.error('[GenericEntityRenderer] Failed to load sprite:', comp.spritePath); };
+            // Only load if spritePath is provided; otherwise leave as placeholder
+            if (comp.spritePath) {
+                const image = new Image();
+                image.src = comp.spritePath;
+                entry.image = image;
+                image.onload = () => { entry.loaded = true; };
+                image.onerror = () => { console.error('[GenericEntityRenderer] Failed to load sprite:', comp.spritePath); };
+            }
             this.components.push(entry);
         }
     }
