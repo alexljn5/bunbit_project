@@ -12,6 +12,7 @@ import { mapTable } from '../mapdata/maps.js';
 import { transparentWallTextureKeys } from '../mapdata/maptexturesloader.js';
 
 import { togglePositionPanel } from './panels/positionpanel.js';
+import { toggleJimHatePreview } from './jimhatepreview.js';
 
 
 
@@ -104,6 +105,10 @@ export function initControlPanel() {
     positionButton.id = 'bunbit-position-toggle';
     positionButton.textContent = 'Scale';
 
+    // Jim Hate Preview button
+    const jimHatePreviewButton = document.createElement('button');
+    jimHatePreviewButton.id = 'bunbit-jim-hate-preview';
+    jimHatePreviewButton.textContent = 'Jim Hate Preview';
 
     // Theme selector dropdown
     const themeSelector = document.createElement('select');
@@ -234,7 +239,7 @@ export function initControlPanel() {
     });
 
     // basic styling for readability - compact buttons
-    [reloadButton, playButton, stopButton, showDebugButton, positionButton, mapSelector, skyboxButton, transparentWallButton].forEach(btn => {
+    [reloadButton, playButton, stopButton, showDebugButton, positionButton, jimHatePreviewButton, mapSelector, skyboxButton, transparentWallButton].forEach(btn => {
         btn.style.padding = `${6 * SCALE_Y}px ${10 * SCALE_X}px`;
         btn.style.cursor = 'pointer';
         btn.style.border = `${1 * SCALE_X}px solid ${DEFAULT_BORDER}`;
@@ -272,6 +277,7 @@ export function initControlPanel() {
     debugPanel.appendChild(showDebugButton);
     debugPanel.appendChild(replayIntroButton);
     debugPanel.appendChild(positionButton);
+    debugPanel.appendChild(jimHatePreviewButton);
     debugPanel.appendChild(themeSelector);
     debugPanel.appendChild(mapSelector);
     debugPanel.appendChild(skyboxButton);
@@ -506,6 +512,11 @@ export function initControlPanel() {
     // Position panel toggle
     positionButton.addEventListener('click', () => {
         togglePositionPanel();
+    });
+
+    // Jim Hate Preview toggle
+    jimHatePreviewButton.addEventListener('click', () => {
+        toggleJimHatePreview();
     });
 
     // Drag handlers (panel is independent). We ONLY drag the panel element.
