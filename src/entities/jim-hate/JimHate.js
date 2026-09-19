@@ -13,7 +13,7 @@ export class JimHate {
         this.config = { ...JIM_HATE_CONFIG, ...config };
 
         // Core systems
-        this.state = new JimHateState();
+        this.state = new JimHateState(config.spriteComponents || []);
         this.animator = new JimHateAnimator(this.state);
         this.renderer = new JimHateRenderer(canvas, config);
 
@@ -64,9 +64,28 @@ export class JimHate {
     }
 
     reset() { this.state.reset(); this.animator.setState("idle"); }
-    setFaceOffset(x, y) { this.state.faceOffsetX = x; this.state.faceOffsetY = y; }
-    setHandsOffset(x, y) { this.state.handsOffsetX = x; this.state.handsOffsetY = y; }
-    setScales(faceScale, handsScale) { this.state.faceScale = faceScale; this.state.handsScale = handsScale; }
+
+    // Generic component property setters (no hardcoded component names)
+    setComponentOffset(componentId, x, y) {
+        this.state.setComponentProp(componentId, 'offsetX', x);
+        this.state.setComponentProp(componentId, 'offsetY', y);
+    }
+
+    setComponentScale(componentId, scale) {
+        this.state.setComponentProp(componentId, 'scale', scale);
+    }
+
+    getComponentOffset(componentId) {
+        return {
+            x: this.state.getComponentProp(componentId, 'offsetX'),
+            y: this.state.getComponentProp(componentId, 'offsetY'),
+        };
+    }
+
+    getComponentScale(componentId) {
+        return this.state.getComponentProp(componentId, 'scale');
+    }
+
     togglePause() { this.state.paused = !this.state.paused; return this.state.paused; }
     getAnimationState() { return this.animator.getState(); }
     setAnimationState(stateName) { this.animator.setState(stateName); }

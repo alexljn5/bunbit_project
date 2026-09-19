@@ -5,22 +5,24 @@
 import { JIM_HATE_CONFIG } from './JimHateConfig.js';
 
 export class JimHateState {
-    constructor() {
+    constructor(spriteComponents = []) {
+        this.spriteComponents = spriteComponents;
         this.reset();
     }
 
     reset() {
-        // Face component position offsets (pixels, relative to center)
-        this.faceOffsetX = JIM_HATE_CONFIG.defaultFaceOffsetX;
-        this.faceOffsetY = JIM_HATE_CONFIG.defaultFaceOffsetY;
+        // Component-specific state (generic — no hardcoded component names)
+        this.components = {};
 
-        // Hands component position offsets (pixels, relative to center)
-        this.handsOffsetX = JIM_HATE_CONFIG.defaultHandsOffsetX;
-        this.handsOffsetY = JIM_HATE_CONFIG.defaultHandsOffsetY;
-
-        // Component scales
-        this.faceScale = JIM_HATE_CONFIG.defaultFaceScale;
-        this.handsScale = JIM_HATE_CONFIG.defaultHandsScale;
+        // Initialise from runtime sprite components
+        const spriteComponents = this.spriteComponents || [];
+        for (const comp of spriteComponents) {
+            this.components[comp.id] = {
+                offsetX: comp.defaultOffsetX ?? 0,
+                offsetY: comp.defaultOffsetY ?? 0,
+                scale: comp.defaultScale ?? 1.0,
+            };
+        }
 
         // Entity position (for future movement)
         this.x = 0;
@@ -45,31 +47,29 @@ export class JimHateState {
     }
 
     // Component property setter (editor/debug use)
-    // Maps 'face' / 'hands' to the existing face/hands state fields.
+    // Works for any component ID — no special cases.
     setComponentProp(componentId, prop, value) {
-        if (componentId === 'face') {
-            if (prop === 'offsetX') this.faceOffsetX = value;
-            else if (prop === 'offsetY') this.faceOffsetY = value;
-            else if (prop === 'scale') this.faceScale = value;
-        } else if (componentId === 'hands') {
-            if (prop === 'offsetX') this.handsOffsetX = value;
-            else if (prop === 'offsetY') this.handsOffsetY = value;
-            else if (prop === 'scale') this.handsScale = value;
+        const comp = this.components[componentId];
+        if (comp) {
+            comp[prop] = value;
         }
     }
 
     // Component property getter (editor/debug use)
+    // Works for any component ID — no special cases.
     getComponentProp(componentId, prop) {
-        if (componentId === 'face') {
-            if (prop === 'offsetX') return this.faceOffsetX;
-            if (prop === 'offsetY') return this.faceOffsetY;
-            if (prop === 'scale') return this.faceScale;
-        } else if (componentId === 'hands') {
-            if (prop === 'offsetX') return this.handsOffsetX;
-            if (prop === 'offsetY') return this.handsOffsetY;
-            if (prop === 'scale') return this.handsScale;
-        }
-        return undefined;
+        const comp = this.components[componentId];
+        return comp ? comp[prop] : undefined;
+    }
+
+    // Get all component IDs
+    getComponentIds() {
+        return Object.keys(this.components);
+    }
+
+    // Get component state
+    getComponent(componentId) {
+        return this.components[componentId];
     }
 
     // Update time-based state
@@ -78,19 +78,13 @@ export class JimHateState {
         this.time += deltaTime * this.animationSpeed;
     }
 
-    // Get face world position (center + offset)
-    getFacePosition() {
+    // Get component world position (center + offset)
+    getComponentPosition(componentId) {
+        const comp = this.components[componentId];
+        if (!comp) return { x: this.x, y: this.y };
         return {
-            x: this.x + this.faceOffsetX,
-            y: this.y + this.faceOffsetY,
-        };
-    }
-
-    // Get hands world position (center + offset)
-    getHandsPosition() {
-        return {
-            x: this.x + this.handsOffsetX,
-            y: this.y + this.handsOffsetY,
+            x: this.x + comp.offsetX,
+            y: this.y + comp.offsetY,
         };
     }
 }

@@ -1,5 +1,4 @@
 import { getEntityDescriptor } from '../entities/entityregistry.js';
-import { JIM_HATE_CONFIG as JimHateConfig } from '../entities/jim-hate/JimHateConfig.js';
 
 /**
  * EntityEditor - A reusable editor class for visualising and editing game entities.
@@ -25,7 +24,7 @@ export class EntityEditor {
         this.renderer = null;
 
         this.entityType = options.entityType || 'jim-hate';
-        this.entityConfig = options.entityConfig || JimHateConfig;
+        this.entityConfig = options.entityConfig || {};
 
         this.controls = {};
         this.controlValues = {};

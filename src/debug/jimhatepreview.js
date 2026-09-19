@@ -20,7 +20,6 @@
 import { EntityEditor } from './entityeditor.js';
 import { getAllEntityDescriptors } from '../entities/entityregistry.js';
 import { themeManager } from '../themes/thememanager.js';
-import { GENERIC_ENTITY_CONFIG } from '../entities/generic-entity/GenericEntityConfig.js';
 
 let editor = null;
 let previewContainer = null;
@@ -129,13 +128,11 @@ function openPreview() {
     document.body.appendChild(previewContainer);
 
     // Create the EntityEditor with the container and theme manager
-    // Defaults to Generic Entity (placeholder) so the placeholder system
-    // is visible immediately; select Jim Hate from the dropdown to preview it
+    // Defaults to Jim Hate so the entity is immediately visible
     editor = new EntityEditor({
         container: previewContainer,
         themeManager: themeManager,
-        entityType: 'generic-entity',
-        entityConfig: GENERIC_ENTITY_CONFIG,
+        entityType: 'jim-hate',
     });
 
     // Initialise the editor (creates canvas, entity, controls, starts loop)

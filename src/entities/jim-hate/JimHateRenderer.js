@@ -3,21 +3,24 @@
 // Designed to be reusable — accepts any canvas/context so it can
 // be used in debug preview or embedded in the game later.
 //
-// Renders face and hands as independent sprites so they can be
-// positioned and animated separately.
+// Renders each sprite component as an independent layer so they
+// can be positioned and animated separately.
+//
+// Generic: iterates over state.components and config.spriteComponents.
+// No hardcoded component names (face, hands, etc.).
 
-import { JIM_HATE_CONFIG } from './JimHateConfig.js';
+import { JIM_HATE_CONFIG as JimHateConfig } from './JimHateConfig.js';
 
 export class JimHateRenderer {
     constructor(canvas, config = {}) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
-        this.config = { ...JIM_HATE_CONFIG, ...config };
+        this.config = { ...JimHateConfig, ...config };
 
-        this.faceImage = null;
-        this.handsImage = null;
-        this.faceLoaded = false;
-        this.handsLoaded = false;
+        // Map of componentId -> Image object
+        this.images = {};
+        // Map of componentId -> loaded flag
+        this.loaded = {};
 
         this.width = config.canvasWidth || this.config.defaultCanvasWidth;
         this.height = config.canvasHeight || this.config.defaultCanvasHeight;
@@ -29,19 +32,23 @@ export class JimHateRenderer {
     }
 
     _loadSprites() {
-        this.faceImage = new Image();
-        this.faceImage.src = this.config.faceSpritePath;
-        this.faceImage.onload = () => { this.faceLoaded = true; };
-        this.faceImage.onerror = () => { console.error('[JimHateRenderer] Failed to load face sprite:', this.config.faceSpritePath); };
-
-        this.handsImage = new Image();
-        this.handsImage.src = this.config.handsSpritePath;
-        this.handsImage.onload = () => { this.handsLoaded = true; };
-        this.handsImage.onerror = () => { console.error('[JimHateRenderer] Failed to load hands sprite:', this.config.handsSpritePath); };
+        const spriteComponents = this.config.spriteComponents || [];
+        for (const comp of spriteComponents) {
+            const img = new Image();
+            img.src = comp.spritePath;
+            img.onload = () => { this.loaded[comp.id] = true; };
+            img.onerror = () => {
+                console.error(`[JimHateRenderer] Failed to load sprite: ${comp.spritePath}`);
+                this.loaded[comp.id] = true; // mark as loaded so placeholder shows
+            };
+            this.images[comp.id] = img;
+            this.loaded[comp.id] = false;
+        }
     }
 
     get isLoaded() {
-        return this.faceLoaded && this.handsLoaded;
+        const spriteComponents = this.config.spriteComponents || [];
+        return spriteComponents.every(comp => this.loaded[comp.id]);
     }
 
     render(state, options = {}) {
@@ -58,21 +65,42 @@ export class JimHateRenderer {
         const entityCenterX = cx + animOffset.x;
         const entityCenterY = cy + animOffset.y;
 
-        if (this.faceLoaded && this.faceImage) {
-            this._drawFace(ctx, state, entityCenterX, entityCenterY);
-        } else {
-            this._drawPlaceholder(ctx, entityCenterX, entityCenterY - 20, 'FACE LOADING', '#ff4444');
-        }
+        // Draw each sprite component in order
+        const spriteComponents = this.config.spriteComponents || [];
+        for (const comp of spriteComponents) {
+            const img = this.images[comp.id];
+            const isLoaded = this.loaded[comp.id];
+            const compState = state.components[comp.id];
 
-        if (this.handsLoaded && this.handsImage) {
-            this._drawHands(ctx, state, entityCenterX, entityCenterY);
-        } else {
-            this._drawPlaceholder(ctx, entityCenterX, entityCenterY + 40, 'HANDS LOADING', '#44ff44');
+            if (isLoaded && img && img.complete && img.naturalWidth > 0) {
+                this._drawComponent(ctx, comp, compState, img, entityCenterX, entityCenterY);
+            } else {
+                this._drawPlaceholder(ctx, entityCenterX, entityCenterY, comp.id.toUpperCase() + ' LOADING', '#ff4444');
+            }
         }
 
         this._drawBounds(ctx, entityCenterX, entityCenterY, state);
         this._drawStateInfo(ctx, state);
         this._drawCenter(ctx, entityCenterX, entityCenterY);
+    }
+
+    _drawComponent(ctx, comp, compState, img, cx, cy) {
+        const scale = compState ? compState.scale : 1;
+        const offsetX = compState ? compState.offsetX : 0;
+        const offsetY = compState ? compState.offsetY : 0;
+        const w = img.naturalWidth * scale;
+        const h = img.naturalHeight * scale;
+        const x = cx + offsetX - w / 2;
+        const y = cy + offsetY - h / 2;
+        ctx.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight, x, y, w, h);
+    }
+
+    _drawPlaceholder(ctx, x, y, text, color) {
+        ctx.fillStyle = color;
+        ctx.font = '14px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(text, x, y);
+        ctx.textAlign = 'left';
     }
 
     _drawGrid(ctx) {
@@ -94,34 +122,6 @@ export class JimHateRenderer {
         ctx.stroke();
     }
 
-    _drawFace(ctx, state, cx, cy) {
-        const img = this.faceImage;
-        const scale = state.faceScale;
-        const w = img.width * scale;
-        const h = img.height * scale;
-        const x = cx + state.faceOffsetX - w / 2;
-        const y = cy + state.faceOffsetY - h / 2;
-        ctx.drawImage(img, 0, 0, img.width, img.height, x, y, w, h);
-    }
-
-    _drawHands(ctx, state, cx, cy) {
-        const img = this.handsImage;
-        const scale = state.handsScale;
-        const w = img.width * scale;
-        const h = img.height * scale;
-        const x = cx + state.handsOffsetX - w / 2;
-        const y = cy + state.handsOffsetY - h / 2;
-        ctx.drawImage(img, 0, 0, img.width, img.height, x, y, w, h);
-    }
-
-    _drawPlaceholder(ctx, x, y, text, color) {
-        ctx.fillStyle = color;
-        ctx.font = '14px monospace';
-        ctx.textAlign = 'center';
-        ctx.fillText(text, x, y);
-        ctx.textAlign = 'left';
-    }
-
     _drawBounds(ctx, cx, cy, state) {
         ctx.strokeStyle = 'rgba(255, 0, 255, 0.3)';
         ctx.lineWidth = 1;
@@ -134,13 +134,16 @@ export class JimHateRenderer {
         ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
         ctx.font = '11px monospace';
         ctx.textAlign = 'left';
+        const compIds = Object.keys(state.components);
+        const compInfo = compIds.map(id => {
+            const c = state.components[id];
+            return `${id}:(${c.offsetX},${c.offsetY}) s=${c.scale}`;
+        });
         const lines = [
             `State: ${state.activeState}`,
             `Time: ${state.time.toFixed(2)}`,
-            `Face: (${state.faceOffsetX}, ${state.faceOffsetY}) s=${state.faceScale}`,
-            `Hands: (${state.handsOffsetX}, ${state.handsOffsetY}) s=${state.handsScale}`,
+            ...compInfo,
             `Paused: ${state.paused}`,
-            `Sprites: ${this.faceLoaded ? 'OK' : 'LOAD'}face ${this.handsLoaded ? 'OK' : 'LOAD'}hands`,
         ];
         lines.forEach((line, i) => { ctx.fillText(line, 8, 16 + i * 14); });
         ctx.textAlign = 'left';
