@@ -56,7 +56,11 @@ export class GenericEntityRenderer {
         const entityCenterX = cx + animOffset.x;
         const entityCenterY = cy + animOffset.y;
 
-        for (const comp of this.components) {
+        // Sort components by numeric layer (lowest first = behind).
+        // Equal layers keep a deterministic secondary order (original discovery order).
+        const sortedComponents = this._getSortedComponents(state);
+
+        for (const comp of sortedComponents) {
             const offset = state.components?.[comp.id];
             if (comp.loaded && offset) {
                 this._drawComponent(ctx, comp, state, entityCenterX, entityCenterY, offset);
@@ -76,6 +80,24 @@ export class GenericEntityRenderer {
         this._drawBounds(ctx, entityCenterX, entityCenterY, state);
         this._drawStateInfo(ctx, state);
         this._drawCenter(ctx, entityCenterX, entityCenterY);
+    }
+
+    /**
+     * Return a sorted copy of the components ordered by layer.
+     * Does not mutate the canonical component array.
+     */
+    _getSortedComponents(state) {
+        const indexed = this.components.map((comp, index) => ({ comp, index }));
+
+        indexed.sort((a, b) => {
+            const layerA = (state.components[a.comp.id] && state.components[a.comp.id].layer) ?? a.comp.defaultLayer ?? 0;
+            const layerB = (state.components[b.comp.id] && state.components[b.comp.id].layer) ?? b.comp.defaultLayer ?? 0;
+            if (layerA !== layerB) return layerA - layerB;
+            // Deterministic secondary order: original discovery order
+            return a.index - b.index;
+        });
+
+        return indexed.map(entry => entry.comp);
     }
 
     _drawGrid(ctx) {

@@ -42,6 +42,7 @@ export function createComponentDescriptor(filename, entityDirectory = '') {
         defaultOffsetX: 0,
         defaultOffsetY: 0,
         defaultScale: 1.0,
+        defaultLayer: 0,
         placeholderColor: '#2a2a3a',
         placeholderBorderColor: '#5a5a7a',
     };

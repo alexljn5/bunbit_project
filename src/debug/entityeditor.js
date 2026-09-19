@@ -221,6 +221,7 @@ export class EntityEditor {
             const defaultOffsetX = comp.defaultOffsetX ?? 0;
             const defaultOffsetY = comp.defaultOffsetY ?? 0;
             const defaultScale = comp.defaultScale ?? 1;
+            const defaultLayer = comp.defaultLayer ?? 0;
 
             controls.push({
                 key: `${comp.id}OffsetX`,
@@ -259,6 +260,19 @@ export class EntityEditor {
                 decimals: 1,
                 callback: (val) => {
                     this.state.setComponentProp(comp.id, 'scale', val);
+                }
+            });
+            controls.push({
+                key: `${comp.id}Layer`,
+                label: `${comp.label} Layer`,
+                type: 'range',
+                min: 0,
+                max: 100,
+                step: 1,
+                default: defaultLayer,
+                decimals: 0,
+                callback: (val) => {
+                    this.state.setComponentProp(comp.id, 'layer', val);
                 }
             });
         }

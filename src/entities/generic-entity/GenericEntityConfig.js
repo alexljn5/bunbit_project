@@ -21,6 +21,7 @@ export const GENERIC_ENTITY_CONFIG = {
             defaultOffsetX: 0,
             defaultOffsetY: -20,
             defaultScale: 1.0,
+            defaultLayer: 0,
             placeholderColor: '#3a2a4a',
         },
         {
@@ -32,6 +33,7 @@ export const GENERIC_ENTITY_CONFIG = {
             defaultOffsetX: 0,
             defaultOffsetY: 40,
             defaultScale: 1.0,
+            defaultLayer: 10,
             placeholderColor: '#2a3a4a',
         },
     ],

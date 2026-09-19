@@ -11,7 +11,8 @@ export const SPRITE_COMPONENTS = [
         "defaultHeight": 0,
         "defaultOffsetX": 0,
         "defaultOffsetY": 0,
-        "defaultScale": 1
+        "defaultScale": 1,
+        "defaultLayer": 0
     },
     {
         "id": "jim-hate-face",
@@ -21,7 +22,8 @@ export const SPRITE_COMPONENTS = [
         "defaultHeight": 0,
         "defaultOffsetX": 0,
         "defaultOffsetY": 0,
-        "defaultScale": 1
+        "defaultScale": 1,
+        "defaultLayer": 10
     },
     {
         "id": "jim-hate-hands",
@@ -31,7 +33,8 @@ export const SPRITE_COMPONENTS = [
         "defaultHeight": 0,
         "defaultOffsetX": 0,
         "defaultOffsetY": 0,
-        "defaultScale": 1
+        "defaultScale": 1,
+        "defaultLayer": 20
     },
     {
         "id": "jim-hate-sigil",
@@ -41,6 +44,7 @@ export const SPRITE_COMPONENTS = [
         "defaultHeight": 0,
         "defaultOffsetX": 0,
         "defaultOffsetY": 0,
-        "defaultScale": 1
+        "defaultScale": 1,
+        "defaultLayer": 30
     }
 ];

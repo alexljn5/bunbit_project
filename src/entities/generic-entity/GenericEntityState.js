@@ -21,6 +21,7 @@ export class GenericEntityState {
                 offsetX: comp.defaultOffsetX,
                 offsetY: comp.defaultOffsetY,
                 scale: comp.defaultScale,
+                layer: comp.defaultLayer ?? 0,
             };
         }
 

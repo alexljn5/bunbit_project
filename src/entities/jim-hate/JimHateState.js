@@ -21,6 +21,7 @@ export class JimHateState {
                 offsetX: comp.defaultOffsetX ?? 0,
                 offsetY: comp.defaultOffsetY ?? 0,
                 scale: comp.defaultScale ?? 1.0,
+                layer: comp.defaultLayer ?? 0,
             };
         }
 

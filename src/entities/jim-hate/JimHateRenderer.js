@@ -65,8 +65,10 @@ export class JimHateRenderer {
         const entityCenterX = cx + animOffset.x;
         const entityCenterY = cy + animOffset.y;
 
-        // Draw each sprite component in order
-        const spriteComponents = this.config.spriteComponents || [];
+        // Sort components by numeric layer (lowest first = behind).
+        // Equal layers keep a deterministic secondary order (original discovery order).
+        const spriteComponents = this._getSortedComponents(state);
+
         for (const comp of spriteComponents) {
             const img = this.images[comp.id];
             const isLoaded = this.loaded[comp.id];
@@ -82,6 +84,25 @@ export class JimHateRenderer {
         this._drawBounds(ctx, entityCenterX, entityCenterY, state);
         this._drawStateInfo(ctx, state);
         this._drawCenter(ctx, entityCenterX, entityCenterY);
+    }
+
+    /**
+     * Return a sorted copy of the sprite components ordered by layer.
+     * Does not mutate the canonical component array.
+     */
+    _getSortedComponents(state) {
+        const spriteComponents = this.config.spriteComponents || [];
+        const indexed = spriteComponents.map((comp, index) => ({ comp, index }));
+
+        indexed.sort((a, b) => {
+            const layerA = (state.components[a.comp.id] && state.components[a.comp.id].layer) ?? a.comp.defaultLayer ?? 0;
+            const layerB = (state.components[b.comp.id] && state.components[b.comp.id].layer) ?? b.comp.defaultLayer ?? 0;
+            if (layerA !== layerB) return layerA - layerB;
+            // Deterministic secondary order: original discovery order
+            return a.index - b.index;
+        });
+
+        return indexed.map(entry => entry.comp);
     }
 
     _drawComponent(ctx, comp, compState, img, cx, cy) {

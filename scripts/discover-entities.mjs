@@ -38,7 +38,11 @@ function discoverEntityAssets(entityName) {
 function discoverAssetsFromDir(dir, assetPath) {
     const components = [];
     const files = fs.readdirSync(dir).sort();
-    for (const file of files) {
+    // Deterministic default layer ordering: filesystem order.
+    // Lowest layer = drawn first (behind), highest layer = drawn last (in front).
+    // Each component gets an incrementing default so they never collide.
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
         if (isImageFile(file)) {
             const ext = file.toLowerCase().match(/\.[^.]+$/)?.[0] || '';
             const name = ext ? file.slice(0, -ext.length) : file;
@@ -51,6 +55,7 @@ function discoverAssetsFromDir(dir, assetPath) {
                 defaultOffsetX: 0,
                 defaultOffsetY: 0,
                 defaultScale: 1.0,
+                defaultLayer: i * 10,
             });
         }
     }
