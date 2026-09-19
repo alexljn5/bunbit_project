@@ -39,6 +39,39 @@ export class JimHateState {
         this.height = JIM_HATE_CONFIG.entityHeight;
     }
 
+    // Generic property setter for editor/debug use
+    set(key, value) {
+        this[key] = value;
+    }
+
+    // Component property setter (editor/debug use)
+    // Maps 'face' / 'hands' to the existing face/hands state fields.
+    setComponentProp(componentId, prop, value) {
+        if (componentId === 'face') {
+            if (prop === 'offsetX') this.faceOffsetX = value;
+            else if (prop === 'offsetY') this.faceOffsetY = value;
+            else if (prop === 'scale') this.faceScale = value;
+        } else if (componentId === 'hands') {
+            if (prop === 'offsetX') this.handsOffsetX = value;
+            else if (prop === 'offsetY') this.handsOffsetY = value;
+            else if (prop === 'scale') this.handsScale = value;
+        }
+    }
+
+    // Component property getter (editor/debug use)
+    getComponentProp(componentId, prop) {
+        if (componentId === 'face') {
+            if (prop === 'offsetX') return this.faceOffsetX;
+            if (prop === 'offsetY') return this.faceOffsetY;
+            if (prop === 'scale') return this.faceScale;
+        } else if (componentId === 'hands') {
+            if (prop === 'offsetX') return this.handsOffsetX;
+            if (prop === 'offsetY') return this.handsOffsetY;
+            if (prop === 'scale') return this.handsScale;
+        }
+        return undefined;
+    }
+
     // Update time-based state
     update(deltaTime) {
         if (this.paused) return;

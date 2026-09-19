@@ -1,38 +1,36 @@
-// Jim Hate Debug Preview
+// Entity Editor Debug Preview
 // Debug-only module that creates a canvas overlay for visualising
-// the Jim Hate entity. This is a consumer of the actual Jim Hate
-// implementation — not a second implementation.
+// game entities. This is a consumer of the actual entity implementations
+// — not a second implementation.
 //
 // The preview canvas is designed so it can later be embedded or
 // overlaid onto the actual game rendering.
+//
+// Architecture:
+//   Debug Menu
+//     |
+//     +--> Entity Editor (this module)
+//              |
+//              +--> EntityEditor (reusable editor class)
+//                       |
+//                       +--> JimHate entity (real implementation)
+//                       +--> JimHate renderer
+//                       +--> JimHate animation/state
 
-import { JimHate } from '../entities/jim-hate/JimHate.js';
-import { SCALE_X, SCALE_Y } from '../globals.js';
+import { EntityEditor } from './entityeditor.js';
+import { getAllEntityDescriptors } from '../entities/entityregistry.js';
+import { themeManager } from '../themes/thememanager.js';
+import { JIM_HATE_CONFIG } from '../entities/jim-hate/JimHateConfig.js';
 
-let previewActive = false;
-let previewJimHate = null;
-let previewCanvas = null;
+let editor = null;
 let previewContainer = null;
-let previewControls = null;
-let previewRafId = null;
-let previewLastTime = 0;
+let entitySelector = null;
+let previewActive = false;
 
-// Control state
-const controls = {
-    canvasScale: 1.0,
-    spriteScale: 1.0,
-    faceOffsetX: 0,
-    faceOffsetY: -20,
-    handsOffsetX: 0,
-    handsOffsetY: 40,
-    animationSpeed: 1.0,
-    paused: false,
-};
-
-const PREVIEW_WIDTH = 800;
-const PREVIEW_HEIGHT = 800;
-
-export function toggleJimHatePreview() {
+/**
+ * Toggle the Entity Editor window.
+ */
+export function toggleEntityEditor() {
     if (previewActive) {
         closePreview();
     } else {
@@ -40,20 +38,24 @@ export function toggleJimHatePreview() {
     }
 }
 
+/**
+ * Open the Entity Editor window.
+ */
 function openPreview() {
+    if (previewActive) return;
     previewActive = true;
 
-    // Create container
+    // Create the preview container with bunbit- prefixed IDs (STANDARDISATION.md)
     previewContainer = document.createElement('div');
-    previewContainer.id = 'jim-hate-preview-container';
+    previewContainer.id = 'bunbit-entity-editor-preview';
     previewContainer.style.cssText = `
         position: fixed;
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        z-index: 2147483647;
-        background: #0a0a0a;
-        border: 2px solid #ff0000;
+        z-index: 2147483651;
+        background: var(--bunbit-editor-bg, #0a0000);
+        border: 2px solid var(--bunbit-editor-accent, #8b0000);
         border-radius: 8px;
         padding: 8px;
         display: flex;
@@ -67,54 +69,57 @@ function openPreview() {
 
     // Title bar
     const titleBar = document.createElement('div');
+    titleBar.id = 'bunbit-entity-editor-preview-title';
     titleBar.style.cssText = `
-        color: #ff4444;
+        color: var(--bunbit-editor-fg, #ff0000);
         font: bold 14px monospace;
         width: 100%;
         text-align: center;
         cursor: move;
     `;
-    titleBar.textContent = 'JIM HATE PREVIEW';
+    titleBar.textContent = 'ENTITY EDITOR';
     previewContainer.appendChild(titleBar);
 
-    // Canvas
-    previewCanvas = document.createElement('canvas');
-    previewCanvas.id = 'jim-hate-preview-canvas';
-    previewCanvas.width = PREVIEW_WIDTH;
-    previewCanvas.height = PREVIEW_HEIGHT;
-    previewCanvas.style.cssText = `
-        background: #0a0a0a;
-        image-rendering: pixelated;
-        cursor: crosshair;
-        max-width: ${PREVIEW_WIDTH * controls.canvasScale}px;
-        max-height: ${PREVIEW_HEIGHT * controls.canvasScale}px;
+    // Entity selector dropdown
+    entitySelector = document.createElement('select');
+    entitySelector.id = 'bunbit-entity-selector';
+    entitySelector.style.cssText = `
+        margin: 4px 0;
+        padding: 4px 8px;
+        font: bold 11px monospace;
+        background: var(--bunbit-editor-button-bg, #1a0000);
+        color: var(--bunbit-editor-fg, #ff0000);
+        border: 1px solid var(--bunbit-editor-accent, #8b0000);
+        border-radius: 4px;
+        cursor: pointer;
     `;
-    previewContainer.appendChild(previewCanvas);
 
-    // Controls panel
-    previewControls = document.createElement('div');
-    previewControls.id = 'jim-hate-preview-controls';
-    previewControls.style.cssText = `
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 4px 12px;
-        font: 11px monospace;
-        color: #aaa;
-        width: 100%;
-        max-width: ${PREVIEW_WIDTH * controls.canvasScale}px;
-    `;
-    previewContainer.appendChild(previewControls);
+    const entities = getAllEntityDescriptors();
+    entities.forEach(entity => {
+        const option = document.createElement('option');
+        option.value = entity.id;
+        option.textContent = entity.label;
+        entitySelector.appendChild(option);
+    });
+
+    entitySelector.addEventListener('change', () => {
+        switchEntity(entitySelector.value);
+    });
+
+    previewContainer.appendChild(entitySelector);
 
     // Close button
     const closeBtn = document.createElement('button');
+    closeBtn.id = 'bunbit-entity-editor-preview-close';
+    closeBtn.className = 'bunbit-editor-button';
     closeBtn.textContent = 'X';
     closeBtn.style.cssText = `
         position: absolute;
         top: 4px;
         right: 8px;
-        background: #330000;
-        color: #ff4444;
-        border: 1px solid #ff4444;
+        background: var(--bunbit-editor-button-bg, #1a0000);
+        color: var(--bunbit-editor-fg, #ff0000);
+        border: 1px solid var(--bunbit-editor-accent, #8b0000);
         cursor: pointer;
         font: bold 12px monospace;
     `;
@@ -123,138 +128,61 @@ function openPreview() {
 
     document.body.appendChild(previewContainer);
 
-    // Initialize Jim Hate entity
-    previewJimHate = new JimHate(previewCanvas, {
-        canvasWidth: PREVIEW_WIDTH,
-        canvasHeight: PREVIEW_HEIGHT,
+    // Create the EntityEditor with the container and theme manager
+    editor = new EntityEditor({
+        container: previewContainer,
+        themeManager: themeManager,
+        entityType: 'jim-hate',
+        entityConfig: JIM_HATE_CONFIG,
     });
 
-    // Set up control bindings
-    _buildControls();
+    // Initialise the editor (creates canvas, entity, controls, starts loop)
+    editor.init();
 
-    // Apply initial control values to entity
-    _applyControlsToEntity();
-
-    // Start render loop
-    previewLastTime = 0;
-    previewRafId = requestAnimationFrame(_previewLoop);
+    // Apply theme immediately
+    _applyTheme();
 }
 
-function _buildControls() {
-    const c = controls;
-    const defs = [
-        { id: 'canvasScale', label: 'Canvas Scale', type: 'range', min: 0.2, max: 2, step: 0.05, val: c.canvasScale },
-        { id: 'spriteScale', label: 'Sprite Scale', type: 'range', min: 0.1, max: 3, step: 0.05, val: c.spriteScale },
-        { id: 'faceOffsetX', label: 'Face X', type: 'range', min: -200, max: 200, step: 1, val: c.faceOffsetX },
-        { id: 'faceOffsetY', label: 'Face Y', type: 'range', min: -200, max: 200, step: 1, val: c.faceOffsetY },
-        { id: 'handsOffsetX', label: 'Hands X', type: 'range', min: -200, max: 200, step: 1, val: c.handsOffsetX },
-        { id: 'handsOffsetY', label: 'Hands Y', type: 'range', min: -200, max: 200, step: 1, val: c.handsOffsetY },
-        { id: 'animationSpeed', label: 'Anim Speed', type: 'range', min: 0, max: 3, step: 0.05, val: c.animationSpeed },
-        { id: 'paused', label: 'Pause', type: 'checkbox', val: c.paused },
-    ];
+/**
+ * Switch the editor to a different entity type.
+ */
+function switchEntity(entityType) {
+    if (!editor) return;
 
-    for (const d of defs) {
-        const label = document.createElement('label');
-        label.style.cssText = 'color: #ff8888; cursor: pointer;';
-        label.textContent = d.label;
-        previewControls.appendChild(label);
+    // Get the entity descriptor for config
+    const entities = getAllEntityDescriptors();
+    const entityDef = entities.find(e => e.id === entityType);
+    if (!entityDef) return;
 
-        let input;
-        if (d.type === 'checkbox') {
-            input = document.createElement('input');
-            input.type = 'checkbox';
-            input.checked = d.val;
-            input.addEventListener('change', () => {
-                controls[d.id] = input.checked;
-                if (d.id === 'paused' && previewJimHate) {
-                    previewJimHate.state.paused = input.checked;
-                }
-            });
-        } else {
-            input = document.createElement('input');
-            input.type = 'range';
-            input.min = d.min;
-            input.max = d.max;
-            input.step = d.step;
-            input.value = d.val;
-            input.addEventListener('input', () => {
-                controls[d.id] = parseFloat(input.value);
-                _applyControlsToEntity();
-            });
-        }
-        previewControls.appendChild(input);
-    }
-
-    // Reset button
-    const resetBtn = document.createElement('button');
-    resetBtn.textContent = 'Reset';
-    resetBtn.style.cssText = `
-        grid-column: span 2;
-        background: #1a0000;
-        color: #ff4444;
-        border: 1px solid #ff4444;
-        cursor: pointer;
-        font: bold 11px monospace;
-        padding: 4px;
-    `;
-    resetBtn.addEventListener('click', () => {
-        if (previewJimHate) {
-            previewJimHate.reset();
-            controls.faceOffsetX = 0;
-            controls.faceOffsetY = -20;
-            controls.handsOffsetX = 0;
-            controls.handsOffsetY = 40;
-            controls.spriteScale = 1.0;
-            controls.animationSpeed = 1.0;
-            controls.paused = false;
-            _buildControls();
-            _applyControlsToEntity();
-        }
-    });
-    previewControls.appendChild(resetBtn);
+    // Switch the editor to the selected entity
+    editor.switchEntity(entityType, entityDef.config);
 }
 
-function _applyControlsToEntity() {
-    if (!previewJimHate) return;
-    const c = controls;
-    previewJimHate.setFaceOffset(c.faceOffsetX, c.faceOffsetY);
-    previewJimHate.setHandsOffset(c.handsOffsetX, c.handsOffsetY);
-    previewJimHate.setScales(c.spriteScale, c.spriteScale);
-    previewJimHate.state.animationSpeed = c.animationSpeed;
-    previewJimHate.state.paused = c.paused;
+/**
+ * Apply theme styling to the preview container.
+ */
+function _applyTheme() {
+    if (!previewContainer) return;
 
-    // Update canvas scale
-    const scale = c.canvasScale;
-    previewCanvas.style.maxWidth = `${PREVIEW_WIDTH * scale}px`;
-    previewCanvas.style.maxHeight = `${PREVIEW_HEIGHT * scale}px`;
+    const theme = themeManager.getCurrentTheme();
+    if (!theme) return;
+
+    previewContainer.style.setProperty('--bunbit-editor-bg', theme.background || '#0a0000');
+    previewContainer.style.setProperty('--bunbit-editor-fg', theme.text || '#ff0000');
+    previewContainer.style.setProperty('--bunbit-editor-accent', theme.border || '#8b0000');
+    previewContainer.style.setProperty('--bunbit-editor-button-bg', theme.buttonBg || '#1a0000');
 }
 
-function _previewLoop(time) {
-    if (!previewActive) return;
-
-    const rawDeltaMs = previewLastTime ? (time - previewLastTime) : 1000 / 60;
-    previewLastTime = time;
-    const deltaSeconds = rawDeltaMs / 1000;
-
-    if (previewJimHate) {
-        previewJimHate.update(deltaSeconds);
-        previewJimHate.render();
-    }
-
-    previewRafId = requestAnimationFrame(_previewLoop);
-}
-
+/**
+ * Close the Entity Editor window.
+ */
 function closePreview() {
+    if (!previewActive) return;
     previewActive = false;
 
-    if (previewRafId) {
-        cancelAnimationFrame(previewRafId);
-        previewRafId = null;
-    }
-
-    if (previewJimHate) {
-        previewJimHate.stop();
-        previewJimHate = null;
+    if (editor) {
+        editor.destroy();
+        editor = null;
     }
 
     if (previewContainer) {
@@ -262,6 +190,5 @@ function closePreview() {
         previewContainer = null;
     }
 
-    previewCanvas = null;
-    previewControls = null;
+    entitySelector = null;
 }

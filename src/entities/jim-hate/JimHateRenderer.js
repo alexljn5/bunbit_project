@@ -72,6 +72,7 @@ export class JimHateRenderer {
 
         this._drawBounds(ctx, entityCenterX, entityCenterY, state);
         this._drawStateInfo(ctx, state);
+        this._drawCenter(ctx, entityCenterX, entityCenterY);
     }
 
     _drawGrid(ctx) {
@@ -150,5 +151,24 @@ export class JimHateRenderer {
         this.height = height;
         this.canvas.width = width;
         this.canvas.height = height;
+    }
+
+    /**
+     * Draw a small crosshair at the entity centre.
+     * Useful while developing offsets so the pivot is visible.
+     */
+    _drawCenter(ctx, cx, cy) {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255, 255, 0, 0.5)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(cx - 8, cy);
+        ctx.lineTo(cx + 8, cy);
+        ctx.moveTo(cx, cy - 8);
+        ctx.lineTo(cx, cy + 8);
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(255, 255, 0, 0.5)';
+        ctx.fillRect(cx - 1, cy - 1, 2, 2);
+        ctx.restore();
     }
 }

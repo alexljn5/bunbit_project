@@ -55,6 +55,17 @@ export class JimHateAnimator {
         return { ...this.state._animOffsets };
     }
 
+    // Set animation speed multiplier
+    setSpeed(speed) {
+        this.state.animationSpeed = speed;
+    }
+
+    // Reset animator to initial state
+    reset() {
+        this.state._animOffsets = { x: 0, y: 0 };
+        this.state.time = 0;
+    }
+
     // Set animation state
     setState(stateName) {
         if (this.state.activeState === stateName) return;

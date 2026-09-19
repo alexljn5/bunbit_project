@@ -124,3 +124,74 @@ canvas.minimapCanvas {
 .game-container:fullscreen * {
     pointer-events: auto !important;
 }
+
+/* ─── Entity Editor (debug preview) ───────────────────────────────
+   Theme-aware styling for the Jim Hate entity editor. Uses CSS custom
+   properties that are set by the EntityEditor from the active theme. */
+#bunbit-entity-editor-container {
+    background: var(--bunbit-editor-bg, #0a0000);
+    color: var(--bunbit-editor-fg, #ff0000);
+    border: 2px solid var(--bunbit-editor-accent, #8b0000);
+    border-radius: 8px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+#bunbit-entity-editor-canvas {
+    background: var(--bunbit-editor-bg, #0a0000);
+    image-rendering: pixelated;
+    cursor: crosshair;
+}
+
+#bunbit-entity-editor-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 12px;
+    font: 11px monospace;
+    color: var(--bunbit-editor-fg, #ff0000);
+    width: 100%;
+}
+
+.bunbit-control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.bunbit-control-group label {
+    color: var(--bunbit-editor-fg, #ff0000);
+    font-size: 11px;
+    font-family: monospace;
+    cursor: pointer;
+}
+
+.bunbit-control-group input[type="range"] {
+    width: 100%;
+    cursor: pointer;
+}
+
+.bunbit-control-value {
+    color: var(--bunbit-editor-accent, #8b0000);
+    font-size: 11px;
+    font-family: monospace;
+    text-align: right;
+}
+
+.bunbit-editor-button {
+    background: var(--bunbit-editor-button-bg, #1a0000);
+    color: var(--bunbit-editor-fg, #ff0000);
+    border: 1px solid var(--bunbit-editor-accent, #8b0000);
+    cursor: pointer;
+    font: bold 11px monospace;
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-top: 4px;
+}
+
+.bunbit-editor-button:hover {
+    background: var(--bunbit-editor-accent, #8b0000);
+    color: var(--bunbit-editor-bg, #0a0000);
+}

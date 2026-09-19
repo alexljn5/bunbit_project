@@ -16,6 +16,7 @@ let perfContainer = null;
 let perfHeader = null;
 let perfResizeHandle = null;
 let isPerfVisible = false;
+let activePointerId = null;
 
 let PERF_WIDTH = (CANVAS_WIDTH || 800) * 0.375;
 let PERF_HEIGHT = (CANVAS_HEIGHT || 600) * 0.333;
@@ -227,10 +228,11 @@ function stopResize() {
     }
 }
 
-// Drag functions
+// Drag functions (pointer events for reliable drag end)
 function startDrag(e) {
     try {
         if (e.target.tagName === 'BUTTON') return;
+        e.preventDefault();
 
         EvilUIState.isDragging = true;
         EvilUIState.dragOffsetX = e.clientX;
@@ -240,8 +242,17 @@ function startDrag(e) {
         EvilUIState.containerStartX = rect.left;
         EvilUIState.containerStartY = rect.top;
 
-        document.addEventListener('mousemove', handleDrag);
-        document.addEventListener('mouseup', stopDrag);
+        // Use pointer capture so pointerup outside the element still fires
+        activePointerId = e.pointerId;
+        try {
+            perfHeader.setPointerCapture(e.pointerId);
+        } catch (_) { /* setPointerCapture not available */ }
+
+        perfHeader.addEventListener('pointermove', handleDrag, { passive: false });
+        perfHeader.addEventListener('pointerup', stopDrag);
+        perfHeader.addEventListener('pointercancel', stopDrag);
+        window.addEventListener('blur', stopDrag);
+        document.addEventListener('visibilitychange', stopDrag);
         perfContainer.style.cursor = 'grabbing';
     } catch (err) {
         console.error('Error in startDrag:', err);
@@ -251,6 +262,7 @@ function startDrag(e) {
 function handleDrag(e) {
     try {
         if (!EvilUIState.isDragging) return;
+        e.preventDefault();
 
         const dx = e.clientX - EvilUIState.dragOffsetX;
         const dy = e.clientY - EvilUIState.dragOffsetY;
@@ -267,8 +279,17 @@ function handleDrag(e) {
 function stopDrag() {
     try {
         EvilUIState.isDragging = false;
-        document.removeEventListener('mousemove', handleDrag);
-        document.removeEventListener('mouseup', stopDrag);
+        perfHeader.removeEventListener('pointermove', handleDrag);
+        perfHeader.removeEventListener('pointerup', stopDrag);
+        perfHeader.removeEventListener('pointercancel', stopDrag);
+        window.removeEventListener('blur', stopDrag);
+        document.removeEventListener('visibilitychange', stopDrag);
+        try {
+            if (activePointerId !== null) {
+                perfHeader.releasePointerCapture(activePointerId);
+                activePointerId = null;
+            }
+        } catch (_) { /* ignore */ }
         perfContainer.style.cursor = '';
     } catch (err) {
         console.error('Error in stopDrag:', err);
@@ -304,7 +325,7 @@ export function memCpuGodFunction() {
 
         perfContainer = document.createElement("div");
         perfContainer.id = "perfMonitorContainer";
-        perfContainer.style.position = "absolute";
+        perfContainer.style.position = "fixed";
         perfContainer.style.right = "0";
         perfContainer.style.bottom = "0";
         // Ensure perf monitor appears above control panel and debug terminal
@@ -856,6 +877,8 @@ export function togglePerfMonitor() {
 export function stopMemCpuMonitor() {
     try {
         isPerfVisible = false;
+        EvilUIState.isDragging = false;
+        activePointerId = null;
         if (updateInterval) {
             clearInterval(updateInterval);
             updateInterval = null;

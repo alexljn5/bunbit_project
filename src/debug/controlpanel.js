@@ -12,7 +12,7 @@ import { mapTable } from '../mapdata/maps.js';
 import { transparentWallTextureKeys } from '../mapdata/maptexturesloader.js';
 
 import { togglePositionPanel } from './panels/positionpanel.js';
-import { toggleJimHatePreview } from './jimhatepreview.js';
+import { toggleEntityEditor } from './jimhatepreview.js';
 
 
 
@@ -105,10 +105,10 @@ export function initControlPanel() {
     positionButton.id = 'bunbit-position-toggle';
     positionButton.textContent = 'Scale';
 
-    // Jim Hate Preview button
+    // Entity Editor button
     const jimHatePreviewButton = document.createElement('button');
-    jimHatePreviewButton.id = 'bunbit-jim-hate-preview';
-    jimHatePreviewButton.textContent = 'Jim Hate Preview';
+    jimHatePreviewButton.id = 'bunbit-entity-editor';
+    jimHatePreviewButton.textContent = 'Entity Editor';
 
     // Theme selector dropdown
     const themeSelector = document.createElement('select');
@@ -514,9 +514,9 @@ export function initControlPanel() {
         togglePositionPanel();
     });
 
-    // Jim Hate Preview toggle
+    // Entity Editor toggle
     jimHatePreviewButton.addEventListener('click', () => {
-        toggleJimHatePreview();
+        toggleEntityEditor();
     });
 
     // Drag handlers (panel is independent). We ONLY drag the panel element.
